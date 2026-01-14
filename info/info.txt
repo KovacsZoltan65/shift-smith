@@ -1,0 +1,4 @@
+composer create-project laravel/laravel shift-smith
+
+npm install
+npm install vue@3

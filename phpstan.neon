@@ -1,0 +1,32 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/nesbot/carbon/extension.neon
+    #- phpstan-baseline.neon
+parameters:
+    # opcionális: külön cache mappa (gyorsabb/robosztusabb)
+    tmpDir: %currentWorkingDirectory%/storage/phpstan
+
+    paths:
+        - app
+        - routes
+        - database/seeders
+        - database/factories
+
+    # Level 10 is the highest level
+    level: 7
+
+    parallel:
+        maximumNumberOfProcesses: 2
+
+    # Laravel/Larastan extra kapcsolók
+    #checkModelProperties: true
+    #checkMissingModelAttributes: true
+    #checkGenericClassInNonGenericObjectType: false
+    #reportUnmatchedIgnoredErrors: true
+    #checkOctaneCompatibility: false
+
+#    ignoreErrors:
+#        - '#PHPDoc tag @var#'
+#
+#    excludePaths:
+#        - ./*/*/FileToBeExcluded.php
