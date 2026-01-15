@@ -2,3 +2,34 @@ composer create-project laravel/laravel shift-smith
 
 npm install
 npm install vue@3
+
+composer require inertiajs/inertia-laravel
+
+npm install
+npm install @inertiajs/vue3 vue
+npm install -D @vitejs/plugin-vue
+php artisan inertia:install --vue ??
+
+composer require laravel/breeze --dev
+php artisan breeze:install inertia
+npm install
+php artisan migrate
+
+composer require prettus/l5-repository
+php artisan vendor:publish --provider="Prettus\Repository\Providers\RepositoryServiceProvider"
+
+composer require spatie/laravel-activitylog
+php artisan vendor:publish --provider="Spatie\Activitylog\ActivitylogServiceProvider" --tag="activitylog-config"
+php artisan vendor:publish --provider="Spatie\Activitylog\ActivitylogServiceProvider" --tag="activitylog-migrations"
+php artisan migrate
+
+composer require spatie/laravel-permission
+php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider"
+php artisan migrate
+
+composer require laradumps/laradumps --dev
+composer require larastan/larastan --dev
+composer require pestphp/pest --dev
+composer require pestphp/pest-plugin-laravel --dev
+
+superadmin@shift-smith.com | v9dJY#IzSV4!*Sv3%mUM
