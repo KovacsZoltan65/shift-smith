@@ -15,10 +15,14 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // Roles
         $superadmin = Role::firstOrCreate(['name' => 'superadmin']);
-        Role::firstOrCreate(['name' => 'admin']);
+        $admin = Role::firstOrCreate(['name' => 'admin']);
         Role::firstOrCreate(['name' => 'manager']);
         Role::firstOrCreate(['name' => 'user']);
 
+        // ---------------------------------------------
+        // SUPERADMIN
+        // ---------------------------------------------
+        
         // MVP permissions (később bővítjük modulonként)
         $permissions = [
             'schedule.viewAny',

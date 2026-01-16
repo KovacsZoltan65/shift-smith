@@ -33,3 +33,12 @@ composer require pestphp/pest --dev
 composer require pestphp/pest-plugin-laravel --dev
 
 superadmin@shift-smith.com | v9dJY#IzSV4!*Sv3%mUM
+
+php artisan optimize:clear
+
+php artisan optimize:clear
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+php artisan event:clear
+php artisan cache:clear

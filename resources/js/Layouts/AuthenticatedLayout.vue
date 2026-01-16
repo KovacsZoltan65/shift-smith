@@ -43,6 +43,7 @@ const showingNavigationDropdown = ref(false);
                         </div>
 
                         <div class="hidden sm:ms-6 sm:flex sm:items-center">
+                            
                             <!-- Settings Dropdown -->
                             <div class="relative ms-3">
                                 <Dropdown align="right" width="48">
@@ -71,11 +72,34 @@ const showingNavigationDropdown = ref(false);
                                     </template>
 
                                     <template #content>
+                                        
+                                        <div class="px-4 py-2">
+                                            <div class="text-sm font-medium text-gray-900">
+                                                {{ $page.props.auth.user.name }}
+                                            </div>
+                                            <div class="text-xs text-gray-500">
+                                                {{ $page.props.auth.user.email }}
+                                            </div>
+
+                                            <div v-if="$page.props.auth.roles?.length" class="mt-2 flex flex-wrap gap-1">
+                                                <span
+                                                    v-for="r in $page.props.auth.roles"
+                                                    :key="r"
+                                                    class="rounded bg-gray-100 px-2 py-0.5 text-[11px] text-gray-700"
+                                                >
+                                                    {{ r }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="border-t border-gray-100"></div>
+                                        
                                         <DropdownLink
                                             :href="route('profile.edit')"
                                         >
                                             Profile
                                         </DropdownLink>
+                                        
                                         <DropdownLink
                                             :href="route('logout')"
                                             method="post"
@@ -84,6 +108,7 @@ const showingNavigationDropdown = ref(false);
                                             Log Out
                                         </DropdownLink>
                                     </template>
+                                    
                                 </Dropdown>
                             </div>
                         </div>
