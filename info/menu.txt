@@ -1,0 +1,22 @@
+Dashboard
+Hozzáférés
+    Felhasználók
+    Szerepkörök
+    Jogok
+
+Szervezet
+    Cégek (ha tényleg admin jellegű)
+
+HR
+    Dolgozók
+    Műszakok (sablonok / típusok)
+    Beosztások (listák, kiosztások)
+    Tervezés (a calendar builder)
+
+Beállítások
+    Applikáció
+    Cég
+    Profil (vagy “Felhasználó”)
+
+Napló
+    Audit Log

@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
@@ -8,6 +8,15 @@ import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 import { Link } from '@inertiajs/vue3';
 
 const showingNavigationDropdown = ref(false);
+
+const initials = computed(() => {
+    const name = (String((window?.page?.props?.auth?.user?.name ?? 'User'))).trim();
+    const parts = name.split(/\s+/).filter(Boolean);
+    const a = parts[0]?.[0] ?? 'U';
+    const b = parts[1]?.[0] ?? '';
+    return (a + b).toUpperCase();
+});
+
 </script>
 
 <template>
@@ -75,6 +84,9 @@ const showingNavigationDropdown = ref(false);
                                         
                                         <div class="px-4 py-2">
                                             <div class="text-sm font-medium text-gray-900">
+                                                <span class="me-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-700">
+                                                    {{ initials }}
+                                                </span>
                                                 {{ $page.props.auth.user.name }}
                                             </div>
                                             <div class="text-xs text-gray-500">
