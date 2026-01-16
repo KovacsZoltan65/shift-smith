@@ -32,6 +32,13 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
 
+        ds(
+            $user
+                ? $request->user()->getAllPermissions()->pluck('name')->values()
+                : [],
+            $user ? $user->getRoleNames()->values() : []
+        );
+        
         return [
             ...parent::share($request),
             'flash' => [
@@ -41,8 +48,16 @@ class HandleInertiaRequests extends Middleware
                 'info'    => fn () => $request->session()->get('info'),
             ],
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user ? [
+                    'id'    => (int) $user->id,
+                    'name'  => (string) $user->name,
+                    'email' => (string) $user->email,
+                ] : null,
                 'can'  => $request->user() ? $request->user()->getPermissionArray() : [],
+                'roles' => $user ? $user->getRoleNames()->values() : [],
+                'permissions' => $user
+                    ? $request->user()->getAllPermissions()->pluck('name')->values()
+                    : [],
             ],
             'ziggy' => function () use ($request) {
                 return array_merge((new Ziggy)->toArray(), [
