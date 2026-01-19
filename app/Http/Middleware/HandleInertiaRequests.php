@@ -36,22 +36,24 @@ class HandleInertiaRequests extends Middleware
         $user = $request->user();
         
         if ($user) {
-            $cacheKey = "menu_order:user:{$user->id}";
             
-            $menuOrder = Cache::remember(
-                $cacheKey, 
-                env('cache.menu_refresh_second', 60), 
-                function() use($user) {
-                    $menuOrder = DB::table('user_menu_stats')
-                        ->where('user_id', $user->id)
-                        ->orderByDesc('hit_count')
-                        ->orderByDesc('last_used_at')
-                        ->pluck('menu_key')
-                        ->values()
-                        ->all();
-                    });
+            $needCache = config('cache.enable_menu', false);
+            $cacheKey  = "menu_order:user:{$user->id}";
+            $ttl       = (int) env('cache.menu_refresh_second', 60);
             
+            $callback = function() use($user) {
+                return DB::table('user_menu_stats')
+                    ->where('user_id', $user->id)
+                    ->orderByDesc('hit_count')
+                    ->orderByDesc('last_used_at')
+                    ->pluck('menu_key')
+                    ->values()
+                    ->all();
+            };
             
+            $menuOrder = $needCache
+                ? Cache::remember($cacheKey, $ttl, $callback)
+                : $callback();
         }
 
         return [

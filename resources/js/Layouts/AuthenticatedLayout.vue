@@ -1,137 +1,300 @@
 <script setup>
 import { computed, ref } from "vue";
-import { Link, usePage } from "@inertiajs/vue3";
+import ApplicationLogo from "@/Components/ApplicationLogo.vue";
+import Dropdown from "@/Components/Dropdown.vue";
+import DropdownLink from "@/Components/DropdownLink.vue";
+import NavLink from "@/Components/NavLink.vue";
+import ResponsiveNavLink from "@/Components/ResponsiveNavLink.vue";
+import { Link } from "@inertiajs/vue3";
+
 import { useAppMenu } from "@/composables/useAppMenu";
 
-const page = usePage();
-const { filteredMenu } = useAppMenu();
+const showingNavigationDropdown = ref(false);
 
+// Sidebar nyit/zár (desktopon is)
 const sidebarOpen = ref(true);
 
-const currentRouteName = computed(() => (page.props.ziggy?.location ? null : null));
+const { filteredMenu } = useAppMenu();
+
+const initials = computed(() => {
+  const name = String(window?.page?.props?.auth?.user?.name ?? "User").trim();
+  const parts = name.split(/\s+/).filter(Boolean);
+  const a = parts[0]?.[0] ?? "U";
+  const b = parts[1]?.[0] ?? "";
+  return (a + b).toUpperCase();
+});
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <!-- Topbar -->
-    <header class="sticky top-0 z-40 border-b bg-white">
-      <div
-        class="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8"
-      >
-        <div class="flex items-center gap-2">
-          <button
-            type="button"
-            class="rounded-md p-2 hover:bg-gray-100"
-            @click="sidebarOpen = !sidebarOpen"
-            title="Menü"
-          >
-            <!-- hamburger -->
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
-          </button>
-
-          <Link :href="route('dashboard')" class="font-semibold text-gray-900">
-            ShiftSmith
-          </Link>
-        </div>
-
-        <div class="flex items-center gap-3">
-          <!-- ide jöhet gyorslink / kereső / értesítés -->
-          <span class="text-sm text-gray-600">{{ page.props.auth?.user?.name }}</span>
-        </div>
-      </div>
-    </header>
-
-    <div class="mx-auto flex max-w-7xl">
-      <!-- Sidebar -->
-      <aside v-show="sidebarOpen" class="w-72 shrink-0 border-r bg-white">
-        <nav class="p-3">
-          <!-- NAV -->
-          <div v-for="group in filteredMenu" :key="group.title" class="mb-4">
-            <div
-              class="px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400"
-            >
-              {{ group.title }}
-            </div>
-
-            <div class="space-y-1">
-              <template v-for="item in group.items ?? []" :key="item.key ?? item.route">
-                <template v-if="item && item.route && route().has(item.route)">
-                  <Link
-                    :href="route(item.route)"
-                    class="block rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    :class="{
-                      'bg-gray-100 font-semibold text-gray-900': route().current(
-                        item.route
-                      ),
-                    }"
-                  >
-                    {{ item.title }}
-                  </Link>
-                </template>
-
-                <template v-else>
-                  <div
-                    class="block rounded-md px-3 py-2 text-sm text-gray-400"
-                    title="Hiányzó route vagy item"
-                  >
-                    {{ item?.title ?? "(ismeretlen)" }}
-                  </div>
-                </template>
-              </template>
-            </div>
-          </div>
-          <!-- ./NAV -->
-          <!--<div v-for="group in filteredMenu" :key="group.title" class="mb-4">
-            <div
-              class="px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400"
-            >
-              {{ group.title }}
-            </div>
-
-            <div class="space-y-1">
-              <Link
-                v-for="item in group.items"
-                :key="item.key"
-                v-if="route().has(item.route)"
-                :href="route(item.route)"
-                class="block rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                :class="{
-                  'bg-gray-100 font-semibold text-gray-900': route().current(item.route),
-                }"
+  <div>
+    <div class="min-h-screen bg-gray-100">
+      <nav class="border-b border-gray-100 bg-white">
+        <!-- Primary Navigation Menu -->
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div class="flex h-16 justify-between">
+            <div class="flex">
+              <!-- Logo -->
+              <div class="flex shrink-0 items-center">
+                <Link :href="route('dashboard')">
+                  <ApplicationLogo class="block h-9 w-auto fill-current text-gray-800" />
+                </Link>
+              </div>
+              <!-- Sidebar toggle (desktop) -->
+              <button
+                type="button"
+                class="me-2 hidden items-center justify-center rounded-md p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 sm:inline-flex"
+                @click="sidebarOpen = !sidebarOpen"
+                title="Oldalsáv"
               >
-                {{ item.title }}
-              </Link>
+                <svg
+                  class="h-6 w-6"
+                  stroke="currentColor"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+              </button>
 
-              <div
-                v-else
-                class="block rounded-md px-3 py-2 text-sm text-gray-400"
-                title="Hiányzó route"
-              >
-                {{ item.title }}
+              <!-- Navigation Links -->
+              <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                <NavLink
+                  :href="route('dashboard')"
+                  :active="route().current('dashboard')"
+                >
+                  Dashboard
+                </NavLink>
               </div>
             </div>
-          </div>-->
-        </nav>
-      </aside>
 
-      <!-- Content -->
-      <main class="flex-1 p-4 sm:p-6 lg:p-8">
-        <slot name="header" />
-        <slot />
-      </main>
+            <div class="hidden sm:ms-6 sm:flex sm:items-center">
+              <!-- Sidebar toggle (desktop) -->
+
+              <!--<button
+                type="button"
+                class="me-2 inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-medium text-gray-500 transition hover:bg-gray-50 hover:text-gray-700"
+                @click="sidebarOpen = !sidebarOpen"
+                title="Oldalsáv"
+              >
+                <svg
+                  class="h-5 w-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+              </button>-->
+
+              <!-- Settings Dropdown -->
+              <div class="relative ms-3">
+                <Dropdown align="right" width="48">
+                  <template #trigger>
+                    <span class="inline-flex rounded-md">
+                      <button
+                        type="button"
+                        class="inline-flex items-center rounded-md border border-transparent bg-white px-3 py-2 text-sm font-medium leading-4 text-gray-500 transition duration-150 ease-in-out hover:text-gray-700 focus:outline-none"
+                      >
+                        {{ $page.props.auth.user.name }}
+
+                        <svg
+                          class="-me-0.5 ms-2 h-4 w-4"
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fill-rule="evenodd"
+                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                            clip-rule="evenodd"
+                          />
+                        </svg>
+                      </button>
+                    </span>
+                  </template>
+
+                  <template #content>
+                    <div class="px-4 py-2">
+                      <div class="text-sm font-medium text-gray-900">
+                        <span
+                          class="me-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-700"
+                        >
+                          {{ initials }}
+                        </span>
+                        {{ $page.props.auth.user.name }}
+                      </div>
+                      <div class="text-xs text-gray-500">
+                        {{ $page.props.auth.user.email }}
+                      </div>
+
+                      <div
+                        v-if="$page.props.auth.roles?.length"
+                        class="mt-2 flex flex-wrap gap-1"
+                      >
+                        <span
+                          v-for="r in $page.props.auth.roles"
+                          :key="r"
+                          class="rounded bg-gray-100 px-2 py-0.5 text-[11px] text-gray-700"
+                        >
+                          {{ r }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="border-t border-gray-100"></div>
+
+                    <DropdownLink :href="route('profile.edit')"> Profile </DropdownLink>
+
+                    <DropdownLink :href="route('logout')" method="post" as="button">
+                      Log Out
+                    </DropdownLink>
+                  </template>
+                </Dropdown>
+              </div>
+            </div>
+
+            <!-- Hamburger -->
+            <div class="-me-2 flex items-center sm:hidden">
+              <button
+                @click="showingNavigationDropdown = !showingNavigationDropdown"
+                class="inline-flex items-center justify-center rounded-md p-2 text-gray-400 transition duration-150 ease-in-out hover:bg-gray-100 hover:text-gray-500 focus:bg-gray-100 focus:text-gray-500 focus:outline-none"
+              >
+                <svg
+                  class="h-6 w-6"
+                  stroke="currentColor"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    :class="{
+                      hidden: showingNavigationDropdown,
+                      'inline-flex': !showingNavigationDropdown,
+                    }"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                  <path
+                    :class="{
+                      hidden: !showingNavigationDropdown,
+                      'inline-flex': showingNavigationDropdown,
+                    }"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Responsive Navigation Menu -->
+        <div
+          :class="{
+            block: showingNavigationDropdown,
+            hidden: !showingNavigationDropdown,
+          }"
+          class="sm:hidden"
+        >
+          <div class="space-y-1 pb-3 pt-2">
+            <ResponsiveNavLink
+              :href="route('dashboard')"
+              :active="route().current('dashboard')"
+            >
+              Dashboard
+            </ResponsiveNavLink>
+          </div>
+
+          <!-- Responsive Settings Options -->
+          <div class="border-t border-gray-200 pb-1 pt-4">
+            <div class="px-4">
+              <div class="text-base font-medium text-gray-800">
+                {{ $page.props.auth.user.name }}
+              </div>
+              <div class="text-sm font-medium text-gray-500">
+                {{ $page.props.auth.user.email }}
+              </div>
+            </div>
+
+            <div class="mt-3 space-y-1">
+              <ResponsiveNavLink :href="route('profile.edit')">
+                Profile
+              </ResponsiveNavLink>
+              <ResponsiveNavLink :href="route('logout')" method="post" as="button">
+                Log Out
+              </ResponsiveNavLink>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Page Heading -->
+      <header class="bg-white shadow" v-if="$slots.header">
+        <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <slot name="header" />
+        </div>
+      </header>
+
+      <!-- Content with Sidebar -->
+      <div class="mx-auto flex max-w-7xl">
+        <!-- Sidebar (desktop) -->
+        <aside
+          v-show="sidebarOpen"
+          class="hidden w-72 shrink-0 border-r border-gray-200 bg-white sm:block"
+        >
+          <nav class="p-3">
+            <div v-for="group in filteredMenu" :key="group.title" class="mb-4">
+              <div
+                class="px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400"
+              >
+                {{ group.title }}
+              </div>
+
+              <div class="space-y-1">
+                <template v-for="item in group.items ?? []" :key="item.key ?? item.route">
+                  <template v-if="item && item.route && route().has(item.route)">
+                    <Link
+                      :href="route(item.route)"
+                      class="block rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      :class="{
+                        'bg-gray-100 font-semibold text-gray-900': route().current(
+                          item.route
+                        ),
+                      }"
+                    >
+                      {{ item.title }}
+                    </Link>
+                  </template>
+                  <template v-else>
+                    <div class="block rounded-md px-3 py-2 text-sm text-gray-400">
+                      {{ item?.title ?? "(ismeretlen)" }}
+                    </div>
+                  </template>
+                </template>
+              </div>
+            </div>
+          </nav>
+        </aside>
+
+        <!-- Page Content -->
+        <main class="flex-1">
+          <slot />
+        </main>
+      </div>
     </div>
   </div>
 </template>
