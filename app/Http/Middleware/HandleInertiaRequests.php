@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use Tighten\Ziggy\Ziggy;
+use Illuminate\Support\Facades\DB;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -30,15 +31,19 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $menuOrder = [];
         $user = $request->user();
-
-        ds(
-            $user
-                ? $request->user()->getAllPermissions()->pluck('name')->values()
-                : [],
-            $user ? $user->getRoleNames()->values() : []
-        );
         
+        if ($user) {
+            $menuOrder = DB::table('user_menu_stats')
+                ->where('user_id', $user->id)
+                ->orderByDesc('hit_count')
+                ->orderByDesc('last_used_at')
+                ->pluck('menu_key')
+                ->values()
+                ->all();
+        }
+
         return [
             ...parent::share($request),
             'flash' => [
@@ -64,6 +69,7 @@ class HandleInertiaRequests extends Middleware
                     'location' => $request->url(),
                 ]);
             },
+            'menu_order' => $menuOrder,
         ];
     }
 }

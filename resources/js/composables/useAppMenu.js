@@ -11,47 +11,91 @@ import { usePage } from "@inertiajs/vue3";
 
 export function useAppMenu() {
     const page = usePage();
-    
-    const menu = computed(() => ([
+
+    const menu = computed(() => [
         {
-            title: 'Adminisztráció',
+            title: "Adminisztráció",
             items: [
-                { title: 'Felhasználók', route: 'users.index', can: 'users.viewAny' },
-                { title: 'Cégek',        route: 'companies.index', can: 'companies.viewAny' },
+                {
+                    title: "Felhasználók",
+                    route: "users.index",
+                    can: "users.viewAny",
+                },
+                {
+                    title: "Cégek",
+                    route: "companies.index",
+                    can: "companies.viewAny",
+                },
             ],
         },
         {
-            title: 'Biztonság',
+            title: "Biztonság",
             items: [
-                { title: 'Jogok',       route: 'permissions.index', can: 'permissions.viewAny' },
-                { title: 'Szerepkörök', route: 'roles.index',       can: 'roles.viewAny' },
+                {
+                    title: "Jogok",
+                    route: "permissions.index",
+                    can: "permissions.viewAny",
+                },
+                {
+                    title: "Szerepkörök",
+                    route: "roles.index",
+                    can: "roles.viewAny",
+                },
             ],
         },
         {
-            title: 'HR',
+            title: "HR",
             items: [
-                { title: 'Dolgozók',  route: 'employees.index',   can: 'employees.viewAny' },
-                { title: 'Beosztások',route: 'assignments.index', can: 'assignments.viewAny' },
-                { title: 'Műszakok',  route: 'shifts.index',      can: 'shifts.viewAny' },
-                { title: 'Tervezés',  route: 'planning.index',    can: 'planning.view' },
+                {
+                    title: "Dolgozók",
+                    route: "employees.index",
+                    can: "employees.viewAny",
+                },
+                {
+                    title: "Beosztások",
+                    route: "assignments.index",
+                    can: "assignments.viewAny",
+                },
+                {
+                    title: "Műszakok",
+                    route: "shifts.index",
+                    can: "shifts.viewAny",
+                },
+                {
+                    title: "Tervezés",
+                    route: "planning.index",
+                    can: "planning.view",
+                },
             ],
         },
         {
-            title: 'Beállítások',
+            title: "Beállítások",
             items: [
-                { title: 'Applikáció', route: 'settings.app',     can: 'settings.app' },
-                { title: 'Cég',        route: 'settings.company', can: 'settings.company' },
-                { title: 'Személy',    route: 'settings.user',    can: 'settings.user' },
+                {
+                    title: "Applikáció",
+                    route: "settings.app",
+                    can: "settings.app",
+                },
+                {
+                    title: "Cég",
+                    route: "settings.company",
+                    can: "settings.company",
+                },
+                {
+                    title: "Személy",
+                    route: "settings.user",
+                    can: "settings.user",
+                },
             ],
         },
-    ]));
-    
+    ]);
+
     const filteredMenu = computed(() => {
         const perms = page.props.auth?.permissions ?? [];
         const roles = page.props.auth?.roles ?? [];
 
         // Ha superadmin szerep: mindent lásson (UI szinten)
-        if (Array.isArray(roles) && roles.includes('superadmin')) {
+        if (Array.isArray(roles) && roles.includes("superadmin")) {
             return menu.value;
         }
 
@@ -59,13 +103,13 @@ export function useAppMenu() {
         if (!Array.isArray(perms) || perms.length === 0) {
             return menu.value;
         }
-        
-        console.log('perms', perms);
 
-        console.log('roles', roles);
+        console.log("perms", perms);
 
-        console.log('menu.value',menu.value);
-        
+        console.log("roles", roles);
+
+        console.log("menu.value", menu.value);
+
         return menu.value;
 
         /*
@@ -79,5 +123,4 @@ export function useAppMenu() {
     });
 
     return { menu, filteredMenu };
-};
-
+}
