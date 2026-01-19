@@ -16,6 +16,12 @@ const sidebarOpen = ref(true);
 
 const { filteredMenu } = useAppMenu();
 
+const quickLinks = computed(() => {
+  const groups = filteredMenu.value ?? [];
+  const flat = groups.flatMap((g) => g?.items ?? []);
+  return flat.filter((i) => i && i.route).slice(0, 5);
+});
+
 const initials = computed(() => {
   const name = String(window?.page?.props?.auth?.user?.name ?? "User").trim();
   const parts = name.split(/\s+/).filter(Boolean);
@@ -61,15 +67,40 @@ const initials = computed(() => {
                 </svg>
               </button>
 
+              <!-- Quick access (desktop) -->
+              <div class="hidden items-center gap-2 sm:ms-6 sm:flex">
+                <TransitionGroup name="quick" tag="div" class="flex items-center gap-2">
+                  <template
+                    v-for="qi in quickLinks"
+                    :key="qi?.key ?? qi?.route ?? qi?.title"
+                  >
+                    <template v-if="qi && qi.route && route().has(qi.route)">
+                      <Link
+                        :href="route(qi.route)"
+                        class="rounded-md bg-gray-50 px-3 py-1.5 text-sm text-gray-700 ring-1 ring-gray-200 transition hover:bg-gray-100"
+                        :class="{
+                          'bg-gray-200 text-gray-900 ring-gray-300': route().current(
+                            qi.route
+                          ),
+                        }"
+                        :title="qi.route"
+                      >
+                        {{ qi.title }}
+                      </Link>
+                    </template>
+                  </template>
+                </TransitionGroup>
+              </div>
+
               <!-- Navigation Links -->
-              <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+              <!--<div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                 <NavLink
                   :href="route('dashboard')"
                   :active="route().current('dashboard')"
                 >
                   Dashboard
                 </NavLink>
-              </div>
+              </div>-->
             </div>
 
             <div class="hidden sm:ms-6 sm:flex sm:items-center">
@@ -252,44 +283,48 @@ const initials = computed(() => {
       <!-- Content with Sidebar -->
       <div class="mx-auto flex max-w-7xl">
         <!-- Sidebar (desktop) -->
-        <aside
-          v-show="sidebarOpen"
-          class="hidden w-72 shrink-0 border-r border-gray-200 bg-white sm:block"
-        >
-          <nav class="p-3">
-            <div v-for="group in filteredMenu" :key="group.title" class="mb-4">
-              <div
-                class="px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400"
-              >
-                {{ group.title }}
-              </div>
+        <Transition name="sidebar">
+          <aside
+            v-show="sidebarOpen"
+            class="hidden w-72 shrink-0 border-r border-gray-200 bg-white sm:block"
+          >
+            <nav class="p-3">
+              <div v-for="group in filteredMenu" :key="group.title" class="mb-4">
+                <div
+                  class="px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400"
+                >
+                  {{ group.title }}
+                </div>
 
-              <div class="space-y-1">
-                <template v-for="item in group.items ?? []" :key="item.key ?? item.route">
-                  <template v-if="item && item.route && route().has(item.route)">
-                    <Link
-                      :href="route(item.route)"
-                      class="block rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      :class="{
-                        'bg-gray-100 font-semibold text-gray-900': route().current(
-                          item.route
-                        ),
-                      }"
-                    >
-                      {{ item.title }}
-                    </Link>
+                <div class="space-y-1">
+                  <template
+                    v-for="item in group.items ?? []"
+                    :key="item.key ?? item.route"
+                  >
+                    <template v-if="item && item.route && route().has(item.route)">
+                      <Link
+                        :href="route(item.route)"
+                        class="block rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        :class="{
+                          'bg-gray-100 font-semibold text-gray-900': route().current(
+                            item.route
+                          ),
+                        }"
+                      >
+                        {{ item.title }}
+                      </Link>
+                    </template>
+                    <template v-else>
+                      <div class="block rounded-md px-3 py-2 text-sm text-gray-400">
+                        {{ item?.title ?? "(ismeretlen)" }}
+                      </div>
+                    </template>
                   </template>
-                  <template v-else>
-                    <div class="block rounded-md px-3 py-2 text-sm text-gray-400">
-                      {{ item?.title ?? "(ismeretlen)" }}
-                    </div>
-                  </template>
-                </template>
+                </div>
               </div>
-            </div>
-          </nav>
-        </aside>
-
+            </nav>
+          </aside>
+        </Transition>
         <!-- Page Content -->
         <main class="flex-1">
           <slot />
