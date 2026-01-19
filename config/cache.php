@@ -114,4 +114,6 @@ return [
 
     'prefix' => env('CACHE_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-cache-'),
 
+    'menu_refresh_second' => 60,
+    
 ];

@@ -3,9 +3,10 @@
 namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Inertia\Middleware;
 use Tighten\Ziggy\Ziggy;
-use Illuminate\Support\Facades\DB;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -35,13 +36,22 @@ class HandleInertiaRequests extends Middleware
         $user = $request->user();
         
         if ($user) {
-            $menuOrder = DB::table('user_menu_stats')
-                ->where('user_id', $user->id)
-                ->orderByDesc('hit_count')
-                ->orderByDesc('last_used_at')
-                ->pluck('menu_key')
-                ->values()
-                ->all();
+            $cacheKey = "menu_order:user:{$user->id}";
+            
+            $menuOrder = Cache::remember(
+                $cacheKey, 
+                env('cache.menu_refresh_second', 60), 
+                function() use($user) {
+                    $menuOrder = DB::table('user_menu_stats')
+                        ->where('user_id', $user->id)
+                        ->orderByDesc('hit_count')
+                        ->orderByDesc('last_used_at')
+                        ->pluck('menu_key')
+                        ->values()
+                        ->all();
+                    });
+            
+            
         }
 
         return [

@@ -25,6 +25,12 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+
+/**
+ * ======================================
+ * MENÜPONT NAVIGÁCIÓK
+ * ======================================
+ */
 Route::middleware(['auth', 'verified'])->group(function () {
 
     // Menü
