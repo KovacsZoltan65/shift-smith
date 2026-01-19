@@ -1,10 +1,18 @@
 import "../css/app.css";
 import "./bootstrap";
+import "@primeuix/styled";
 
 import { createInertiaApp } from "@inertiajs/vue3";
 import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
 import { createApp, h } from "vue";
 import { ZiggyVue } from "../../vendor/tightenco/ziggy";
+
+import PrimeVue from "primevue/config";
+import ToastService from "primevue/toastservice";
+//import Aura from "@primeuix/themes/aura";
+import Aura from "@primevue/themes/aura";
+
+import "primeicons/primeicons.css";
 
 const appName = import.meta.env.VITE_APP_NAME || "Laravel";
 
@@ -18,6 +26,13 @@ createInertiaApp({
     setup({ el, App, props, plugin }) {
         return createApp({ render: () => h(App, props) })
             .use(plugin)
+            .use(PrimeVue, {
+                ripple: true,
+                theme: {
+                    preset: Aura,
+                },
+            })
+            .use(ToastService)
             .use(ZiggyVue)
             .mount(el);
     },

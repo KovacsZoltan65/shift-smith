@@ -5,9 +5,12 @@ import Dropdown from "@/Components/Dropdown.vue";
 import DropdownLink from "@/Components/DropdownLink.vue";
 import NavLink from "@/Components/NavLink.vue";
 import ResponsiveNavLink from "@/Components/ResponsiveNavLink.vue";
-import { Link } from "@inertiajs/vue3";
+
+import { Link, router } from "@inertiajs/vue3";
 
 import { useAppMenu } from "@/composables/useAppMenu";
+
+import Button from "primevue/button";
 
 const showingNavigationDropdown = ref(false);
 
@@ -68,29 +71,23 @@ const initials = computed(() => {
               </button>
 
               <!-- Quick access (desktop) -->
-              <div class="hidden items-center gap-2 sm:ms-6 sm:flex">
-                <TransitionGroup name="quick" tag="div" class="flex items-center gap-2">
-                  <template
-                    v-for="qi in quickLinks"
-                    :key="qi?.key ?? qi?.route ?? qi?.title"
-                  >
-                    <template v-if="qi && qi.route && route().has(qi.route)">
-                      <Link
-                        :href="route(qi.route)"
-                        class="rounded-md bg-gray-50 px-3 py-1.5 text-sm text-gray-700 ring-1 ring-gray-200 transition hover:bg-gray-100"
-                        :class="{
-                          'bg-gray-200 text-gray-900 ring-gray-300': route().current(
-                            qi.route
-                          ),
-                        }"
-                        :title="qi.route"
-                      >
-                        {{ qi.title }}
-                      </Link>
-                    </template>
+              <TransitionGroup name="quick" tag="div" class="flex items-center gap-2">
+                <div
+                  v-for="qi in quickLinks"
+                  :key="qi?.key ?? qi?.route ?? qi?.title"
+                  class="inline-block"
+                >
+                  <template v-if="qi && qi.route && route().has(qi.route)">
+                    <Button
+                      severity="secondary"
+                      size="small"
+                      @click="router.visit(route(qi.route))"
+                    >
+                      {{ qi.title }}
+                    </Button>
                   </template>
-                </TransitionGroup>
-              </div>
+                </div>
+              </TransitionGroup>
 
               <!-- Navigation Links -->
               <!--<div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">

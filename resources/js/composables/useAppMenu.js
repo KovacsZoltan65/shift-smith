@@ -63,19 +63,6 @@ export function useAppMenu() {
             })
             .filter((g) => (g.items ?? []).length > 0);
 
-        // group rendezés: amelyik groupban van "használt" elem, az jöjjön előrébb
-        groups.sort((ga, gb) => {
-            const aScores = ga.items.map(sortScore).filter((x) => x !== null);
-            const bScores = gb.items.map(sortScore).filter((x) => x !== null);
-
-            const aBest = aScores.length ? Math.min(...aScores) : null;
-            const bBest = bScores.length ? Math.min(...bScores) : null;
-
-            if (aBest === null && bBest === null) return 0;
-            if (aBest === null) return 1;
-            if (bBest === null) return -1;
-            return aBest - bBest;
-        });
         return groups;
     });
 
