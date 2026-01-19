@@ -1,230 +1,135 @@
 <script setup>
-import { ref } from "vue";
-import { Link } from "@inertiajs/vue3";
-
-import ApplicationLogo from "@/Components/ApplicationLogo.vue";
-import Dropdown from "@/Components/Dropdown.vue";
-import DropdownLink from "@/Components/DropdownLink.vue";
-import NavLink from "@/Components/NavLink.vue";
-import ResponsiveNavLink from "@/Components/ResponsiveNavLink.vue";
-
+import { computed, ref } from "vue";
+import { Link, usePage } from "@inertiajs/vue3";
 import { useAppMenu } from "@/composables/useAppMenu";
 
-const showingNavigationDropdown = ref(false);
+const page = usePage();
 const { filteredMenu } = useAppMenu();
+
+const sidebarOpen = ref(true);
+
+const currentRouteName = computed(() => (page.props.ziggy?.location ? null : null));
 </script>
 
 <template>
-  <div>
-    <div class="min-h-screen bg-gray-100">
-      <nav class="border-b border-gray-100 bg-white">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div class="flex h-16 justify-between">
-            <div class="flex">
-              <!-- Logo -->
-              <div class="flex shrink-0 items-center">
-                <Link :href="route('dashboard')">
-                  <ApplicationLogo class="block h-9 w-auto fill-current text-gray-800" />
-                </Link>
-              </div>
+  <div class="min-h-screen bg-gray-50">
+    <!-- Topbar -->
+    <header class="sticky top-0 z-40 border-b bg-white">
+      <div
+        class="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8"
+      >
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="rounded-md p-2 hover:bg-gray-100"
+            @click="sidebarOpen = !sidebarOpen"
+            title="Menü"
+          >
+            <!-- hamburger -->
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
 
-              <!-- Desktop: minimal top nav -->
-              <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                <NavLink
-                  :href="route('dashboard')"
-                  :active="route().current('dashboard')"
-                >
-                  Dashboard
-                </NavLink>
-
-                <NavLink
-                  v-if="route().has('menu.index')"
-                  :href="route('menu.index')"
-                  :active="route().current('menu.index')"
-                >
-                  Menü
-                </NavLink>
-              </div>
-            </div>
-
-            <!-- Desktop user dropdown -->
-            <div class="hidden sm:ms-6 sm:flex sm:items-center">
-              <div class="relative ms-3">
-                <Dropdown align="right" width="48">
-                  <template #trigger>
-                    <button
-                      type="button"
-                      class="inline-flex items-center rounded-md border border-transparent bg-white px-3 py-2 text-sm font-medium leading-4 text-gray-500 transition duration-150 ease-in-out hover:text-gray-700 focus:outline-none"
-                    >
-                      {{ $page.props.auth.user.name }}
-
-                      <svg
-                        class="-me-0.5 ms-2 h-4 w-4"
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fill-rule="evenodd"
-                          d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                          clip-rule="evenodd"
-                        />
-                      </svg>
-                    </button>
-                  </template>
-
-                  <template #content>
-                    <!-- User header (desktop dropdown) -->
-                    <div class="px-4 py-2">
-                      <div class="text-sm font-medium text-gray-900">
-                        {{ $page.props.auth.user.name }}
-                      </div>
-                      <div class="text-xs text-gray-500">
-                        {{ $page.props.auth.user.email }}
-                      </div>
-                    </div>
-
-                    <div class="border-t border-gray-100"></div>
-
-                    <DropdownLink :href="route('profile.edit')"> Profile </DropdownLink>
-
-                    <DropdownLink :href="route('logout')" method="post" as="button">
-                      Log Out
-                    </DropdownLink>
-                  </template>
-                </Dropdown>
-              </div>
-            </div>
-
-            <!-- Hamburger -->
-            <div class="-me-2 flex items-center sm:hidden">
-              <button
-                type="button"
-                class="inline-flex items-center justify-center rounded-md p-2 text-gray-400 transition duration-150 ease-in-out hover:bg-gray-100 hover:text-gray-500 focus:bg-gray-100 focus:text-gray-500 focus:outline-none"
-                @click="showingNavigationDropdown = !showingNavigationDropdown"
-              >
-                <svg
-                  class="h-6 w-6"
-                  stroke="currentColor"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    :class="{
-                      hidden: showingNavigationDropdown,
-                      'inline-flex': !showingNavigationDropdown,
-                    }"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                  <path
-                    :class="{
-                      hidden: !showingNavigationDropdown,
-                      'inline-flex': showingNavigationDropdown,
-                    }"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-          </div>
+          <Link :href="route('dashboard')" class="font-semibold text-gray-900">
+            ShiftSmith
+          </Link>
         </div>
 
-        <!-- Mobile -->
-        <div
-          :class="{
-            block: showingNavigationDropdown,
-            hidden: !showingNavigationDropdown,
-          }"
-          class="sm:hidden"
-        >
-          <!-- Mobile: quick links -->
-          <div class="space-y-2 pb-3 pt-2">
-            <div class="px-4">
-              <ResponsiveNavLink
-                :href="route('dashboard')"
-                :active="route().current('dashboard')"
-              >
-                Dashboard
-              </ResponsiveNavLink>
+        <div class="flex items-center gap-3">
+          <!-- ide jöhet gyorslink / kereső / értesítés -->
+          <span class="text-sm text-gray-600">{{ page.props.auth?.user?.name }}</span>
+        </div>
+      </div>
+    </header>
 
-              <ResponsiveNavLink
-                v-if="route().has('menu.index')"
-                :href="route('menu.index')"
-                :active="route().current('menu.index')"
-              >
-                Menü
-              </ResponsiveNavLink>
+    <div class="mx-auto flex max-w-7xl">
+      <!-- Sidebar -->
+      <aside v-show="sidebarOpen" class="w-72 shrink-0 border-r bg-white">
+        <nav class="p-3">
+          <!-- NAV -->
+          <div v-for="group in filteredMenu" :key="group.title" class="mb-4">
+            <div
+              class="px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400"
+            >
+              {{ group.title }}
             </div>
 
-            <!-- Mobile: full app menu groups -->
-            <!--<div
-              v-for="group in filteredMenu"
-              :key="group.title"
-              class="border-t border-gray-200 pt-3"
-            >
-              <div
-                class="px-4 text-xs font-semibold uppercase tracking-wide text-gray-500"
-              >
-                {{ group.title }}
-              </div>
-
-              <div class="mt-2 space-y-1">
-                <template v-for="item in group.items" :key="item.route">
-                  <ResponsiveNavLink
-                    v-if="route().has(item.route)"
+            <div class="space-y-1">
+              <template v-for="item in group.items ?? []" :key="item.key ?? item.route">
+                <template v-if="item && item.route && route().has(item.route)">
+                  <Link
                     :href="route(item.route)"
-                    :active="route().current(item.route)"
+                    class="block rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    :class="{
+                      'bg-gray-100 font-semibold text-gray-900': route().current(
+                        item.route
+                      ),
+                    }"
                   >
                     {{ item.title }}
-                  </ResponsiveNavLink>-->
+                  </Link>
+                </template>
 
-            <!-- Guard: missing route should not crash -->
-            <!--<div v-else class="px-4 py-2 text-sm text-gray-400">
-                    {{ item.title }}
-                    <span class="text-xs">(hiányzó route: {{ item.route }})</span>
+                <template v-else>
+                  <div
+                    class="block rounded-md px-3 py-2 text-sm text-gray-400"
+                    title="Hiányzó route vagy item"
+                  >
+                    {{ item?.title ?? "(ismeretlen)" }}
                   </div>
                 </template>
-              </div>
-            </div>-->
-          </div>
-
-          <!-- Mobile: user block -->
-          <div class="border-t border-gray-200 pb-1 pt-4">
-            <div class="px-4">
-              <div class="text-base font-medium text-gray-800">
-                {{ $page.props.auth.user.name }}
-              </div>
-              <div class="text-sm font-medium text-gray-500">
-                {{ $page.props.auth.user.email }}
-              </div>
-            </div>
-
-            <div class="mt-3 space-y-1">
-              <ResponsiveNavLink :href="route('profile.edit')">
-                Profile
-              </ResponsiveNavLink>
-
-              <ResponsiveNavLink :href="route('logout')" method="post" as="button">
-                Log Out
-              </ResponsiveNavLink>
+              </template>
             </div>
           </div>
-        </div>
-      </nav>
+          <!-- ./NAV -->
+          <!--<div v-for="group in filteredMenu" :key="group.title" class="mb-4">
+            <div
+              class="px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-gray-400"
+            >
+              {{ group.title }}
+            </div>
 
-      <header class="bg-white shadow" v-if="$slots.header">
-        <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-          <slot name="header" />
-        </div>
-      </header>
+            <div class="space-y-1">
+              <Link
+                v-for="item in group.items"
+                :key="item.key"
+                v-if="route().has(item.route)"
+                :href="route(item.route)"
+                class="block rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                :class="{
+                  'bg-gray-100 font-semibold text-gray-900': route().current(item.route),
+                }"
+              >
+                {{ item.title }}
+              </Link>
 
-      <main>
+              <div
+                v-else
+                class="block rounded-md px-3 py-2 text-sm text-gray-400"
+                title="Hiányzó route"
+              >
+                {{ item.title }}
+              </div>
+            </div>
+          </div>-->
+        </nav>
+      </aside>
+
+      <!-- Content -->
+      <main class="flex-1 p-4 sm:p-6 lg:p-8">
+        <slot name="header" />
         <slot />
       </main>
     </div>

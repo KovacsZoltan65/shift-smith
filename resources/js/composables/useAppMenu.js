@@ -9,8 +9,23 @@ export function useAppMenu() {
 
     const menu = computed(() => [
         {
+            title: "Főoldal",
+            items: [
+                {
+                    title: "Dashboard",
+                    route: "dashboard",
+                    key: "dashboard",
+                },
+            ],
+        },
+        {
             title: "Adminisztráció",
             items: [
+                {
+                    title: "Menü",
+                    route: "menu.index",
+                    key: "menu.index",
+                },
                 {
                     title: "Felhasználók",
                     route: "users.index",
@@ -163,7 +178,6 @@ export function useAppMenu() {
             if (bBest === null) return -1;
             return aBest - bBest;
         });
-
         return groups;
     });
 

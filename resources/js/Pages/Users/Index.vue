@@ -25,7 +25,7 @@ const fetchUsers = async (params = {}) => {
   });
 
   const json = await res.json();
-  console.log(json);
+
   rows.value = json.data;
   meta.value = json.meta;
 
