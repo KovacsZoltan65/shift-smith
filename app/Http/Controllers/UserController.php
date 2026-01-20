@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\User\BulkDeleteRequest;
 use App\Http\Requests\User\IndexRequest;
+use App\Http\Requests\User\StoreRequest;
 use App\Models\User;
+use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use App\Services\UserService;
-use Inertia\Response as InertiaResponse;
 use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 class UserController extends Controller
 {
@@ -35,8 +38,6 @@ class UserController extends Controller
         $this->authorize('viewAny', User::class);
 
         $users = $this->service->fetch($request);
-        
-        \Log::info(print_r($users->items(), true));
 
         return response()->json([
             'data' => $users->items(),
@@ -50,4 +51,177 @@ class UserController extends Controller
         ], Response::HTTP_OK);
     }
 
+    /**
+     * Lekéri egy adott rekord adatait azonosító alapján.
+     *
+     * Engedélyezés: 'view' policy.
+     *
+     * Sikeres lekérés esetén a rekord adatait JSON formátumban adja vissza.
+     * Hiba esetén 500 Internal Server Error választ küld a hibaüzenettel.
+     *
+     * @param  int  $id  A lekérdezni kívánt cég azonosítója.
+     * @return \Illuminate\Http\JsonResponse  A cég adatait tartalmazó JSON válasz.
+     *
+     * @throws \Throwable  Ha a szolgáltatásrétegben kivétel történik.
+     */
+    public function getUser(int $id): JsonResponse
+    {
+        $this->authorize('view', User::class);
+        
+        try {
+            $user = $this->service->getUser($id);
+
+            return response()->json(
+                $user,
+                Response::HTTP_OK
+            );
+        } catch(Throwable $th) {
+            return response()->json(
+                ['error' => $th->getMessage()],
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+    
+    /**
+     * Lekéri egy adott rekord adatait azonosító alapján.
+     *
+     * Engedélyezés: 'view' policy.
+     *
+     * Sikeres lekérés esetén a rekord adatait JSON formátumban adja vissza.
+     * Hiba esetén 500 Internal Server Error választ küld a hibaüzenettel.
+     *
+     * @param  string  $name  A lekérdezni kívánt rekord neve.
+     * @return \Illuminate\Http\JsonResponse  A rekord adatait tartalmazó JSON válasz.
+     *
+     * @throws \Throwable  Ha a szolgáltatásrétegben kivétel történik.
+     */
+    public function byName(Request $request): JsonResponse
+    {
+        $this->authorize('view', User::class);
+        
+        try {
+            $user = $this->service->getUserByName($name);
+
+            return response()->json(
+                $user,
+                Response::HTTP_OK
+            );
+        } catch(Throwable $th) {
+            return response()->json(
+                ['error' => $th->getMessage()],
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+    
+    /**
+     * Új rekord létrehozása.
+     *
+     * Engedélyezés: 'create' policy.
+     * Siker esetén a létrehozott rekord adatait adja vissza 201-es státuszkóddal.
+     *
+     * @throws \Throwable
+     */
+    public function store(StoreRequest $request): JsonResponse
+    {
+        $this->authorize('create', User::class);
+        
+        try {
+            $user = $this->service->store($request);
+
+            return response()->json($user, Response::HTTP_OK);
+        } catch(Throwable $th) {
+            return response()->json(
+                ['error' => $th->getMessage()],
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+    
+    /**
+     * Meglévő rekord adatainak frissítése.
+     *
+     * Engedélyezés: 'update' policy.
+     *
+     * @param  int  $id  A módosítandó rekord azonosítója.
+     *
+     * @throws \Throwable
+     */
+    public function update(UpdateRequest $request, int $id): JsonResponse
+    {
+        $this->authorize('update', User::class);
+        
+        try {
+            $user = $this->service->update($request, $id);
+
+            return response()->json($user, Response::HTTP_OK);
+        } catch(Throwable $th) {
+            return response()->json(
+                ['error' => $th->getMessage()],
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+    
+    /**
+     * Egyetlen rekord törlése.
+     *
+     * Engedélyezés: 'delete' policy.
+     *
+     * @throws \Throwable
+     */
+    public function destroy(int $id): JsonResponse
+    {
+        $this->authorize('delete', User::class);
+        
+        try {
+            $result = $this->service->destroy($id);
+
+            return response()->json($result, Response::HTTP_OK);
+        } catch (Throwable $th) {
+            return response()->json(
+                ['error' => $th->getMessage()],
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+    
+    /**
+     * Több rekord törlése egyszerre.
+     *
+     * Engedélyezés: 'delete' policy.
+     * Validálás: BulkDeleteRequest.
+     *
+     * @param  \App\Http\Requests\Company\BulkDeleteRequest  $request
+     *
+     * @throws \Throwable
+     */
+    public function bulkDelete(BulkDeleteRequest $request): JsonResponse
+    {
+        $this->authorize('delete', User::class);
+        
+        $authId = auth()->id();
+
+        if (in_array($authId, $data['ids'], true)) {
+            abort(403, 'Saját fiókot nem törölhetsz.');
+        }
+        
+        $data = $request->validated();
+        
+        try {
+            $deleted = $this->service->bulkDelete($data['ids']);
+            
+            return response()->json([
+                'message' => 'Sikeres törlés.',
+                'deleted' => $deleted,
+            ], Response::HTTP_OK);
+        } catch(Throwable $th) {
+            return response()->json([
+                'message' => 'Törlés sikertelen.',
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+        
+    }
+    
 }

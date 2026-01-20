@@ -9,7 +9,7 @@ import { ZiggyVue } from "../../vendor/tightenco/ziggy";
 
 import PrimeVue from "primevue/config";
 import ToastService from "primevue/toastservice";
-//import Aura from "@primeuix/themes/aura";
+import { ConfirmationService } from "primevue";
 import Aura from "@primevue/themes/aura";
 
 import "primeicons/primeicons.css";
@@ -33,6 +33,7 @@ createInertiaApp({
                 },
             })
             .use(ToastService)
+            .use(ConfirmationService)
             .use(ZiggyVue)
             .mount(el);
     },

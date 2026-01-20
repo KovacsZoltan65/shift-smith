@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             MenuPermissionsSeeder::class,
             
             SuperAdminSeeder::class,
+            AdminSeeder::class,
         ]);
         // User::factory(10)->create();
 

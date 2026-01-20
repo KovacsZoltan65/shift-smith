@@ -66,18 +66,27 @@ Route::middleware(['auth', 'verified'])
     ->as('users.')
     ->controller(UserController::class)
     ->group(function () {
+        // INDEX
         Route::get('/', 'index')->name('index');
+        // FETCH
         Route::get('/fetch', 'fetch')->name('fetch');
 
-        Route::get('/by-name/{name}', 'showByName')
+        // SEARCH BY NAME
+        Route::get('/name/{name}', 'byName')
             ->where('name', '[A-Za-z0-9_.@\- ]+')
             ->name('by_name');
 
-        Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+        Route::get('/{id}', 'getUser')->whereNumber('id')->name('by_id');
+        
+        // CREATE
         Route::post('/', 'store')->name('store');
+        
+        // UPDATE
         Route::put('/{id}', 'update')->whereNumber('id')->name('update');
+        // DELETE
         Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
 
+        // BULK DESTROY
         Route::post('/destroy-bulk', 'destroyBulk')->name('destroy_bulk');
     });
 
