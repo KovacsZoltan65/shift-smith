@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, ref, computed, watch } from "vue";
-import { router, Head } from "@inertiajs/vue3";
+import { router, Head, usePage } from "@inertiajs/vue3";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 
@@ -11,7 +11,11 @@ import InputText from "primevue/inputtext";
 import { useConfirm } from "primevue/useconfirm";
 import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
-import { usePage } from "@inertiajs/vue3";
+import Menu from "primevue/menu";
+
+import CreateModal from "@/Pages/Users/CreateModal.vue";
+import EditModal from "@/Pages/Users/EditModal.vue";
+import PasswordResetModal from "@/Pages/Users/PasswordResetModal.vue";
 
 const page = usePage();
 
@@ -19,6 +23,12 @@ const props = defineProps({
     title: String,
     filter: Object,
 });
+
+const createOpen = ref(false);
+const editOpen = ref(false);
+const pwOpen = ref(false);
+const editUser = ref(null);
+const pwUser = ref(null);
 
 const toast = useToast();
 const confirm = useConfirm();
@@ -34,6 +44,37 @@ const totalRecords = ref(0);
 const selected = ref([]);
 
 const authUserId = computed(() => Number(page.props.auth?.user?.id ?? 0));
+
+// ------------------------
+const rowMenu = ref();
+const rowMenuModel = ref([]);
+const rowMenuRow = ref(null);
+
+const openRowMenu = (event, row) => {
+    rowMenuRow.value = row;
+
+    rowMenuModel.value = [
+        {
+            label: "Szerkesztés",
+            icon: "pi pi-pencil",
+            command: () => openEditModal(row),
+        },
+        {
+            label: "Törlés",
+            icon: "pi pi-trash",
+            disabled: isSelf(row) || actionLoading.value,
+            command: () => confirmDeleteOne(row),
+        },
+        {
+            label: "Jelszó módosítás",
+            icon: "pi pi-key",
+            command: () => openPasswordResetModal(row),
+        },
+    ];
+
+    rowMenu.value.toggle(event);
+};
+// ------------------------
 
 const isSelf = (row) => {
     const rowId = Number(row?.id ?? 0);
@@ -54,10 +95,25 @@ const lazy = ref({
 const search = ref(props.filter?.search ?? "");
 let t = null;
 
-//watch(selected, (arr) => {
-//    const me = authUserId.value;
-//    selected.value = (arr ?? []).filter((x) => Number(x.id) !== me);
-//});
+const openCreate = () => {
+    createOpen.value = true;
+};
+
+const onSaved = async () => {
+    selected.value = [];
+    await fetchUsers();
+    toast.add({ severity: "success", summary: "Siker", detail: "Mentve.", life: 2000 });
+};
+
+const openEditModal = (row) => {
+    editUser.value = row;
+    editOpen.value = true;
+};
+
+const openPasswordResetModal = (row) => {
+    pwUser.value = row;
+    pwOpen.value = true;
+};
 
 const onSearchInput = () => {
     if (t) clearTimeout(t);
@@ -182,6 +238,15 @@ const deleteOne = async (id) => {
     }
 };
 
+const onPasswordResetSent = () => {
+    toast.add({
+        severity: "success",
+        summary: "Siker",
+        detail: "Email elküldve.",
+        life: 2500,
+    });
+};
+
 const confirmDeleteOne = (row) => {
     confirm.require({
         message: `Biztos törlöd: ${row.name} (${row.email})?`,
@@ -268,10 +333,26 @@ onMounted(fetchUsers);
     <AuthenticatedLayout>
         <Toast />
 
+        <!-- CREATE MODAL -->
+        <CreateModal v-model="createOpen" @saved="onSaved" />
+
+        <!-- EDIT MODAL -->
+        <EditModal v-model="editOpen" :user="editUser" @saved="onSaved" />
+
+        <!-- PASSWORD RESET MODAL -->
+        <PasswordResetModal v-model="pwOpen" :user="pwUser" @sent="onPasswordResetSent" />
+
         <div class="p-6">
             <div class="mb-4 flex items-center justify-between gap-3">
                 <div class="flex items-center gap-3">
                     <h1 class="text-2xl font-semibold">{{ title }}</h1>
+
+                    <Button
+                        label="Új felhasználó"
+                        icon="pi pi-plus"
+                        size="small"
+                        @click="openCreate"
+                    />
 
                     <Button
                         label="Kijelöltek törlése"
@@ -303,6 +384,8 @@ onMounted(fetchUsers);
                 <div class="font-semibold">Hiba</div>
                 <div class="text-sm">{{ error }}</div>
             </div>
+
+            <Menu ref="rowMenu" :model="rowMenuModel" popup />
 
             <DataTable
                 v-model:selection="selected"
@@ -344,34 +427,20 @@ onMounted(fetchUsers);
                 <!-- Actions -->
                 <Column
                     header="Műveletek"
-                    headerStyle="width: 220px"
+                    headerStyle="width: 3rem"
                     bodyStyle="white-space: nowrap;"
                 >
                     <template #body="{ data }">
                         <div class="flex gap-2 justify-end">
-                            <!-- SZERKESZTÉS -->
                             <Button
-                                label="Szerkeszt"
-                                icon="pi pi-pencil"
+                                icon="pi pi-ellipsis-v"
                                 severity="secondary"
                                 size="small"
+                                text
+                                rounded
                                 :disabled="actionLoading"
-                                @click="goEdit(data)"
-                            />
-
-                            <!-- TÖRLÉS -->
-                            <Button
-                                label="Töröl"
-                                icon="pi pi-trash"
-                                severity="danger"
-                                size="small"
-                                :disabled="actionLoading || isSelf(data)"
-                                :title="
-                                    isSelf(data)
-                                        ? 'Saját fiókot nem törölhetsz.'
-                                        : 'Törlés'
-                                "
-                                @click="confirmDeleteOne(data)"
+                                @click="openRowMenu($event, data)"
+                                :title="`Műveletek: ${data.name}`"
                             />
                         </div>
                     </template>

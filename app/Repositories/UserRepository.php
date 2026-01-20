@@ -86,18 +86,34 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      */
     public function store(Request $request): User
     {
-        return DB::transaction(function(Request $request): User {
-            /** @var array<string,mixed> $data */
-            $data = $request->all();
-            
+        return DB::transaction(function () use ($data): User {
             /** @var User $user */
-            $user = User::create($data);
-            
-            $this->createDefaultSettings($user);
-            $this->cacheService->forgetAll($this->tag);
-            
+            $user = User::query()->create([
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'password' => Hash::make('Pa$$w0rd'),
+            ]);
+
+            // küldjünk reset linket azonnal
+            Password::sendResetLink(['email' => $user->email]);
+
+            // cache, settings, stb ha kell…
+
             return $user;
         });
+        
+//        return DB::transaction(function(Request $request): User {
+//            /** @var array<string,mixed> $data */
+//            $data = $request->all();
+//            
+//            /** @var User $user */
+//            $user = User::create($data);
+//            
+//            $this->createDefaultSettings($user);
+//            $this->cacheService->forgetAll($this->tag);
+//            
+//            return $user;
+//        });
     }
     
     /**

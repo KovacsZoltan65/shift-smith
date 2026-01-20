@@ -88,6 +88,19 @@ Route::middleware(['auth', 'verified'])
 
         // BULK DESTROY
         Route::post('/destroy-bulk', 'destroyBulk')->name('destroy_bulk');
+        
+        // PASSWORD RESET EMAIL
+        Route::post('/{user}/password-reset', 'sendPasswordReset')->name('send_password_reset');
+
     });
 
+Route::middleware('guest')->group(function () {
+
+    Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])
+        ->name('password.reset');
+
+    Route::post('/reset-password', [NewPasswordController::class, 'store'])
+        ->name('password.store');
+});
+    
 require __DIR__.'/auth.php';

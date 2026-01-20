@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Password;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -128,6 +129,16 @@ class UserController extends Controller
         $this->authorize('create', User::class);
         
         try {
+            $user = $this->service->store($request->validated());
+        } catch(Throwable $th) {
+            return response()->json(
+                ['error' => $th->getMessage()],
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+        
+        /*
+        try {
             $user = $this->service->store($request);
 
             return response()->json($user, Response::HTTP_OK);
@@ -137,6 +148,22 @@ class UserController extends Controller
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
+        */
+    }
+    
+    public function sendPasswordReset(User $user): JsonResponse
+    {
+        //$this->authorize('update', $user); // vagy külön ability
+
+        abort_if(auth()->id() === $user->id, 403, 'Saját magadnak innen ne.');
+
+        $status = Password::sendResetLink(['email' => $user->email]);
+
+        if ($status !== Password::RESET_LINK_SENT) {
+            return response()->json(['message' => __($status)], 422);
+        }
+
+        return response()->json(['message' => 'Email elküldve.']);
     }
     
     /**
