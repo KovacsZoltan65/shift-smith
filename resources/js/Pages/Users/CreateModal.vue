@@ -1,18 +1,20 @@
 <script setup>
 import { reactive, ref, watch } from "vue";
+import { usePage } from "@inertiajs/vue3";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 import UserFields from "./Partials/UserFields.vue";
 
+import { csrfFetch } from "@/lib/csrfFetch";
+
 const props = defineProps({ modelValue: Boolean });
 const emit = defineEmits(["update:modelValue", "saved"]);
+
+const page = usePage();
 
 const loading = ref(false);
 const errors = reactive({});
 const form = ref({ name: "", email: "" });
-
-const csrf = () =>
-    document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ?? "";
 
 watch(
     () => props.modelValue,
@@ -25,13 +27,24 @@ watch(
 
 const close = () => emit("update:modelValue", false);
 
+//const csrf = () =>
+//    document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ?? "";
+
 const submit = async () => {
     loading.value = true;
     Object.keys(errors).forEach((k) => delete errors[k]);
 
     try {
+        const res = await csrfFetch("/users", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(form.value),
+        });
+        console.log("res", res);
+        /*
         const res = await fetch("/users", {
             method: "POST",
+            credentials: "same-origin",
             headers: {
                 "Content-Type": "application/json",
                 "X-Requested-With": "XMLHttpRequest",
@@ -40,6 +53,7 @@ const submit = async () => {
             },
             body: JSON.stringify(form.value),
         });
+        */
 
         if (res.status === 422) {
             const body = await res.json();

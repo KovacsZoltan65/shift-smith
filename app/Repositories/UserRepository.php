@@ -9,6 +9,8 @@ use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Prettus\Repository\Criteria\RequestCriteria;
 use Prettus\Repository\Eloquent\BaseRepository;
 
@@ -84,7 +86,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      * @param Request $request
      * @return User
      */
-    public function store(Request $request): User
+    public function store(array $data): User
     {
         return DB::transaction(function () use ($data): User {
             /** @var User $user */
@@ -95,7 +97,11 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             ]);
 
             // küldjünk reset linket azonnal
-            Password::sendResetLink(['email' => $user->email]);
+            $status = Password::sendResetLink(['email' => $user->email]);
+            
+            if ($status !== Password::RESET_LINK_SENT) {
+                return response()->json(['message' => __($status)], 422);
+            }
 
             // cache, settings, stb ha kell…
 

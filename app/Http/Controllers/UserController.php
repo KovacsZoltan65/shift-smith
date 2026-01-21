@@ -130,6 +130,8 @@ class UserController extends Controller
         
         try {
             $user = $this->service->store($request->validated());
+            
+            return response()->json($user, Response::HTTP_OK);
         } catch(Throwable $th) {
             return response()->json(
                 ['error' => $th->getMessage()],

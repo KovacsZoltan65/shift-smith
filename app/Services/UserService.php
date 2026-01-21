@@ -46,9 +46,9 @@ class UserService
      * @param Request $request
      * @return User
      */
-    public function store(Request $request): User
+    public function store(array $data): User
     {
-        return $this->repo->store($request);
+        return $this->repo->store($data);
     }
     
     /**

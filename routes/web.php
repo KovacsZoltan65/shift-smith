@@ -25,6 +25,21 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+Route::get('/_debug/csrf', function() {
+    $sessionCookie = config('session.cookie');
+
+    return response()->json([
+        'session_cookie_name' => $sessionCookie,
+        'session_id' => session()->getId(),
+        'token_session' => csrf_token(),
+        'token_header' => request()->header('x-csrf-token'),
+        'token_input' => request()->input('_token'),
+        'cookies' => [
+            'session_cookie' => request()->cookie($sessionCookie),
+            'XSRF-TOKEN' => request()->cookie('XSRF-TOKEN'),
+        ],
+    ]);
+});
 
 /**
  * ======================================
