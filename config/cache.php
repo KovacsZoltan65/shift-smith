@@ -129,4 +129,6 @@ return [
     */
     'enable_menu' => env('MENU_CACHE_ENABLED', false),
     
+    'enable_users' => false,
+    
 ];

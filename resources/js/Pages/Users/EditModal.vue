@@ -4,6 +4,8 @@ import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 import UserFields from "./Partials/UserFields.vue";
 
+import { csrfFetch } from "@/lib/csrfFetch";
+
 const props = defineProps({
     modelValue: Boolean,
     user: { type: Object, default: null },
@@ -42,6 +44,12 @@ const submit = async () => {
     Object.keys(errors).forEach((k) => delete errors[k]);
 
     try {
+        const res = await csrfFetch(`/users/${props.user.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(form.value),
+        });
+        /*
         const res = await fetch(`/users/${props.user.id}`, {
             method: "PUT",
             headers: {
@@ -52,6 +60,7 @@ const submit = async () => {
             },
             body: JSON.stringify(form.value),
         });
+        */
 
         if (res.status === 422) {
             const body = await res.json();

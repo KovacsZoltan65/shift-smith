@@ -40,20 +40,6 @@ const submit = async () => {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(form.value),
         });
-        console.log("res", res);
-        /*
-        const res = await fetch("/users", {
-            method: "POST",
-            credentials: "same-origin",
-            headers: {
-                "Content-Type": "application/json",
-                "X-Requested-With": "XMLHttpRequest",
-                "X-CSRF-TOKEN": csrf(),
-                Accept: "application/json",
-            },
-            body: JSON.stringify(form.value),
-        });
-        */
 
         if (res.status === 422) {
             const body = await res.json();

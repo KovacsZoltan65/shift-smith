@@ -8,6 +8,7 @@ import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import Button from "primevue/button";
 import InputText from "primevue/inputtext";
+import ConfirmDialog from "primevue/confirmdialog";
 import { useConfirm } from "primevue/useconfirm";
 import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
@@ -16,6 +17,7 @@ import Menu from "primevue/menu";
 import CreateModal from "@/Pages/Users/CreateModal.vue";
 import EditModal from "@/Pages/Users/EditModal.vue";
 import PasswordResetModal from "@/Pages/Users/PasswordResetModal.vue";
+import { csrfFetch } from "@/lib/csrfFetch";
 
 const page = usePage();
 
@@ -191,12 +193,20 @@ const formatDate = (value) => {
     }).format(d);
 };
 
-const csrf = () =>
-    document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ?? "";
+//const csrf = () =>
+//    document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ?? "";
 
 const deleteOne = async (id) => {
     actionLoading.value = true;
     try {
+        const res = await csrfFetch(`/users/${id}`, {
+            method: "DELETE",
+            headers: {
+                "X-Requested-With": "XMLHttpRequest",
+                Accept: "application/json",
+            },
+        });
+        /*
         const res = await fetch(`/users/${id}`, {
             method: "DELETE",
             headers: {
@@ -205,6 +215,7 @@ const deleteOne = async (id) => {
                 Accept: "application/json",
             },
         });
+        */
 
         if (!res.ok) {
             let msg = `Törlés sikertelen (HTTP ${res.status})`;
@@ -248,6 +259,7 @@ const onPasswordResetSent = () => {
 };
 
 const confirmDeleteOne = (row) => {
+    console.log("Delete One");
     confirm.require({
         message: `Biztos törlöd: ${row.name} (${row.email})?`,
         header: "Megerősítés",
@@ -332,6 +344,7 @@ onMounted(fetchUsers);
 
     <AuthenticatedLayout>
         <Toast />
+        <ConfirmDialog />
 
         <!-- CREATE MODAL -->
         <CreateModal v-model="createOpen" @saved="onSaved" />

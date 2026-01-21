@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\User\BulkDeleteRequest;
 use App\Http\Requests\User\IndexRequest;
 use App\Http\Requests\User\StoreRequest;
+use App\Http\Requests\User\UpdateRequest;
 use App\Models\User;
 use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
@@ -138,19 +139,6 @@ class UserController extends Controller
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
-        
-        /*
-        try {
-            $user = $this->service->store($request);
-
-            return response()->json($user, Response::HTTP_OK);
-        } catch(Throwable $th) {
-            return response()->json(
-                ['error' => $th->getMessage()],
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        }
-        */
     }
     
     public function sendPasswordReset(User $user): JsonResponse
@@ -205,9 +193,9 @@ class UserController extends Controller
         $this->authorize('delete', User::class);
         
         try {
-            $result = $this->service->destroy($id);
+            $deleted = $this->service->destroy($id);
 
-            return response()->json($result, Response::HTTP_OK);
+            return response()->json($deleted, Response::HTTP_OK);
         } catch (Throwable $th) {
             return response()->json(
                 ['error' => $th->getMessage()],

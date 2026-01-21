@@ -3,18 +3,24 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
+use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Permission\Traits\HasRoles;
+use Spatie\Activitylog\LogOptions;
+use Override;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory,
         Notifiable,
-        HasRoles;
+        HasRoles,
+        LogsActivity;
 
     /**
      * The attributes that are mass assignable.
@@ -27,6 +33,9 @@ class User extends Authenticatable
         'password',
     ];
 
+    /** @var array<int,string> */
+    protected static array $sortable = ['id', 'name', 'email'];
+    
     /**
      * The attributes that should be hidden for serialization.
      *
@@ -64,5 +73,49 @@ class User extends Authenticatable
         $map = $names->mapWithKeys(fn (string $name): array => [$name => true]);
 
         return $map;
+    }
+    
+    /*
+     * ========================= LOGOLÁS =========================
+     */
+    /** @var array<int,string> */
+    protected static array $logAttributes = ['*'];
+    
+    protected static bool $logOnlyDirty = true;
+    
+    protected static string $logName = 'users';
+    
+    /** @var array<int,string> */
+    protected static array $recordEvents = ['created', 'updated', 'deleted'];
+    
+    public function getLogNameToUse(string $eventName = ''): string
+    {
+        return static::$logName ?? 'default';
+    }
+
+    public static function getTag(): string
+    {
+        return static::$logName;
+    }
+    
+    #[Override]
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->dontLogIfAttributesChangedOnly(['remember_token'])
+            ->logExcept(['password', 'remember_token'])
+            //->dontLogAttributes(['password'])
+                ;
+    }
+    
+    /**
+     * ===========================================================
+     */
+    
+    /** @return array<int,string> */
+    public static function getSortable(): array
+    {
+        return self::$sortable;
     }
 }
