@@ -224,7 +224,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
                 ->where('model_type', User::class)
                 ->whereIn('model_id', $ids)
                 ->delete();
-            $int = User::query()->whereIn('id', $ids)->delete();
+            $deleted = User::query()->whereIn('id', $ids)->delete();
             
             $this->cacheService->forgetAll($this->tag);
             

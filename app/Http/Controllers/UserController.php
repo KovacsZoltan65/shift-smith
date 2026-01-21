@@ -220,11 +220,11 @@ class UserController extends Controller
         
         $authId = auth()->id();
 
+        $data = $request->validated();
+        
         if (in_array($authId, $data['ids'], true)) {
             abort(403, 'Saját fiókot nem törölhetsz.');
         }
-        
-        $data = $request->validated();
         
         try {
             $deleted = $this->service->bulkDelete($data['ids']);
@@ -234,6 +234,9 @@ class UserController extends Controller
                 'deleted' => $deleted,
             ], Response::HTTP_OK);
         } catch(Throwable $th) {
+            \Log::info(print_r($th->getFile(), true));
+            \Log::info(print_r($th->getLine(), true));
+            \Log::info(print_r($th->getMessage(), true));
             return response()->json([
                 'message' => 'Törlés sikertelen.',
             ], Response::HTTP_INTERNAL_SERVER_ERROR);

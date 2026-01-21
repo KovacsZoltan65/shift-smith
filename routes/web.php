@@ -102,7 +102,7 @@ Route::middleware(['auth', 'verified'])
         Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
 
         // BULK DESTROY
-        Route::post('/destroy-bulk', 'destroyBulk')->name('destroy_bulk');
+        Route::delete('/destroy-bulk', 'bulkDelete')->name('destroy_bulk');
         
         // PASSWORD RESET EMAIL
         Route::post('/{user}/password-reset', 'sendPasswordReset')->name('send_password_reset');

@@ -206,16 +206,6 @@ const deleteOne = async (id) => {
                 Accept: "application/json",
             },
         });
-        /*
-        const res = await fetch(`/users/${id}`, {
-            method: "DELETE",
-            headers: {
-                "X-Requested-With": "XMLHttpRequest",
-                "X-CSRF-TOKEN": csrf(),
-                Accept: "application/json",
-            },
-        });
-        */
 
         if (!res.ok) {
             let msg = `Törlés sikertelen (HTTP ${res.status})`;
@@ -274,6 +264,15 @@ const confirmDeleteOne = (row) => {
 const bulkDelete = async (ids) => {
     actionLoading.value = true;
     try {
+        const res = await csrfFetch(`/users/destroy-bulk`, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+            },
+            body: JSON.stringify({ ids }),
+        });
+        /*
         const res = await fetch(`/users/bulk`, {
             method: "DELETE",
             headers: {
@@ -284,6 +283,7 @@ const bulkDelete = async (ids) => {
             },
             body: JSON.stringify({ ids }),
         });
+        */
 
         if (!res.ok) {
             let msg = `Bulk törlés sikertelen (HTTP ${res.status})`;
