@@ -42,3 +42,55 @@ php artisan route:clear
 php artisan view:clear
 php artisan event:clear
 php artisan cache:clear
+
+
+// ========================================
+// PINT
+// ========================================
+vendor/bin/phpstan analyse --generate-baseline --memory-limit=1G
+vendor/bin/phpstan analyse --memory-limit=1G
+
+// ========================================
+// laradump
+// ========================================
+composer require laradumps/laradumps --dev -W
+
+// ========================================
+// PHP STAN
+// ========================================
+https://phpstan.org/
+1. Telepítés
+    composer require --dev larastan/larastan --with-all-dependencies
+    vagy
+    composer require --dev larastan/larastan -W
+2. Konfiguráció
+    Hozz létre egy phpstan.neon nevű konfigurációs fájlt a projekted gyökerében az alábbi példával indulva:
+        includes:
+        - ./vendor/nunomaduro/larastan/extension.neon
+
+        includes:
+            - vendor/larastan/larastan/extension.neon
+            - vendor/nesbot/carbon/extension.neon
+
+        parameters:
+            # opcionális: külön cache mappa (gyorsabb/robosztusabb)
+            tmpDir: c:/phpstan
+
+            paths:
+                - app/
+
+            # Level 10 is the highest level
+            level: 5
+3. Futtatás
+    ./vendor/bin/phpstan analyse --memory-limit=1G
+    vagy
+    ./vendor/bin/phpstan analyse app
+
+    vendor/bin/phpstan analyse --generate-baseline
+    # majd phpstan.neon végére:
+    includes:
+        - phpstan-baseline.neon
+
+    Baseline frissítése:
+    del .\phpstan-baseline.neon
+    vendor\bin\phpstan analyse --generate-baseline=phpstan-baseline.neon --memory-limit=1G

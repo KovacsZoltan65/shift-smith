@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -52,14 +53,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/menu', fn () => Inertia::render('Menu/Index'))->name('menu.index');
 
     // Adminisztráció
-    Route::get('/companies', fn () => Inertia::render('Companies/Index'))->name('companies.index');
+    Route::get(
+        '/companies', 
+        fn () => Inertia::render('Companies/Index', ['title' => 'Cégek'])
+    )->name('companies.index');
 
     // Biztonság
     Route::get('/permissions', fn () => Inertia::render('Security/Permissions/Index'))->name('permissions.index');
     Route::get('/roles', fn () => Inertia::render('Security/Roles/Index'))->name('roles.index');
 
     // HR
-    Route::get('/employees', fn () => Inertia::render('HR/Employees/Index'))->name('employees.index');
+    Route::get(
+        '/employees', 
+        fn () => Inertia::render('HR/Employees/Index', ['title' => 'Dolgozók'])
+    )->name('employees.index');
     Route::get('/assignments', fn () => Inertia::render('HR/Assignments/Index'))->name('assignments.index');
     Route::get('/shifts', fn () => Inertia::render('HR/Shifts/Index'))->name('shifts.index');
     Route::get('/planning', fn () => Inertia::render('HR/Planning/Index'))->name('planning.index');

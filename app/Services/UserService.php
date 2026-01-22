@@ -13,6 +13,9 @@ class UserService
         private readonly UserRepositoryInterface $repo
     ) {}
 
+    /**
+     * @return LengthAwarePaginator<int, User>
+     */
     public function fetch(Request $request): LengthAwarePaginator
     {
         return $this->repo->fetch($request);
@@ -41,9 +44,12 @@ class UserService
     }
     
     /**
-     * Új felhasználó mentése
-     * 
-     * @param Request $request
+     * @param array{
+     *   name: string,
+     *   email: string,
+     *   password: string,
+     *   roles?: array<int, string>
+     * } $data
      * @return User
      */
     public function store(array $data): User
@@ -63,10 +69,14 @@ class UserService
         return $this->repo->update($request->all(), $id);
     }
     
+    /**
+     * @param list<int> $ids
+     * @return int A törölt rekordok száma
+     */
     public function bulkDelete(array $ids): int
     {
         // opcionális tisztítás: nullok/duplikátumok kiszűrése
-        $ids = array_values(array_unique(array_filter($ids, static fn ($v) => $v !== null)));
+        $ids = array_values(array_unique($ids));
         
         return (int) $this->repo->bulkDelete($ids);
     }

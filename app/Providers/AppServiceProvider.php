@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Interfaces\CompanyRepositoryInterface;
+use App\Interfaces\UserRepositoryInterface;
+use App\Repositories\CompanyRepository;
+use App\Repositories\UserRepository;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Grammars\PostgresGrammar;
 use Illuminate\Support\Arr;
@@ -9,8 +13,6 @@ use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use Inertia\Inertia;
-use App\Interfaces\UserRepositoryInterface;
-use App\Repositories\UserRepository;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -22,6 +24,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             UserRepositoryInterface::class, 
             UserRepository::class
+        );
+        $this->app->bind(
+            CompanyRepositoryInterface::class, 
+            CompanyRepository::class
         );
     }
 

@@ -6,25 +6,25 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
-class SuperAdminSeeder extends Seeder
+class OperatorSeeder extends Seeder
 {
     public function run(): void
     {
-        $email = config('seeding.superadmin_email', 'superadmin@shift-smith.com');
-        $password = config('seeding.superadmin_password', 'superadmin');
+        $email = config('seeding.operator_email', 'operator@shift-smith.com');
+        $password = config('seeding.operator_password', 'operator');
 
         $user = User::firstOrCreate(
             [
                 'email' => $email
             ],
             [
-                'name' => 'Super Admin',
+                'name' => 'Operator',
                 'password' => Hash::make($password),
             ]
         );
 
-        if(!$user->hasRole('superadmin')) {
-            $user->assignRole('superadmin');
+        if(!$user->hasRole('operator')) {
+            $user->assignRole('operator');
         }
     }
 }

@@ -10,6 +10,27 @@ class AdminSeeder extends Seeder
 {
     public function run(): void
     {
+        $email = config('seeding.admin_email', 'admin@shift-smith.com');
+        $password = config('seeding.admin_password', 'admin');
+
+        $user = User::firstOrCreate(
+            [
+                'email' => $email
+            ],
+            [
+                'name' => 'Admin',
+                'password' => Hash::make($password),
+            ]
+        );
+
+        if(!$user->hasRole('admin')) {
+            $user->assignRole('admin');
+        }
+    }
+
+
+    public function run_old(): void
+    {
         $user = User::firstOrCreate(
             ['email' => 'admin@shift-smith.com'],
             [

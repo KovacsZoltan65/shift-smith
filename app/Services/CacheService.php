@@ -72,6 +72,7 @@ class CacheService
      * - Ha nem, akkor NO-OP helyett célzott fallback (Spatie permission cache flush),
      *   és csak DEBUG módban logoljuk, hogy nincs tag támogatás.
      */
+    /*
     public function forgetByTag(string $tag): void
     {
         $store = Cache::getStore();
@@ -99,11 +100,13 @@ class CacheService
             }
         }
     }
+    */
     
     /**
      * Minta szerinti törlés, ha a store tudja; különben kulturált no-op.
      * (Pl. saját Redis store implementációban lehet "deleteUsingPattern" metódus.)
      */
+    /*
     public function forgetByPattern(string $pattern): void
     {
         $store = Cache::getStore();
@@ -125,6 +128,7 @@ class CacheService
             }
         }
     }
+    */
     
     public function forgetAllMatching(string $pattern): void
     {

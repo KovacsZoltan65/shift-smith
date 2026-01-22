@@ -171,12 +171,6 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             // küldjünk reset linket azonnal
             $status = Password::sendResetLink(['email' => $user->email]);
             
-            if ($status !== Password::RESET_LINK_SENT) {
-                return response()->json(['message' => __($status)], 422);
-            }
-
-            $needCache = config('');
-            
             // Cache ürítése
             $this->cacheService->forgetAll($this->tag);
 
@@ -188,7 +182,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      * Felhasználó adatainak mentése
      * 
      * @param array $data
-     * @param type $id
+     * @param int $id
      * @return User
      */
     public function update(array $data, $id): User

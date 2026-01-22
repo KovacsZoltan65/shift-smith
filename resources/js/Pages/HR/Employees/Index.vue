@@ -1,20 +1,35 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head } from '@inertiajs/vue3';
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
+import { Head } from "@inertiajs/vue3";
+import { Button, ConfirmDialog, Toast, Toolbar } from "primevue";
+
+import { usePermissions } from "@/composables/usePermissions";
+const { has } = usePermissions();
+
+const props = defineProps({
+    title: String,
+    filter: Object,
+});
 </script>
 
 <template>
-    <Head title="Cégek" />
+    <Head :title="props.title" />
+
+    <Toast />
+    <ConfirmDialog />
 
     <AuthenticatedLayout>
-        <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">Dolgozók</h2>
-        </template>
-
-        <div class="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
-            <div class="rounded-lg border border-gray-200 bg-white p-6 text-gray-600">
-                Placeholder oldal – HR/Employees/Index
-            </div>
+        <div class="card">
+            <Toolbar class="md-6">
+                <template #start>
+                    <Button
+                        v-if="has('companies.create')"
+                        label="Create"
+                        class="mr-2"
+                        icon="pi pi-plus"
+                    />
+                </template>
+            </Toolbar>
         </div>
     </AuthenticatedLayout>
 </template>

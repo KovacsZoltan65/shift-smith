@@ -103,7 +103,7 @@ class UserController extends Controller
         $this->authorize('view', User::class);
         
         try {
-            $user = $this->service->getUserByName($name);
+            $user = $this->service->getUserByName($request->input('name'));
 
             return response()->json(
                 $user,
@@ -234,9 +234,6 @@ class UserController extends Controller
                 'deleted' => $deleted,
             ], Response::HTTP_OK);
         } catch(Throwable $th) {
-            \Log::info(print_r($th->getFile(), true));
-            \Log::info(print_r($th->getLine(), true));
-            \Log::info(print_r($th->getMessage(), true));
             return response()->json([
                 'message' => 'Törlés sikertelen.',
             ], Response::HTTP_INTERNAL_SERVER_ERROR);

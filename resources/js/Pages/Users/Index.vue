@@ -272,18 +272,6 @@ const bulkDelete = async (ids) => {
             },
             body: JSON.stringify({ ids }),
         });
-        /*
-        const res = await fetch(`/users/bulk`, {
-            method: "DELETE",
-            headers: {
-                "Content-Type": "application/json",
-                "X-Requested-With": "XMLHttpRequest",
-                "X-CSRF-TOKEN": csrf(),
-                Accept: "application/json",
-            },
-            body: JSON.stringify({ ids }),
-        });
-        */
 
         if (!res.ok) {
             let msg = `Bulk törlés sikertelen (HTTP ${res.status})`;
@@ -342,19 +330,19 @@ onMounted(fetchUsers);
 <template>
     <Head title="Felhasználók" />
 
+    <Toast />
+    <ConfirmDialog />
+
+    <!-- CREATE MODAL -->
+    <CreateModal v-model="createOpen" @saved="onSaved" />
+
+    <!-- EDIT MODAL -->
+    <EditModal v-model="editOpen" :user="editUser" @saved="onSaved" />
+
+    <!-- PASSWORD RESET MODAL -->
+    <PasswordResetModal v-model="pwOpen" :user="pwUser" @sent="onPasswordResetSent" />
+
     <AuthenticatedLayout>
-        <Toast />
-        <ConfirmDialog />
-
-        <!-- CREATE MODAL -->
-        <CreateModal v-model="createOpen" @saved="onSaved" />
-
-        <!-- EDIT MODAL -->
-        <EditModal v-model="editOpen" :user="editUser" @saved="onSaved" />
-
-        <!-- PASSWORD RESET MODAL -->
-        <PasswordResetModal v-model="pwOpen" :user="pwUser" @sent="onPasswordResetSent" />
-
         <div class="p-6">
             <div class="mb-4 flex items-center justify-between gap-3">
                 <div class="flex items-center gap-3">
