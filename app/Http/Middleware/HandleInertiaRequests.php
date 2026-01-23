@@ -39,7 +39,7 @@ class HandleInertiaRequests extends Middleware
             
             $needCache = config('cache.enable_menu', false);
             $cacheKey  = "menu_order:user:{$user->id}";
-            $ttl       = (int) env('cache.menu_refresh_second', 60);
+            $ttl       = (int) config('cache.menu_refresh_second', 60);
             
             $callback = function() use($user) {
                 return DB::table('user_menu_stats')

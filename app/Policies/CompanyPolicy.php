@@ -5,45 +5,46 @@ declare(strict_types=1);
 namespace App\Policies;
 
 use App\Models\Company;
+use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class CompanyPolicy
 {
     use HandlesAuthorization;
 
-    public function before(Company $company, string $ability): ?bool
+    public function before(User $user, string $ability): ?bool
     {
         // superadmin mindent
         return $user->hasRole('superadmin') ? true : null;
     }
 
-    public function viewAny(Company $company): bool
+    public function viewAny(User $user): bool
     {
         // példa: admin és manager láthatja a listát
         return $user->hasAnyRole(['admin', 'manager']);
     }
 
-    public function view(Company $company, Company $model): bool
+    public function view(User $user, Company $model): bool
     {
         // önmagát láthatja, admin/manager már a before nélkül is igaz lehetne,
         // de a before miatt superadmin úgyis true
-        return $company->id === $model->id || $company->hasAnyRole(['admin', 'manager']);
+        return $user->id === $model->id || $user->hasAnyRole(['admin', 'manager']);
     }
 
-    public function create(Company $company): bool
+    public function create(User $user): bool
     {
-        return $company->hasRole('admin');
+        return $user->hasRole('admin');
     }
 
-    public function update(Company $company, Company $model): bool
+    public function update(User $user, Company $model): bool
     {
         // admin bárkit, user csak magát
-        return $company->hasRole('admin') || $company->id === $model->id;
+        return $user->hasRole('admin') || $user->id === $model->id;
     }
 
-    public function delete(Company $company, Company $model): bool
+    public function delete(User $user, Company $model): bool
     {
         // admin törölhet, de magát ne (józan ész)
-        return $company->hasRole('admin') && $company->id !== $model->id;
+        return $user->hasRole('admin') && $user->id !== $model->id;
     }
 }

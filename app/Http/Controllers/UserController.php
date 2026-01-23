@@ -86,17 +86,10 @@ class UserController extends Controller
     }
     
     /**
-     * Lekéri egy adott rekord adatait azonosító alapján.
-     *
-     * Engedélyezés: 'view' policy.
-     *
-     * Sikeres lekérés esetén a rekord adatait JSON formátumban adja vissza.
-     * Hiba esetén 500 Internal Server Error választ küld a hibaüzenettel.
-     *
-     * @param  string  $name  A lekérdezni kívánt rekord neve.
-     * @return \Illuminate\Http\JsonResponse  A rekord adatait tartalmazó JSON válasz.
-     *
-     * @throws \Throwable  Ha a szolgáltatásrétegben kivétel történik.
+     * 
+     * 
+     * @param Request $request
+     * @return JsonResponse
      */
     public function byName(Request $request): JsonResponse
     {
@@ -129,8 +122,17 @@ class UserController extends Controller
     {
         $this->authorize('create', User::class);
         
+        /** @var array{
+         *   name: string,
+         *   email: string,
+         *   password: string,
+         *   roles?: array<int, string>
+         * } $data
+         */
+        $data = $request->validated();
+        
         try {
-            $user = $this->service->store($request->validated());
+            $user = $this->service->store($data);
             
             return response()->json($user, Response::HTTP_OK);
         } catch(Throwable $th) {
@@ -161,8 +163,9 @@ class UserController extends Controller
      *
      * Engedélyezés: 'update' policy.
      *
+     * @param  \App\Http\Requests\User\UpdateRequest  $request
      * @param  int  $id  A módosítandó rekord azonosítója.
-     *
+     * @return \Illuminate\Http\JsonResponse  A frissített rekord adatait tartalmazó JSON válasz.
      * @throws \Throwable
      */
     public function update(UpdateRequest $request, int $id): JsonResponse
@@ -186,6 +189,7 @@ class UserController extends Controller
      *
      * Engedélyezés: 'delete' policy.
      *
+     * @param  int  $id  A törlendo rekord azonosítója.
      * @throws \Throwable
      */
     public function destroy(int $id): JsonResponse
@@ -210,8 +214,8 @@ class UserController extends Controller
      * Engedélyezés: 'delete' policy.
      * Validálás: BulkDeleteRequest.
      *
-     * @param  \App\Http\Requests\Company\BulkDeleteRequest  $request
-     *
+     * @param  BulkDeleteRequest  $request
+     * @return \Illuminate\Http\JsonResponse
      * @throws \Throwable
      */
     public function bulkDelete(BulkDeleteRequest $request): JsonResponse
@@ -222,7 +226,7 @@ class UserController extends Controller
 
         $data = $request->validated();
         
-        if (in_array($authId, $data['ids'], true)) {
+        if (\in_array($authId, $data['ids'], true)) {
             abort(403, 'Saját fiókot nem törölhetsz.');
         }
         

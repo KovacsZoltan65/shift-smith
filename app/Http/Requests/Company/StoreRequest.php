@@ -13,11 +13,14 @@ class StoreRequest extends FormRequest
         return $this->user()->can('create', Company::class);
     }
     
+    /**
+     * @return array<string, array<int, string|\Illuminate\Validation\Rule>>
+     */
     public function rules(): array
     {
         return [
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|string|email|max:255|unique:companies',
+            'name'     => ['required','string','max:255'],
+            'email'    => ['required','string','email','max:255','unique:companies'],
         ];
     }
 }

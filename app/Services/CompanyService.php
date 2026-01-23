@@ -47,13 +47,14 @@ class CompanyService
         return $this->repo->store($data);
     }
     
-    /**
-     * Summary of store
+        /**
+     * Summary of update
      * @param array{
-     *   name: string,
-     *   email: string,
-     *   address: string|null,
-     *   phone: string|null
+     *    name: string,
+     *    email: string,
+     *    address: string,
+     *    phone: string,
+     *    active: boolean
      * } $data
      * @param int $id
      * @return Company
@@ -86,7 +87,8 @@ class CompanyService
     }
     
     /**
-     * @return array<int, array{value: int, label: string}>
+     * Summary of getToSelect
+     * @return array<int, array{id: int, name: string}>
      */
     public function getToSelect(): array
     {

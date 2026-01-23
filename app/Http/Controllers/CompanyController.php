@@ -37,11 +37,22 @@ class CompanyController extends Controller
         ]);
     }
     
-    public function fetch(IndexRequest $request): LengthAwarePaginator
+    public function fetch(IndexRequest $request): JsonResponse
     {
         $this->authorize('viewAny', Company::class);
         
-        return $this->service->fetch($request);
+        $companies = $this->service->fetch($request);
+
+        return response()->json([
+            'data' => $companies->items(),
+            'meta' => [
+                'current_page' => $companies->currentPage(),
+                'per_page'     => $companies->perPage(),
+                'total'        => $companies->total(),
+                'last_page'    => $companies->lastPage(),
+            ],
+            'filter' => $request->validatedFilters(),
+        ], Response::HTTP_OK);
     }
     
     /**
@@ -59,24 +70,19 @@ class CompanyController extends Controller
     {
         $this->authorize('create', Company::class);
         
+        /**
+         * @var array{
+         *   name: string, 
+         *   email: string,
+         *   address: string,
+         *   phone: string,
+         *   active: bool
+         * } $data
+         */
+        $data = $request->validated();
+
         try {
-            $company = $this->service->store($request->validated());
-            
-            return response()->json($company, Response::HTTP_OK);
-        } catch(Throwable $th) {
-            return response()->json(
-                ['error' => $th->getMessage()],
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        }
-    }
-    
-    public function update(UpdateRequest $request, $id): JsonResponse
-    {
-        $this->authorize('update', Company::class);
-        
-        try {
-            $company = $this->service->update($request->validated(), $id);
+            $company = $this->service->store($data);
 
             return response()->json($company, Response::HTTP_OK);
         } catch(Throwable $th) {
@@ -87,12 +93,61 @@ class CompanyController extends Controller
         }
     }
     
-    public function bulkDelete(array $ids): JsonResponse
+    /**
+     * Meglévő rekord adatainak frissítése.
+     *
+     * Engedélyezés: 'update' policy.
+     *
+     * @param  \App\Http\Requests\Company\UpdateRequest  $request
+     * @param  int  $id  A módosítandó rekord azonosítója.
+     * @return \Illuminate\Http\JsonResponse  A frissített rekord adatait tartalmazó JSON válasz.
+     * @throws \Throwable
+     */
+    public function update(UpdateRequest $request, $id): JsonResponse
+    {
+        $this->authorize('update', Company::class);
+        
+        /**
+         * @var array{
+         *   name: string, 
+         *   email: string,
+         *   address: string,
+         *   phone: string,
+         *   active: bool
+         * } $data
+         */
+        $data = $request->validated();
+
+        try {
+            $company = $this->service->update($data, $id);
+
+            return response()->json($company, Response::HTTP_OK);
+        } catch(Throwable $th) {
+            return response()->json(
+                ['error' => $th->getMessage()],
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+    
+    /**
+     * Több rekord törlése egyszerre.
+     *
+     * Engedélyezés: 'delete' policy.
+     * Validálás: BulkDeleteRequest.
+     *
+     * @param  \App\Http\Requests\Company\BulkDeleteRequest  $request
+     * @return \Illuminate\Http\JsonResponse
+     * @throws \Throwable
+     */
+    public function bulkDelete(BulkDeleteRequest $request): JsonResponse
     {
         $this->authorize('delete', Company::class);
         
+        $data = $request->validated();
+
         try {
-            $deleted = $this->service->bulkDelete($ids);
+            $deleted = $this->service->bulkDelete($data['ids']);
             
             return response()->json([
                 'message' => 'Sikeres törlés.',
@@ -105,6 +160,14 @@ class CompanyController extends Controller
         }
     }
     
+    /**
+     * Egyetlen rekord törlése.
+     *
+     * Engedélyezés: 'delete' policy.
+     *
+     * @param  int  $id  A törlendo rekord azonosítója.
+     * @throws \Throwable
+     */
     public function destroy(int $id): JsonResponse
     {
         $this->authorize('delete', Company::class);
@@ -120,6 +183,10 @@ class CompanyController extends Controller
         }
     }
     
+    /**
+     * Summary of getToSelect
+     * @return array<int, array{id: int, name: string}>
+     */
     public function getToSelect(): array
     {
         return $this->getToSelect();

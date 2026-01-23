@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -17,6 +18,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 /** 
  * @property int|string $id
+ * @property string $name
  * @property string $email
  * @property string $address
  * @property string $phone
@@ -24,9 +26,12 @@ use Spatie\Activitylog\Traits\LogsActivity;
  */
 class Company extends Model
 {
-    use HasFactory, LogsActivity, SoftDeletes;
+    /** @use HasFactory<CompanyFactory> */
+    use HasFactory,
+        LogsActivity,
+        SoftDeletes;
 
-    /** @var array<int,string> */
+    /** @var list<string> */
     protected $fillable = ['name', 'email', 'address', 'phone', 'active'];
 
     /** @var array<string,string> */
@@ -91,8 +96,8 @@ class Company extends Model
     }
 
     /**
-     * @param  Builder<Company>  $query
-     * @return Builder<Company>
+     * @param  Builder<self>  $query
+     * @return Builder<self>
      */
     public function scopeSearch(Builder $query, Request $request): Builder
     {
@@ -126,11 +131,11 @@ class Company extends Model
      */
 
     /**
-     * @return HasMany<Company>
+     * @return HasMany<Employee, $this>
      */
     public function employees(): HasMany
     {
-        return $this->hasMany(Company::class);
+        return $this->hasMany(Employee::class);
     }
 
     /**

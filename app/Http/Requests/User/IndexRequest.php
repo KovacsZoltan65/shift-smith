@@ -15,6 +15,9 @@ class IndexRequest extends FormRequest
         return true;
     }
 
+    /**
+     * @return array<string, array<int, string|\Illuminate\Validation\Rule>>
+     */
     public function rules(): array
     {
         return [
@@ -58,6 +61,18 @@ class IndexRequest extends FormRequest
         ]);
     }
     
+    /**
+     * @return array{
+     *   search?: string,
+     *   name?: string,
+     *   email?: string,
+     *   phone?: string,
+     *   field?: string,
+     *   order?: 'asc'|'desc',
+     *   page?: int,
+     *   per_page?: int
+     * }
+     */
     public function validatedFilters(): array
     {
         $data = $this->validated();

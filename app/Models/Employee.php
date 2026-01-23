@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Database\Factories\EmployeeFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -19,10 +20,18 @@ use Spatie\Activitylog\Traits\LogsActivity;
 /**
  * @property string $first_name
  * @property string|null $last_name
+ * @property string|null $email
+ * @property string|null $address
+ * @property string|null $position
+ * @property string|null $phone
+ * @property string|null $hired_at
+ * @property int $active
  * @property \App\Models\Company|null $company
+ * @method static EmployeeFactory factory(...$parameters)
  */
 class Employee extends Model
 {
+    /** @use HasFactory<EmployeeFactory> */
     use HasFactory, LogsActivity, SoftDeletes;
 
     protected $table = 'employees';
@@ -126,7 +135,7 @@ class Employee extends Model
      */
 
     /**
-     * @return BelongsTo<Company, Employee>
+     * @return BelongsTo<Company, $this>
      */
     public function company(): BelongsTo
     {

@@ -66,7 +66,16 @@ class UserService
      */
     public function update(Request $request, int $id): User
     {
-        return $this->repo->update($request->all(), $id);
+        /** @var array{
+         *   name: string,
+         *   email: string,
+         *   password: string,
+         *   company_id?: int|null,
+         *   is_active?: bool
+         * } $data
+         */
+        $data = $request->all();
+        return $this->repo->update($data, $id);
     }
     
     /**

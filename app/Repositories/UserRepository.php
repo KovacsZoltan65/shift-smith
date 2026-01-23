@@ -32,16 +32,6 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
         $this->cacheService = $cacheService;
         $this->tag          = User::getTag();
     }
-    /**
-     * Whitelistelhető rendezhető mezők (biztonság + tisztaság).
-     */
-    private const ALLOWED_SORT_FIELDS = [
-        'id',
-        'name',
-        'email',
-        'created_at',
-        'updated_at',
-    ];
 
     public function fetch(Request $request): LengthAwarePaginator
     {
@@ -56,7 +46,10 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
         $term = $term === '' ? null : $term;
         
         $sortable = User::getSortable();
-        $field = \in_array($request->input('field', ''), $sortable, true)
+        $field = \in_array(
+                $request->input('field', ''), 
+                $sortable, 
+                true)
             ? $request->input('field')
             : null;
         
@@ -85,7 +78,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             
             $cacheKey = $this->generateCacheKey($this->tag, $json);
             
-            /** @var LengthAwarePaginator<User> $users */
+            /** @var LengthAwarePaginator<int, User> $users */
             $users = $this->cacheService->remember(
                 $this->tag,
                 $cacheKey,
@@ -93,7 +86,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             );
             
         } else {
-            /** @var LengthAwarePaginator<User> $users */
+            /** @var LengthAwarePaginator<int, User> $users */
             $users = $queryCallback();
         }
         
@@ -155,7 +148,13 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     /**
      * Új felhasználó mentése
      * 
-     * @param Request $request
+      * @param array{
+      *   name: string,
+      *   email: string,
+      *   password: string,
+      *   company_id?: int|null,
+      *   is_active?: bool,
+      * } $data
      * @return User
      */
     public function store(array $data): User
@@ -171,6 +170,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             // küldjünk reset linket azonnal
             $status = Password::sendResetLink(['email' => $user->email]);
             
+            $this->createDefaultSettings($user);
             // Cache ürítése
             $this->cacheService->forgetAll($this->tag);
 
@@ -181,7 +181,13 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     /**
      * Felhasználó adatainak mentése
      * 
-     * @param array $data
+     * @param array{
+     *   name: string,
+     *   email: string,
+     *   password: string,
+     *   company_id?: int|null,
+     *   is_active?: bool,
+     * } $data
      * @param int $id
      * @return User
      */
@@ -195,6 +201,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             $user->save();
             $user->refresh();
             
+            $this->updateDefaultSettings($user);
             // Cache ürítése
             $this->cacheService->forgetAll($this->tag);
             
@@ -202,10 +209,14 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
         });
     }
     
+    /**
+     * @param list<int> $ids
+     * @return int
+     */
     public function bulkDelete(array $ids): int
     {
         $authId = auth()->id();
-        abort_if(in_array($authId, $ids, true), 403, 'Saját fiókot nem törölhetsz.');
+        abort_if(\in_array($authId, $ids, true), 403, 'Saját fiókot nem törölhetsz.');
     
         return DB::transaction(function() use($ids): int {
             
@@ -255,10 +266,25 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
         });
     }
     
+    /**
+     * Summary of createDefaultSettings
+     * @param User $user
+     * @return void
+     */
     private function createDefaultSettings(User $user): void{}
     
+    /**
+     * Summary of updateDefaultSettings
+     * @param User $user
+     * @return void
+     */
     private function updateDefaultSettings(User $user): void{}
     
+    /**
+     * Summary of deleteDefaultSettings
+     * @param User $user    
+     * @return void
+     */
     private function deleteDefaultSettings(User $user): void{}
     
     public function model(): string

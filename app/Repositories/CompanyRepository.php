@@ -34,7 +34,7 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     /**
      * 
      * @param Request $request
-     * @return LengthAwarePaginator
+     * @return LengthAwarePaginator<int, Company>
      */
     public function fetch(Request $request): LengthAwarePaginator
     {
@@ -83,19 +83,19 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
             
             $cacheKey = $this->generateCacheKey($this->tag, $json);
             
-            /** @var LengthAwarePaginator<Company> $compny */
-            $users = $this->cacheService->remember(
-                $this->tag,
-                $cacheKey,
-                $queryCallback
+            /** @var LengthAwarePaginator<int, Company> $companies */
+            $companies = $this->cacheService->remember(
+                tag: $this->tag,
+                key: $cacheKey,
+                callback: $queryCallback
             );
             
         } else {
-            /** @var LengthAwarePaginator<Company> $company */
-            $users = $queryCallback();
+            /** @var LengthAwarePaginator<int, Company> $companies */
+            $companies = $queryCallback();
         }
         
-        return $users;
+        return $companies;
     }
     
     /**
@@ -119,6 +119,16 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
         return $company;
     }
     
+    /**
+     * Summary of store
+     * @param array{
+     *   name: string,
+     *   address?: string|null,
+     *   phone?: string|null,
+     *   email?: string|null
+     * } $data
+     * @return Company
+     */
     public function store(array $data): Company
     {
         return DB::transaction(function() use($data): Company {
@@ -134,6 +144,18 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
         });
     }
     
+    /**
+     * Summary of update
+     * @param array{
+     *    name: string,
+     *    email: string,
+     *    address: string,
+     *    phone: string,
+     *    active: boolean
+     * } $data
+     * @param int $id
+     * @return Company
+     */
     public function update(array $data, $id): Company
     {
         return DB::transaction(function() use($data, $id) {
@@ -144,6 +166,8 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
             $company->save();
             $company->refresh();
             
+            $this->updateDefaultSettings($company);
+
             // Cache ürítése
             $this->cacheService->forgetAll($this->tag);
             
@@ -151,6 +175,10 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
         });
     }
     
+    /**
+     * @param list<int> $ids
+     * @return int
+     */
     public function bulkDelete(array $ids): int
     {
         return DB::transaction(function() use($ids): int {
@@ -182,7 +210,7 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     
     /**
      * Summary of getToSelect
-     * @return array[]
+     * @return array<int, array{id: int, name: string}>
      */
     public function getToSelect(): array
     {
@@ -193,7 +221,9 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
             ->map(fn (Company $c): array => [
                 'id'   => (int) $c->id, 
                 'name' => (string) $c->name,
-            ])->all();
+            ])
+            ->values()
+            ->all();
     }
     
     private function createDefaultSettings(Company $company): void{}
