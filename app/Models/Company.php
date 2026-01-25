@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Override;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -19,6 +20,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 /** 
  * @property int|string $id
  * @property string $name
+ * @property string $name_lc
  * @property string $email
  * @property string $address
  * @property string $phone
@@ -35,7 +37,7 @@ class Company extends Model
     protected $fillable = ['name', 'email', 'address', 'phone', 'active'];
 
     /** @var array<string,string> */
-    protected $casts = ['active' => 'integer'];
+    protected $casts = [ 'active' => 'boolean', ];
 
     /** @var array<int,string> */
     public const SORTABLE = [
@@ -138,6 +140,24 @@ class Company extends Model
         return $this->hasMany(Employee::class);
     }
 
+    /**
+     * ===========================================================
+     */
+    
+    /*
+     * ========================= MUTATORS =========================
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (Company $company) {
+            if ($company->isDirty('name')) {
+                $company->name_lc = Str::of((string) $company->name)
+                    ->trim()
+                    ->lower()
+                    ->toString();
+            }
+        });
+    }
     /**
      * ===========================================================
      */

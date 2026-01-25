@@ -47,7 +47,7 @@ class CompanyService
         return $this->repo->store($data);
     }
     
-        /**
+    /**
      * Summary of update
      * @param array{
      *    name: string,

@@ -45,8 +45,8 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
         $perPage = (int) $request->integer('per_page', 10);
         $perPage = ($perPage > 0) ? min($perPage, 100) : 10;
         
-        $term = \trim((string) $request->input('search', ''));
-        $term = $term === '' ? null : $term;
+        $rawTerm = \trim((string) $request->input('search', ''));
+        $term = $rawTerm === '' ? null : \mb_strtolower($rawTerm, 'UTF-8');
         
         $sortable = Company::getSortable();
         $field = \in_array($request->input('field', ''), $sortable, true)

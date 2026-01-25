@@ -31,7 +31,7 @@ class CompanyController extends Controller
     {
         $this->authorize('viewAny', Company::class);
         
-        return Inertia::render('Company/Index', [
+        return Inertia::render('Companies/Index', [
             'title'  => 'Cégek',
             'filter' => $request->validatedFilters(),
         ]);
@@ -57,13 +57,28 @@ class CompanyController extends Controller
     
     /**
      * @param int $id
-     * @return \App\Models\Company
+     * @return \Illuminate\Http\JsonResponse  A cég adatait tartalmazó JSON válasz.
      */
-    public function getCompany(int $id): Company
+    public function getCompany(int $id): JsonResponse
     {
-        $this->authorize('view', Company::class);
+        //$this->authorize('view', Company::class);
+        
+        $company = $this->service->getCompany($id);
+        $this->authorize('view', $company);
 
-        return $this->service->getCompany($id);
+        try {
+            
+            
+            return response()->json(
+                $company,
+                Response::HTTP_OK
+            );
+        } catch(Throwable $th) {
+            return response()->json(
+                ['error' => $th->getMessage()],
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
     }
     
     public function store(StoreRequest $request): JsonResponse
@@ -105,7 +120,7 @@ class CompanyController extends Controller
      */
     public function update(UpdateRequest $request, $id): JsonResponse
     {
-        $this->authorize('update', Company::class);
+        //$this->authorize('update', Company::class);
         
         /**
          * @var array{
@@ -119,9 +134,12 @@ class CompanyController extends Controller
         $data = $request->validated();
 
         try {
-            $company = $this->service->update($data, $id);
+            $company = $this->service->getCompany($id);
+            $this->authorize('update', $company);
+        
+            $updated = $this->service->update($data, $id);
 
-            return response()->json($company, Response::HTTP_OK);
+            return response()->json($updated, Response::HTTP_OK);
         } catch(Throwable $th) {
             return response()->json(
                 ['error' => $th->getMessage()],
@@ -142,7 +160,7 @@ class CompanyController extends Controller
      */
     public function bulkDelete(BulkDeleteRequest $request): JsonResponse
     {
-        $this->authorize('delete', Company::class);
+        $this->authorize('deleteAny', Company::class);
         
         $data = $request->validated();
 
@@ -170,7 +188,9 @@ class CompanyController extends Controller
      */
     public function destroy(int $id): JsonResponse
     {
-        $this->authorize('delete', Company::class);
+        //$this->authorize('delete', Company::class);
+        $company = $this->service->getCompany($id);
+        $this->authorize('delete', $company);
         
         try {
             $deleted = $this->service->destroy($id);
@@ -189,6 +209,6 @@ class CompanyController extends Controller
      */
     public function getToSelect(): array
     {
-        return $this->getToSelect();
+        return $this->service->getToSelect();
     }
 }

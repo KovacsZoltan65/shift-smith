@@ -14,37 +14,36 @@ class CompanyPolicy
 
     public function before(User $user, string $ability): ?bool
     {
-        // superadmin mindent
         return $user->hasRole('superadmin') ? true : null;
     }
 
     public function viewAny(User $user): bool
     {
-        // példa: admin és manager láthatja a listát
-        return $user->hasAnyRole(['admin', 'manager']);
+        return $user->can('companies.viewAny');
     }
 
-    public function view(User $user, Company $model): bool
+    public function view(User $user, Company $company): bool
     {
-        // önmagát láthatja, admin/manager már a before nélkül is igaz lehetne,
-        // de a before miatt superadmin úgyis true
-        return $user->id === $model->id || $user->hasAnyRole(['admin', 'manager']);
+        return $user->can('companies.view');
     }
 
     public function create(User $user): bool
     {
-        return $user->hasRole('admin');
+        return $user->can('companies.create');
     }
 
-    public function update(User $user, Company $model): bool
+    public function update(User $user, Company $company): bool
     {
-        // admin bárkit, user csak magát
-        return $user->hasRole('admin') || $user->id === $model->id;
+        return $user->can('companies.update');
     }
 
-    public function delete(User $user, Company $model): bool
+    public function delete(User $user, Company $company): bool
     {
-        // admin törölhet, de magát ne (józan ész)
-        return $user->hasRole('admin') && $user->id !== $model->id;
+        return $user->can('companies.delete');
+    }
+
+    public function deleteAny(User $user): bool
+    {
+        return $user->can('companies.deleteAny');
     }
 }

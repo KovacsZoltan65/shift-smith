@@ -1,10 +1,11 @@
 <?php
 
 use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\UserController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\UserController;
 use Inertia\Inertia;
 
 Route::get('/', function () {
@@ -52,6 +53,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Menü
     Route::get('/menu', fn () => Inertia::render('Menu/Index'))->name('menu.index');
 
+    // Users
+    // Az "Users" route -ok között
+    
     // Adminisztráció
     Route::get(
         '/companies', 
@@ -116,6 +120,43 @@ Route::middleware(['auth', 'verified'])
 
     });
 
+/**
+ * ======================================
+ * COMPANIES
+ * ======================================
+ * Cégek kezelése
+ */
+Route::middleware(['auth', 'verified'])
+    ->prefix('companies')
+    ->as('companies.')
+    ->controller(CompanyController::class)
+    ->group(function() {
+        // INDEX
+        Route::get('/', 'index')->name('index');
+        
+        // FETCH
+        Route::get('/fetch', 'fetch')->name('fetch');
+        
+        // SEARCH
+        Route::get('/{id}', 'getCompany')->whereNumber('id')->name('by_id');
+        
+        // CREATE
+        Route::post('/', 'store')->name('store');
+        
+        // UPDATE
+        Route::put('/{id}', 'update')->whereNumber('id')->name('update');
+        
+        // DELETE
+        Route::delete('/{id}', 'destroy')->name('destroy');
+        
+        // BULK DELETE
+        Route::delete('/destroy-bulk', 'bulkDelete')->name('destroy_bulk');
+        
+    });
+/**
+ * ======================================
+ */
+    
 Route::middleware('guest')->group(function () {
 
     Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])
