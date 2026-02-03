@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ProfileController;
@@ -25,6 +26,25 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+/**
+ * ======================================
+ * SELECTOROK
+ * ======================================
+ */
+Route::middleware(['auth', 'verified', 'throttle:120,1'])->group(function(): void {
+    // Company Selector
+    Route::get('/selectors/companies', [CompanyController::class, 'getToSelect'])->name('selectors.companies');
+
+    // User Selector
+    Route::get('/selectors/users', [UserController::class, 'getToSelect'])->name('selectors.users');
+
+    // Role Selector
+    Route::get('/selectors/roles', [RoleController::class, 'getToSelect'])->name('selectors.roles');
+
+    // Permissions Selector
+    Route::get('admin/selectors/permissions', [RoleController::class, 'getPermissionsToSelect'])->name('admin.selectors.permissions');
 });
 
 //Route::get('/_debug/csrf', function() {
@@ -57,14 +77,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Az "Users" route -ok között
     
     // Adminisztráció
-    Route::get(
-        '/companies', 
-        fn () => Inertia::render('Companies/Index', ['title' => 'Cégek'])
-    )->name('companies.index');
+    // A "Companies" route -ok között
+    //Route::get('/companies', fn () => Inertia::render('Companies/Index', ['title' => 'Cégek']))->name('companies.index');
 
     // Biztonság
     Route::get('/permissions', fn () => Inertia::render('Security/Permissions/Index'))->name('permissions.index');
-    Route::get('/roles', fn () => Inertia::render('Security/Roles/Index'))->name('roles.index');
+    //Route::get('/roles', fn () => Inertia::render('Security/Roles/Index'))->name('roles.index');
 
     // HR
     Route::get(
@@ -80,6 +98,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/settings/company', fn () => Inertia::render('Settings/Company/Index'))->name('settings.company');
     Route::get('/settings/user', fn () => Inertia::render('Settings/User/Index'))->name('settings.user');
 });
+
+/**
+ * ======================================
+ * ROLES
+ * ======================================
+ */
+Route::middleware(['auth', 'verified'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+        Route::get('roles', [RoleController::class, 'index'])->name('roles.index');
+        Route::get('roles/fetch', [RoleController::class, 'fetch'])->name('roles.fetch'); // DataTable-hoz
+        Route::post('roles', [RoleController::class, 'store'])->name('roles.store');
+        Route::put('roles/{role}', [RoleController::class, 'update'])->name('roles.update');
+        Route::delete('roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
+    });
 
 /**
  * ======================================

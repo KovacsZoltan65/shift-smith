@@ -3,8 +3,10 @@
 namespace App\Providers;
 
 use App\Interfaces\CompanyRepositoryInterface;
+use App\Interfaces\RoleRepositoryInterface;
 use App\Interfaces\UserRepositoryInterface;
 use App\Repositories\CompanyRepository;
+use App\Repositories\RoleRepository;
 use App\Repositories\UserRepository;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Grammars\PostgresGrammar;
@@ -13,6 +15,7 @@ use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use Inertia\Inertia;
+use function str_contains;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -28,6 +31,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             CompanyRepositoryInterface::class, 
             CompanyRepository::class
+        );
+        $this->app->bind(
+            RoleRepositoryInterface::class, 
+            RoleRepository::class
         );
     }
 

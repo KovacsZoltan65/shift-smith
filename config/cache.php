@@ -130,6 +130,7 @@ return [
     'enable_menu' => env('MENU_CACHE_ENABLED', false),
     
     'enable_users'     => false,
+    'enable_roles'     => false,
     'enable_companies' => false,
     
 ];

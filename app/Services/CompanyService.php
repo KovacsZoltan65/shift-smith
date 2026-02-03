@@ -32,6 +32,11 @@ class CompanyService
         return $this->repo->getCompany($id);
     }
     
+    public function getCompanyByName(string $name): Company
+    {
+        return $this->repo->getCompanyByName($name);
+    }
+    
     /**
      * Summary of store
      * @param array{

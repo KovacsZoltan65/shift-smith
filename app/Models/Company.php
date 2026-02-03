@@ -35,6 +35,9 @@ class Company extends Model
 
     /** @var list<string> */
     protected $fillable = ['name', 'email', 'address', 'phone', 'active'];
+    
+    /** @var list<string> */
+    protected $guarded = ['name_lc'];
 
     /** @var array<string,string> */
     protected $casts = [ 'active' => 'boolean', ];
@@ -147,17 +150,6 @@ class Company extends Model
     /*
      * ========================= MUTATORS =========================
      */
-    protected static function booted(): void
-    {
-        static::saving(function (Company $company) {
-            if ($company->isDirty('name')) {
-                $company->name_lc = Str::of((string) $company->name)
-                    ->trim()
-                    ->lower()
-                    ->toString();
-            }
-        });
-    }
     /**
      * ===========================================================
      */

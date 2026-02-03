@@ -34,7 +34,7 @@ export const appMenuDefinition = [
             },
             {
                 title: "Szerepkörök",
-                route: "roles.index",
+                route: "admin.roles.index",
                 key: "roles.index",
                 can: "roles.viewAny",
             },

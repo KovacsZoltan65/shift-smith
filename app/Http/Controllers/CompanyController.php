@@ -67,8 +67,29 @@ class CompanyController extends Controller
         $this->authorize('view', $company);
 
         try {
-            
-            
+            return response()->json(
+                $company,
+                Response::HTTP_OK
+            );
+        } catch(Throwable $th) {
+            return response()->json(
+                ['error' => $th->getMessage()],
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+    
+    /**
+     * 
+     * @param string $name
+     * @return JsonResponse
+     */
+    public function getCompanyByName(string $name): JsonResponse
+    {
+        $company = $this->service->getCompanyByName($name);
+        $this->authorize('view', $company);
+        
+        try {
             return response()->json(
                 $company,
                 Response::HTTP_OK
