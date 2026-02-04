@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use Illuminate\Foundation\Application;
@@ -89,6 +90,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         '/employees', 
         fn () => Inertia::render('HR/Employees/Index', ['title' => 'Dolgozók'])
     )->name('employees.index');
+    
     Route::get('/assignments', fn () => Inertia::render('HR/Assignments/Index'))->name('assignments.index');
     Route::get('/shifts', fn () => Inertia::render('HR/Shifts/Index'))->name('shifts.index');
     Route::get('/planning', fn () => Inertia::render('HR/Planning/Index'))->name('planning.index');
@@ -187,6 +189,39 @@ Route::middleware(['auth', 'verified'])
         Route::delete('/destroy-bulk', 'bulkDelete')->name('destroy_bulk');
         
     });
+    
+/**
+ * ======================================
+ * EMPLOYEES
+ * ======================================
+ * Dolgozók kezelése
+ */
+Route::middleware(['auth', 'verified'])
+        ->prefix('employees')
+        ->as('employees.')
+        ->controller(EmployeeController::class)->group(function() {
+            // INDEX
+            Route::get('/', 'index')->name('index');
+            
+            // FETCH
+            Route::get('/fetch', 'fetch')->name('fetch');
+            
+            // SEARCH
+            Route::get('/{id}', 'getCompany')->whereNumber('id')->name('by_id');
+            
+            // CREATE
+            Route::post('/', 'store')->name('store');
+            
+            // UPDATE
+            Route::put('/{id}', 'update')->whereNumber('id')->name('update');
+            
+            // DELETE
+            Route::delete('/{id}', 'destroy')->name('destroy');
+            
+            // BULK DELETE
+            Route::delete('/destroy-bulk', 'bulkDelete')->name('destroy_bulk');
+        });
+    
 /**
  * ======================================
  */

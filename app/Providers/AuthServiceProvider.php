@@ -14,11 +14,11 @@ class AuthServiceProvider extends ServiceProvider
      */
     protected $policies = [
 
-        \App\Models\User::class    => \App\Policies\UserPolicy::class,
-        \App\Models\Company::class => \App\Policies\CompanyPolicy::class,
+        \App\Models\User::class     => \App\Policies\UserPolicy::class,
+        \App\Models\Company::class  => \App\Policies\CompanyPolicy::class,
+        \App\Models\Employee::class => \App\Policies\EmployeePolicy::class,
         //\App\Models\Activity::class               => \App\Policies\ActivityPolicy::class,
-        //\App\Models\Company::class                => \App\Policies\CompanyPolicy::class,
-        //\App\Models\Employee::class               => \App\Policies\EmployeePolicy::class,
+        //
         //\App\Models\WorkScheduleAssignment::class => \App\Policies\WorkScheduleAssignmentPolicy::class,
         //\App\Models\Permission::class             => \App\Policies\PermissionPolicy::class,
         //\App\Models\Product::class                => \App\Policies\ProductPolicy::class,

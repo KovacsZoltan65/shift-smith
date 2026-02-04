@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\Company\BulkDeleteRequest;
-use App\Http\Requests\Company\DeleteRequest;
-use App\Http\Requests\Company\IndexRequest;
-use App\Http\Requests\Company\StoreRequest;
-use App\Http\Requests\Company\UpdateRequest;
-use App\Models\Company;
-use App\Services\CompanyService;
+use App\Http\Requests\Employee\BulkDeleteRequest;
+use App\Http\Requests\Employee\DeleteRequest;
+use App\Http\Requests\Employee\IndexRequest;
+use App\Http\Requests\Employee\StoreRequest;
+use App\Http\Requests\Employee\UpdateRequest;
+use App\Models\Employee;
+use App\Services\EmployeeService;
 use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,38 +18,37 @@ use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
-class CompanyController extends Controller
+class EmployeeController extends Controller
 {
     public function __construct(
-        private readonly CompanyService $service
+            private readonly EmployeeService $service
     ) {
-        // Ha használsz Policy-t:
-        // $this->authorizeResource(User::class, 'user');
+        //
     }
     
     public function index(IndexRequest $request): InertiaResponse
     {
-        $this->authorize('viewAny', Company::class);
+        $this->authorize('viewAny', Employee::class);
         
-        return Inertia::render('Companies/Index', [
-            'title'  => 'Cégek',
+        return Inertia::render('HR/Employees/Index', [
+            'title'  => 'Dolgozók',
             'filter' => $request->validatedFilters(),
         ]);
     }
     
     public function fetch(IndexRequest $request): JsonResponse
     {
-        $this->authorize('viewAny', Company::class);
+        $this->authorize('viewAny', Employee::class);
         
-        $companies = $this->service->fetch($request);
+        $employee = $this->service->fetch($request);
 
         return response()->json([
-            'data' => $companies->items(),
+            'data' => $employee->items(),
             'meta' => [
-                'current_page' => $companies->currentPage(),
-                'per_page'     => $companies->perPage(),
-                'total'        => $companies->total(),
-                'last_page'    => $companies->lastPage(),
+                'current_page' => $employee->currentPage(),
+                'per_page'     => $employee->perPage(),
+                'total'        => $employee->total(),
+                'last_page'    => $employee->lastPage(),
             ],
             'filter' => $request->validatedFilters(),
         ], Response::HTTP_OK);
@@ -57,18 +56,16 @@ class CompanyController extends Controller
     
     /**
      * @param int $id
-     * @return \Illuminate\Http\JsonResponse  A cég adatait tartalmazó JSON válasz.
+     * @return JsonResponse  A dolgozó adatait tartalmazó JSON válasz.
      */
-    public function getCompany(int $id): JsonResponse
+    public function getEmployee(int $id): JsonResponse
     {
-        //$this->authorize('view', Company::class);
-        
-        $company = $this->service->getCompany($id);
-        $this->authorize('view', $company);
+        $employee = $this->service->getEmployee($id);
+        $this->authorize('view', $employee);
 
         try {
             return response()->json(
-                $company,
+                $employee,
                 Response::HTTP_OK
             );
         } catch(Throwable $th) {
@@ -84,14 +81,14 @@ class CompanyController extends Controller
      * @param string $name
      * @return JsonResponse
      */
-    public function getCompanyByName(string $name): JsonResponse
+    public function getEmployeeByName(string $name): JsonResponse
     {
-        $company = $this->service->getCompanyByName($name);
-        $this->authorize('view', $company);
+        $employee = $this->service->getEmployeeByName($name);
+        $this->authorize('view', $employee);
         
         try {
             return response()->json(
-                $company,
+                $employee,
                 Response::HTTP_OK
             );
         } catch(Throwable $th) {
@@ -104,23 +101,26 @@ class CompanyController extends Controller
     
     public function store(StoreRequest $request): JsonResponse
     {
-        $this->authorize('create', Company::class);
+        $this->authorize('create', Employee::class);
         
         /**
          * @var array{
-         *   name: string, 
+         *   company_id: int
+         *   first_name: string, 
+         *   last_name: string,
          *   email: string,
          *   address: string,
          *   phone: string,
+         *   hired_at: string,
          *   active: bool
          * } $data
          */
         $data = $request->validated();
-
+        
         try {
-            $company = $this->service->store($data);
+            $employee = $this->service->store($data);
 
-            return response()->json($company, Response::HTTP_OK);
+            return response()->json($employee, Response::HTTP_OK);
         } catch(Throwable $th) {
             return response()->json(
                 ['error' => $th->getMessage()],
@@ -134,9 +134,9 @@ class CompanyController extends Controller
      *
      * Engedélyezés: 'update' policy.
      *
-     * @param  \App\Http\Requests\Company\UpdateRequest  $request
+     * @param  \App\Http\Requests\Employee\UpdateRequest  $request
      * @param  int  $id  A módosítandó rekord azonosítója.
-     * @return \Illuminate\Http\JsonResponse  A frissített rekord adatait tartalmazó JSON válasz.
+     * @return JsonResponse  A frissített rekord adatait tartalmazó JSON válasz.
      * @throws \Throwable
      */
     public function update(UpdateRequest $request, $id): JsonResponse
@@ -145,18 +145,20 @@ class CompanyController extends Controller
         
         /**
          * @var array{
-         *   name: string, 
+         *   first_name: string, 
+         *   last_name: string, 
          *   email: string,
          *   address: string,
          *   phone: string,
+         *   hired_at: string,
          *   active: bool
          * } $data
          */
         $data = $request->validated();
 
         try {
-            $company = $this->service->getCompany($id);
-            $this->authorize('update', $company);
+            $employee = $this->service->getEmployee($id);
+            $this->authorize('update', $employee);
         
             $updated = $this->service->update($data, $id);
 
@@ -175,13 +177,13 @@ class CompanyController extends Controller
      * Engedélyezés: 'delete' policy.
      * Validálás: BulkDeleteRequest.
      *
-     * @param  \App\Http\Requests\Company\BulkDeleteRequest  $request
-     * @return \Illuminate\Http\JsonResponse
+     * @param  \App\Http\Requests\Employee\BulkDeleteRequest  $request
+     * @return JsonResponse
      * @throws \Throwable
      */
     public function bulkDelete(BulkDeleteRequest $request): JsonResponse
     {
-        $this->authorize('deleteAny', Company::class);
+        $this->authorize('deleteAny', Employee::class);
         
         $data = $request->validated();
 
@@ -204,14 +206,14 @@ class CompanyController extends Controller
      *
      * Engedélyezés: 'delete' policy.
      *
-     * @param  int  $id  A törlendő rekord azonosítója.
+     * @param  int  $id  A törlendo rekord azonosítója.
      * @throws \Throwable
      */
     public function destroy(int $id): JsonResponse
     {
         //$this->authorize('delete', Company::class);
-        $company = $this->service->getCompany($id);
-        $this->authorize('delete', $company);
+        $employee = $this->service->getEmployee($id);
+        $this->authorize('delete', $employee);
         
         try {
             $deleted = $this->service->destroy($id);

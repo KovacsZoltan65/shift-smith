@@ -132,5 +132,6 @@ return [
     'enable_users'     => false,
     'enable_roles'     => false,
     'enable_companies' => false,
+    'enable_employees' => false,
     
 ];

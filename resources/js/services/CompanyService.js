@@ -35,7 +35,8 @@ class CompanyService extends BaseService {
     }
 
     getToSelect(params = {}) {
-        return this.get(`${this.url}/to_select`, { params });
+        //return this.get(`${this.url}/to_select`, { params });
+        return this.get(`selectors/${this.url}`, { params });
     }
 }
 

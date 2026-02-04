@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import Service from "@/services/CompanyService.js";
+import { Select } from "primevue";
 
 const props = defineProps({
     modelValue: [String, Number, Object, null],
@@ -32,7 +33,7 @@ onMounted(async () => {
     isLoading.value = true;
 
     try {
-        const response = await Service.getCompaniesToSelect();
+        const response = await Service.getToSelect();
         companies.value = response.data;
 
         // 👇 Itt állítjuk csak be, ha már minden adat megvan

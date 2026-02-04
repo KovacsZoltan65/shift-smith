@@ -18,6 +18,7 @@ use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
+ * @property int $company_id
  * @property string $first_name
  * @property string|null $last_name
  * @property string|null $email
@@ -42,12 +43,19 @@ class Employee extends Model
     ];
 
     protected $casts = [
-        'active' => 'integer',
+        'hired_at' => 'date',
+        'active' => 'bool',
     ];
 
     /** @var array<int,string> */
     public const SORTABLE = [
-        'id', 'name', 'email',
+        'id',
+        'first_name',
+        'last_name',
+        'email',
+        'hired_at',
+        'active',
+        'created_at',
     ];
 
     protected $appends = ['name', 'company_name'];
@@ -119,14 +127,19 @@ class Employee extends Model
      * @param  Builder<Employee>  $query
      * @return Builder<Employee>
      */
-    public function scopeSearch(Builder $query, Request $request): Builder
+    public function scopeSearch(Builder $query, string $search): Builder
     {
-        return $query->when($request->input('search'), function(Builder $q) use ($request): void {
-            $q->when($request->input('name'), fn (Builder $qq): Builder => $qq->where('name', 'like', "%{$request->input('name')}%"));
+        $s = trim($search);
+        if ($s === '') {
+            return $query;
+        }
 
-            $q->when($request->input('email'), fn (Builder $qq): Builder => $qq->where('email', 'like', "%{$request->input('email')}%"));
-
-            $q->when($request->input('phone'), fn (Builder $qq): Builder => $qq->where('phone', 'like', "%{$request->input('phone')}%"));
+        return $query->where(function (Builder $q) use ($s) {
+            $q->where('first_name', 'like', "%{$s}%")
+              ->orWhere('last_name', 'like', "%{$s}%")
+              ->orWhere('email', 'like', "%{$s}%")
+              ->orWhere('phone', 'like', "%{$s}%")
+              ->orWhere('position', 'like', "%{$s}%");
         });
     }
 

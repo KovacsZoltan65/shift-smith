@@ -1,0 +1,60 @@
+✅ TODO LISTA – Priorizálva
+🟢  1. kör – Alap stabilizálás (nagyon ajánlott)
+
+    1.1. Egységes CRUD minta minden admin modulra
+        - Index → Fetch (pagination, search, sort)
+        - CreateModal / EditModal / DeleteModal
+        - Egységes API response (message, data, errors)
+        - Egységes frontend error kezelés (422, 403, 500)
+
+    👉 cél: bármit másolva azonnal új modul szülessen
+
+    1.2. Frontend UX visszajelzések
+        - Toast minden sikeres művelet után
+        - Loading state gombokon (saving, deleting)
+        - Disable gomb submit alatt
+        - Üres lista állapot (“Nincs találat”)
+
+    Ez látványban kicsi, élményben óriási ugrás.
+
+    1.3. Jogosultság = UI szinten is
+        - Gomb elrejtése, ha nincs permission
+        - Menü elem disable vs hide eldöntése
+        - Tooltip: „Nincs jogosultságod”
+
+🟡  2. kör – Minőség & karbantarthatóság
+
+    2.1. Service / Repository finomítás
+        - Fetch metódusok egységesítése
+        - company-scoped query helper
+        - Cache stratégia (tag-ekkel, nem mindent)
+
+    2.2. Validáció & edge case polish
+        - Unique mezők update esetben
+        - SoftDelete + restore forgatókönyvek
+          „Nem törölhető, mert használatban van” esetek
+
+    2.3. Tesztek (nem túl sok, de okos)
+        2.3.1 Feature test / modul
+            - Permission test (allowed / forbidden)
+            - Update + Delete happy path
+
+        Nem 100%, csak biztonsági háló.
+
+🔵  3. kör – Product-szintű lépések (ráér, de izgalmas)
+
+    3.1. Beállítások (Settings) központ
+        - App / Company / User szint
+        - UI: honnan jön az érték
+        - Override vizualizáció
+
+    3.2. Audit / Activity log UI
+
+        - Spatie activitylog már adott → UI hiányzik
+          „Ki mit mikor” admin nézet
+
+    3.3. Finom UX / polish
+
+        - Skeleton loaderek
+        - Keyboard support (Enter = submit)
+        - Modal focus kezelés
