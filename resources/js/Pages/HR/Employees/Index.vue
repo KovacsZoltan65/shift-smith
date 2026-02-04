@@ -102,6 +102,9 @@ const openEditModal = (row) => {
 };
 
 const onSaved = async (msg = "Mentve.") => {
+    createOpen.value = false;
+    editOpen.value = false;
+
     selected.value = [];
     await fetchEmployees();
     toast.add({ severity: "success", summary: "Siker", detail: msg, life: 2000 });
@@ -348,6 +351,7 @@ onMounted(fetchEmployees);
                         label="Új dolgozó"
                         icon="pi pi-plus"
                         size="small"
+                        :disabled="loading"
                         @click="openCreate"
                     />
 

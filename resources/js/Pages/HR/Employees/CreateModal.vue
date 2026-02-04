@@ -136,6 +136,7 @@ const close = () => {
         <EmployeeFields v-model="form" :errors="errors" :disabled="saving" />
 
         <template #footer>
+            <!-- CANCEL -->
             <Button
                 label="Mégse"
                 severity="secondary"
@@ -143,6 +144,7 @@ const close = () => {
                 :disabled="saving"
                 @click="close"
             />
+            <!-- SAVE -->
             <Button
                 label="Mentés"
                 icon="pi pi-check"

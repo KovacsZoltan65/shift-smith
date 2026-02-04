@@ -219,7 +219,7 @@ Route::middleware(['auth', 'verified'])
             Route::delete('/{id}', 'destroy')->name('destroy');
             
             // BULK DELETE
-            Route::delete('/destroy-bulk', 'bulkDelete')->name('destroy_bulk');
+            Route::post('/bulk-delete', 'bulkDelete')->name('bulk-delete');
         });
     
 /**
