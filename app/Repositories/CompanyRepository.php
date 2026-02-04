@@ -212,8 +212,20 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
      * Summary of getToSelect
      * @return array<int, array{id: int, name: string}>
      */
-    public function getToSelect(): array
+    public function getToSelect(array $params): array
     {
+        $onlyWithEmployees = $params['only_with_employees'] ?? false;
+        
+        return Company::active()
+            ->when($onlyWithEmployees, fn ($q) => $q->whereHas('employees'))
+            ->select(['id', 'name'])
+            ->orderBy('name')->get()
+            ->map(fn (Company $c): array => [
+                'id' => $c->id,
+                'name' => $c->name,
+            ])
+            ->values()->all();
+        /*
         return Company::active()
             ->select(['id', 'name'])
             ->orderBy('name')
@@ -224,6 +236,7 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
             ])
             ->values()
             ->all();
+        */
     }
     
     private function createDefaultSettings(Company $company): void{}

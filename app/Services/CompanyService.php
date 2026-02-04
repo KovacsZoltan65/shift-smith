@@ -95,9 +95,9 @@ class CompanyService
      * Summary of getToSelect
      * @return array<int, array{id: int, name: string}>
      */
-    public function getToSelect(): array
+    public function getToSelect(array $params): array
     {
-        return $this->repo->getToSelect();
+        return $this->repo->getToSelect($params);
     }
     
 }

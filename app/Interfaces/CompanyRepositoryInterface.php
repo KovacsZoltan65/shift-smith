@@ -55,5 +55,5 @@ interface CompanyRepositoryInterface
      * Summary of getToSelect
      * @return array<int, array{id: int, name: string}>
      */
-    public function getToSelect(): array;
+    public function getToSelect(array $params): array;
 }

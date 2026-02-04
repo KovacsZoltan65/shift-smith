@@ -375,6 +375,7 @@ onMounted(fetchEmployees);
                             v-model="companyId"
                             placeholder="Cég szűrő..."
                             @update:modelValue="onCompanyChanged"
+                            :only-with-employees="true"
                         />
                     </div>
                 </div>

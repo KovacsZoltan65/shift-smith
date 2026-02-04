@@ -228,8 +228,16 @@ class CompanyController extends Controller
      * Summary of getToSelect
      * @return array<int, array{id: int, name: string}>
      */
-    public function getToSelect(): array
+    public function getToSelect(Request $request): array
     {
-        return $this->service->getToSelect();
+        $params = [];
+        
+        $onlyWithEmployees = $request->boolean('only_with_employees');
+        
+        if ($onlyWithEmployees) {
+            $params['only_with_employees'] = true;
+        }
+        
+        return $this->service->getToSelect($params);
     }
 }

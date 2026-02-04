@@ -5,6 +5,10 @@ import { Select } from "primevue";
 
 const props = defineProps({
     modelValue: [String, Number, Object, null],
+    onlyWithEmployees: {
+        type: Boolean,
+        default: false,
+    },
     filter: {
         type: Boolean,
         default: null,
@@ -33,8 +37,23 @@ onMounted(async () => {
     isLoading.value = true;
 
     try {
+        const params = {};
+
+        if (props.onlyWithEmployees) params.only_with_employees = 1;
+
+        const response = await Service.getToSelect(params);
+        companies.value = response.data;
+
+        if (props.modelValue && companies.value.some((p) => p.id === props.modelValue)) {
+            selectedCompany.value = props.modelValue;
+        } else if (companies.value.length === 1) {
+            selectedCompany.value = companies.value[0].id;
+        }
+        /*
         const response = await Service.getToSelect();
         companies.value = response.data;
+
+        if (props.onlyWithEmployees) params.only_with_employees = 1;
 
         // 👇 Itt állítjuk csak be, ha már minden adat megvan
         if (props.modelValue && companies.value.some((p) => p.id === props.modelValue)) {
@@ -42,6 +61,7 @@ onMounted(async () => {
         } else if (companies.value.length === 1) {
             selectedCompany.value = companies.value[0].id;
         }
+        */
     } catch (err) {
         console.error("Nem sikerült a cégek lekérdezése:", err);
     } finally {
