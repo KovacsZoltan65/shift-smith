@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Prettus\Repository\Criteria\RequestCriteria;
 use Prettus\Repository\Eloquent\BaseRepository;
 use Symfony\Component\HttpFoundation\Exception\JsonException;
+use App\Services\Cache\CacheInvalidatorService;
 
 class CompanyRepository extends BaseRepository implements CompanyRepositoryInterface
 {
@@ -120,6 +121,59 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     }
     
     /**
+     * Summary of getToSelect
+     * @return array<int, array{id: int, name: string}>
+     */
+    public function getToSelect(array $params): array
+    {
+        $needCache = (bool) config('cache.enable_companyToSelect', false);
+
+        // normalize
+        $params['only_with_employees'] = !empty($params['only_with_employees']);
+        ksort($params);
+
+        $onlyWithEmployees = (bool) $params['only_with_employees'];
+
+        $queryCallback = function () use ($onlyWithEmployees) {
+            return Company::active()
+                ->when($onlyWithEmployees, fn ($q) => $q->whereHas('employees'))
+                ->select(['id', 'name'])
+                ->orderBy('name')
+                ->get()
+                ->map(fn (Company $c): array => ['id' => (int) $c->id, 'name' => (string) $c->name])
+                ->values()
+                ->all();
+        };
+
+        $hash = hash('sha256', json_encode($params, JSON_THROW_ON_ERROR));
+    
+        $namespace = 'selectors.companies';
+        //$version = app(CacheInvalidatorService::class)->companiesSelectVersion();
+        $version = app(CacheService::class)->get($namespace);
+        
+        // 👇 verzió a KEY-ben (a CacheService még eléteszi a tag-et)
+        $cacheKey = "v{$version}:{$hash}";
+        
+        return $needCache
+            ? $this->cacheService->remember(
+                tag: 'companies_select',
+                key: $cacheKey,
+                callback: $queryCallback,
+                ttl: 1800                 // 30 perc, vagy configból
+            )
+            : $queryCallback();
+        
+        /*
+        $hash = hash('sha256', json_encode($params, JSON_THROW_ON_ERROR));
+        $cacheKey = $this->generateCacheKey($this->tag, $hash);
+
+        return $needCache
+            ? $this->cacheService->remember(tag: $this->tag, key: $cacheKey, callback: $queryCallback)
+            : $queryCallback();
+        */
+    }
+    
+    /**
      * Summary of store
      * @param array{
      *   name: string,
@@ -206,37 +260,6 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
 
             return $deleted;
         });
-    }
-    
-    /**
-     * Summary of getToSelect
-     * @return array<int, array{id: int, name: string}>
-     */
-    public function getToSelect(array $params): array
-    {
-        $onlyWithEmployees = $params['only_with_employees'] ?? false;
-        
-        return Company::active()
-            ->when($onlyWithEmployees, fn ($q) => $q->whereHas('employees'))
-            ->select(['id', 'name'])
-            ->orderBy('name')->get()
-            ->map(fn (Company $c): array => [
-                'id' => $c->id,
-                'name' => $c->name,
-            ])
-            ->values()->all();
-        /*
-        return Company::active()
-            ->select(['id', 'name'])
-            ->orderBy('name')
-            ->get()
-            ->map(fn (Company $c): array => [
-                'id'   => (int) $c->id, 
-                'name' => (string) $c->name,
-            ])
-            ->values()
-            ->all();
-        */
     }
     
     private function createDefaultSettings(Company $company): void{}

@@ -35,7 +35,7 @@ class CacheService
      */
     public function remember(string $tag, string $key, Closure $callback, DateTimeInterface|DateInterval|int $ttl = 3600): mixed
     {
-        $cacheKey = "{$tag}_{$key}";
+        $cacheKey = "{$tag}:{$key}";
 
         if (Cache::supportsTags()) {
             /** @var TCacheValue $value */

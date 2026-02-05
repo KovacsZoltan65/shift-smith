@@ -6,6 +6,10 @@ use App\Interfaces\CompanyRepositoryInterface;
 use App\Interfaces\EmployeeRepositoryInterface;
 use App\Interfaces\RoleRepositoryInterface;
 use App\Interfaces\UserRepositoryInterface;
+use App\Models\Company;
+use App\Models\Employee;
+use App\Observers\CompanyObserver;
+use App\Observers\EmployeeObserver;
 use App\Repositories\CompanyRepository;
 use App\Repositories\EmployeeRepository;
 use App\Repositories\RoleRepository;
@@ -57,6 +61,9 @@ class AppServiceProvider extends ServiceProvider
 //            ]);
 //        });
 
+        Employee::observe(EmployeeObserver::class);
+        Company::observe(CompanyObserver::class);
+        
         if (!defined('APP_ACTIVE'))   define('APP_ACTIVE', 1);
         if (!defined('APP_INACTIVE')) define('APP_INACTIVE', 0);
 
