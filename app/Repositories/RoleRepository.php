@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use App\Interfaces\RoleRepositoryInterface;
+use App\Models\Role;
+use App\Services\Cache\CacheVersionService;
+use App\Services\CacheService;
+use App\Traits\Functions;
+use DB;
 use Illuminate\Container\Container as AppContainer;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Prettus\Repository\Criteria\RequestCriteria;
 use Prettus\Repository\Eloquent\BaseRepository;
-use App\Models\Role;
-use App\Interfaces\RoleRepositoryInterface;
-use App\Services\CacheService;
-use App\Traits\Functions;
-use DB;
 
 class RoleRepository extends BaseRepository implements RoleRepositoryInterface
 {
@@ -21,13 +22,23 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
 
     protected CacheService $cacheService;
     protected string $tag;
+    
+    private readonly CacheVersionService $cacheVersionService;
+    
+    private const NS_ROLES_FETCH = 'roles.fetch';
+    private const NS_SELECTORS_ROLES = 'selectors.roles';
 
-    public function __construct(AppContainer $app, CacheService $cacheService)
+    public function __construct(
+        AppContainer $app,
+        CacheService $cacheService,
+        CacheVersionService $cacheVersionService
+    )
     {
         parent::__construct($app);
 
         $this->cacheService = $cacheService;
         $this->tag = Role::getTag();
+        $this->cacheVersionService = $cacheVersionService;
     }
 
     /**
@@ -49,12 +60,11 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
 
         $sortable = Role::getSortable();
         $field = \in_array($request->input('field', ''), $sortable, true)
-            ? $request->input('field')
+            ? (string) $request->input('field')
             : null;
 
-        $direction = strtolower($request->input('order', '')) === 'desc' ? 'desc' : 'asc';
+        $direction = strtolower((string) $request->input('order', '')) === 'desc' ? 'desc' : 'asc';
 
-        // a paginátor query-stringje (URL szinkronhoz hasznos)
         $appendQuery = $request->only(['search', 'field', 'order', 'per_page']);
 
         $queryCallback = function () use ($term, $field, $direction, $perPage, $page, $appendQuery): LengthAwarePaginator {
@@ -64,7 +74,9 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
                         $q->where('name', 'like', "%{$term}%")
                             ->orWhere('guard_name', 'like', "%{$term}%");
                     });
-                })->when($field, fn($qq) => $qq->orderBy($field, $direction));
+                })
+                ->when($field, fn ($qq) => $qq->orderBy($field, $direction))
+                ->when(!$field, fn ($qq) => $qq->orderByDesc('id'));
 
             $paginator = $q->paginate($perPage, ['*'], 'page', $page);
             $paginator->appends($appendQuery);
@@ -72,25 +84,32 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
             return $paginator;
         };
 
-        if ($needCache) {
-            try {
-                $json = json_encode($request->all(), JSON_THROW_ON_ERROR);
-            } catch (JsonException) {
-                $json = md5(serialize($request->all()));
-            }
-
-            $cacheKey = $this->generateCacheKey($this->tag, $json);
-
-            /** @var LengthAwarePaginator<int, Role> $roles */
-            $roles = $this->cacheService->remember(
-                tag: $this->tag,
-                key: $cacheKey,
-                callback: $queryCallback
-            );
-        } else {
+        if (!$needCache) {
             /** @var LengthAwarePaginator<int, Role> $roles */
             $roles = $queryCallback();
+            return $roles;
         }
+
+        $paramsForKey = [
+            'page' => $page,
+            'per_page' => $perPage,
+            'search' => $term,
+            'field' => $field,
+            'order' => $direction,
+        ];
+        ksort($paramsForKey);
+
+        $version = $this->cacheVersionService->get(self::NS_ROLES_FETCH);
+        $hash = hash('sha256', json_encode($paramsForKey, JSON_THROW_ON_ERROR));
+        $key = "v{$version}:{$hash}";
+
+        /** @var LengthAwarePaginator<int, Role> $roles */
+        $roles = $this->cacheService->remember(
+            tag: $this->tag,
+            key: $key,
+            callback: $queryCallback,
+            ttl: (int) config('cache.ttl_fetch', 60)
+        );
 
         return $roles;
     }
@@ -98,7 +117,7 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
     /**
      * Rekord lekérése azonosító alapján
      * @param int $id
-     * @return \App\Models\Role
+     * @return Role
      */
     public function getRole(int $id): Role
     {
@@ -138,7 +157,7 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
             $this->createDefaultSettings($role);
 
             // Cache ürítése
-            $this->cacheService->forgetAll($this->tag);
+            $this->invalidateAfterRoleWrite();
 
             return $role;
         });
@@ -166,7 +185,7 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
             $this->updateDefaultSettings($role);
 
             // Cache ürítése
-            $this->cacheService->forgetAll($this->tag);
+            $this->invalidateAfterRoleWrite();
 
             return $role;
         });
@@ -184,7 +203,7 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
             $this->deleteDefaultSettings($role);
 
             // Cache ürítése
-            $this->cacheService->forgetAll($this->tag);
+            $this->invalidateAfterRoleWrite();
 
             return $deleted;
         });
@@ -194,31 +213,72 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
      * Summary of getToSelect
      * @return array<int, array{id: int, name: string}>
      */
-    public function getToSelect(): array
+    public function getToSelect(array $params = []): array
     {
-        return Role::active()
-            ->select(['id', 'name'])
-            ->orderBy('name')
-            ->get()
-            ->map(fn(Role $c): array => [
-                'id' => (int) $c->id,
-                'name' => (string) $c->name,
-            ])
-            ->values()
-            ->all();
+        $needCache = (bool) config('cache.enable_roleToSelect', false);
+
+        // normalize (jövőbiztos)
+        $params['only_active'] = array_key_exists('only_active', $params) ? (bool) $params['only_active'] : true;
+        ksort($params);
+
+        $onlyActive = (bool) $params['only_active'];
+
+        $queryCallback = function () use ($onlyActive): array {
+            $q = Role::query();
+
+            if ($onlyActive && method_exists(Role::class, 'active')) {
+                $q = Role::active();
+            } else {
+                // ha nincs scopeActive, akkor maradjon sima query (vagy active mező alapján)
+                // $q = $q->where('active', true);
+            }
+
+            /** @var array<int, array{id: int, name: string}> $out */
+            $out = $q->select(['id', 'name'])
+                ->orderBy('name')
+                ->get()
+                ->map(fn (Role $r): array => [
+                    'id' => (int) $r->id,
+                    'name' => (string) $r->name,
+                ])
+                ->values()
+                ->all();
+
+            return $out;
+        };
+
+        if (!$needCache) {
+            return $queryCallback();
+        }
+
+        $version = $this->cacheVersionService->get(self::NS_SELECTORS_ROLES);
+        $hash = hash('sha256', json_encode($params, JSON_THROW_ON_ERROR));
+        $key = "v{$version}:{$hash}";
+
+        return $this->cacheService->remember(
+            tag: self::NS_SELECTORS_ROLES,
+            key: $key,
+            callback: $queryCallback,
+            ttl: (int) config('cache.ttl_roleToSelect', 1800)
+        );
+    }
+    
+    private function invalidateAfterRoleWrite(): void
+    {
+        DB::afterCommit(function (): void {
+            // Roles listázás (Index) cache
+            $this->cacheVersionService->bump(self::NS_ROLES_FETCH);
+
+            // RoleSelector cache (ha van)
+            $this->cacheVersionService->bump(self::NS_SELECTORS_ROLES);
+        });
     }
 
-    private function createDefaultSettings(Role $role): void
-    {
-    }
+    private function createDefaultSettings(Role $role): void{}
 
-    private function updateDefaultSettings(Role $role): void
-    {
-    }
+    private function updateDefaultSettings(Role $role): void{}
 
-    private function deleteDefaultSettings(Role $role): void
-    {
-    }
+    private function deleteDefaultSettings(Role $role): void{}
 
     public function model(): string
     {

@@ -14,7 +14,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Prettus\Repository\Criteria\RequestCriteria;
 use Prettus\Repository\Eloquent\BaseRepository;
-use Symfony\Component\HttpFoundation\Exception\JsonException;
 use App\Services\Cache\CacheVersionService;
 
 class CompanyRepository extends BaseRepository implements CompanyRepositoryInterface
@@ -23,6 +22,7 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     
     protected CacheService $cacheService;
     protected string $tag;
+    
     private readonly CacheVersionService $cacheVersionService;
     
     private const NS_COMPANIES_FETCH = 'companies.fetch';
@@ -36,8 +36,8 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     {
         parent::__construct($app);
         
-        $this->cacheService        = $cacheService;
-        $this->tag                 = Company::getTag();
+        $this->cacheService = $cacheService;
+        $this->tag = Company::getTag();
         $this->cacheVersionService = $cacheVersionService;
     }
     
@@ -85,37 +85,34 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
             return $paginator;
         };
         
-        if($needCache) {
-            
-            $paramsForKey = [
-                'page' => $page,
-                'per_page' => $perPage,
-                'search' => $term,          // már lowercased/null
-                'field' => $field,          // már whitelistelt/null
-                'order' => $direction,      // asc/desc
-            ];
-            ksort($paramsForKey);
-
-            $namespace = $this->NS_COMPANIES_FETCH;
-            
-            $version = $this->cacheVersionService->get($namespace);
-
-            $hash = hash('sha256', json_encode($paramsForKey, JSON_THROW_ON_ERROR));
-            $key  = "v{$version}:{$hash}";
-            
-            /** @var LengthAwarePaginator<int, Company> $companies */
-            $companies = $this->cacheService->remember(
-                tag: $this->tag,
-                key: $key,
-                callback: $queryCallback,
-                ttl: config('cache.ttl_fetch', 60)
-            );
-            
-        } else {
+        if(!$needCache) {
             /** @var LengthAwarePaginator<int, Company> $companies */
             $companies = $queryCallback();
+            
+            return $companies;
         }
         
+        $paramsForKey = [
+            'page' => $page,
+            'per_page' => $perPage,
+            'search' => $term,      // lowercased/null
+            'field' => $field,      // whitelistelt/null
+            'order' => $direction,  // asc/desc
+        ];
+        ksort($paramsForKey);
+
+        $version = $this->cacheVersionService->get(self::NS_COMPANIES_FETCH);
+        $hash = hash('sha256', json_encode($paramsForKey, JSON_THROW_ON_ERROR));
+        $key = "v{$version}:{$hash}";
+
+        /** @var LengthAwarePaginator<int, Company> $companies */
+        $companies = $this->cacheService->remember(
+            tag: $this->tag,
+            key: $key,
+            callback: $queryCallback,
+            ttl: (int) config('cache.ttl_fetch', 60)
+        );
+
         return $companies;
     }
     
@@ -162,8 +159,9 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
 
         $onlyWithEmployees = (bool) $params['only_with_employees'];
 
-        $queryCallback = function () use ($onlyWithEmployees) {
-            return Company::active()
+        $queryCallback = function () use ($onlyWithEmployees): array {
+            /** @var array<int, array{id: int, name: string}> $out */
+            $out = Company::active()
                 ->when($onlyWithEmployees, fn ($q) => $q->whereHas('employees'))
                 ->select(['id', 'name'])
                 ->orderBy('name')
@@ -171,26 +169,24 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
                 ->map(fn (Company $c): array => ['id' => (int) $c->id, 'name' => (string) $c->name])
                 ->values()
                 ->all();
+
+            return $out;
         };
 
+        if (!$needCache) {
+            return $queryCallback();
+        }
+        
+        $version = $this->cacheVersionService->get(self::NS_SELECTORS_COMPANIES);
         $hash = hash('sha256', json_encode($params, JSON_THROW_ON_ERROR));
-    
-        $namespace = 'selectors.companies';
-        $namespace = $this->NS_SELECTORS_COMPANIES;
-        
-        $version = $this->cacheVersionService->get($namespace);
-        
-        // 👇 verzió a KEY-ben (a CacheService még eléteszi a tag-et)
-        $cacheKey = "v{$version}:{$hash}";
-        
-        return $needCache
-            ? $this->cacheService->remember(
-                tag: 'companies_select',
-                key: $cacheKey,
-                callback: $queryCallback,
-                ttl: 1800                 // 30 perc, vagy configból
-            )
-            : $queryCallback();
+        $key = "v{$version}:{$hash}";
+
+        return $this->cacheService->remember(
+            tag: 'companies_select',
+            key: $key,
+            callback: $queryCallback,
+            ttl: (int) config('cache.ttl_companyToSelect', 1800)
+        );
     }
     
     /**

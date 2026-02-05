@@ -149,5 +149,6 @@ return [
     'enable_employees'        => false,
     'enable_companyToSelect'  => true,
     'enable_employeeToSelect' => true,
+    'enable_roleToSelect' => true,
     
 ];

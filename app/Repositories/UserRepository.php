@@ -6,6 +6,7 @@ namespace App\Repositories;
 
 use App\Interfaces\UserRepositoryInterface;
 use App\Models\User;
+use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
 use App\Traits\Functions;
 use Illuminate\Container\Container as AppContainer;
@@ -25,96 +26,84 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     protected CacheService $cacheService;
     protected string $tag;
     
-    public function __construct(AppContainer $app, CacheService $cacheService)
-    {
+    private readonly CacheVersionService $cacheVersionService;
+    
+    private const NS_USERS_FETCH = 'users.fetch';
+    private const NS_SELECTORS_USERS = 'selectors.users';
+    
+    public function __construct(
+        AppContainer $app,
+        CacheService $cacheService,
+        CacheVersionService $cacheVersionService
+    ) {
         parent::__construct($app);
-        
+
         $this->cacheService = $cacheService;
-        $this->tag          = User::getTag();
+        $this->tag = User::getTag();
+        $this->cacheVersionService = $cacheVersionService;
     }
 
     public function fetch(Request $request): LengthAwarePaginator
     {
         $needCache = (bool) config('cache.enable_users', false);
-        
+
         $page = (int) $request->integer('page', 1);
-        
+
         $perPage = (int) $request->integer('per_page', 10);
         $perPage = ($perPage > 0) ? min($perPage, 100) : 10;
-        
-        $term = \trim((string) $request->input('search', ''));
-        $term = $term === '' ? null : $term;
-        
+
+        $rawTerm = \trim((string) $request->input('search', ''));
+        $term = $rawTerm === '' ? null : \mb_strtolower($rawTerm, 'UTF-8');
+
         $sortable = User::getSortable();
-        $field = \in_array(
-                $request->input('field', ''), 
-                $sortable, 
-                true)
-            ? $request->input('field')
+        $field = \in_array($request->input('field', ''), $sortable, true)
+            ? (string) $request->input('field')
             : null;
-        
-        $direction = strtolower($request->input('order', '')) === 'desc' ? 'desc' : 'asc';
-        
-        // a paginátor query-stringje (URL szinkronhoz hasznos)
+
+        $direction = strtolower((string) $request->input('order', '')) === 'desc' ? 'desc' : 'asc';
+
         $appendQuery = $request->only(['search', 'field', 'order', 'per_page']);
-        
-        $queryCallback = function() use($term, $field, $direction, $perPage, $page, $appendQuery): LengthAwarePaginator {
+
+        $queryCallback = function () use ($term, $field, $direction, $perPage, $page, $appendQuery): LengthAwarePaginator {
             $q = User::query()
                 ->when($term, fn ($qq) => $qq->whereLike(['name', 'email'], $term))
-                ->when($field, fn ($qq) => $qq->orderBy($field, $direction));
-            
+                ->when($field, fn ($qq) => $qq->orderBy($field, $direction))
+                ->when(!$field, fn ($qq) => $qq->orderByDesc('id'));
+
             $paginator = $q->paginate($perPage, ['*'], 'page', $page);
             $paginator->appends($appendQuery);
-            
+
             return $paginator;
         };
-        
-        if($needCache) {
-            try {
-                $json = json_encode($request->all(), JSON_THROW_ON_ERROR);
-            } catch(JsonException) {
-                $json = md5(serialize($request->all()));
-            }
-            
-            $cacheKey = $this->generateCacheKey($this->tag, $json);
-            
-            /** @var LengthAwarePaginator<int, User> $users */
-            $users = $this->cacheService->remember(
-                $this->tag,
-                $cacheKey,
-                $queryCallback
-            );
-            
-        } else {
+
+        if (!$needCache) {
             /** @var LengthAwarePaginator<int, User> $users */
             $users = $queryCallback();
+            return $users;
         }
-        
+
+        $paramsForKey = [
+            'page' => $page,
+            'per_page' => $perPage,
+            'search' => $term,
+            'field' => $field,
+            'order' => $direction,
+        ];
+        ksort($paramsForKey);
+
+        $version = $this->cacheVersionService->get(self::NS_USERS_FETCH);
+        $hash = hash('sha256', json_encode($paramsForKey, JSON_THROW_ON_ERROR));
+        $key = "v{$version}:{$hash}";
+
+        /** @var LengthAwarePaginator<int, User> $users */
+        $users = $this->cacheService->remember(
+            tag: $this->tag,
+            key: $key,
+            callback: $queryCallback,
+            ttl: (int) config('cache.ttl_fetch', 60)
+        );
+
         return $users;
-        
-        /*
-        // Prettus BaseRepository model példánya:
-        $query = $this->model->newQuery();
-        
-        $perPage = (int) $request->integer('per_page', 10);
-        $perPage = ($perPage > 0) ? min($perPage, 100) : 10;
-
-        $page   = (int) $request->integer('page', 1);
-        
-        $search = trim((string) $request->input('search', ''));
-
-        $field = (string) $request->input('field', 'id');
-        $order = strtolower((string) $request->input('order', 'desc')) === 'asc' ? 'asc' : 'desc';
-        
-        $result = $query
-            ->select(['id', 'name', 'email', 'created_at'])
-            ->orderBy($field, $order)
-            ->paginate($perPage, ['*'], 'page', $page)
-            ->withQueryString();
-        
-        // Inertia-hoz barátságos: query string megtartása lapozásnál
-        return $result;
-        */
     }
         
     /**
@@ -161,18 +150,19 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     {
         return DB::transaction(function () use ($data): User {
             /** @var User $user */
-            $user = User::query()->create([
-                'name' => $data['name'],
-                'email' => $data['email'],
-                'password' => Hash::make('Pa$$w0rd'),
-            ]);
+            $user = User::query()->create($data);
+//            $user = User::query()->create([
+//                'name' => $data['name'],
+//                'email' => $data['email'],
+//                'password' => Hash::make( $data['password'] ),
+//            ]);
 
             // küldjünk reset linket azonnal
             $status = Password::sendResetLink(['email' => $user->email]);
             
             $this->createDefaultSettings($user);
             // Cache ürítése
-            $this->cacheService->forgetAll($this->tag);
+            $this->invalidateAfterUserWrite();
 
             return $user;
         });
@@ -203,7 +193,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             
             $this->updateDefaultSettings($user);
             // Cache ürítése
-            $this->cacheService->forgetAll($this->tag);
+            $this->invalidateAfterUserWrite();
             
             return $user;
         });
@@ -225,13 +215,15 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
                 ->where('model_type', User::class)
                 ->whereIn('model_id', $ids)
                 ->delete();
+            
             DB::table('model_has_permissions')
                 ->where('model_type', User::class)
                 ->whereIn('model_id', $ids)
                 ->delete();
+            
             $deleted = User::query()->whereIn('id', $ids)->delete();
             
-            $this->cacheService->forgetAll($this->tag);
+            $this->invalidateAfterUserWrite();
             
             return $deleted;
         });
@@ -249,6 +241,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
                 ->where('model_type', User::class)
                 ->where('model_id', '=', $id)
                 ->delete();
+            
             DB::table('model_has_permissions')
                 ->where('model_type', User::class)
                 ->where('model_id', '=', $id)
@@ -260,9 +253,20 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             $this->deleteDefaultSettings($user);
             
             // Cache ürítése
-            $this->cacheService->forgetAll($this->tag);
+            $this->invalidateAfterUserWrite();
 
             return $deleted;
+        });
+    }
+    
+    private function invalidateAfterUserWrite(): void
+    {
+        DB::afterCommit(function():void {
+            // Users lista oldal cache
+            $this->cacheVersionService->bump(self::NS_USERS_FETCH);
+
+            // UserSelector cache (mert a selector aktív felhasználókat listáz)
+            $this->cacheVersionService->bump(self::NS_SELECTORS_USERS);
         });
     }
     

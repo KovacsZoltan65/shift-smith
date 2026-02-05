@@ -17,7 +17,6 @@ use Illuminate\Support\Facades\DB;
 use Override;
 use Prettus\Repository\Criteria\RequestCriteria;
 use Prettus\Repository\Eloquent\BaseRepository;
-use Symfony\Component\HttpFoundation\Exception\JsonException;
 
 class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInterface
 {
@@ -25,6 +24,7 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
     
     protected CacheService $cacheService;
     protected string $tag;
+    
     private readonly CacheVersionService $cacheVersionService;
     
     private const NS_EMPLOYEES_FETCH = 'employees.fetch';
@@ -39,8 +39,8 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
     {
         parent::__construct($app);
         
-        $this->cacheService        = $cacheService;
-        $this->tag                 = Employee::getTag();
+        $this->cacheService = $cacheService;
+        $this->tag = Employee::getTag();
         $this->cacheVersionService = $cacheVersionService;
     }
     
@@ -48,41 +48,37 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
     public function fetch(Request $request): LengthAwarePaginator
     {
         $needCache = (bool) config('cache.enable_employees', false);
-        
+
         $page = (int) $request->integer('page', 1);
-        
+
         $perPage = (int) $request->integer('per_page', 10);
         $perPage = ($perPage > 0) ? min($perPage, 100) : 10;
-        
+
         $rawTerm = \trim((string) $request->input('search', ''));
         $term = $rawTerm === '' ? null : \mb_strtolower($rawTerm, 'UTF-8');
-        
+
         // ✅ company filter
-        $companyId = $request->input('company_id');
-        $companyId = ($companyId === null || $companyId === '') ? null : (int) $companyId;
-        
+        $companyIdRaw = $request->input('company_id');
+        $companyId = ($companyIdRaw === null || $companyIdRaw === '') ? null : (int) $companyIdRaw;
+
         $sortable = Employee::getSortable();
         $field = \in_array($request->input('field', ''), $sortable, true)
-            ? $request->input('field')
+            ? (string) $request->input('field')
             : null;
-        
-        $direction = strtolower($request->input('order', '')) === 'desc' ? 'desc' : 'asc';
-        
+
+        $direction = strtolower((string) $request->input('order', '')) === 'desc' ? 'desc' : 'asc';
+
         // a paginátor query-stringje (URL szinkronhoz hasznos)
-        $appendQuery = $request->only(['search', 'field', 'order', 'per_page']);
-        
+        $appendQuery = $request->only(['search', 'field', 'order', 'per_page', 'company_id']);
+
         $queryCallback = function () use ($term, $companyId, $field, $direction, $perPage, $page, $appendQuery): LengthAwarePaginator {
             $q = Employee::query()
                 ->when($companyId, fn ($qq) => $qq->where('company_id', $companyId))
                 ->when($term, function ($qq) use ($term) {
                     $qq->where(function ($q) use ($term) {
-                        // ⚠️ DB-ben nincs "name" mező -> first/last + email
                         $q->whereRaw('LOWER(first_name) like ?', ["%{$term}%"])
                             ->orWhereRaw('LOWER(last_name) like ?', ["%{$term}%"])
                             ->orWhereRaw('LOWER(email) like ?', ["%{$term}%"]);
-                        // opcionális: phone/position
-                        // ->orWhereRaw('LOWER(phone) like ?', ["%{$term}%"])
-                        // ->orWhereRaw('LOWER(position) like ?', ["%{$term}%"]);
                     });
                 })
                 ->when($field, fn ($qq) => $qq->orderBy($field, $direction))
@@ -93,38 +89,37 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
 
             return $paginator;
         };
-        
-        if($needCache) {
-            $paramsForKey = [
-                'page' => $page,
-                'per_page' => $perPage,
-                'search' => $term,          // már lowercased/null
-                'field' => $field,          // már whitelistelt/null
-                'order' => $direction,      // asc/desc
-            ];
-            ksort($paramsForKey);
 
-            $namespace = $this->NS_EMPLOYEES_FETCH;
-            $version = $this->cacheVersionService->get($namespace);
-            
-            $hash = hash('sha256', json_encode($paramsForKey, JSON_THROW_ON_ERROR));
-            $key  = "v{$version}:{$hash}";
-            
-            /** @var LengthAwarePaginator<int, Employee> $employees */
-            $employees = $this->cacheService->remember(
-                tag: $this->tag,
-                key: $key,
-                callback: $queryCallback,
-                ttl: config('cache.ttl_fetch', 60)
-            );
-            
-        } else {
+        if (!$needCache) {
             /** @var LengthAwarePaginator<int, Employee> $employees */
             $employees = $queryCallback();
+            return $employees;
         }
-        
+
+        // ⚠️ fontos: a company_id is része a cache key-nek!
+        $paramsForKey = [
+            'page' => $page,
+            'per_page' => $perPage,
+            'search' => $term,
+            'company_id' => $companyId,
+            'field' => $field,
+            'order' => $direction,
+        ];
+        ksort($paramsForKey);
+
+        $version = $this->cacheVersionService->get(self::NS_EMPLOYEES_FETCH);
+        $hash = hash('sha256', json_encode($paramsForKey, JSON_THROW_ON_ERROR));
+        $key = "v{$version}:{$hash}";
+
+        /** @var LengthAwarePaginator<int, Employee> $employees */
+        $employees = $this->cacheService->remember(
+            tag: $this->tag,
+            key: $key,
+            callback: $queryCallback,
+            ttl: (int) config('cache.ttl_fetch', 60)
+        );
+
         return $employees;
-        
     }
     
     public function findOrFailForUpdate(int $id): Employee
@@ -192,24 +187,23 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
      */
     public function update(array $data, $id): Employee
     {
-        return DB::transaction(function() use($data, $id) {
+        return DB::transaction(function () use ($data, $id): Employee {
             /** @var Employee $employee */
             $employee = Employee::query()->lockForUpdate()->findOrFail($id);
-            
-            $oldCompany = $employee->company_id;
-            
+
+            $oldCompanyId = (int) $employee->company_id;
+
             $employee->fill($data);
             $employee->save();
             $employee->refresh();
-            
+
             $this->updateDefaultSettings($employee);
 
             $companyChanged = array_key_exists('company_id', $data)
                 && (int) $employee->company_id !== $oldCompanyId;
-            
-            // Cache ürítése
+
             $this->invalidateAfterEmployeeWrite($companyChanged);
-            
+
             return $employee;
         });
     }
@@ -257,36 +251,51 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
     public function getToSelect(array $params = []): array
     {
         $needCache = (bool) config('cache.enable_employeeToSelect', false);
-        
-        $queryCallback = function() {
-            return Employee::active()
-                ->select(['id', 'name'])
-                ->orderBy('name')
+
+        // normalize params (jövőbiztos)
+        $params['only_active'] = array_key_exists('only_active', $params) ? (bool) $params['only_active'] : true;
+        ksort($params);
+
+        $onlyActive = (bool) $params['only_active'];
+
+        $queryCallback = function () use ($onlyActive): array {
+            $q = Employee::query();
+
+            if ($onlyActive && method_exists(Employee::class, 'active')) {
+                $q = Employee::active();
+            } else {
+                $q = $q->where('active', true);
+            }
+
+            /** @var array<int, array{id:int, name:string}> $out */
+            $out = $q->select(['id', 'first_name', 'last_name'])
+                ->orderBy('last_name')
+                ->orderBy('first_name')
                 ->get()
-                ->map(fn (Company $c): array => [
-                    'id'   => (int) $c->id, 
-                    'name' => (string) $c->name,
+                ->map(fn (Employee $e): array => [
+                    'id' => (int) $e->id,
+                    'name' => trim((string) $e->last_name . ' ' . (string) $e->first_name),
                 ])
                 ->values()
                 ->all();
-        };
-        
-        $hash = hash('sha256', json_encode($params, JSON_THROW_ON_ERROR));
-        
-        $namespace = $this->NS_SELECTORS_EMPLOYEES;
-        $version = $this->cacheVersionService->get($namespace);
 
-        // 👇 verzió a KEY-ben (a CacheService még eléteszi a tag-et)
-        $cacheKey = "v{$version}:{$hash}";
-        
-        return $needCache
-            ? $this->cacheService->remember(
-                tag: 'employees_select',
-                key: $cacheKey,
-                callback: $queryCallback,
-                ttl: 1800                 // 30 perc, vagy configból
-            )
-            : $queryCallback();
+            return $out;
+        };
+
+        if (!$needCache) {
+            return $queryCallback();
+        }
+
+        $version = $this->cacheVersionService->get(self::NS_SELECTORS_EMPLOYEES);
+        $hash = hash('sha256', json_encode($params, JSON_THROW_ON_ERROR));
+        $key = "v{$version}:{$hash}";
+
+        return $this->cacheService->remember(
+            tag: self::NS_SELECTORS_EMPLOYEES,
+            key: $key,
+            callback: $queryCallback,
+            ttl: (int) config('cache.ttl_employeeToSelect', 1800)
+        );
     }
 
     private function invalidateAfterEmployeeWrite(bool $affectsCompanySelector = true): void
