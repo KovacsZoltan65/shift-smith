@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Interfaces\RoleRepositoryInterface;
 use App\Models\Role;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Symfony\Component\HttpFoundation\Request;
+use Illuminate\Http\Request;
 
 class RoleService
 {
@@ -19,13 +19,16 @@ class RoleService
      */
     public function fetch(Request $request): LengthAwarePaginator
     {
-        return $this->repo->fetch($request);
+        /** @var LengthAwarePaginator<int, Role> $roles */
+        $roles = $this->repo->fetch($request);
+
+        return $roles;
     }
     
     /**
      * Summary of getCompany
      * @param int $id
-     * @return \Spatie\Permission\Models\Role
+     * @return \App\Models\Role
      */
     public function getRole(int $id): Role
     {
@@ -47,7 +50,7 @@ class RoleService
      */
     public function store(array $data): Role
     {
-        $this->repo->store($data);
+        return $this->repo->store($data);
     }
     
     /**

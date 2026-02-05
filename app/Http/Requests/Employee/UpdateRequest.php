@@ -12,6 +12,9 @@ class UpdateRequest extends FormRequest
         return $this->user()?->can(\App\Policies\EmployeePolicy::PERM_UPDATE) ?? false;
     }
 
+    /**
+     * @return array<string, array<int, mixed>>
+     */
     public function rules(): array
     {
         return [

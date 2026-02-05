@@ -11,6 +11,9 @@ class StoreRequest extends FormRequest
         return $this->user()?->can(\App\Policies\EmployeePolicy::PERM_CREATE) ?? false;
     }
 
+    /**
+     * @return array<string, array<int, mixed>>
+     */
     public function rules(): array
     {
         return [

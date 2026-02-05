@@ -144,6 +144,14 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
         
         return $employee;
     }
+
+    public function getEmployeeByName(string $name): Employee
+    {
+        /** @var Employee $employee */
+        $employee = Employee::query()->where('first_name', $name)->firstOrFail();
+        
+        return $employee;
+    }
     
     /**
      * Summary of store
@@ -152,8 +160,8 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
      *   last_name: string,
      *   address?: string|null,
      *   phone?: string|null,
-     *   email?: string|null
-     *   hired_at: string
+     *   email?: string|null,
+     *   hired_at: string|null
      * } $data
      * @return Employee
      */
@@ -175,12 +183,14 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
     /**
      * Summary of update
      * @param array{
-     *    first_name: string,
-     *    last_name: string,
-     *    email: string,
-     *    address: string,
-     *    phone: string,
-     *    active: boolean
+     *   first_name: string,
+     *   last_name: string,
+     *   email?: string|null,
+     *   address?: string|null,
+     *   phone?: string|null,
+     *   hired_at?: string|null,
+     *   active?: bool,
+     *   company_id?: int|null
      * } $data
      * @param int $id
      * @return Employee
@@ -243,9 +253,11 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
     }
 
     /**
-     * 
-     * @param array $params
-     * @return array
+     * @param array{
+     *   only_active?: bool
+     * } $params
+     *
+     * @return array<int, array{id:int, name:string}>
      */
     #[Override]
     public function getToSelect(array $params = []): array
@@ -253,7 +265,7 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
         $needCache = (bool) config('cache.enable_employeeToSelect', false);
 
         // normalize params (jövőbiztos)
-        $params['only_active'] = array_key_exists('only_active', $params) ? (bool) $params['only_active'] : true;
+        $params['only_active'] = \array_key_exists('only_active', $params) ? (bool) $params['only_active'] : true;
         ksort($params);
 
         $onlyActive = (bool) $params['only_active'];
@@ -261,10 +273,8 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
         $queryCallback = function () use ($onlyActive): array {
             $q = Employee::query();
 
-            if ($onlyActive && method_exists(Employee::class, 'active')) {
-                $q = Employee::active();
-            } else {
-                $q = $q->where('active', true);
+            if ($onlyActive) {
+                $q->active(); // scopeActive
             }
 
             /** @var array<int, array{id:int, name:string}> $out */

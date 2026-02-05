@@ -35,17 +35,25 @@ class CacheService
      * @param Closure():TCacheValue $callback
      * @return TCacheValue
      */
-    public function remember(string $tag, string $key, Closure $callback, DateTimeInterface|DateInterval|int $ttl = 3600): mixed
-    {
+    public function remember(
+        string $tag,
+        string $key,
+        Closure $callback,
+        DateTimeInterface|DateInterval|int $ttl = 3600
+    ): mixed {
         $cacheKey = $this->generateCacheKey($tag, $key);
-        
+
         if (Cache::supportsTags()) {
             /** @var TCacheValue $value */
-            return Cache::tags([$tag])->remember($cacheKey, $ttl, $callback);
+            $value = Cache::tags([$tag])->remember($cacheKey, $ttl, $callback);
+
+            return $value;
         }
-        
+
         /** @var TCacheValue $value */
-        return Cache::remember($cacheKey, $ttl, $callback);
+        $value = Cache::remember($cacheKey, $ttl, $callback);
+
+        return $value;
     }
     
     public function forgetAll(string $tag): void

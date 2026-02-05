@@ -11,6 +11,9 @@ class BulkDeleteRequest extends FormRequest
         return $this->user()?->can(\App\Policies\EmployeePolicy::PERM_DELETE_ANY) ?? false;
     }
 
+    /**
+     * @return array<string, array<int, mixed>>
+     */
     public function rules(): array
     {
         return [

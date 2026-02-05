@@ -32,6 +32,11 @@ class CompanyService
         return $this->repo->getCompany($id);
     }
     
+    /**
+     * Summary of getCompanyByName
+     * @param string $name
+     * @return Company
+     */
     public function getCompanyByName(string $name): Company
     {
         return $this->repo->getCompanyByName($name);
@@ -92,8 +97,11 @@ class CompanyService
     }
     
     /**
-     * Summary of getToSelect
-     * @return array<int, array{id: int, name: string}>
+     * @param array{
+     *   only_with_employees?: bool
+     * } $params
+     *
+     * @return array<int, array{id:int, name:string}>
      */
     public function getToSelect(array $params): array
     {

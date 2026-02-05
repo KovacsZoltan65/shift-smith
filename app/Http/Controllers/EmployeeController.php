@@ -105,7 +105,7 @@ class EmployeeController extends Controller
         
         /**
          * @var array{
-         *   company_id: int
+         *   company_id: int,
          *   first_name: string, 
          *   last_name: string,
          *   email: string,

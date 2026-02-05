@@ -145,9 +145,11 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     }
     
     /**
-     * Summary of getToSelect
-     * @param array $params
-     * @return array<int, array{id: int, name: string}>
+     * @param array{
+     *   only_with_employees?: bool
+     * } $params
+     *
+     * @return array<int, array{id:int, name:string}>
      */
     public function getToSelect(array $params): array
     {

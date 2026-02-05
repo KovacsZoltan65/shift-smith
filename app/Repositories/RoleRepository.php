@@ -117,7 +117,7 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
     /**
      * Rekord lekérése azonosító alapján
      * @param int $id
-     * @return Role
+     * @return \App\Models\Role
      */
     public function getRole(int $id): Role
     {
@@ -130,7 +130,7 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
     /**
      * Rekord lekérése név alapján
      * @param string $name
-     * @return Role
+     * @return \App\Models\Role
      */
     public function getRoleByName(string $name): Role
     {

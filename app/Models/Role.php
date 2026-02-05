@@ -10,10 +10,8 @@ use Spatie\Permission\Models\Role as SpatieRole;
 
 class Role extends SpatieRole
 {
-    use HasFactory,
-        LogsActivity;
+    use LogsActivity;
     
-    /** @var array<int,string> */
     protected $fillable = ['name', 'guard_name'];
     
     /** Rendezhető mezők (helperhez / validáláshoz) */

@@ -14,6 +14,9 @@ class IndexRequest extends FormRequest
         return $this->user()?->can(EmployeePolicy::PERM_VIEW_ANY) ?? false;
     }
 
+    /**
+     * @return array<string, array<int, mixed>>
+     */
     public function rules(): array
     {
         return [

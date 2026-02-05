@@ -16,6 +16,8 @@ interface CompanyRepositoryInterface
     public function fetch(Request $request): LengthAwarePaginator;
     
     public function getCompany(int $id): Company;
+
+    public function getCompanyByName(string $name): Company;
     
     /**
      * Summary of store
@@ -52,8 +54,11 @@ interface CompanyRepositoryInterface
     public function destroy(int $id): bool;
     
     /**
-     * Summary of getToSelect
-     * @return array<int, array{id: int, name: string}>
+     * @param array{
+     *   only_with_employees?: bool
+     * } $params
+     *
+     * @return array<int, array{id:int, name:string}>
      */
     public function getToSelect(array $params): array;
 }

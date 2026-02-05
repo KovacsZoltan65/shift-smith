@@ -4,23 +4,39 @@ declare(strict_types=1);
 
 namespace App\Interfaces;
 
+use App\Models\Role;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
-use Spatie\Permission\Models\Role;
 
 interface RoleRepositoryInterface
 {
     /**
-     * @return LengthAwarePaginator<int, \App\Models\Company>
+     * @return LengthAwarePaginator<int, Role>
      */
     public function fetch(Request $request): LengthAwarePaginator;
-    
-    public function getRole(int $id): Role;
-    
-    public function store(array $data): Role;
-    
-    public function update(array $data, $id): Role;
-    
-    public function destroy(int $id): bool;
-}
 
+    public function getRole(int $id): Role;
+
+    public function getRoleByName(string $name): Role;
+
+    /**
+     * @param array{name:string, guard_name:string} $data
+     */
+    public function store(array $data): Role;
+
+    /**
+     * @param array{name:string, guard_name:string} $data
+     */
+    public function update(array $data, int $id): Role;
+
+    public function destroy(int $id): bool;
+
+    /**
+     * @param array{
+     *   only_active?: bool
+     * } $params
+     *
+     * @return array<int, array{id:int, name:string}>
+     */
+    public function getToSelect(array $params = []): array;
+}

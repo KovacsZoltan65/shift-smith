@@ -19,6 +19,8 @@ interface EmployeeRepositoryInterface
     
     public function getEmployee(int $id): Employee;
     
+    public function getEmployeeByName(string $name): Employee;
+
     /**
      * Summary of store
      * @param array{
@@ -26,7 +28,8 @@ interface EmployeeRepositoryInterface
      *   last_name: string,
      *   address?: string|null,
      *   phone?: string|null,
-     *   email?: string|null
+     *   email?: string|null,
+     *   hired_at: string|null
      * } $data
      * @return Employee
      */
@@ -35,12 +38,14 @@ interface EmployeeRepositoryInterface
     /**
      * Summary of update
      * @param array{
-     *    first_name: string,
-     *    last_name: string,
-     *    email: string,
-     *    address: string,
-     *    phone: string,
-     *    active: boolean
+     *   first_name: string,
+     *   last_name: string,
+     *   email?: string|null,
+     *   address?: string|null,
+     *   phone?: string|null,
+     *   hired_at?: string|null,
+     *   active?: bool,
+     *   company_id?: int|null
      * } $data
      * @param int $id
      * @return Employee
@@ -56,8 +61,11 @@ interface EmployeeRepositoryInterface
     public function destroy(int $id): bool;
     
     /**
-     * Summary of getToSelect
-     * @return array<int, array{id: int, name: string}>
+     * @param array{
+     *   only_active?: bool
+     * } $params
+     *
+     * @return array<int, array{id:int, name:string}>
      */
-    public function getToSelect(): array;
+    public function getToSelect(array $params): array;
 }

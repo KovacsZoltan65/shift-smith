@@ -4,12 +4,18 @@ namespace app\Services\Cache;
 
 final class CacheKey
 {
+    /**
+     * @param array<string, scalar|null> $params
+     */
     public static function stableHash(array $params): string
     {
         self::normalize($params);
         return hash('sha256', json_encode($params, JSON_THROW_ON_ERROR));
     }
 
+    /**
+     * @param array<string, scalar|null> $params
+     */
     private static function normalize(array &$params): void
     {
         // kulcs sorrend fix

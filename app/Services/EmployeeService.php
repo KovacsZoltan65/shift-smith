@@ -38,22 +38,23 @@ class EmployeeService
     }
     
     /**
-     * Summary of update
      * @param array{
-     *    first_name: string,
-     *    last_name: string,
-     *    email: string,
-     *    address: string,
-     *    phone: string,
-     *    hired_at: string,
-     *    active: boolean
+     *   first_name: string,
+     *   last_name: string,
+     *   address?: string|null,
+     *   phone?: string|null,
+     *   email?: string|null,
+     *   hired_at: string,
+     *   company_id?: int|null,
+     *   active?: bool
      * } $data
-     * @param int $id
-     * @return Employee
      */
     public function store(array $data): Employee
     {
-        return $this->repo->store($data);
+        /** @var Employee $employee */
+        $employee = $this->repo->store($data);
+
+        return $employee;
     }
     
     /**
@@ -97,8 +98,11 @@ class EmployeeService
     }
     
     /**
-     * Summary of getToSelect
-     * @return array<int, array{id: int, name: string}>
+     * @param array{
+     *   only_active?: bool
+     * } $params
+     *
+     * @return array<int, array{id:int, name:string}>
      */
     public function getToSelect(array $params): array
     {
