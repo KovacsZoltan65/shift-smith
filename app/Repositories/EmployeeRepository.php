@@ -5,28 +5,43 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use App\Interfaces\EmployeeRepositoryInterface;
+use App\Models\Company;
 use App\Models\Employee;
+use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
 use App\Traits\Functions;
 use Illuminate\Container\Container as AppContainer;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Override;
 use Prettus\Repository\Criteria\RequestCriteria;
 use Prettus\Repository\Eloquent\BaseRepository;
 use Symfony\Component\HttpFoundation\Exception\JsonException;
 
 class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInterface
 {
+    use Functions;
+    
     protected CacheService $cacheService;
     protected string $tag;
+    private readonly CacheVersionService $cacheVersionService;
     
-    public function __construct(AppContainer $app, CacheService $cacheService)
+    private const NS_EMPLOYEES_FETCH = 'employees.fetch';
+    private const NS_SELECTORS_EMPLOYEES = 'selectors.employees';
+    private const NS_SELECTORS_COMPANIES = 'selectors.companies';
+    
+    public function __construct(
+        AppContainer $app, 
+        CacheService $cacheService, 
+        CacheVersionService $cacheVersionService
+    )
     {
         parent::__construct($app);
         
-        $this->cacheService = $cacheService;
-        $this->tag          = Employee::getTag();
+        $this->cacheService        = $cacheService;
+        $this->tag                 = Employee::getTag();
+        $this->cacheVersionService = $cacheVersionService;
     }
     
     #[Override]
@@ -70,7 +85,8 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
                         // ->orWhereRaw('LOWER(position) like ?', ["%{$term}%"]);
                     });
                 })
-                ->when($field, fn ($qq) => $qq->orderBy($field, $direction));
+                ->when($field, fn ($qq) => $qq->orderBy($field, $direction))
+                ->when(!$field, fn ($qq) => $qq->orderByDesc('id'));
 
             $paginator = $q->paginate($perPage, ['*'], 'page', $page);
             $paginator->appends($appendQuery);
@@ -79,19 +95,27 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
         };
         
         if($needCache) {
-            try {
-                $json = json_encode($request->all(), JSON_THROW_ON_ERROR);
-            } catch(JsonException) {
-                $json = md5(serialize($request->all()));
-            }
+            $paramsForKey = [
+                'page' => $page,
+                'per_page' => $perPage,
+                'search' => $term,          // már lowercased/null
+                'field' => $field,          // már whitelistelt/null
+                'order' => $direction,      // asc/desc
+            ];
+            ksort($paramsForKey);
+
+            $namespace = $this->NS_EMPLOYEES_FETCH;
+            $version = $this->cacheVersionService->get($namespace);
             
-            $cacheKey = $this->generateCacheKey($this->tag, $json);
+            $hash = hash('sha256', json_encode($paramsForKey, JSON_THROW_ON_ERROR));
+            $key  = "v{$version}:{$hash}";
             
             /** @var LengthAwarePaginator<int, Employee> $employees */
             $employees = $this->cacheService->remember(
                 tag: $this->tag,
-                key: $cacheKey,
-                callback: $queryCallback
+                key: $key,
+                callback: $queryCallback,
+                ttl: config('cache.ttl_fetch', 60)
             );
             
         } else {
@@ -116,7 +140,7 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
     /**
      * Summary of getEmployee
      * @param int $id
-     * @return \App\Models\Employee
+     * @return Employee
      */
     public function getEmployee(int $id): Employee
     {
@@ -147,7 +171,7 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
             $this->createDefaultSettings($employee);
             
             // Cache ürítése
-            $this->cacheService->forgetAll($this->tag);
+            $this->invalidateAfterEmployeeWrite(true);
             
             return $employee;
         });
@@ -172,14 +196,19 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
             /** @var Employee $employee */
             $employee = Employee::query()->lockForUpdate()->findOrFail($id);
             
+            $oldCompany = $employee->company_id;
+            
             $employee->fill($data);
             $employee->save();
             $employee->refresh();
             
             $this->updateDefaultSettings($employee);
 
+            $companyChanged = array_key_exists('company_id', $data)
+                && (int) $employee->company_id !== $oldCompanyId;
+            
             // Cache ürítése
-            $this->cacheService->forgetAll($this->tag);
+            $this->invalidateAfterEmployeeWrite($companyChanged);
             
             return $employee;
         });
@@ -195,7 +224,7 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
         return DB::transaction(function() use($ids): int {
             $deleted = Employee::query()->whereIn('id', $ids)->delete();
             
-            $this->cacheService->forgetAll($this->tag);
+            $this->invalidateAfterEmployeeWrite(true);
             
             return $deleted;
         });
@@ -212,27 +241,68 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
             
             // Beállítások törlése
             $this->deleteDefaultSettings($employee);
-            
-            // Cache ürítése
-            $this->cacheService->forgetAll($this->tag);
+
+            $this->invalidateAfterEmployeeWrite(true);
 
             return $deleted;
         });
     }
 
+    /**
+     * 
+     * @param array $params
+     * @return array
+     */
     #[Override]
-    public function getToSelect(): array
+    public function getToSelect(array $params = []): array
     {
-        return Employee::active()
-            ->select(['id', 'name'])
-            ->orderBy('name')
-            ->get()
-            ->map(fn (Company $c): array => [
-                'id'   => (int) $c->id, 
-                'name' => (string) $c->name,
-            ])
-            ->values()
-            ->all();
+        $needCache = (bool) config('cache.enable_employeeToSelect', false);
+        
+        $queryCallback = function() {
+            return Employee::active()
+                ->select(['id', 'name'])
+                ->orderBy('name')
+                ->get()
+                ->map(fn (Company $c): array => [
+                    'id'   => (int) $c->id, 
+                    'name' => (string) $c->name,
+                ])
+                ->values()
+                ->all();
+        };
+        
+        $hash = hash('sha256', json_encode($params, JSON_THROW_ON_ERROR));
+        
+        $namespace = $this->NS_SELECTORS_EMPLOYEES;
+        $version = $this->cacheVersionService->get($namespace);
+
+        // 👇 verzió a KEY-ben (a CacheService még eléteszi a tag-et)
+        $cacheKey = "v{$version}:{$hash}";
+        
+        return $needCache
+            ? $this->cacheService->remember(
+                tag: 'employees_select',
+                key: $cacheKey,
+                callback: $queryCallback,
+                ttl: 1800                 // 30 perc, vagy configból
+            )
+            : $queryCallback();
+    }
+
+    private function invalidateAfterEmployeeWrite(bool $affectsCompanySelector = true): void
+    {
+        DB::afterCommit(function () use ($affectsCompanySelector): void {
+            // Employees listázás (Index) cache
+            $this->cacheVersionService->bump(self::NS_EMPLOYEES_FETCH);
+
+            // EmployeeSelector cache (ha van)
+            $this->cacheVersionService->bump(self::NS_SELECTORS_EMPLOYEES);
+
+            // CompanySelector cache – only_with_employees miatt
+            if ($affectsCompanySelector) {
+                $this->cacheVersionService->bump(self::NS_SELECTORS_COMPANIES);
+            }
+        });
     }
     
     private function createDefaultSettings(Employee $employee): void{}

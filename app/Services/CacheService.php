@@ -4,20 +4,22 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Traits\Functions;
 use Closure;
 use DateInterval;
 use DateTimeInterface;
 use Illuminate\Cache\RedisStore;
-use Illuminate\Cache\TaggableStore;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Spatie\Permission\PermissionRegistrar as SpatiePermissionRegistrar;
 
 class CacheService
 {
+    use Functions;
+    
     public function put(string $tag, string $key, mixed $value, DateTimeInterface|DateInterval|int $ttl = 3600): void
     {
-        $cacheKey = "{$tag}_{$key}";
+        //$cacheKey = "{$tag}:{$key}";
+        $cacheKey = $this->generateCacheKey($tag, $key);
 
         if (Cache::supportsTags()) {
             Cache::tags([$tag])->put($cacheKey, $value, $ttl);
@@ -35,19 +37,15 @@ class CacheService
      */
     public function remember(string $tag, string $key, Closure $callback, DateTimeInterface|DateInterval|int $ttl = 3600): mixed
     {
-        $cacheKey = "{$tag}:{$key}";
-
+        $cacheKey = $this->generateCacheKey($tag, $key);
+        
         if (Cache::supportsTags()) {
             /** @var TCacheValue $value */
-            $value = Cache::tags([$tag])->remember($cacheKey, $ttl, $callback);
-
-            return $value;
+            return Cache::tags([$tag])->remember($cacheKey, $ttl, $callback);
         }
-
+        
         /** @var TCacheValue $value */
-        $value = Cache::remember($cacheKey, $ttl, $callback);
-
-        return $value;
+        return Cache::remember($cacheKey, $ttl, $callback);
     }
     
     public function forgetAll(string $tag): void

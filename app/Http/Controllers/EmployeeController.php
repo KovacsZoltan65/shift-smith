@@ -230,8 +230,10 @@ class EmployeeController extends Controller
      * Summary of getToSelect
      * @return array<int, array{id: int, name: string}>
      */
-    public function getToSelect(): array
+    public function getToSelect(Request $request): array
     {
-        return $this->service->getToSelect();
+        $params = [];
+        
+        return $this->service->getToSelect($params);
     }
 }

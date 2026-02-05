@@ -69,6 +69,6 @@ trait Functions
      */
     public function generateCacheKey(string $tag, string $key): string
     {
-        return "{$tag}_".md5($key);
+        return "{$tag}:" . hash('sha256', $key);
     }
 }

@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Prettus\Repository\Criteria\RequestCriteria;
 use Prettus\Repository\Eloquent\BaseRepository;
 use Symfony\Component\HttpFoundation\Exception\JsonException;
-use App\Services\Cache\CacheInvalidatorService;
+use App\Services\Cache\CacheVersionService;
 
 class CompanyRepository extends BaseRepository implements CompanyRepositoryInterface
 {
@@ -23,13 +23,22 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     
     protected CacheService $cacheService;
     protected string $tag;
+    private readonly CacheVersionService $cacheVersionService;
     
-    public function __construct(AppContainer $app, CacheService $cacheService)
+    private const NS_COMPANIES_FETCH = 'companies.fetch';
+    private const NS_SELECTORS_COMPANIES = 'selectors.companies';
+
+    public function __construct(
+        AppContainer $app, 
+        CacheService $cacheService, 
+        CacheVersionService $cacheVersionService
+    )
     {
         parent::__construct($app);
         
-        $this->cacheService = $cacheService;
-        $this->tag          = Company::getTag();
+        $this->cacheService        = $cacheService;
+        $this->tag                 = Company::getTag();
+        $this->cacheVersionService = $cacheVersionService;
     }
     
     /**
@@ -67,7 +76,8 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
                             ->orWhere('email', 'like', "%{$term}%");
                     });
                 })
-                ->when($field, fn ($qq) => $qq->orderBy($field, $direction));
+                ->when($field, fn ($qq) => $qq->orderBy($field, $direction))
+                ->when(!$field, fn ($qq) => $qq->orderByDesc('id'));
             
             $paginator = $q->paginate($perPage, ['*'], 'page', $page);
             $paginator->appends($appendQuery);
@@ -76,19 +86,29 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
         };
         
         if($needCache) {
-            try {
-                $json = json_encode($request->all(), JSON_THROW_ON_ERROR);
-            } catch(JsonException) {
-                $json = md5(serialize($request->all()));
-            }
             
-            $cacheKey = $this->generateCacheKey($this->tag, $json);
+            $paramsForKey = [
+                'page' => $page,
+                'per_page' => $perPage,
+                'search' => $term,          // már lowercased/null
+                'field' => $field,          // már whitelistelt/null
+                'order' => $direction,      // asc/desc
+            ];
+            ksort($paramsForKey);
+
+            $namespace = $this->NS_COMPANIES_FETCH;
+            
+            $version = $this->cacheVersionService->get($namespace);
+
+            $hash = hash('sha256', json_encode($paramsForKey, JSON_THROW_ON_ERROR));
+            $key  = "v{$version}:{$hash}";
             
             /** @var LengthAwarePaginator<int, Company> $companies */
             $companies = $this->cacheService->remember(
                 tag: $this->tag,
-                key: $cacheKey,
-                callback: $queryCallback
+                key: $key,
+                callback: $queryCallback,
+                ttl: config('cache.ttl_fetch', 60)
             );
             
         } else {
@@ -112,16 +132,24 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
         return $company;
     }
     
+    /**
+     * Summary of getCompanyByName
+     * @param string $name
+     * @return \App\Models\Company
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
+     */
     public function getCompanyByName(string $name): Company
     {
+        // Get the company by its name
         /** @var Company $company */
         $company = Company::where('name', '=', $name)->firstOrFail();
-        
+
         return $company;
     }
     
     /**
      * Summary of getToSelect
+     * @param array $params
      * @return array<int, array{id: int, name: string}>
      */
     public function getToSelect(array $params): array
@@ -148,8 +176,9 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
         $hash = hash('sha256', json_encode($params, JSON_THROW_ON_ERROR));
     
         $namespace = 'selectors.companies';
-        //$version = app(CacheInvalidatorService::class)->companiesSelectVersion();
-        $version = app(CacheService::class)->get($namespace);
+        $namespace = $this->NS_SELECTORS_COMPANIES;
+        
+        $version = $this->cacheVersionService->get($namespace);
         
         // 👇 verzió a KEY-ben (a CacheService még eléteszi a tag-et)
         $cacheKey = "v{$version}:{$hash}";
@@ -162,15 +191,6 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
                 ttl: 1800                 // 30 perc, vagy configból
             )
             : $queryCallback();
-        
-        /*
-        $hash = hash('sha256', json_encode($params, JSON_THROW_ON_ERROR));
-        $cacheKey = $this->generateCacheKey($this->tag, $hash);
-
-        return $needCache
-            ? $this->cacheService->remember(tag: $this->tag, key: $cacheKey, callback: $queryCallback)
-            : $queryCallback();
-        */
     }
     
     /**
@@ -192,7 +212,7 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
             $this->createDefaultSettings($company);
             
             // Cache ürítése
-            $this->cacheService->forgetAll($this->tag);
+            $this->invalidateAfterCompanyWrite();
             
             return $company;
         });
@@ -223,7 +243,7 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
             $this->updateDefaultSettings($company);
 
             // Cache ürítése
-            $this->cacheService->forgetAll($this->tag);
+            $this->invalidateAfterCompanyWrite();
             
             return $company;
         });
@@ -238,7 +258,7 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
         return DB::transaction(function() use($ids): int {
             $deleted = Company::query()->whereIn('id', $ids)->delete();
             
-            $this->cacheService->forgetAll($this->tag);
+            $this->invalidateAfterCompanyWrite();
             
             return $deleted;
         });
@@ -256,9 +276,30 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
             $this->deleteDefaultSettings($company);
             
             // Cache ürítése
-            $this->cacheService->forgetAll($this->tag);
+            $this->invalidateAfterCompanyWrite();
 
             return $deleted;
+        });
+    }
+    
+//    private function invalidateCompaniesSelectorCache(): void
+//    {
+//        // selector cache: v{version}:{hash(params)}
+//        $namespace = 'selectors.companies';
+//        $this->cacheVersionService->bump($namespace);
+//
+//        // opcionális: régi bejegyzések takarítása is
+//        $this->cacheService->forgetAll('companies_select');
+//    }
+    
+    private function invalidateAfterCompanyWrite(): void
+    {
+        DB::afterCommit(function():void {
+            // Companies lista oldal cache
+            $this->cacheVersionService->bump(self::NS_COMPANIES_FETCH);
+
+            // CompanySelector cache (mert a selector aktív cégeket listáz)
+            $this->cacheVersionService->bump(self::NS_SELECTORS_COMPANIES);
         });
     }
     

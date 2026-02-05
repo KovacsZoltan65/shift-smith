@@ -114,6 +114,14 @@ return [
 
     'prefix' => env('CACHE_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-cache-'),
 
+    
+    /*
+    |--------------------------------------------------------------------------
+    | Általános cache frissítés
+    |--------------------------------------------------------------------------
+    */
+    'ttl_fetch' => env('CACHE_TTL',60),
+    
     /*
     |--------------------------------------------------------------------------
     | Menü frissítés
@@ -129,10 +137,17 @@ return [
     */
     'enable_menu' => env('MENU_CACHE_ENABLED', false),
     
-    'enable_users'           => false,
-    'enable_roles'           => false,
-    'enable_companies'       => false,
-    'enable_employees'       => false,
-    'enable_companyToSelect' => true,
+    /*
+    |--------------------------------------------------------------------------
+    | Adat halmazokat kell-e cache-lni?
+    |--------------------------------------------------------------------------
+    |
+    */
+    'enable_users'            => false,
+    'enable_roles'            => false,
+    'enable_companies'        => false,
+    'enable_employees'        => false,
+    'enable_companyToSelect'  => true,
+    'enable_employeeToSelect' => true,
     
 ];
