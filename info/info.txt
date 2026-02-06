@@ -94,3 +94,18 @@ https://phpstan.org/
     Baseline frissítése:
     del .\phpstan-baseline.neon
     vendor\bin\phpstan analyse --generate-baseline=phpstan-baseline.neon --memory-limit=1G
+
+
+    vendor/bin/pest tests/Feature/Companies/CompanyBulkDeleteTest.pest.php
+    vendor/bin/pest tests/Feature/Companies/CompanyDeleteTest.pest.php
+    vendor/bin/pest tests/Feature/Companies/CompanyFetchTest.pest.php
+    vendor/bin/pest tests/Feature/Companies/CompanyIndexTest.pest.php
+    vendor/bin/pest tests/Feature/Companies/CompanySelectorTest.pest.php
+    vendor/bin/pest tests/Feature/Companies/CompanyStoreTest.pest.php
+    vendor/bin/pest tests/Feature/Companies/CompanyUpdateTest.pest.php
+
+
+
+
+    php artisan route:list --path=companies
+    php artisan route:list --path=companies --method=DELETE

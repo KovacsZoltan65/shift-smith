@@ -63,8 +63,11 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
             ? $request->input('field')
             : null;
         
-        $direction = strtolower($request->input('order', '')) === 'desc' ? 'desc' : 'asc';
+        //$direction = strtolower($request->input('order', '')) === 'desc' ? 'desc' : 'asc';
         
+        $orderRaw = (string) $request->input('order', 'desc');
+        $direction = strtolower($orderRaw) === 'asc' ? 'asc' : 'desc';
+
         // a paginátor query-stringje (URL szinkronhoz hasznos)
         $appendQuery = $request->only(['search', 'field', 'order', 'per_page']);
         

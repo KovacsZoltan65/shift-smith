@@ -22,7 +22,7 @@ class CompanyPolicy
         return $user->can('companies.viewAny');
     }
 
-    public function view(User $user, Company $company): bool
+    public function view(User $user): bool
     {
         return $user->can('companies.view');
     }
@@ -32,12 +32,12 @@ class CompanyPolicy
         return $user->can('companies.create');
     }
 
-    public function update(User $user, Company $company): bool
+    public function update(User $user): bool
     {
         return $user->can('companies.update');
     }
 
-    public function delete(User $user, Company $company): bool
+    public function delete(User $user): bool
     {
         return $user->can('companies.delete');
     }

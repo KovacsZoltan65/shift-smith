@@ -264,7 +264,7 @@ const confirmDeleteOne = (row) => {
 const bulkDelete = async (ids) => {
     actionLoading.value = true;
     try {
-        const res = await csrfFetch(`/users/destroy-bulk`, {
+        const res = await csrfFetch(`/users/destroy_bulk`, {
             method: "DELETE",
             headers: {
                 "Content-Type": "application/json",

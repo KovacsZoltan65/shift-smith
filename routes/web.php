@@ -124,37 +124,41 @@ Route::middleware(['auth', 'verified'])
  * Felhasználók kezelése
  */
 Route::middleware(['auth', 'verified'])
-    ->prefix('users')
-    ->as('users.')
+    ->prefix('companies')
+    ->as('companies.')
     ->controller(UserController::class)
     ->group(function () {
+
         // INDEX
         Route::get('/', 'index')->name('index');
+
         // FETCH
         Route::get('/fetch', 'fetch')->name('fetch');
+
+        // BULK DESTROY  ✅ legyen ELŐBB
+        Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk');
 
         // SEARCH BY NAME
         Route::get('/name/{name}', 'byName')
             ->where('name', '[A-Za-z0-9_.@\- ]+')
             ->name('by_name');
 
-        Route::get('/{id}', 'getUser')->whereNumber('id')->name('by_id');
-        
-        // CREATE
-        Route::post('/', 'store')->name('store');
-        
-        // UPDATE
-        Route::put('/{id}', 'update')->whereNumber('id')->name('update');
-        // DELETE
-        Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
-
-        // BULK DESTROY
-        Route::delete('/destroy-bulk', 'bulkDelete')->name('destroy_bulk');
-        
         // PASSWORD RESET EMAIL
         Route::post('/{user}/password-reset', 'sendPasswordReset')->name('send_password_reset');
 
+        // CREATE
+        Route::post('/', 'store')->name('store');
+
+        // UPDATE
+        Route::put('/{id}', 'update')->whereNumber('id')->name('update');
+
+        // GET BY ID
+        Route::get('/{id}', 'getUser')->whereNumber('id')->name('by_id');
+
+        // DELETE
+        Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
     });
+
 
 /**
  * ======================================
@@ -186,7 +190,7 @@ Route::middleware(['auth', 'verified'])
         Route::delete('/{id}', 'destroy')->name('destroy');
         
         // BULK DELETE
-        Route::delete('/destroy-bulk', 'bulkDelete')->name('destroy_bulk');
+        Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk');
         
     });
     

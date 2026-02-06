@@ -253,7 +253,7 @@ const bulkDelete = async (ids) => {
 
     try {
         // Ha még nincs ilyen route, akkor vagy add hozzá, vagy vedd ki a bulkDelete gombot.
-        const res = await csrfFetch(`/admin/roles/destroy-bulk`, {
+        const res = await csrfFetch(`/admin/roles/destroy_bulk`, {
             method: "DELETE",
             headers: {
                 "Content-Type": "application/json",

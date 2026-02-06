@@ -12,7 +12,7 @@ class DeleteRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('delete', Company::class);
+        return $this->user()->can('companies.delete', Company::class);
     }
 
     /**
