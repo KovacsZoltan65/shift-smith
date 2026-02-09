@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Admin;
 
-use App\Interfaces\RoleRepositoryInterface;
+use App\Interfaces\Admin\RoleRepositoryInterface;
 use App\Models\Role;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
@@ -65,6 +65,14 @@ class RoleService
     public function update(array $data, $id): Role
     {
         return $this->repo->update($data, $id);
+    }
+    
+    public function bulkDelete(array $ids): int
+    {
+        // opcionális tisztítás: nullok/duplikátumok kiszűrése
+        $ids = array_values(array_unique($ids));
+        
+        return (int) $this->repo->bulkDelete($ids);
     }
     
     /**

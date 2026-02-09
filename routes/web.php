@@ -42,9 +42,6 @@ Route::middleware(['auth', 'verified', 'throttle:120,1'])->group(function(): voi
     // User Selector
     Route::get('/selectors/users', [UserController::class, 'getToSelect'])->name('selectors.users');
 
-    // Role Selector
-    Route::get('/selectors/roles', [RoleController::class, 'getToSelect'])->name('selectors.roles');
-
     // Permissions Selector
     Route::get('admin/selectors/permissions', [RoleController::class, 'getPermissionsToSelect'])->name('admin.selectors.permissions');
 });
@@ -101,19 +98,75 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 /**
  * ======================================
- * ROLES
+ * ADMIN
  * ======================================
  */
 Route::middleware(['auth', 'verified'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
-        Route::get('roles', [RoleController::class, 'index'])->name('roles.index');
-        Route::get('roles/fetch', [RoleController::class, 'fetch'])->name('roles.fetch'); // DataTable-hoz
-        Route::post('roles', [RoleController::class, 'store'])->name('roles.store');
-        Route::put('roles/{role}', [RoleController::class, 'update'])->name('roles.update');
-        Route::delete('roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
+        
+        // ---------------------------------------
+        // ROLES
+        // ---------------------------------------
+        
+        // Role Selector
+        Route::get(
+            'admin/selectors/permissions', 
+            [RoleController::class, 'getPermissionsToSelect']
+        )->name('admin.selectors.permissions');
+        
+        // INDEX
+        Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
+        // FETCH
+        Route::get('/roles/fetch', [RoleController::class, 'fetch'])->name('roles.fetch');
+        // SEARCH
+        Route::get('/roles/{id}', [RoleController::class, 'destroy'])->whereNumber('id')->name('roles.by_id');
+        // SEARCH BY NAME
+        Route::get('/roles/name/{name}', [RoleController::class, 'byName'])->where('name', '[A-Za-z0-9_.@\- ]+')->name('roles.by_name');
+        // CREATE
+        Route::post('/roles', [RoleController::class, 'destroy'])->name('roles.store');
+        // UPDATE
+        Route::put('/roles/{id}', [RoleController::class, 'destroy'])->whereNumber('id')->name('roles.update');
+        // DELETE
+        Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->name('roles.destroy');
+        // BULK DELETE
+        Route::delete('/roles/destroy_bulk', [RoleController::class, 'bulkDelete'])->name('roles.destroy_bulk');
     });
+    
+Route::middleware(['auth', 'verified'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+        
+        // ---------------------------------------
+        // ROLES
+        // ---------------------------------------
+        
+        // ROLE SELECTOR
+        Route::get(
+            '/selectors/roles', 
+            [RoleController::class, 'getPermissionsToSelect']
+        )->name('selectors.roles');
+        
+        // INDEX
+        Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
+        // FETCH
+        Route::get('/roles/fetch', [RoleController::class, 'fetch'])->name('roles.fetch');
+        // SEARCH
+        Route::get('/roles/{id}', [RoleController::class, 'destroy'])->whereNumber('id')->name('roles.by_id');
+        // SEARCH BY NAME
+        Route::get('/roles/name/{name}', [RoleController::class, 'byName'])->where('name', '[A-Za-z0-9_.@\- ]+')->name('roles.by_name');
+        // CREATE
+        Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
+        // UPDATE
+        Route::put('/roles/{id}', [RoleController::class, 'update'])->whereNumber('id')->name('roles.update');
+        // DELETE
+        Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->whereNumber('id')->name('roles.destroy');
+        // BULK DELETE
+        Route::delete('/roles/destroy_bulk', [RoleController::class, 'destroyBulk'])->name('roles.destroy_bulk');
+    });
+    
 
 /**
  * ======================================

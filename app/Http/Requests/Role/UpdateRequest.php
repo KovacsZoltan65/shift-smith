@@ -9,7 +9,7 @@ class UpdateRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('companies.update') ?? false;
+        return $this->user()?->can('roles.update') ?? false;
     }
     
     /**
@@ -20,14 +20,18 @@ class UpdateRequest extends FormRequest
         $id = (int) $this->route('id');
 
         return [
-            'name'    => [
+            'name' => [
                 'required', 'string', 'max:120',
-                Rule::unique('roles', 'name')->ignore($id, 'id')->whereNull('deleted_at'),
+                Rule::unique('roles', 'name')
+                    ->ignore($id, 'id'),
             ],
             'guard_name'   => [
                 'required', 'string', 'max:120',
-                Rule::unique('roles', 'guard_name')->ignore($id, 'id')->whereNull('deleted_at'),
+                Rule::unique('roles', 'guard_name')
+                    ->ignore($id, 'id'),
             ],
+            'permission_ids' => ['nullable', 'array'],
+            'permission_ids.*' => ['integer', 'distinct', 'exists:permissions,id'],
         ];
     }
 

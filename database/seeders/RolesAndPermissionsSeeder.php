@@ -5,6 +5,8 @@ namespace Database\Seeders;
 use App\Models\User;
 use App\Models\Employee;
 use App\Models\Company;
+//use App\Models\Role as AppRole;
+//use App\Models\Permission as AppPermission;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
@@ -29,9 +31,11 @@ class RolesAndPermissionsSeeder extends Seeder
         // Entitások, amelyekhez jogosultságokat generálunk
         // kulcs: permission prefix, érték: model osztály
         $entities = [
-            'users'     => User::class,
-            'employees' => Employee::class,
-            'companies' => Company::class,
+            'users'       => User::class,
+            'employees'   => Employee::class,
+            'companies'   => Company::class,
+            'roles'       => \App\Models\Role::class,
+            //'permissions' => \App\Models\Permission::class,
         ];
 
         // Alap CRUD + force delete jogosultságok

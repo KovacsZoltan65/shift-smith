@@ -200,6 +200,26 @@ class RoleController extends Controller
         }
     }
     
+    public function bulkDelete(BulkDeleteRequest $request): JsonResponse
+    {
+        $this->authorize('deleteAny', Role::class);
+        
+        $data = $request->validated();
+        
+        try {
+            $deleted = $this->service->bulkDelete($data['ids']);
+            
+            return response()->json([
+                'message' => 'Sikeres törlés.',
+                'deleted' => $deleted,
+            ], Response::HTTP_OK);
+        } catch(Throwable $th) {
+            return response()->json([
+                'message' => 'Törlés sikertelen.',
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+    
     /**
      * Egyetlen rekord törlése.
      *

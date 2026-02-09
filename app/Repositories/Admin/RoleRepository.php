@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Repositories;
+namespace App\Repositories\Admin;
 
-use App\Interfaces\RoleRepositoryInterface;
+use App\Interfaces\Admin\RoleRepositoryInterface;
 use App\Models\Role;
 use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
@@ -191,6 +191,17 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
         });
     }
 
+    public function bulkDelete(array $ids): int
+    {
+        return DB::transaction(function() use($ids): int {
+            $deleted = Role::query()->whereIn('id', $ids)->delete();
+            
+            $this->invalidateAfterRoleWrite();
+            
+            return $deleted;
+        });
+    }
+    
     public function destroy(int $id): bool
     {
         return DB::transaction(function () use ($id) {

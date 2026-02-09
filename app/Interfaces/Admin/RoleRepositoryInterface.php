@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Interfaces;
+namespace App\Interfaces\Admin;
 
 use App\Models\Role;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -29,6 +29,8 @@ interface RoleRepositoryInterface
      */
     public function update(array $data, int $id): Role;
 
+    public function bulkDelete(array $ids): int;
+    
     public function destroy(int $id): bool;
 
     /**
