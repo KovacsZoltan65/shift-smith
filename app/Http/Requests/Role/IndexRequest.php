@@ -52,7 +52,7 @@ class IndexRequest extends FormRequest
             if ($sortOrder === -1 || $sortOrder === '-1') $order = 'desc';
         }
 
-        if (is_string($order)) {
+        if (\is_string($order)) {
             $order = strtolower($order);
         }
 
@@ -79,7 +79,7 @@ class IndexRequest extends FormRequest
         $data = $this->validated();
 
         $search = $data['search'] ?? null;
-        $search = is_string($search) ? trim($search) : null;
+        $search = \is_string($search) ? trim($search) : null;
 
         if ($search === '' || $search === 'null' || $search === 'undefined') {
             $search = null;

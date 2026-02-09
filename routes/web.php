@@ -37,7 +37,8 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth', 'verified', 'throttle:120,1'])->group(function(): void {
     // Company Selector
     Route::get('/selectors/companies', [CompanyController::class, 'getToSelect'])->name('selectors.companies');
-
+    // Employee Selector
+    Route::get('/selectors/employees', [EmployeeController::class, 'getToSelect'])->name('selectors.employees');
     // User Selector
     Route::get('/selectors/users', [UserController::class, 'getToSelect'])->name('selectors.users');
 
@@ -86,10 +87,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //Route::get('/roles', fn () => Inertia::render('Security/Roles/Index'))->name('roles.index');
 
     // HR
-    Route::get(
-        '/employees', 
-        fn () => Inertia::render('HR/Employees/Index', ['title' => 'Dolgozók'])
-    )->name('employees.index');
+    //Route::get('/employees', fn () => Inertia::render('HR/Employees/Index', ['title' => 'Dolgozók']))->name('employees.index');
     
     Route::get('/assignments', fn () => Inertia::render('HR/Assignments/Index'))->name('assignments.index');
     Route::get('/shifts', fn () => Inertia::render('HR/Shifts/Index'))->name('shifts.index');
@@ -128,33 +126,22 @@ Route::middleware(['auth', 'verified'])
     ->as('companies.')
     ->controller(UserController::class)
     ->group(function () {
-
         // INDEX
         Route::get('/', 'index')->name('index');
-
         // FETCH
         Route::get('/fetch', 'fetch')->name('fetch');
-
         // BULK DESTROY  ✅ legyen ELŐBB
         Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk');
-
         // SEARCH BY NAME
-        Route::get('/name/{name}', 'byName')
-            ->where('name', '[A-Za-z0-9_.@\- ]+')
-            ->name('by_name');
-
+        Route::get('/name/{name}', 'byName')->where('name', '[A-Za-z0-9_.@\- ]+')->name('by_name');
         // PASSWORD RESET EMAIL
         Route::post('/{user}/password-reset', 'sendPasswordReset')->name('send_password_reset');
-
         // CREATE
         Route::post('/', 'store')->name('store');
-
         // UPDATE
         Route::put('/{id}', 'update')->whereNumber('id')->name('update');
-
         // GET BY ID
         Route::get('/{id}', 'getUser')->whereNumber('id')->name('by_id');
-
         // DELETE
         Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
     });
@@ -166,32 +153,21 @@ Route::middleware(['auth', 'verified'])
  * ======================================
  * Cégek kezelése
  */
-Route::middleware(['auth', 'verified'])
-    ->prefix('companies')
-    ->as('companies.')
-    ->controller(CompanyController::class)
-    ->group(function() {
+Route::middleware(['auth', 'verified'])->prefix('companies')->as('companies.')->controller(CompanyController::class)->group(function() {
         // INDEX
         Route::get('/', 'index')->name('index');
-        
         // FETCH
-        Route::get('/fetch', 'fetch')->name('fetch');
-        
+        Route::get('/fetch', 'fetch')->name('fetch');        
         // SEARCH
         Route::get('/{id}', 'getCompany')->whereNumber('id')->name('by_id');
-        
         // CREATE
         Route::post('/', 'store')->name('store');
-        
         // UPDATE
         Route::put('/{id}', 'update')->whereNumber('id')->name('update');
-        
         // DELETE
         Route::delete('/{id}', 'destroy')->name('destroy');
-        
         // BULK DELETE
         Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk');
-        
     });
     
 /**
@@ -200,30 +176,27 @@ Route::middleware(['auth', 'verified'])
  * ======================================
  * Dolgozók kezelése
  */
-Route::middleware(['auth', 'verified'])
-        ->prefix('employees')
-        ->as('employees.')
-        ->controller(EmployeeController::class)->group(function() {
+Route::middleware(['auth', 'verified'])->prefix('employees')->as('employees.')->controller(EmployeeController::class)->group(function() {
             // INDEX
             Route::get('/', 'index')->name('index');
-            
             // FETCH
             Route::get('/fetch', 'fetch')->name('fetch');
-            
             // SEARCH
-            Route::get('/{id}', 'getCompany')->whereNumber('id')->name('by_id');
-            
+            Route::get('/{id}', 'getEmployee')->whereNumber('id')->name('by_id');
             // CREATE
             Route::post('/', 'store')->name('store');
-            
             // UPDATE
             Route::put('/{id}', 'update')->whereNumber('id')->name('update');
-            
             // DELETE
-            Route::delete('/{id}', 'destroy')->name('destroy');
-            
+            Route::delete(
+                '/{id}', 
+                'destroy')
+                ->whereNumber('id')
+                ->name('destroy');
             // BULK DELETE
-            Route::post('/bulk-delete', 'bulkDelete')->name('bulk-delete');
+            Route::delete(
+                '/destroy_bulk', 
+                'bulkDelete')->name('destroy_bulk');
         });
     
 /**

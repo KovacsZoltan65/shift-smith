@@ -6,10 +6,12 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\Support\CreatesUsers;
 
 abstract class TestCase extends BaseTestCase
 {
     use CreatesApplication;
+    use CreatesUsers;
 
     public User $user;
 

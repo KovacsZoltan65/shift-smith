@@ -29,6 +29,7 @@ class IndexRequest extends FormRequest
             'order' => ['nullable', 'string', Rule::in(['asc', 'desc'])],
 
             'company_id' => ['nullable', 'integer', 'exists:companies,id'],
+            'only_active' => ['nullable', 'boolean'],
         ];
     }
     
@@ -54,7 +55,7 @@ class IndexRequest extends FormRequest
             if ($sortOrder === -1 || $sortOrder === '-1') $order = 'desc';
         }
 
-        if (is_string($order)) {
+        if (\is_string($order)) {
             $order = strtolower($order);
         }
 
@@ -73,7 +74,8 @@ class IndexRequest extends FormRequest
      *   field?: string,
      *   order?: 'asc'|'desc',
      *   page?: int,
-     *   per_page?: int
+     *   per_page?: int,
+     *   company_id:? int
      * }
      */
     public function validatedFilters(): array
@@ -81,18 +83,20 @@ class IndexRequest extends FormRequest
         $data = $this->validated();
 
         $search = $data['search'] ?? null;
-        $search = is_string($search) ? trim($search) : null;
+        $search = \is_string($search) ? trim($search) : null;
 
         if ($search === '' || $search === 'null' || $search === 'undefined') {
             $search = null;
         }
 
         return [
-            'search'   => $search,
-            'field'    => $data['field'] ?? 'id',
-            'order'    => $data['order'] ?? 'desc',
-            'page'     => (int) ($data['page'] ?? 1),
-            'per_page' => (int) ($data['per_page'] ?? 10),
+            'search'     => $data['search'] ?? null,
+            'company_id' => isset($data['company_id']) ? (int) $data['company_id'] : null,
+            'only_active'=> isset($data['only_active']) ? (bool) $data['only_active'] : null,
+            'sort'       => $data['sort'] ?? null,
+            'order'      => $data['order'] ?? null,
+            'page'       => isset($data['page']) ? (int) $data['page'] : 1,
+            'per_page'   => isset($data['per_page']) ? (int) $data['per_page'] : 10,
         ];
     }
 }

@@ -3,14 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\Company;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\PermissionRegistrar;
-use Tests\Support\CreatesUsers;
-
-uses(
-    Illuminate\Foundation\Testing\RefreshDatabase::class, 
-    CreatesUsers::class
-);
 
 beforeEach(function (): void {
     $this->seedRolesAndPermissions();

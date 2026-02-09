@@ -15,8 +15,6 @@ interface EmployeeRepositoryInterface
      */
     public function fetch(Request $request): LengthAwarePaginator;
     
-    public function findOrFailForUpdate(int $id): Employee;
-    
     public function getEmployee(int $id): Employee;
     
     public function getEmployeeByName(string $name): Employee;

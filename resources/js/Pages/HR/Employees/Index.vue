@@ -287,7 +287,7 @@ const bulkDelete = async (ids) => {
     actionLoading.value = true;
 
     try {
-        const res = await csrfFetch(`/employees/bulk-delete`, {
+        const res = await csrfFetch(`/employees/destroy_bulk`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

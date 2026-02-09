@@ -96,15 +96,34 @@ https://phpstan.org/
     vendor\bin\phpstan analyse --generate-baseline=phpstan-baseline.neon --memory-limit=1G
 
 
+// ========================================
+// TESZTEK
+// ========================================
+
+    // ------------------------------------
+    // COMPANIES
+    // ------------------------------------
+    vendor/bin/pest tests/Feature/Companies/CompanyIndexTest.pest.php
+
+    vendor/bin/pest tests/Feature/Companies
     vendor/bin/pest tests/Feature/Companies/CompanyBulkDeleteTest.pest.php
     vendor/bin/pest tests/Feature/Companies/CompanyDeleteTest.pest.php
     vendor/bin/pest tests/Feature/Companies/CompanyFetchTest.pest.php
-    vendor/bin/pest tests/Feature/Companies/CompanyIndexTest.pest.php
+    
     vendor/bin/pest tests/Feature/Companies/CompanySelectorTest.pest.php
     vendor/bin/pest tests/Feature/Companies/CompanyStoreTest.pest.php
     vendor/bin/pest tests/Feature/Companies/CompanyUpdateTest.pest.php
 
-
+    // ------------------------------------
+    // EMPLOYEES
+    // ------------------------------------
+    vendor/bin/pest tests/Feature/Employees
+    vendor/bin/pest tests/Feature/Employees/EmployeeIndexTest.pest.php
+    vendor/bin/pest tests/Feature/Employees/EmployeeFetchTest.pest.php
+    vendor/bin/pest tests/Feature/Employees/EmployeeStoreTest.pest.php
+    vendor/bin/pest tests/Feature/Employees/EmployeeUpdateTest.pest.php
+    vendor/bin/pest tests/Feature/Employees/EmployeeBulkDeleteTest.pest.php
+    vendor/bin/pest tests/Feature/Employees/EmployeeDeleteTest.pest.php
 
 
     php artisan route:list --path=companies

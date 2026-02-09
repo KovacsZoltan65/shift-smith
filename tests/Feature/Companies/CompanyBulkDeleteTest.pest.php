@@ -1,20 +1,14 @@
 <?php
 
 use App\Models\Company;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\PermissionRegistrar;
-use Tests\Support\CreatesUsers;
-
-uses(
-    RefreshDatabase::class,
-    CreatesUsers::class
-);
 
 beforeEach(function (): void {
+    //$this->seedRolesAndPermissions();
     $this->seedRolesAndPermissions();
 });
 
-it('denies bulk delete if user lacks permission', function (): void {
+it('megtagadja a tömeges törlést, ha a felhasználónak nincs engedélye', function (): void {
     // legyen egy user, akinek nincs se role, se permission
     $user = $this->createAdminUser(); // ha csak ez van a trait-ben, ok
     $user->syncRoles([]);
@@ -31,7 +25,7 @@ it('denies bulk delete if user lacks permission', function (): void {
         ->assertForbidden();
 });
 
-it('allows admin to bulk delete companies (soft delete) and bumps cache versions', function (): void {
+it('lehetővé teszi az adminisztrátor számára a vállalatok tömeges törlését (soft törlés) és a gyorsítótár verzióinak felborítását', function (): void {
     // admin user: kapjon role-t / permissiont (a seed alapján)
     $user = $this->createAdminUser();
 

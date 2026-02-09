@@ -22,23 +22,25 @@ class EmployeeService extends BaseService {
 
     // BULK DELETE – body a config.data-ban
     deleteEmployees(ids) {
-        return this.delete(route(`${this.url}.delete.bulk`), { data: { ids } });
+        return this.delete(route(`${this.url}.destroy_bulk`), {
+            data: { ids },
+        });
     }
 
     deleteEmployee(id) {
-        return this.delete(route(`${this.url}.delete`, id));
+        return this.delete(route(`${this.url}.destroy`, id));
     }
 
-    restoreEmployee(id) {
-        return this.put(route(`${this.url}.restore`, id));
-    }
+    //restoreEmployee(id) {
+    //    return this.put(route(`${this.url}.restore`, id));
+    // }
 
-    forceDeleteEmployee(id) {
-        return this.delete(route(`${this.url}.force-delete`, id));
-    }
+    //forceDeleteEmployee(id) {
+    //    return this.delete(route(`${this.url}.force-delete`, id));
+    //}
 
-    getEmployeesToSelect(params = {}) {
-        return this.get(`${this.url}/to_select`, { params });
+    getToSelect(params = {}) {
+        return this.get(`selectors/${this.url}`, { params });
     }
 }
 

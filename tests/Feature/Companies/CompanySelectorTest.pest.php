@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 use App\Models\Company;
 use App\Models\Employee;
-use Tests\Support\CreatesUsers;
-
-uses(CreatesUsers::class);
 
 beforeEach(function (): void {
     $this->seedRolesAndPermissions();

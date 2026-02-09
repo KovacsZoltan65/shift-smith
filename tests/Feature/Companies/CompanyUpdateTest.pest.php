@@ -7,9 +7,6 @@ use App\Models\User;
 use App\Services\Cache\CacheVersionService;
 use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\PermissionRegistrar;
-use Tests\Support\CreatesUsers;
-
-uses(CreatesUsers::class);
 
 beforeEach(function (): void {
     $this->seedRolesAndPermissions();
@@ -17,7 +14,7 @@ beforeEach(function (): void {
 
 it('denies company update if user lacks permission', function (): void {
     /** @var User $user */
-    $user = User::factory()->create();
+    $user = $this->createAdminUser();
     $user->assignRole('user');
 
     /** @var Company $company */

@@ -5,11 +5,14 @@ namespace App\Http\Requests\Employee;
 use App\Models\Employee;
 use Illuminate\Foundation\Http\FormRequest;
 
-class BulkDeleteRequest extends FormRequest
+class DeleteRequest extends FormRequest
 {
+    /**
+     * Determine if the user is authorized to make this request.
+     */
     public function authorize(): bool
     {
-        return $this->user()->can('employees.deleteAny', Employee::class);
+        return $this->user()->can('employees.delete', Employee::class);
     }
 
     /**
@@ -20,8 +23,7 @@ class BulkDeleteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'ids' => ['required', 'array', 'min:1', 'max:500'],
-            'ids.*' => ['integer', 'distinct'],
+            'id'   => ['required', 'int',],
         ];
     }
 }

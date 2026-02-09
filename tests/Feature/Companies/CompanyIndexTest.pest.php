@@ -5,9 +5,6 @@ declare(strict_types=1);
 use App\Models\Company;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
-use Tests\Support\CreatesUsers;
-
-uses(CreatesUsers::class);
 
 beforeEach(function (): void {
     $this->seedRolesAndPermissions();

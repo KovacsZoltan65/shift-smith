@@ -2,7 +2,7 @@
 
 namespace app\Services\Cache;
 
-final class CacheKey
+final class CacheKeyService
 {
     /**
      * @param array<string, scalar|null> $params

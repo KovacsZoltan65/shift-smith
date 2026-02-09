@@ -19,20 +19,22 @@ class CompanyService extends BaseService {
     }
 
     deleteCompanies(ids) {
-        return this.delete(route(`${this.url}.delete.bulk`), { data: { ids } });
+        return this.delete(route(`${this.url}.destroy_bulk`), {
+            data: { ids },
+        });
     }
 
     deleteCompany(id) {
-        return this.delete(route(`${this.url}.delete`, id));
+        return this.delete(route(`${this.url}.destroy`, id));
     }
 
-    restoreCompany(id) {
-        return this.put(route(`${this.url}.restore`, id));
-    }
+    //restoreCompany(id) {
+    //    return this.put(route(`${this.url}.restore`, id));
+    //}
 
-    forceDeleteCompany(id) {
-        return this.delete(route(`${this.url}.force-delete`, id));
-    }
+    //forceDeleteCompany(id) {
+    //    return this.delete(route(`${this.url}.force-delete`, id));
+    //}
 
     getToSelect(params = {}) {
         //return this.get(`${this.url}/to_select`, { params });

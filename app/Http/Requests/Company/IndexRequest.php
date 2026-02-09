@@ -78,7 +78,7 @@ class IndexRequest extends FormRequest
         $data = $this->validated();
 
         $search = $data['search'] ?? null;
-        $search = is_string($search) ? trim($search) : null;
+        $search = \is_string($search) ? trim($search) : null;
 
         if ($search === '' || $search === 'null' || $search === 'undefined') {
             $search = null;

@@ -3,20 +3,13 @@
 declare(strict_types=1);
 
 use App\Models\Company;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\PermissionRegistrar;
-use Tests\Support\CreatesUsers;
-
-uses(
-    RefreshDatabase::class,
-    CreatesUsers::class
-);
 
 beforeEach(function (): void {
     $this->seedRolesAndPermissions();
 });
 
-it('redirects guests to login on companies fetch', function (): void {
+it('átirányítja a vendégeket a bejelentkezéshez a cégek lekéréséhez', function (): void {
     $this->get(route('companies.fetch'))->assertRedirect();
 });
 
@@ -36,7 +29,7 @@ it('denies companies fetch if user lacks viewAny permission', function (): void 
 it('allows admin to fetch companies with meta + filter', function (): void {
     $user = $this->createAdminUser();
 
-    app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
     Company::factory()->count(15)->create();

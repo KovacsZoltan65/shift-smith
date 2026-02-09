@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import Service from "@/services/EmployeeService.js";
+import { Select } from "primevue";
 
 const props = defineProps({
     modelValue: [String, Number, null],
@@ -28,7 +29,7 @@ const shouldUseFilter = computed(() => {
 onMounted(async () => {
     isLoading.value = true;
     try {
-        const { data } = await Service.getEmployeesToSelect();
+        const { data } = await Service.getToSelect();
         employees.value = data; // [{id, full_name}]
     } finally {
         isLoading.value = false;
@@ -39,7 +40,7 @@ onMounted(async () => {
     <Select
         v-model="model"
         :options="employees"
-        optionLabel="full_name"
+        optionLabel="name"
         optionValue="id"
         :placeholder="placeholder"
         class="mr-2 w-full"

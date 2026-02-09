@@ -7,9 +7,6 @@ use App\Models\User;
 use App\Services\Cache\CacheVersionService;
 use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\PermissionRegistrar;
-use Tests\Support\CreatesUsers;
-
-uses(CreatesUsers::class);
 
 beforeEach(function (): void {
     $this->seedRolesAndPermissions();
