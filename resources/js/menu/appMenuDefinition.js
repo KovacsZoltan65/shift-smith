@@ -28,7 +28,7 @@ export const appMenuDefinition = [
         items: [
             {
                 title: "Szabályok",
-                route: "permissions.index",
+                route: "admin.permissions.index",
                 key: "permissions.index",
                 can: "permissions.viewAny",
             },

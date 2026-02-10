@@ -4,12 +4,11 @@ import { computed, ref, watch } from "vue";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 
-import RoleFields from "@/Pages/Roles/Partials/RoleFields.vue";
+import PermissionFields from "@/Pages/Admin/Permissions/Partials/PermissionFields.vue";
 import { csrfFetch } from "@/lib/csrfFetch";
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
-    permissions: { type: Array, default: () => [] },
     defaultGuard: { type: String, default: "web" },
 });
 
@@ -26,7 +25,6 @@ const errors = ref({});
 const form = ref({
     name: "",
     guard_name: props.defaultGuard,
-    permission_ids: [],
 });
 
 const reset = () => {
@@ -34,7 +32,6 @@ const reset = () => {
     form.value = {
         name: "",
         guard_name: props.defaultGuard,
-        permission_ids: [],
     };
 };
 
@@ -54,7 +51,7 @@ const submit = async () => {
     errors.value = {};
 
     try {
-        const res = await csrfFetch(`/admin/roles`, {
+        const res = await csrfFetch(`/admin/permissions`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -64,7 +61,6 @@ const submit = async () => {
             body: JSON.stringify({
                 name: String(form.value.name ?? "").trim(),
                 guard_name: form.value.guard_name || props.defaultGuard,
-                permission_ids: form.value.permission_ids ?? [],
             }),
         });
 
@@ -90,12 +86,10 @@ const submit = async () => {
             throw new Error(msg);
         }
 
-        emit("saved", "Role létrehozva.");
+        emit("saved", "Permission létrehozva.");
         close();
     } catch (e) {
         // a toast-ot az Index oldalon intézed az @saved alapján
-        // itt direkt nem toastolunk
-        // de ha akarod, át lehet adni hibát is
         console.error(e);
     } finally {
         saving.value = false;
@@ -107,14 +101,13 @@ const submit = async () => {
     <Dialog
         v-model:visible="open"
         modal
-        header="Új role"
+        header="Új permission"
         :style="{ width: '48rem' }"
         :closable="!saving"
         :dismissableMask="!saving"
     >
-        <RoleFields
+        <PermissionFields
             v-model="form"
-            :permissions="permissions"
             :defaultGuard="defaultGuard"
             :errors="errors"
             :disabled="saving"

@@ -37,7 +37,7 @@ class RoleController extends Controller
          */
         $this->authorize('viewAny', Role::class);
         
-        return Inertia::render('Roles/Index', [
+        return Inertia::render('Admin/Roles/Index', [
             'title'  => 'Szerepkörök',
             'filter' => $request->validatedFilters(),
         ]);

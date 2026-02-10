@@ -4,6 +4,7 @@ namespace App\Services\Admin;
 
 use App\Interfaces\Admin\PermissionRepositoryInterface;
 use App\Models\Admin\Permission;
+use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class PermissionService

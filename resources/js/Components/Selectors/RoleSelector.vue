@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
-import Service from "../../services/RoleService.js";
+import Service from "../../services/Auth/RoleService.js";
 
 const props = defineProps({
     modelValue: [String, Number, Object, null],

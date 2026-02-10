@@ -15,8 +15,8 @@ import { useToast } from "primevue/usetoast";
 import Menu from "primevue/menu";
 import Tag from "primevue/tag";
 
-import CreateModal from "@/Pages/Roles/CreateModal.vue";
-import EditModal from "@/Pages/Roles/EditModal.vue";
+import CreateModal from "@/Pages/Admin/Roles/CreateModal.vue";
+import EditModal from "@/Pages/Admin/Roles/EditModal.vue";
 
 import { csrfFetch } from "@/lib/csrfFetch";
 

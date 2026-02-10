@@ -35,7 +35,7 @@ class PermissionController extends Controller
     {
         $this->authorize('viewAny', Permission::class);
         
-        return Inertia::render('Permissions/Index', [
+        return Inertia::render('Admin/Permissions/Index', [
             'title'  => 'Jogosultságok',
             'filter' => $request->validatedFilters(),
         ]);

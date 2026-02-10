@@ -4,7 +4,7 @@ import { computed, ref, watch } from "vue";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 
-import RoleFields from "@/Pages/Roles/Partials/RoleFields.vue";
+import RoleFields from "@/Pages/Admin/Roles/Partials/RoleFields.vue";
 import { csrfFetch } from "@/lib/csrfFetch";
 
 const props = defineProps({

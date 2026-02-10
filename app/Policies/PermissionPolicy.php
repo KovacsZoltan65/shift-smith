@@ -14,7 +14,7 @@ class PermissionPolicy
 
     public function before(User $user, string $ability): ?bool
     {
-        return $user->hasPermission('superadmin') ? true : null;
+        return $user->can('superadmin') ? true : null;
     }
 
     public function viewAny(User $user): bool
