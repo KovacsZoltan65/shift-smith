@@ -1,42 +1,33 @@
-import BaseService from "@/services/BaseService.js";
+import apiClient from "@/services/HttpClient.js";
 
-class RoleService extends BaseService {
-    constructor() {
-        super();
-        this.url = "roles";
-    }
+export default {
+    fetch(params = {}) {
+        return apiClient.get(route("admin.roles.fetch"), { params });
+    },
 
-    getRoles(params = {}) {
-        return this.get(`${this.url}/fetch`, { params });
-    }
+    store(payload) {
+        return apiClient.post(route("admin.roles.store"), payload);
+    },
 
-    storeRole(params) {
-        return this.post(route(`${this.url}.store`), params);
-    }
+    update(id, payload) {
+        return apiClient.put(route("admin.roles.update", { id }), payload);
+    },
 
-    updateRole(id, params) {
-        return this.put(route(`${this.url}.update`, id), params);
-    }
+    destroy(id) {
+        return apiClient.delete(route("admin.roles.destroy", { id }));
+    },
 
-    deleteRoles(ids) {
-        return this.delete(route(`${this.url}.delete.bulk`), { data: { ids } });
-    }
-
-    deleteRole(id) {
-        return this.delete(route(`${this.url}.delete`, id));
-    }
-
-    restoreRole(id) {
-        return this.put(route(`${this.url}.restore`, id));
-    }
-
-    forceDeleteRole(id) {
-        return this.delete(route(`${this.url}.force-delete`, id));
-    }
+    destroyBulk(ids) {
+        return apiClient.delete(route("admin.roles.destroy_bulk"), {
+            data: { ids },
+        });
+    },
 
     getToSelect(params = {}) {
-        return this.get(`${this.url}/to_select`, { params });
-    }
-}
+        return apiClient.get(route("selectors.roles"), { params });
+    },
 
-export default new RoleService();
+    getPermissionsToSelect(params = {}) {
+        return apiClient.get(route("selectors.permissions"), { params });
+    },
+};

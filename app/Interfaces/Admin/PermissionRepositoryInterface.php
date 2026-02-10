@@ -4,30 +4,30 @@ declare(strict_types=1);
 
 namespace App\Interfaces\Admin;
 
-use App\Models\Admin\Role;
+use App\Models\Admin\Permission;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 
-interface RoleRepositoryInterface
+interface PermissionRepositoryInterface
 {
     /**
-     * @return LengthAwarePaginator<int, Role>
+     * @return LengthAwarePaginator<int, Permission>
      */
     public function fetch(Request $request): LengthAwarePaginator;
 
-    public function getRole(int $id): Role;
+    public function getPermission(int $id): Permission;
 
-    public function getRoleByName(string $name): Role;
-
-    /**
-     * @param array{name:string, guard_name:string} $data
-     */
-    public function store(array $data): Role;
+    public function getPermissionByName(string $name): Permission;
 
     /**
      * @param array{name:string, guard_name:string} $data
      */
-    public function update(array $data, int $id): Role;
+    public function store(array $data): Permission;
+
+    /**
+     * @param array{name:string, guard_name:string} $data
+     */
+    public function update(array $data, int $id): Permission;
 
     public function bulkDelete(array $ids): int;
     

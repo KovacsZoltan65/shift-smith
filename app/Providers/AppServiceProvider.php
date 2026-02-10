@@ -2,17 +2,19 @@
 
 namespace App\Providers;
 
+use App\Interfaces\Admin\PermissionRepositoryInterface;
+use App\Interfaces\Admin\RoleRepositoryInterface;
 use App\Interfaces\CompanyRepositoryInterface;
 use App\Interfaces\EmployeeRepositoryInterface;
-use App\Interfaces\Admin\RoleRepositoryInterface;
 use App\Interfaces\UserRepositoryInterface;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Observers\CompanyObserver;
 use App\Observers\EmployeeObserver;
+use App\Repositories\Admin\PermissionRepository;
+use App\Repositories\Admin\RoleRepository;
 use App\Repositories\CompanyRepository;
 use App\Repositories\EmployeeRepository;
-use App\Repositories\Admin\RoleRepository;
 use App\Repositories\UserRepository;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Grammars\PostgresGrammar;
@@ -41,6 +43,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             RoleRepositoryInterface::class, 
             RoleRepository::class
+        );
+        $this->app->bind(
+            PermissionRepositoryInterface::class, 
+            PermissionRepository::class
         );
         $this->app->bind(
             EmployeeRepositoryInterface::class, 

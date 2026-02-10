@@ -2,42 +2,41 @@
 
 namespace App\Services\Admin;
 
-use App\Interfaces\Admin\RoleRepositoryInterface;
-use App\Models\Role;
+use App\Interfaces\Admin\PermissionRepositoryInterface;
+use App\Models\Admin\Permission;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Http\Request;
 
-class RoleService
+class PermissionService
 {
     public function __construct(
-        private readonly RoleRepositoryInterface $repo
+        private readonly PermissionRepositoryInterface $repo
     ) {}
     
     /**
      * @param Request $request
-     * @return LengthAwarePaginator<int, Role>
+     * @return LengthAwarePaginator<int, Permission>
      */
     public function fetch(Request $request): LengthAwarePaginator
     {
-        /** @var LengthAwarePaginator<int, Role> $roles */
-        $roles = $this->repo->fetch($request);
+        /** @var LengthAwarePaginator<int, Permission> $roles */
+        $permission = $this->repo->fetch($request);
 
-        return $roles;
+        return $permission;
     }
     
     /**
-     * Summary of getRole
+     * Summary of getPermission
      * @param int $id
-     * @return \App\Models\Role
+     * @return \App\Models\Permission
      */
-    public function getRole(int $id): Role
+    public function getPermission(int $id): Permission
     {
-        return $this->repo->getRole($id);
+        return $this->repo->getPermission($id);
     }
     
-    public function getRoleByName(string $name): Role
+    public function getPermissionByName(string $name): Permission
     {
-        return $this->repo->getRoleByName($name);
+        return $this->repo->getPermissionByName($name);
     }
     
     /**
@@ -46,9 +45,9 @@ class RoleService
      *   name: string,
      *   guard_name: string,
      * } $data
-     * @return Role
+     * @return Permission
      */
-    public function store(array $data): Role
+    public function store(array $data): Permission
     {
         return $this->repo->store($data);
     }
@@ -60,9 +59,9 @@ class RoleService
      *    guard_name: string,
      * } $data
      * @param int $id
-     * @return Role
+     * @return Permission
      */
-    public function update(array $data, $id): Role
+    public function update(array $data, $id): Permission
     {
         return $this->repo->update($data, $id);
     }

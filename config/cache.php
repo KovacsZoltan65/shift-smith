@@ -145,10 +145,13 @@ return [
     */
     'enable_users'            => false,
     'enable_roles'            => false,
+    'enable_permissions'      => false,
     'enable_companies'        => false,
     'enable_employees'        => false,
+    
     'enable_companyToSelect'  => true,
     'enable_employeeToSelect' => true,
-    'enable_roleToSelect' => true,
+    'enable_roleToSelect'     => true,
+    'enable_permisionToSelect' => true,
     
 ];

@@ -3,93 +3,91 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Role\IndexRequest;
-use App\Http\Requests\Role\StoreRequest;
-use App\Http\Requests\Role\UpdateRequest;
-use App\Models\Role;
-use App\Services\Admin\RoleService;
-use Illuminate\Http\JsonResponse;
+use App\Http\Requests\Permission\BulkDeleteRequest;
+use App\Http\Requests\Permission\IndexRequest;
+use App\Http\Requests\Permission\StoreRequest;
+use App\Http\Requests\Permission\UpdateRequest;
+use App\Models\Admin\Permission;
+use App\Services\Admin\PermissionService;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
-class RoleController extends Controller
+class PermissionController extends Controller
 {
     public function __construct(
-        private readonly RoleService $service
+            private readonly PermissionService $service
     ) {}
     
     /**
      * Index oldal betöltése.
      *
-     * Ez a metódus adatokat egy InertiaResponse objektet, amely tartalmazza a szerepkörök
-     * oldalát, és a meta adatokat, amely tartalmazza a szerepkörök számát, az oldal számát,
+     * Ez a metódus adatokat egy InertiaResponse objektet, amely tartalmazza a jogosultságok
+     * oldalát, és a meta adatokat, amely tartalmazza a jogosultságok számát, az oldal számát,
      * a lapok számát, és az utolsó oldal számát.
      *
-     * @param IndexRequest $request A lekérendő szerepkörök azonosítója.
-     * @return InertiaResponse A szerepkörök oldala egy InertiaResponse objektumban.
+     * @param IndexRequest $request A lekérendő jogosultságok azonosítója.
+     * @return InertiaResponse A jogosultságok oldala egy InertiaResponse objektumban.
      */
     public function index(IndexRequest $request): InertiaResponse
     {
-        /**
-         * A szerepkörök oldalát megjelenítéséhez kell hozzáférni.
-         */
-        $this->authorize('viewAny', Role::class);
+        $this->authorize('viewAny', Permission::class);
         
-        return Inertia::render('Roles/Index', [
-            'title'  => 'Szerepkörök',
+        return Inertia::render('Permissions/Index', [
+            'title'  => 'Jogosultságok',
             'filter' => $request->validatedFilters(),
         ]);
     }
-
+    
     /**
      * Adatok az index oldalhoz.
      *
      * Ez a metódus adatokat szolgáltat az index oldalhoz.
-     * A metódus egy szerepkör listát ad vissza, amely tartalmazza a szerepkörök adata mezőjét, és a meta adatokat,
-     * amely tartalmazza a szerepkörök számát, az oldal számát, a lapok számát, és az utolsó oldal számát.
+     * A metódus egy szabály listát ad vissza, amely tartalmazza a szabályok adata mezőjét, és a meta adatokat,
+     * amely tartalmazza a szabályok számát, az oldal számát, a lapok számát, és az utolsó oldal számát.
      * A metódus a szerepkörök listáját egy JsonResponse objektumban adja vissza.
      *
-     * @param IndexRequest $request A lekérendő szerepkörök azonosítója.
-     * @return JsonResponse A szerepkörök listája egy JsonResponse objektumban.
+     * @param IndexRequest $request A lekérendő szabályok azonosítója.
+     * @return JsonResponse A szabályok listája egy JsonResponse objektumban.
      */
     public function fetch(IndexRequest $request): JsonResponse
     {
-        $this->authorize('viewAny', Role::class);
+        $this->authorize('viewAny', Permission::class);
         
-        $roles = $this->service->fetch($request);
+        $permission = $this->service->fetch($request);
         
         return response()->json([
-            'data' => $roles,
+            'data' => $permission,
             'meta' => [
-                'current_page' => $roles->currentPage(),
-                'per_page' => $roles->perPage(),
-                'total' => $roles->total(),
-                'last_page' => $roles->lastPage(),
+                'current_page' => $permission->currentPage(),
+                'per_page' => $permission->perPage(),
+                'total' => $permission->total(),
+                'last_page' => $permission->lastPage(),
             ],
             'filter' => $request->validatedFilters(),
         ], Response::HTTP_OK);
     }
     
     /*
-     * Szerepkör lekérése az azonosítója alapján.
-     * Ez a metódus egy szerepkört kér le az azonosítója alapján.
-     * Először lekéri a szerepkört az adatbázisból, majd ellenőrzi, hogy a felhasználó jogosult-e megtekinteni azt.
-     * Ha a felhasználó jogosult, akkor a szerepkört JSON formátumban adja vissza.
+     * Szabály lekérése az azonosítója alapján.
+     * Ez a metódus egy szabályt kér le az azonosítója alapján.
+     * Először lekéri a szabályt az adatbázisból, majd ellenőrzi, hogy a felhasználó jogosult-e megtekinteni azt.
+     * Ha a felhasználó jogosult, akkor a szabályt JSON formátumban adja vissza.
      * Ha a felhasználó nem jogosult, akkor egy 500 Internal Server Error üzenetet ad vissza.
-     * @param int $id A lekérendő szerepkör azonosítója.
+     * @param int $id A lekérendő szabály azonosítója.
      * @return JsonResponse A szerepkör JSON formátumban, vagy egy 500 Internal Server Error válasz.
-     * @throws Throwable Ha hiba történik a szerepkör lekérése során.
+     * @throws Throwable Ha hiba történik a szabály lekérése során.
      */
-    public function getRole(int $id): JsonResponse
+    public function getPermission(int $id): JsonResponse
     {
-        $role = $this->service->getRole($id);
-        $this->authorize('view', $role);
+        $permission = $this->service->getPermission($id);
+        $this->authorize('view', $permission);
         
         try {
             return response()->json(
-                $role,
+                $permission,
                 Response::HTTP_OK
             );
         } catch(Throwable $th) {
@@ -106,19 +104,19 @@ class RoleController extends Controller
      * Ez a metódus név alapján kér le egy szerepkört az adatbázisból.
      * Kivételt dob, ha a szerepkör nem létezik.
      *
-     * @param string $name A lekérendő szerepkör neve.
-     * @return JsonResponse A szerepkör JSON válaszként.
-     * @throws Throwable Ha a szerepkör nem létezik.
+     * @param string $name A lekérendő szabály neve.
+     * @return JsonResponse A szabály JSON válaszként.
+     * @throws Throwable Ha a szabály nem létezik.
      */
-    public function getRoleByName(string $name): JsonResponse
+    public function getPermissionByName(string $name): JsonResponse
     {
-        /** @var Role $role */
-        $role = Role::where('name', '=', $name)->firstOrFail();
-        $this->authorize('view', $role);
+        /** @var Permission $permission */
+        $permission = Permission::where('name', '=', $name)->firstOrFail();
+        $this->authorize('view', $permission);
         
         try {
             return response()->json(
-                $role,
+                $permission,
                 Response::HTTP_OK
             );
         } catch(Throwable $th) {
@@ -137,12 +135,12 @@ class RoleController extends Controller
      * tárolására.
      *
      * @param StoreRequest $request
-     * @return JsonResponse Egy JSON válasz a létrehozott szerepkörrel.
+     * @return JsonResponse Egy JSON válasz a létrehozott szabályokkal.
      * @throws \Throwable
      */
     public function store(StoreRequest $request): JsonResponse
     {
-        $this->authorize('create', Role::class);
+        $this->authorize('create', Permission::class);
         
         /**
          * A kérésből származó validált adatok.
@@ -155,9 +153,9 @@ class RoleController extends Controller
         $data = $request->validated();
         
         try {
-            $role = $this->service->store($data);
+            $permission = $this->service->store($data);
             
-            return response()->json($role, Response::HTTP_OK);
+            return response()->json($permission, Response::HTTP_OK);
         } catch(Throwable $th) {
             return response()->json(
                 ['error' => $th->getMessage()],
@@ -187,8 +185,8 @@ class RoleController extends Controller
         $data = $request->validated();
         
         try {
-            $role = $this->service->getRole($id);
-            $this->authorize('update', $role);
+            $permission = $this->service->getPermission($id);
+            $this->authorize('update', $permission);
             
             $updated = $this->service->update($data, $id);
             
@@ -203,7 +201,7 @@ class RoleController extends Controller
     
     public function bulkDelete(BulkDeleteRequest $request): JsonResponse
     {
-        $this->authorize('deleteAny', Role::class);
+        $this->authorize('deleteAny', Permission::class);
         
         $data = $request->validated();
         
@@ -221,17 +219,9 @@ class RoleController extends Controller
         }
     }
     
-    /**
-     * Egyetlen rekord törlése.
-     *
-     * Engedélyezés: 'delete' policy.
-     *
-     * @param  int  $id  A törlendo rekord azonosítója.
-     * @throws Throwable
-     */
     public function destroy(int $id): JsonResponse
     {
-        $role = $this->service->getRole($id);
+        $role = $this->service->getPermission($id);
         $this->authorize('delete', $role);
         
         try {

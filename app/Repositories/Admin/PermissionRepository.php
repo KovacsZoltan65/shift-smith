@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace App\Repositories\Admin;
 
-use App\Interfaces\Admin\RoleRepositoryInterface;
-use App\Models\Admin\Role;
+use App\Interfaces\Admin\PermissionRepositoryInterface;
+use App\Models\Admin\Permission;
 use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
 use App\Traits\Functions;
-use DB;
 use Illuminate\Container\Container as AppContainer;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
+use Override;
 use Prettus\Repository\Criteria\RequestCriteria;
 use Prettus\Repository\Eloquent\BaseRepository;
 
-class RoleRepository extends BaseRepository implements RoleRepositoryInterface
+class PermissionRepository extends BaseRepository implements PermissionRepositoryInterface
 {
     use Functions;
 
@@ -25,8 +25,8 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
     
     private readonly CacheVersionService $cacheVersionService;
     
-    private const NS_ROLES_FETCH = 'roles.fetch';
-    private const NS_SELECTORS_ROLES = 'selectors.roles';
+    private const NS_PERMISSIONS_FETCH = 'permissions.fetch';
+    private const NS_SELECTORS_PERMISSIONS = 'selectors.permissions';
 
     public function __construct(
         AppContainer $app,
@@ -37,19 +37,20 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
         parent::__construct($app);
 
         $this->cacheService = $cacheService;
-        $this->tag = Role::getTag();
+        $this->tag = Permission::getTag();
         $this->cacheVersionService = $cacheVersionService;
     }
-
+    
     /**
      * 
      * @param Request $request
      * @return LengthAwarePaginator<int, Role>
      */
+    #[Override]
     public function fetch(Request $request): LengthAwarePaginator
     {
-        $needCache = (bool) config('cache.enable_roles', false);
-
+        $needCache = (bool) config('cache.enable_permissions', false);
+        
         $page = (int) $request->integer('page', 1);
 
         $perPage = (int) $request->integer('per_page', 10);
@@ -58,7 +59,7 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
         $rawTerm = \trim((string) $request->input('search', ''));
         $term = $rawTerm === '' ? null : \mb_strtolower($rawTerm, 'UTF-8');
 
-        $sortable = Role::getSortable();
+        $sortable = Permission::getSortable();
         $field = \in_array($request->input('field', ''), $sortable, true)
             ? (string) $request->input('field')
             : null;
@@ -66,9 +67,9 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
         $direction = strtolower((string) $request->input('order', '')) === 'desc' ? 'desc' : 'asc';
 
         $appendQuery = $request->only(['search', 'field', 'order', 'per_page']);
-
+        
         $queryCallback = function () use ($term, $field, $direction, $perPage, $page, $appendQuery): LengthAwarePaginator {
-            $q = Role::query()
+            $q = Permission::query()
                 ->when($term, function ($qq) use ($term) {
                     $qq->where(function ($q) use ($term) {
                         $q->where('name', 'like', "%{$term}%")
@@ -83,13 +84,13 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
 
             return $paginator;
         };
-
+        
         if (!$needCache) {
-            /** @var LengthAwarePaginator<int, Role> $roles */
-            $roles = $queryCallback();
-            return $roles;
+            /** @var LengthAwarePaginator<int, Permission> $permissions */
+            $permissions = $queryCallback();
+            return $permissions;
         }
-
+        
         $paramsForKey = [
             'page'     => $page,
             'per_page' => $perPage,
@@ -98,71 +99,74 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
             'order'    => $direction,
         ];
         ksort($paramsForKey);
-
+        
         $version = $this->cacheVersionService->get(self::NS_ROLES_FETCH);
         $hash = hash('sha256', json_encode($paramsForKey, JSON_THROW_ON_ERROR));
         $key = "v{$version}:{$hash}";
 
         /** @var LengthAwarePaginator<int, Role> $roles */
-        $roles = $this->cacheService->remember(
+        $permission = $this->cacheService->remember(
             tag: $this->tag,
             key: $key,
             callback: $queryCallback,
             ttl: (int) config('cache.ttl_fetch', 60)
         );
 
-        return $roles;
+        return $permission;
     }
-
+    
     /**
      * Rekord lekérése azonosító alapján
      * @param int $id
-     * @return \App\Models\Role
+     * @return \App\Models\Permission
      */
-    public function getRole(int $id): Role
+    #[Override]
+    public function getPermission(int $id): Permission
     {
-        /** @var Role $role */
-        $role = Role::findOrFail($id);
+        /** @var Permission $permission */
+        $permission = Permission::findOrFail($id);
 
-        return $role;
+        return $permission;
     }
-
+    
     /**
      * Rekord lekérése név alapján
      * @param string $name
-     * @return \App\Models\Role
+     * @return \App\Models\Permission
      */
-    public function getRoleByName(string $name): Role
+    #[Override]
+    public function getPermissionByName(string $name): Permission
     {
-        /** @var Role $role */
-        $role = Role::where('name', '=', $name)->firstOrFail();
+        /** @var Permission $permission */
+        $permission = Permission::where('name', '=', $name)->firstOrFail();
 
-        return $role;
+        return $permission;
     }
-
+    
     /**
      * Summary of store
      * @param array{
      *   name: string,
      *   guard_name: string,
      * } $data
-     * @return Role
+     * @return Permission
      */
-    public function store(array $data): Role
+    #[Override]
+    public function store(array $data): Permission
     {
-        return DB::transaction(function () use ($data): Role {
-            /** @var Role $role */
-            $role = Role::query()->create($data);
-
-            $this->createDefaultSettings($role);
-
+        return DB::transaction(function() use($data) {
+            /** @var Permission $permission */
+            $permission = Permission::query()->create($data);
+            
+            $this->createDefaultSettings($permission);
+            
             // Cache ürítése
             $this->invalidateAfterRoleWrite();
 
-            return $role;
+            return $permission;
         });
     }
-
+    
     /**
      * Summary of update
      * @param array{
@@ -170,97 +174,99 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
      *    guard_name: string,
      * } $data
      * @param int $id
-     * @return Role
+     * @return Permission
      */
-    public function update(array $data, $id): Role
+    public function update(array $data, $id): Permission
     {
         return DB::transaction(function () use ($data, $id) {
-            /** @var Role $role */
-            $role = Role::query()->lockForUpdate()->findOrFail($id);
+            /** @var Permission $role */
+            $permission = Permission::query()->lockForUpdate()->findOrFail($id);
 
-            $role->fill($data);
-            $role->save();
-            $role->refresh();
+            $permission->fill($data);
+            $permission->save();
+            $permission->refresh();
 
-            $this->updateDefaultSettings($role);
+            $this->updateDefaultSettings($permission);
 
             // Cache ürítése
             $this->invalidateAfterRoleWrite();
 
-            return $role;
+            return $permission;
         });
     }
-
+    
+    //
+    #[Override]
     public function bulkDelete(array $ids): int
     {
         return DB::transaction(function() use($ids): int {
-            $deleted = Role::query()->whereIn('id', $ids)->delete();
+            $deleted = Permission::query()->whereIn('id', $ids)->delete();
             
+            $this->invalidateAfterPermissionWrite();
+            
+            return $deleted;
+        });
+    }
+
+    #[Override]
+    public function destroy(int $id): bool
+    {
+        return DB::transaction(function () use ($id) {
+            /** @var Permission $permission */
+            $permission = Permission::query()->lockForUpdate()->findOrFail($id);
+
+            $deleted = (bool) $permission->delete();
+
+            // Beállítások törlése
+            $this->deleteDefaultSettings($permission);
+
+            // Cache ürítése
             $this->invalidateAfterRoleWrite();
-            
+
             return $deleted;
         });
     }
     
-    public function destroy(int $id): bool
-    {
-        return DB::transaction(function () use ($id) {
-            /** @var Role $role */
-            $role = Role::query()->lockForUpdate()->findOrFail($id);
-
-            $deleted = (bool) $role->delete();
-
-            // Beállítások törlése
-            $this->deleteDefaultSettings($role);
-
-            // Cache ürítése
-            $this->invalidateAfterRoleWrite();
-
-            return $deleted;
-        });
-    }
-
     /**
      * Summary of getToSelect
      * @return array<int, array{id: int, name: string}>
      */
+    #[Override]
     public function getToSelect(array $params = []): array
     {
-        $needCache = (bool) config('cache.enable_roleToSelect', false);
-
+        $needCache = (bool) config('cache.enable_permissionToSelect', false);
+        
         // normalize (jövőbiztos)
         $params['only_active'] = array_key_exists('only_active', $params) ? (bool) $params['only_active'] : true;
         ksort($params);
-
-        //$onlyActive = (bool) $params['only_active'];
-
+        
         $queryCallback = function (): array {
-            $q = Role::query();
+            $q = Permission::query();
 
             /** @var array<int, array{id: int, name: string}> $out */
             $out = $q->select(['id', 'name'])
                 ->orderBy('name')
                 ->get()
-                ->map(fn (Role $r): array => [
-                    'id' => (int) $r->id,
-                    'name' => (string) $r->name,
+                ->map(fn (Permission $p): array => [
+                    'id' => (int) $p->id,
+                    'name' => (string) $p->name,
                 ])
                 ->values()
                 ->all();
 
             return $out;
         };
-
+        
         if (!$needCache) {
             return $queryCallback();
         }
-
-        $version = $this->cacheVersionService->get(self::NS_SELECTORS_ROLES);
+        
+        $version = $this->cacheVersionService->get(self::NS_SELECTORS_PERMISSIONS);
         $hash = hash('sha256', json_encode($params, JSON_THROW_ON_ERROR));
         $key = "v{$version}:{$hash}";
-
+        
         return $this->cacheService->remember(
-            tag: self::NS_SELECTORS_ROLES,
+            tag: self::NS_SELECTORS_PERMISSIONS,
             key: $key,
             callback: $queryCallback,
             ttl: (int) config('cache.ttl_fetch', 1800)
@@ -270,23 +276,24 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
     private function invalidateAfterRoleWrite(): void
     {
         DB::afterCommit(function (): void {
-            // Roles listázás (Index) cache
-            $this->cacheVersionService->bump(self::NS_ROLES_FETCH);
+            // Permissions listázás (Index) cache
+            $this->cacheVersionService->bump(self::NS_PERMISSIONS_FETCH);
 
-            // RoleSelector cache (ha van)
-            $this->cacheVersionService->bump(self::NS_SELECTORS_ROLES);
+            // PermissionSelector cache (ha van)
+            $this->cacheVersionService->bump(self::NS_SELECTORS_PERMISSIONS);
         });
     }
 
-    private function createDefaultSettings(Role $role): void{}
+    private function createDefaultSettings(Permission $permission): void{}
 
-    private function updateDefaultSettings(Role $role): void{}
+    private function updateDefaultSettings(Permission $permission): void{}
 
-    private function deleteDefaultSettings(Role $role): void{}
+    private function deleteDefaultSettings(Permission $permission): void{}
 
+    #[Override]
     public function model(): string
     {
-        return Role::class;
+        return Permission::class;
     }
 
     public function boot(): void
@@ -295,4 +302,6 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
         // ez maradhat, de most a saját fetch úgyis felülírja a logikát.
         $this->pushCriteria(app(RequestCriteria::class));
     }
+
+    
 }

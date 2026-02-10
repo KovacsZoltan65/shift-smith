@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\CompanyController;
@@ -80,7 +81,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //Route::get('/companies', fn () => Inertia::render('Companies/Index', ['title' => 'Cégek']))->name('companies.index');
 
     // Biztonság
-    Route::get('/permissions', fn () => Inertia::render('Security/Permissions/Index'))->name('permissions.index');
+    //Route::get('/permissions', fn () => Inertia::render('Security/Permissions/Index'))->name('permissions.index');
     //Route::get('/roles', fn () => Inertia::render('Security/Roles/Index'))->name('roles.index');
 
     // HR
@@ -101,38 +102,32 @@ Route::middleware(['auth', 'verified'])->group(function () {
  * ADMIN
  * ======================================
  */
-Route::middleware(['auth', 'verified'])
-    ->prefix('admin')
-    ->name('admin.')
-    ->group(function () {
+//Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
         
         // ---------------------------------------
         // ROLES
         // ---------------------------------------
         
         // Role Selector
-        Route::get(
-            'admin/selectors/permissions', 
-            [RoleController::class, 'getPermissionsToSelect']
-        )->name('admin.selectors.permissions');
+        //Route::get('admin/selectors/permissions', [RoleController::class, 'getPermissionsToSelect'])->name('admin.selectors.permissions');
         
         // INDEX
-        Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
+        //Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
         // FETCH
-        Route::get('/roles/fetch', [RoleController::class, 'fetch'])->name('roles.fetch');
+        //Route::get('/roles/fetch', [RoleController::class, 'fetch'])->name('roles.fetch');
         // SEARCH
-        Route::get('/roles/{id}', [RoleController::class, 'destroy'])->whereNumber('id')->name('roles.by_id');
+        //Route::get('/roles/{id}', [RoleController::class, 'destroy'])->whereNumber('id')->name('roles.by_id');
         // SEARCH BY NAME
-        Route::get('/roles/name/{name}', [RoleController::class, 'byName'])->where('name', '[A-Za-z0-9_.@\- ]+')->name('roles.by_name');
+        //Route::get('/roles/name/{name}', [RoleController::class, 'byName'])->where('name', '[A-Za-z0-9_.@\- ]+')->name('roles.by_name');
         // CREATE
-        Route::post('/roles', [RoleController::class, 'destroy'])->name('roles.store');
+        //Route::post('/roles', [RoleController::class, 'destroy'])->name('roles.store');
         // UPDATE
-        Route::put('/roles/{id}', [RoleController::class, 'destroy'])->whereNumber('id')->name('roles.update');
+        //Route::put('/roles/{id}', [RoleController::class, 'destroy'])->whereNumber('id')->name('roles.update');
         // DELETE
-        Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->name('roles.destroy');
+        //Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->name('roles.destroy');
         // BULK DELETE
-        Route::delete('/roles/destroy_bulk', [RoleController::class, 'bulkDelete'])->name('roles.destroy_bulk');
-    });
+        //Route::delete('/roles/destroy_bulk', [RoleController::class, 'bulkDelete'])->name('roles.destroy_bulk');
+//    });
     
 Route::middleware(['auth', 'verified'])
     ->prefix('admin')
@@ -144,11 +139,7 @@ Route::middleware(['auth', 'verified'])
         // ---------------------------------------
         
         // ROLE SELECTOR
-        Route::get(
-            '/selectors/roles', 
-            [RoleController::class, 'getPermissionsToSelect']
-        )->name('selectors.roles');
-        
+        Route::get('/selectors/roles', [RoleController::class, 'getPermissionsToSelect'])->name('selectors.roles');
         // INDEX
         Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
         // FETCH
@@ -165,6 +156,30 @@ Route::middleware(['auth', 'verified'])
         Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->whereNumber('id')->name('roles.destroy');
         // BULK DELETE
         Route::delete('/roles/destroy_bulk', [RoleController::class, 'destroyBulk'])->name('roles.destroy_bulk');
+        
+        // ---------------------------------------
+        // PERMISSION
+        // ---------------------------------------
+        
+        // PERMISSIONS SELECTOR
+        Route::get('/selectors/permissions', [PermissionController::class, 'getPermissionsToSelect'])->name('selectors.roles');
+        // INDEX
+        Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions.index');
+        // FETCH
+        Route::get('/permissions/fetch', [PermissionController::class, 'fetch'])->name('permissions.fetch');
+        // SEARCH
+        Route::get('/permissions/{id}', [PermissionController::class, 'destroy'])->whereNumber('id')->name('permissions.by_id');
+        // SEARCH BY NAME
+        Route::get('/permissions/name/{name}', [PermissionController::class, 'byName'])->where('name', '[A-Za-z0-9_.@\- ]+')->name('permissions.by_name');
+        // CREATE
+        Route::post('/permissions', [PermissionController::class, 'store'])->name('roles.store');
+        // UPDATE
+        Route::put('/permissions/{id}', [PermissionController::class, 'update'])->whereNumber('id')->name('permissions.update');
+        // DELETE
+        Route::delete('/permissions/{id}', [PermissionController::class, 'destroy'])->whereNumber('id')->name('permissions.destroy');
+        // BULK DELETE
+        Route::delete('/permissions/destroy_bulk', [PermissionController::class, 'destroyBulk'])->name('permissions.destroy_bulk');
+        
     });
     
 
