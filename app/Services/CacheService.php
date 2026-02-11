@@ -90,7 +90,7 @@ class CacheService
         }
 
         // Fallback – a szerep/jogosultság területén legalább a Spatie cache ürüljön
-        if (\in_array($tag, ['roles', 'permissions', \App\Models\Role::getTag()], true)) {
+        if (\in_array($tag, ['roles', 'permissions', \App\Models\Admin\Role::getTag()], true)) {
             app(SpatiePermissionRegistrar::class)->forgetCachedPermissions();
         }
 

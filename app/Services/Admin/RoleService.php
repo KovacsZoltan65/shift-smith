@@ -3,7 +3,7 @@
 namespace App\Services\Admin;
 
 use App\Interfaces\Admin\RoleRepositoryInterface;
-use App\Models\Role;
+use App\Models\Admin\Role;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 

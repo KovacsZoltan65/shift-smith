@@ -23,10 +23,6 @@ import { csrfFetch } from "@/lib/csrfFetch";
 const props = defineProps({
     title: { type: String, default: "Roles" },
     filter: { type: Object, default: () => ({}) },
-
-    // index() inertia propsból jön:
-    //permissions: { type: Array, default: () => [] }, // [{id,name}]
-    //defaultGuard: { type: String, default: "web" },
 });
 
 const toast = useToast();
@@ -91,8 +87,30 @@ const openCreate = () => {
 };
 
 const openEditModal = (row) => {
-    editRole.value = row;
-    editOpen.value = true;
+    // Edithez kell a permission_ids is -> kérjük le a részleteket
+    (async () => {
+        actionLoading.value = true;
+        try {
+            const res = await fetch(`/admin/roles/${row.id}`, {
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                    Accept: "application/json",
+                },
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            editRole.value = await res.json();
+            editOpen.value = true;
+        } catch (e) {
+            toast.add({
+                severity: "error",
+                summary: "Hiba",
+                detail: e?.message || "Nem sikerült a role betöltése.",
+                life: 3500,
+            });
+        } finally {
+            actionLoading.value = false;
+        }
+    })();
 };
 
 const onSaved = async (msg = "Mentve.") => {
@@ -305,13 +323,7 @@ onMounted(fetchRoles);
     <CreateModal v-model="createOpen" @saved="onSaved" />
 
     <!-- EDIT MODAL -->
-    <EditModal
-        v-model="editOpen"
-        :role="editRole"
-        :permissions="permissions"
-        :defaultGuard="defaultGuard"
-        @saved="onSaved"
-    />
+    <EditModal v-model="editOpen" :role="editRole" @saved="onSaved" />
 
     <AuthenticatedLayout>
         <div class="p-6">

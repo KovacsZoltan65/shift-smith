@@ -24,7 +24,7 @@ class Role extends SpatieRole
     
     /** @var array<int,string> */
     public const SORTABLE = [
-        'id', 'name', 'guard_name',
+        'id', 'name', 'guard_name', 'users_count', 'created_at', 'updated_at',
     ];
     
     /*

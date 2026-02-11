@@ -21,15 +21,11 @@ class UpdateRequest extends FormRequest
 
         return [
             'name' => [
-                'required', 'string', 'max:120',
+                'required', 'string', 'max:100',
                 Rule::unique('roles', 'name')
                     ->ignore($id, 'id'),
             ],
-            'guard_name'   => [
-                'required', 'string', 'max:120',
-                Rule::unique('roles', 'guard_name')
-                    ->ignore($id, 'id'),
-            ],
+            'guard_name' => ['required', 'string', 'max:50'],
             'permission_ids' => ['nullable', 'array'],
             'permission_ids.*' => ['integer', 'distinct', 'exists:permissions,id'],
         ];

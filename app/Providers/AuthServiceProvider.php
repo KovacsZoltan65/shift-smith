@@ -26,7 +26,7 @@ class AuthServiceProvider extends ServiceProvider
         //\App\Models\WorkScheduleAssignment::class => \App\Policies\WorkScheduleAssignmentPolicy::class,
         //\App\Models\Permission::class             => \App\Policies\PermissionPolicy::class,
         //\App\Models\Product::class                => \App\Policies\ProductPolicy::class,
-        //\App\Models\Role::class                   => \App\Policies\RolePolicy::class,
+        //\App\Models\Admin\Role::class                   => \App\Policies\RolePolicy::class,
         //\App\Models\WorkSchedule::class           => \App\Policies\WorkSchedulePolicy::class,
 
         // HA Spatie-t használsz:

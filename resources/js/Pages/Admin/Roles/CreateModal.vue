@@ -9,7 +9,6 @@ import { csrfFetch } from "@/lib/csrfFetch";
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
-    permissions: { type: Array, default: () => [] },
     defaultGuard: { type: String, default: "web" },
 });
 
@@ -114,7 +113,6 @@ const submit = async () => {
     >
         <RoleFields
             v-model="form"
-            :permissions="permissions"
             :defaultGuard="defaultGuard"
             :errors="errors"
             :disabled="saving"

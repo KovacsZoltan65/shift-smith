@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Role;
 
-use App\Models\Role;
+use App\Models\Admin\Role;
 use Illuminate\Foundation\Http\FormRequest;
 
 class DeleteRequest extends FormRequest
@@ -12,7 +12,7 @@ class DeleteRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('roles.delete', Role::class);
+        return $this->user()?->can('roles.delete') ?? false;
     }
 
     /**
@@ -23,7 +23,7 @@ class DeleteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'id'   => ['required', 'int',],
+            'id'   => ['required', 'integer'],
         ];
     }
 }

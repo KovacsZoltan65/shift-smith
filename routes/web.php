@@ -43,8 +43,7 @@ Route::middleware(['auth', 'verified', 'throttle:120,1'])->group(function(): voi
     // User Selector
     Route::get('/selectors/users', [UserController::class, 'getToSelect'])->name('selectors.users');
 
-    // Permissions Selector
-    Route::get('admin/selectors/permissions', [RoleController::class, 'getPermissionsToSelect'])->name('admin.selectors.permissions');
+    // (Admin selectorok az /admin prefix alatt vannak, lent)
 });
 
 //Route::get('/_debug/csrf', function() {
@@ -111,8 +110,9 @@ Route::middleware(['auth', 'verified'])
         // ROLES
         // ---------------------------------------
         
-        // ROLE SELECTOR
-        Route::get('/selectors/roles', [RoleController::class, 'getPermissionsToSelect'])->name('selectors.roles');
+        // SELECTOROK
+        Route::get('/selectors/roles', [RoleController::class, 'getToSelect'])->name('selectors.roles');
+        Route::get('/selectors/permissions', [PermissionController::class, 'getToSelect'])->name('selectors.permissions');
         // INDEX
         Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
         // FETCH
@@ -120,7 +120,7 @@ Route::middleware(['auth', 'verified'])
         // SEARCH
         Route::get('/roles/{id}', [RoleController::class, 'getRole'])->whereNumber('id')->name('roles.by_id');
         // SEARCH BY NAME
-        Route::get('/roles/name/{name}', [RoleController::class, 'byName'])->where('name', '[A-Za-z0-9_.@\- ]+')->name('roles.by_name');
+        Route::get('/roles/name/{name}', [RoleController::class, 'getRoleByName'])->where('name', '[A-Za-z0-9_.@\- ]+')->name('roles.by_name');
         // CREATE
         Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
         // UPDATE
@@ -134,8 +134,7 @@ Route::middleware(['auth', 'verified'])
         // PERMISSION
         // ---------------------------------------
         
-        // PERMISSIONS SELECTOR
-        Route::get('/selectors/permissions', [PermissionController::class, 'getPermissionsToSelect'])->name('selectors.roles');
+        // (Selector már fent, itt nem duplikáljuk)
         // INDEX
         Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions.index');
         // FETCH
@@ -162,7 +161,10 @@ Route::middleware(['auth', 'verified'])
  * ======================================
  * Felhasználók kezelése
  */
-Route::middleware(['auth', 'verified'])->prefix('companies')->as('companies.')->controller(UserController::class)->group(function () {
+Route::middleware(['auth', 'verified'])
+        ->prefix('users')
+        ->as('users.')
+        ->controller(UserController::class)->group(function () {
         // INDEX
         Route::get('/', 'index')->name('index');
         // FETCH

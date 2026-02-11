@@ -15,6 +15,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Prettus\Repository\Criteria\RequestCriteria;
 use Prettus\Repository\Eloquent\BaseRepository;
+use Spatie\Permission\PermissionRegistrar;
 
 class RoleRepository extends BaseRepository implements RoleRepositoryInterface
 {
@@ -69,13 +70,20 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
 
         $queryCallback = function () use ($term, $field, $direction, $perPage, $page, $appendQuery): LengthAwarePaginator {
             $q = Role::query()
+                ->withCount('users')
                 ->when($term, function ($qq) use ($term) {
                     $qq->where(function ($q) use ($term) {
                         $q->where('name', 'like', "%{$term}%")
                             ->orWhere('guard_name', 'like', "%{$term}%");
                     });
                 })
-                ->when($field, fn ($qq) => $qq->orderBy($field, $direction))
+                ->when($field, function ($qq) use ($field, $direction) {
+                    if ($field === 'users_count') {
+                        return $qq->orderBy('users_count', $direction);
+                    }
+
+                    return $qq->orderBy($field, $direction);
+                })
                 ->when(!$field, fn ($qq) => $qq->orderByDesc('id'));
 
             $paginator = $q->paginate($perPage, ['*'], 'page', $page);
@@ -151,8 +159,17 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
     public function store(array $data): Role
     {
         return DB::transaction(function () use ($data): Role {
+            $permissionIds = $data['permission_ids'] ?? null;
+            unset($data['permission_ids']);
+
             /** @var Role $role */
             $role = Role::query()->create($data);
+
+            if (is_array($permissionIds)) {
+                $permissionIds = array_values(array_unique(array_map('intval', $permissionIds)));
+                $role->syncPermissions($permissionIds);
+                app(PermissionRegistrar::class)->forgetCachedPermissions();
+            }
 
             $this->createDefaultSettings($role);
 
@@ -175,12 +192,22 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
     public function update(array $data, $id): Role
     {
         return DB::transaction(function () use ($data, $id) {
+            $permissionIds = $data['permission_ids'] ?? null;
+            unset($data['permission_ids']);
+
             /** @var Role $role */
             $role = Role::query()->lockForUpdate()->findOrFail($id);
 
             $role->fill($data);
             $role->save();
             $role->refresh();
+
+            if (is_array($permissionIds)) {
+                $permissionIds = array_values(array_unique(array_map('intval', $permissionIds)));
+                $role->syncPermissions($permissionIds);
+                app(PermissionRegistrar::class)->forgetCachedPermissions();
+                $role->loadMissing('permissions');
+            }
 
             $this->updateDefaultSettings($role);
 

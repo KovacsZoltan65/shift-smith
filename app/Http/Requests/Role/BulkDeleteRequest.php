@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Role;
 
-use App\Models\Role;
+use App\Models\Admin\Role;
 use Illuminate\Foundation\Http\FormRequest;
 
 class BulkDeleteRequest extends FormRequest
@@ -12,7 +12,7 @@ class BulkDeleteRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('roles.deleteAny', Role::class);
+        return $this->user()?->can('roles.deleteAny') ?? false;
     }
 
     /**

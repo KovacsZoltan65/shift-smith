@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Role\BulkDeleteRequest;
 use App\Http\Requests\Role\IndexRequest;
 use App\Http\Requests\Role\StoreRequest;
 use App\Http\Requests\Role\UpdateRequest;
-use App\Models\Role;
+use App\Models\Admin\Role;
 use App\Services\Admin\RoleService;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
@@ -88,10 +89,17 @@ class RoleController extends Controller
         $this->authorize('view', $role);
         
         try {
-            return response()->json(
-                $role,
-                Response::HTTP_OK
-            );
+            // Normalizált payload (frontend barát)
+            $role->loadMissing('permissions');
+
+            return response()->json([
+                'id' => (int) $role->id,
+                'name' => (string) $role->name,
+                'guard_name' => (string) $role->guard_name,
+                'permission_ids' => $role->permissions->pluck('id')->map(fn ($id) => (int) $id)->all(),
+                'created_at' => $role->created_at,
+                'updated_at' => $role->updated_at,
+            ], Response::HTTP_OK);
         } catch(Throwable $th) {
             return response()->json(
                 ['error' => $th->getMessage()],
@@ -117,16 +125,30 @@ class RoleController extends Controller
         $this->authorize('view', $role);
         
         try {
-            return response()->json(
-                $role,
-                Response::HTTP_OK
-            );
+            $role->loadMissing('permissions');
+
+            return response()->json([
+                'id' => (int) $role->id,
+                'name' => (string) $role->name,
+                'guard_name' => (string) $role->guard_name,
+                'permission_ids' => $role->permissions->pluck('id')->map(fn ($id) => (int) $id)->all(),
+                'created_at' => $role->created_at,
+                'updated_at' => $role->updated_at,
+            ], Response::HTTP_OK);
         } catch(Throwable $th) {
             return response()->json(
                 ['error' => $th->getMessage()],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
+    }
+
+    /**
+     * Backward compatible alias (route-ok miatt).
+     */
+    public function byName(string $name): JsonResponse
+    {
+        return $this->getRoleByName($name);
     }
     
     /**
@@ -219,6 +241,14 @@ class RoleController extends Controller
                 'message' => 'Törlés sikertelen.',
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
+    }
+
+    /**
+     * Backward compatible alias (route-ok miatt).
+     */
+    public function destroyBulk(BulkDeleteRequest $request): JsonResponse
+    {
+        return $this->bulkDelete($request);
     }
     
     /**

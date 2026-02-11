@@ -1,15 +1,12 @@
 <script setup>
-import { computed } from "vue";
+import { computed, onMounted, ref } from "vue";
 
 import InputText from "primevue/inputtext";
-//import Select from "primevue/select";
-//import RoleSelector from "../../../Components/Selectors/RoleSelector.vue";
-//import MultiSelect from "primevue/multiselect";
-import PermissionSelector from "@/Components/Selectors/PermissionSelector.vue";
+import Dropdown from "primevue/dropdown";
+import MultiSelect from "primevue/multiselect";
 
 const props = defineProps({
     modelValue: { type: Object, required: true }, // { name, guard_name, permission_ids: [] }
-    permissions: { type: Array, default: () => [] }, // [{id,name}]
     defaultGuard: { type: String, default: "web" },
     errors: { type: Object, default: () => ({}) },
     disabled: { type: Boolean, default: false },
@@ -22,14 +19,48 @@ const form = computed({
     set: (v) => emit("update:modelValue", v),
 });
 
-const guardOptions = computed(() => [
+const guardOptions = [
     { label: "web", value: "web" },
     { label: "api", value: "api" },
-]);
+];
+
+const permissions = ref([]); // [{id,name}]
+const loadingPermissions = ref(false);
+
+const shouldUseFilter = computed(() => (permissions.value?.length ?? 0) > 10);
 
 const set = (key, value) => {
     form.value = { ...form.value, [key]: value };
 };
+
+onMounted(async () => {
+    loadingPermissions.value = true;
+    try {
+        const res = await fetch(`/admin/selectors/permissions`, {
+            headers: {
+                "X-Requested-With": "XMLHttpRequest",
+                Accept: "application/json",
+            },
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
+        // endpoint: [{id,name}] (vagy {data:[...]})
+        const list = Array.isArray(data) ? data : data?.data;
+
+        permissions.value = (Array.isArray(list) ? list : []).map((p) => ({
+            id: Number(p.id),
+            name: p.name ?? p.label ?? String(p.id),
+        }));
+    } catch (e) {
+        permissions.value = [];
+        // direkt nincs toast innen; a modal/Index kezelje, ha kell
+        console.error("Permissions selector failed:", e);
+    } finally {
+        loadingPermissions.value = false;
+    }
+});
 </script>
 
 <template>
@@ -55,7 +86,7 @@ const set = (key, value) => {
         <div>
             <label class="block text-sm mb-1">Guard</label>
 
-            <Select
+            <Dropdown
                 :modelValue="form.guard_name || defaultGuard"
                 class="w-full"
                 :disabled="disabled"
@@ -75,26 +106,16 @@ const set = (key, value) => {
         <div>
             <label class="block text-sm mb-1">Permissions</label>
 
-            <!--<MultiSelect
+            <MultiSelect
                 :modelValue="form.permission_ids"
                 class="w-full"
                 :disabled="disabled"
+                :loading="loadingPermissions"
                 :options="permissions"
                 optionLabel="name"
                 optionValue="id"
-                filter
-                display="chip"
-                placeholder="Válassz jogosultságokat"
-                @update:modelValue="(v) => set('permission_ids', v)"
-            />-->
-            <PermissionSelector
-                :modelValue="form.permission_ids"
-                class="w-full"
-                :disabled="disabled"
-                :options="permissions"
-                optionLabel="name"
-                optionValue="id"
-                filter
+                :filter="shouldUseFilter"
+                :filterFields="['name']"
                 display="chip"
                 placeholder="Válassz jogosultságokat"
                 @update:modelValue="(v) => set('permission_ids', v)"
@@ -108,7 +129,7 @@ const set = (key, value) => {
             </div>
 
             <div class="mt-2 text-xs text-gray-500">
-                Tipp: ha sok permission van, a filter mezőn gyorsan szűrsz.
+                Tipp: ha sok permission van, automatikusan megjelenik a kereső.
             </div>
         </div>
     </div>
