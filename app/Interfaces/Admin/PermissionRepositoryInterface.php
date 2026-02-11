@@ -29,7 +29,7 @@ interface PermissionRepositoryInterface
      */
     public function update(array $data, int $id): Permission;
 
-    public function bulkDelete(array $ids): int;
+    public function destroyBulk(array $ids): int;
     
     public function destroy(int $id): bool;
 

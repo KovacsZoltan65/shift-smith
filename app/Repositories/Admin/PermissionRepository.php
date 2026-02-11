@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Override;
 use Prettus\Repository\Criteria\RequestCriteria;
 use Prettus\Repository\Eloquent\BaseRepository;
+use DB;
 
 class PermissionRepository extends BaseRepository implements PermissionRepositoryInterface
 {
@@ -156,7 +157,12 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
     {
         return DB::transaction(function() use($data) {
             /** @var Permission $permission */
-            $permission = Permission::query()->create($data);
+            $permission = Permission::query()->create([
+                'name' => (string) $data['name'],
+                'guard_name' => (string) $data['guard_name'],
+                //'name' => $request->string('name')->toString(),
+                //'guard_name' => $request->string('guard_name')->toString(),
+            ]);
             
             $this->createDefaultSettings($permission);
             
@@ -197,9 +203,13 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
     
     //
     #[Override]
-    public function bulkDelete(array $ids): int
+    public function destroyBulk(array $ids): int
     {
         return DB::transaction(function() use($ids): int {
+            
+            DB::table('role_has_permissions')->whereIn('permission_id', $ids)->delete();
+            DB::table('model_has_permissions')->whereIn('permission_id', $ids)->delete();
+            
             $deleted = Permission::query()->whereIn('id', $ids)->delete();
             
             $this->invalidateAfterPermissionWrite();
@@ -212,6 +222,10 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
     public function destroy(int $id): bool
     {
         return DB::transaction(function () use ($id) {
+            
+            DB::table('role_has_permissions')->where('permission_id', $id)->delete();
+            DB::table('model_has_permissions')->where('permission_id', $id)->delete();
+            
             /** @var Permission $permission */
             $permission = Permission::query()->lockForUpdate()->findOrFail($id);
 
@@ -221,7 +235,7 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
             $this->deleteDefaultSettings($permission);
 
             // Cache ürítése
-            $this->invalidateAfterRoleWrite();
+            $this->invalidateAfterPermissionWrite();
 
             return $deleted;
         });
@@ -273,7 +287,7 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
         );
     }
     
-    private function invalidateAfterRoleWrite(): void
+    private function invalidateAfterPermissionWrite(): void
     {
         DB::afterCommit(function (): void {
             // Permissions listázás (Index) cache

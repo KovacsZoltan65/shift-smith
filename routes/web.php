@@ -101,34 +101,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
  * ======================================
  * ADMIN
  * ======================================
- */
-//Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
-        
-        // ---------------------------------------
-        // ROLES
-        // ---------------------------------------
-        
-        // Role Selector
-        //Route::get('admin/selectors/permissions', [RoleController::class, 'getPermissionsToSelect'])->name('admin.selectors.permissions');
-        
-        // INDEX
-        //Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
-        // FETCH
-        //Route::get('/roles/fetch', [RoleController::class, 'fetch'])->name('roles.fetch');
-        // SEARCH
-        //Route::get('/roles/{id}', [RoleController::class, 'destroy'])->whereNumber('id')->name('roles.by_id');
-        // SEARCH BY NAME
-        //Route::get('/roles/name/{name}', [RoleController::class, 'byName'])->where('name', '[A-Za-z0-9_.@\- ]+')->name('roles.by_name');
-        // CREATE
-        //Route::post('/roles', [RoleController::class, 'destroy'])->name('roles.store');
-        // UPDATE
-        //Route::put('/roles/{id}', [RoleController::class, 'destroy'])->whereNumber('id')->name('roles.update');
-        // DELETE
-        //Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->name('roles.destroy');
-        // BULK DELETE
-        //Route::delete('/roles/destroy_bulk', [RoleController::class, 'bulkDelete'])->name('roles.destroy_bulk');
-//    });
-    
+ */ 
 Route::middleware(['auth', 'verified'])
     ->prefix('admin')
     ->name('admin.')
@@ -145,7 +118,7 @@ Route::middleware(['auth', 'verified'])
         // FETCH
         Route::get('/roles/fetch', [RoleController::class, 'fetch'])->name('roles.fetch');
         // SEARCH
-        Route::get('/roles/{id}', [RoleController::class, 'destroy'])->whereNumber('id')->name('roles.by_id');
+        Route::get('/roles/{id}', [RoleController::class, 'getRole'])->whereNumber('id')->name('roles.by_id');
         // SEARCH BY NAME
         Route::get('/roles/name/{name}', [RoleController::class, 'byName'])->where('name', '[A-Za-z0-9_.@\- ]+')->name('roles.by_name');
         // CREATE
@@ -168,11 +141,11 @@ Route::middleware(['auth', 'verified'])
         // FETCH
         Route::get('/permissions/fetch', [PermissionController::class, 'fetch'])->name('permissions.fetch');
         // SEARCH
-        Route::get('/permissions/{id}', [PermissionController::class, 'destroy'])->whereNumber('id')->name('permissions.by_id');
+        Route::get('/permissions/{id}', [PermissionController::class, 'getPermission'])->whereNumber('id')->name('permissions.by_id');
         // SEARCH BY NAME
-        Route::get('/permissions/name/{name}', [PermissionController::class, 'byName'])->where('name', '[A-Za-z0-9_.@\- ]+')->name('permissions.by_name');
+        Route::get('/permissions/name/{name}', [PermissionController::class, 'getPermissionByName'])->where('name', '[A-Za-z0-9_.@\- ]+')->name('permissions.by_name');
         // CREATE
-        Route::post('/permissions', [PermissionController::class, 'store'])->name('roles.store');
+        Route::post('/permissions', [PermissionController::class, 'store'])->name('permissions.store');
         // UPDATE
         Route::put('/permissions/{id}', [PermissionController::class, 'update'])->whereNumber('id')->name('permissions.update');
         // DELETE
@@ -189,11 +162,7 @@ Route::middleware(['auth', 'verified'])
  * ======================================
  * Felhasználók kezelése
  */
-Route::middleware(['auth', 'verified'])
-    ->prefix('companies')
-    ->as('companies.')
-    ->controller(UserController::class)
-    ->group(function () {
+Route::middleware(['auth', 'verified'])->prefix('companies')->as('companies.')->controller(UserController::class)->group(function () {
         // INDEX
         Route::get('/', 'index')->name('index');
         // FETCH
@@ -245,27 +214,21 @@ Route::middleware(['auth', 'verified'])->prefix('companies')->as('companies.')->
  * Dolgozók kezelése
  */
 Route::middleware(['auth', 'verified'])->prefix('employees')->as('employees.')->controller(EmployeeController::class)->group(function() {
-            // INDEX
-            Route::get('/', 'index')->name('index');
-            // FETCH
-            Route::get('/fetch', 'fetch')->name('fetch');
-            // SEARCH
-            Route::get('/{id}', 'getEmployee')->whereNumber('id')->name('by_id');
-            // CREATE
-            Route::post('/', 'store')->name('store');
-            // UPDATE
-            Route::put('/{id}', 'update')->whereNumber('id')->name('update');
-            // DELETE
-            Route::delete(
-                '/{id}', 
-                'destroy')
-                ->whereNumber('id')
-                ->name('destroy');
-            // BULK DELETE
-            Route::delete(
-                '/destroy_bulk', 
-                'bulkDelete')->name('destroy_bulk');
-        });
+        // INDEX
+        Route::get('/', 'index')->name('index');
+        // FETCH
+        Route::get('/fetch', 'fetch')->name('fetch');
+        // SEARCH
+        Route::get('/{id}', 'getEmployee')->whereNumber('id')->name('by_id');
+        // CREATE
+        Route::post('/', 'store')->name('store');
+        // UPDATE
+        Route::put('/{id}', 'update')->whereNumber('id')->name('update');
+        // DELETE
+        Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
+        // BULK DELETE
+        Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk');
+    });
     
 /**
  * ======================================

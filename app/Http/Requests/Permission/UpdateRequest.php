@@ -18,21 +18,25 @@ class UpdateRequest extends FormRequest
     public function rules(): array
     {
         $id = (int) $this->route('id');
+        $guard = (string) ($this->input('guard_name') ?: 'web');
 
         return [
             'name' => [
-                'required', 'string', 'max:120',
+                'required', 'string', 'max:255',
                 Rule::unique('permissions', 'name')
+                    ->where('guard_name', $guard)
                     ->ignore($id, 'id'),
             ],
-            'guard_name'   => [
-                'required', 'string', 'max:120',
-                Rule::unique('permissions', 'guard_name')
-                    ->ignore($id, 'id'),
-            ],
-            'permission_ids' => ['nullable', 'array'],
-            'permission_ids.*' => ['integer', 'distinct', 'exists:permissions,id'],
+            'guard_name' => ['required', 'string', 'max:50'],
         ];
+    }
+    
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'name' => is_string($this->name ?? null) ? trim((string) $this->name) : $this->name,
+            'guard_name' => is_string($this->guard_name ?? null) ? trim((string) $this->guard_name) : $this->guard_name,
+        ]);
     }
 
 }

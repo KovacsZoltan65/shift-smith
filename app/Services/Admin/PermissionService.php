@@ -67,12 +67,12 @@ class PermissionService
         return $this->repo->update($data, $id);
     }
     
-    public function bulkDelete(array $ids): int
+    public function destroyBulk(array $ids): int
     {
         // opcionális tisztítás: nullok/duplikátumok kiszűrése
         $ids = array_values(array_unique($ids));
         
-        return (int) $this->repo->bulkDelete($ids);
+        return (int) $this->repo->destroyBulk($ids);
     }
     
     /**

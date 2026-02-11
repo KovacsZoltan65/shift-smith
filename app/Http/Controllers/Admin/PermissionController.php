@@ -11,6 +11,7 @@ use App\Models\Admin\Permission;
 use App\Services\Admin\PermissionService;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
+use Spatie\Permission\PermissionRegistrar;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
@@ -155,6 +156,8 @@ class PermissionController extends Controller
         try {
             $permission = $this->service->store($data);
             
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+            
             return response()->json($permission, Response::HTTP_OK);
         } catch(Throwable $th) {
             return response()->json(
@@ -199,14 +202,16 @@ class PermissionController extends Controller
         }
     }
     
-    public function bulkDelete(BulkDeleteRequest $request): JsonResponse
+    public function destroyBulk(BulkDeleteRequest $request): JsonResponse
     {
         $this->authorize('deleteAny', Permission::class);
         
         $data = $request->validated();
         
         try {
-            $deleted = $this->service->bulkDelete($data['ids']);
+            $deleted = $this->service->destroyBulk($data['ids']);
+            
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
             
             return response()->json([
                 'message' => 'Sikeres törlés.',
@@ -214,7 +219,7 @@ class PermissionController extends Controller
             ], Response::HTTP_OK);
         } catch(Throwable $th) {
             return response()->json([
-                'message' => 'Törlés sikertelen.',
+                'message' => 'Törlés sikertelen.'
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }

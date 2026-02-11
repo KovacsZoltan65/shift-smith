@@ -99,6 +99,7 @@ https://phpstan.org/
 // ========================================
 // TESZTEK
 // ========================================
+vendor/bin/pest --list-test
 
     // ------------------------------------
     // COMPANIES
@@ -124,6 +125,22 @@ https://phpstan.org/
     vendor/bin/pest tests/Feature/Employees/EmployeeUpdateTest.pest.php
     vendor/bin/pest tests/Feature/Employees/EmployeeBulkDeleteTest.pest.php
     vendor/bin/pest tests/Feature/Employees/EmployeeDeleteTest.pest.php
+
+    // ------------------------------------
+    // PERMISSIONS
+    // ------------------------------------
+    vendor/bin/pest tests/Feature/Admin/Permissions
+    vendor/bin/pest tests/Feature/Admin/Permissions\_SanityTest.pest.php
+    vendor/bin/pest tests/Feature/Admin/Permissions/PermissionIndexTest.pest.php
+    vendor/bin/pest tests/Feature/Admin/Permissions/PermissionFetchTest.pest.php
+    vendor/bin/pest tests/Feature/Admin/Permissions/PermissionStoreTest.pest.php
+    vendor/bin/pest tests/Feature/Admin/Permissions/PermissionUpdateTest.pest.php
+    vendor/bin/pest tests/Feature/Admin/Permissions/PermissionBulkDeleteTest.pest.php
+    vendor/bin/pest tests/Feature/Admin/Permissions/PermissionDeleteTest.pest.php
+
+
+// ========================================
+
 
 
     php artisan route:list --path=companies

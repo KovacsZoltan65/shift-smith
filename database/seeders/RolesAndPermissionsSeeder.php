@@ -1,16 +1,17 @@
 <?php
 
 namespace Database\Seeders;
+//use Spatie\Permission\Models\Role;
+//use Spatie\Permission\Models\Permission;
 
-use App\Models\User;
-use App\Models\Employee;
+
+use App\Models\Admin\Permission;
+use App\Models\Admin\Role;
 use App\Models\Company;
-//use App\Models\Role as AppRole;
-//use App\Models\Permission as AppPermission;
+use App\Models\Employee;
+use App\Models\User;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 use Spatie\Permission\PermissionRegistrar;
 
 class RolesAndPermissionsSeeder extends Seeder
@@ -34,8 +35,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'users'       => User::class,
             'employees'   => Employee::class,
             'companies'   => Company::class,
-            'roles'       => \App\Models\Role::class,
-            //'permissions' => \App\Models\Permission::class,
+            'roles'       => Role::class,
+            'permissions' => Permission::class,
         ];
 
         // Alap CRUD + force delete jogosultságok
@@ -126,7 +127,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
             // Admin: minden, kivéve force delete jogosultságok
             $adminRole->syncPermissions(
-                Permission::where('name', 'not like', '%.forceDelete%')->get()
+                    Permission::where('name', 'not like', '%.forceDelete%')->get()
             );
             $bar->advance();
 
