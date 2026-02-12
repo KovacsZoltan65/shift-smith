@@ -138,6 +138,16 @@ vendor/bin/pest --list-test
     vendor/bin/pest tests/Feature/Admin/Permissions/PermissionBulkDeleteTest.pest.php
     vendor/bin/pest tests/Feature/Admin/Permissions/PermissionDeleteTest.pest.php
 
+    // ------------------------------------
+    // ROLES
+    // ------------------------------------
+    vendor/bin/pest tests/Feature/Admin/Roles\_SanityTest.pest.php
+    vendor/bin/pest tests/Feature/Admin/Roles/RoleIndexTest.pest.php
+    vendor/bin/pest tests/Feature/Admin/Roles/RoleFetchTest.pest.php
+    vendor/bin/pest tests/Feature/Admin/Roles/RoleStoreTest.pest.php
+    vendor/bin/pest tests/Feature/Admin/Roles/RoleUpdateTest.pest.php
+    vendor/bin/pest tests/Feature/Admin/Roles/RoleBulkDeleteTest.pest.php
+    vendor/bin/pest tests/Feature/Admin/Roles/RoleDeleteTest.pest.php
 
 // ========================================
 

@@ -353,6 +353,7 @@ onMounted(fetchEmployees);
                         size="small"
                         :disabled="loading"
                         @click="openCreate"
+                        data-testid="employees-create"
                     />
 
                     <Button
@@ -363,6 +364,7 @@ onMounted(fetchEmployees);
                         :disabled="!selected?.length || actionLoading || loading"
                         :loading="actionLoading"
                         @click="confirmBulkDelete"
+                        data-testid="employees-bulk-delete"
                     />
 
                     <div v-if="selected?.length" class="text-sm text-gray-600">

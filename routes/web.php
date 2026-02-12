@@ -162,9 +162,7 @@ Route::middleware(['auth', 'verified'])
  * Felhasználók kezelése
  */
 Route::middleware(['auth', 'verified'])
-        ->prefix('users')
-        ->as('users.')
-        ->controller(UserController::class)->group(function () {
+        ->prefix('users')->as('users.')->controller(UserController::class)->group(function () {
         // INDEX
         Route::get('/', 'index')->name('index');
         // FETCH

@@ -336,6 +336,7 @@ onMounted(fetchRoles);
                         icon="pi pi-plus"
                         size="small"
                         @click="openCreate"
+                        data-testid="roles-create"
                     />
 
                     <Button

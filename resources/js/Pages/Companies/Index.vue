@@ -302,6 +302,7 @@ onMounted(fetchCompanies);
                         icon="pi pi-plus"
                         size="small"
                         @click="openCreate"
+                        data-testid="companies-create"
                     />
 
                     <Button
@@ -312,6 +313,7 @@ onMounted(fetchCompanies);
                         :disabled="!selected?.length || actionLoading || loading"
                         :loading="actionLoading"
                         @click="confirmBulkDelete"
+                        data-testid="companies-bulk-delete"
                     />
 
                     <div v-if="selected?.length" class="text-sm text-gray-600">
