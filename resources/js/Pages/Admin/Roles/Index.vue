@@ -20,6 +20,12 @@ import EditModal from "@/Pages/Admin/Roles/EditModal.vue";
 
 import { csrfFetch } from "@/lib/csrfFetch";
 
+import { usePermissions } from "@/composables/usePermissions";
+const { has } = usePermissions();
+const canCreate = has("roles.create");
+const canUpdate = has("roles.update");
+const canDelete = has("roles.delete");
+
 const props = defineProps({
     title: { type: String, default: "Roles" },
     filter: { type: Object, default: () => ({}) },
@@ -55,13 +61,13 @@ const openRowMenu = (event, row) => {
         {
             label: "Szerkesztés",
             icon: "pi pi-pencil",
-            disabled: actionLoading.value,
+            disabled: actionLoading.value || !canUpdate,
             command: () => openEditModal(row),
         },
         {
             label: "Törlés",
             icon: "pi pi-trash",
-            disabled: actionLoading.value,
+            disabled: actionLoading.value || !canDelete,
             command: () => confirmDeleteOne(row),
         },
     ];
@@ -320,10 +326,15 @@ onMounted(fetchRoles);
     <ConfirmDialog />
 
     <!-- CREATE MODAL -->
-    <CreateModal v-model="createOpen" @saved="onSaved" />
+    <CreateModal v-model="createOpen" :canCreate="canCreate" @saved="onSaved" />
 
     <!-- EDIT MODAL -->
-    <EditModal v-model="editOpen" :role="editRole" @saved="onSaved" />
+    <EditModal
+        v-model="editOpen"
+        :role="editRole"
+        :canUpdate="canUpdate"
+        @saved="onSaved"
+    />
 
     <AuthenticatedLayout>
         <div class="p-6">
@@ -331,7 +342,9 @@ onMounted(fetchRoles);
                 <div class="flex items-center gap-3">
                     <h1 class="text-2xl font-semibold">{{ title }}</h1>
 
+                    <!-- CREATE -->
                     <Button
+                        v-if="canCreate"
                         label="Új role"
                         icon="pi pi-plus"
                         size="small"
@@ -339,7 +352,9 @@ onMounted(fetchRoles);
                         data-testid="roles-create"
                     />
 
+                    <!-- BULK DELETE -->
                     <Button
+                        v-if="canDelete"
                         label="Kijelöltek törlése"
                         icon="pi pi-trash"
                         severity="danger"

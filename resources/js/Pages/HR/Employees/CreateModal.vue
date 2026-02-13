@@ -10,6 +10,7 @@ import { csrfFetch } from "@/lib/csrfFetch";
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
     defaultCompanyId: { type: [Number, String, null], default: null },
+    canCreate: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(["update:modelValue", "saved"]);
@@ -148,8 +149,8 @@ const close = () => {
             <Button
                 label="Mentés"
                 icon="pi pi-check"
-                :loading="saving"
-                :disabled="saving"
+                :loading="loading"
+                :disabled="saving || !props.canCreate"
                 @click="submit"
             />
         </template>

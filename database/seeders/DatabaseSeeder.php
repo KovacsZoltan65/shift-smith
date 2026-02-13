@@ -26,6 +26,9 @@ class DatabaseSeeder extends Seeder
 
             CompanySeeder::class,
             EmployeeSeeder::class,
+            
+            WorkShiftSeeder::class,
+            WorkShiftAssignmentSeeder::class,
 
         ]);
         // User::factory(10)->create();

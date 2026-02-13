@@ -1,25 +1,29 @@
 <script setup>
-import { onMounted, ref, computed } from "vue";
-import { Head, usePage } from "@inertiajs/vue3";
+import { Head } from "@inertiajs/vue3";
+import { onMounted, ref } from "vue";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 
-import DataTable from "primevue/datatable";
-import Column from "primevue/column";
 import Button from "primevue/button";
-import InputText from "primevue/inputtext";
+import Column from "primevue/column";
 import ConfirmDialog from "primevue/confirmdialog";
-import { useConfirm } from "primevue/useconfirm";
-import Toast from "primevue/toast";
-import { useToast } from "primevue/usetoast";
+import DataTable from "primevue/datatable";
+import InputText from "primevue/inputtext";
 import Menu from "primevue/menu";
+import Toast from "primevue/toast";
+import { useConfirm } from "primevue/useconfirm";
+import { useToast } from "primevue/usetoast";
 
 import CreateModal from "@/Pages/Companies/CreateModal.vue";
 import EditModal from "@/Pages/Companies/EditModal.vue";
 
 import { csrfFetch } from "@/lib/csrfFetch";
 
-const page = usePage();
+import { usePermissions } from "@/composables/usePermissions";
+const { has } = usePermissions();
+const canCreate = has("companies.create");
+const canUpdate = has("companies.update");
+const canDelete = has("companies.delete");
 
 const props = defineProps({
     title: String,
@@ -56,13 +60,13 @@ const openRowMenu = (event, row) => {
         {
             label: "Szerkesztés",
             icon: "pi pi-pencil",
-            disabled: actionLoading.value,
+            disabled: actionLoading.value || !canUpdate,
             command: () => openEditModal(row),
         },
         {
             label: "Törlés",
             icon: "pi pi-trash",
-            disabled: actionLoading.value,
+            disabled: actionLoading.value || !canDelete,
             command: () => confirmDeleteOne(row),
         },
     ];
@@ -286,10 +290,15 @@ onMounted(fetchCompanies);
     <ConfirmDialog />
 
     <!-- CREATE MODAL -->
-    <CreateModal v-model="createOpen" @saved="onSaved" />
+    <CreateModal v-model="createOpen" @saved="onSaved" :canCreate="canCreate" />
 
     <!-- EDIT MODAL -->
-    <EditModal v-model="editOpen" :company="editCompany" @saved="onSaved" />
+    <EditModal
+        v-model="editOpen"
+        :company="editCompany"
+        :canUpdate="canUpdate"
+        @saved="onSaved"
+    />
 
     <AuthenticatedLayout>
         <div class="p-6">
@@ -297,7 +306,9 @@ onMounted(fetchCompanies);
                 <div class="flex items-center gap-3">
                     <h1 class="text-2xl font-semibold">{{ title }}</h1>
 
+                    <!-- CREATE -->
                     <Button
+                        v-if="canCreate"
                         label="Új cég"
                         icon="pi pi-plus"
                         size="small"
@@ -305,7 +316,9 @@ onMounted(fetchCompanies);
                         data-testid="companies-create"
                     />
 
+                    <!-- BULK DELETE -->
                     <Button
+                        v-if="canDelete"
                         label="Kijelöltek törlése"
                         icon="pi pi-trash"
                         severity="danger"

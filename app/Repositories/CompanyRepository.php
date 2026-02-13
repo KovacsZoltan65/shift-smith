@@ -190,7 +190,7 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
             tag: 'companies_select',
             key: $key,
             callback: $queryCallback,
-            ttl: (int) config('cache.ttl_companyToSelect', 1800)
+            ttl: (int) config('cache.ttl_fetch', 1800)
         );
     }
     
@@ -265,6 +265,10 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
         });
     }
     
+    /**
+     * @param int $id
+     * @return bool
+     */
     public function destroy(int $id): bool
     {
         return DB::transaction(function() use($id) {

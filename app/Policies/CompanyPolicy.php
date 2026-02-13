@@ -6,44 +6,42 @@ namespace App\Policies;
 
 use App\Models\Company;
 use App\Models\User;
-use Illuminate\Auth\Access\HandlesAuthorization;
+use App\Policies\BasePolicy;
 
-class CompanyPolicy
+final class CompanyPolicy extends BasePolicy
 {
-    use HandlesAuthorization;
-
-    public function before(User $user, string $ability): ?bool
-    {
-        return $user->hasRole('superadmin') ? true : null;
-    }
+    protected static function entity(): string { return 'companies'; }
 
     public function viewAny(User $user): bool
     {
-        return $user->can('companies.viewAny');
+        $aa = $user->can(self::perm("viewAny"));
+        \Log::info( $aa ? 'TRUE' : 'FALSE' );
+        
+        return $user->can(self::perm("viewAny"));
     }
 
     public function view(User $user): bool
     {
-        return $user->can('companies.view');
+        return $user->can(self::perm("view"));
     }
 
     public function create(User $user): bool
     {
-        return $user->can('companies.create');
+        return $user->can(self::perm("create"));
     }
 
     public function update(User $user): bool
     {
-        return $user->can('companies.update');
+        return $user->can(self::perm("update"));
     }
 
     public function delete(User $user): bool
     {
-        return $user->can('companies.delete');
+        return $user->can(self::perm("delete"));
     }
 
     public function deleteAny(User $user): bool
     {
-        return $user->can('companies.deleteAny');
+        return $user->can(self::perm("{deleteAny"));
     }
 }

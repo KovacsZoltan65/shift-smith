@@ -11,6 +11,7 @@ const props = defineProps({
     modelValue: { type: Boolean, default: false },
     role: { type: Object, default: null }, // {id,name,guard_name,permission_ids?}
     defaultGuard: { type: String, default: "web" },
+    canUpdate: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(["update:modelValue", "saved"]);
@@ -134,17 +135,20 @@ const submit = async () => {
 
         <template #footer>
             <div class="flex justify-end gap-2">
+                <!-- CANCEL -->
                 <Button
                     label="Mégse"
                     severity="secondary"
                     :disabled="saving"
                     @click="close"
                 />
+
+                <!-- MENTÉS -->
                 <Button
                     label="Mentés"
                     icon="pi pi-check"
                     :loading="saving"
-                    :disabled="!role"
+                    :disabled="!role || !props.canUpdate"
                     @click="submit"
                 />
             </div>

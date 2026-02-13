@@ -6,9 +6,13 @@ import Button from "primevue/button";
 import CompanyFields from "./Partials/CompanyFields.vue";
 import { csrfFetch } from "@/lib/csrfFetch";
 
+import { usePermissions } from "@/composables/usePermissions";
+const { has } = usePermissions();
+
 const props = defineProps({
     modelValue: Boolean,
     company: { type: Object, default: null },
+    canUpdate: { type: Boolean, default: false },
 });
 const emit = defineEmits(["update:modelValue", "saved"]);
 
@@ -104,16 +108,19 @@ const submit = async () => {
         </div>
 
         <template #footer>
+            <!-- CANCEL -->
             <Button
                 label="Mégse"
                 severity="secondary"
                 :disabled="loading"
                 @click="close"
             />
+
+            <!-- SAVE -->
             <Button
                 label="Mentés"
                 :loading="loading"
-                :disabled="!hasCompany"
+                :disabled="!hasCompany || !props.canUpdate"
                 @click="submit"
             />
         </template>

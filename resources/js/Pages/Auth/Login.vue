@@ -1,100 +1,157 @@
 <script setup>
-import Checkbox from '@/Components/Checkbox.vue';
-import GuestLayout from '@/Layouts/GuestLayout.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import GuestLayout from "@/Layouts/GuestLayout.vue";
+import { Head, Link, useForm } from "@inertiajs/vue3";
+
+// PrimeVue
+import Card from "primevue/card";
+import InputText from "primevue/inputtext";
+import Password from "primevue/password";
+import Checkbox from "primevue/checkbox";
+import Button from "primevue/button";
+import Message from "primevue/message";
+import Divider from "primevue/divider";
 
 defineProps({
-    canResetPassword: {
-        type: Boolean,
-    },
-    status: {
-        type: String,
-    },
+    canResetPassword: { type: Boolean, default: false },
+    status: { type: String, default: "" },
 });
 
 const form = useForm({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
     remember: false,
 });
 
 const submit = () => {
-    form.post(route('login'), {
-        onFinish: () => form.reset('password'),
+    form.post(route("login"), {
+        onFinish: () => form.reset("password"),
     });
 };
 </script>
 
 <template>
     <GuestLayout>
-        <Head title="Log in" />
+        <Head title="Bejelentkezés" />
 
-        <div v-if="status" class="mb-4 text-sm font-medium text-green-600">
-            {{ status }}
-        </div>
+        <!-- Centered container -->
+        <div class="mx-auto w-full max-w-md px-4 py-10">
+            <Card class="shadow-sm">
+                <template #title>
+                    <div class="text-xl font-semibold">Bejelentkezés</div>
+                </template>
 
-        <form @submit.prevent="submit">
-            <div>
-                <InputLabel for="email" value="Email" />
+                <template #subtitle>
+                    <div class="text-sm text-gray-500">
+                        Lépj be a fiókodba a folytatáshoz.
+                    </div>
+                </template>
 
-                <TextInput
-                    id="email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    v-model="form.email"
-                    required
-                    autofocus
-                    autocomplete="username"
-                />
-
-                <InputError class="mt-2" :message="form.errors.email" />
-            </div>
-
-            <div class="mt-4">
-                <InputLabel for="password" value="Password" />
-
-                <TextInput
-                    id="password"
-                    type="password"
-                    class="mt-1 block w-full"
-                    v-model="form.password"
-                    required
-                    autocomplete="current-password"
-                />
-
-                <InputError class="mt-2" :message="form.errors.password" />
-            </div>
-
-            <div class="mt-4 block">
-                <label class="flex items-center">
-                    <Checkbox name="remember" v-model:checked="form.remember" />
-                    <span class="ms-2 text-sm text-gray-600"
-                        >Remember me</span
+                <template #content>
+                    <!-- Status message (pl. jelszó reset után) -->
+                    <Message
+                        v-if="status"
+                        severity="success"
+                        :closable="false"
+                        class="mb-4"
                     >
-                </label>
-            </div>
+                        {{ status }}
+                    </Message>
 
-            <div class="mt-4 flex items-center justify-end">
-                <Link
-                    v-if="canResetPassword"
-                    :href="route('password.request')"
-                    class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                >
-                    Forgot your password?
-                </Link>
+                    <form @submit.prevent="submit" class="space-y-4">
+                        <!-- Email -->
+                        <div>
+                            <span class="p-float-label w-full">
+                                <InputText
+                                    id="email"
+                                    v-model="form.email"
+                                    type="email"
+                                    autocomplete="username"
+                                    class="w-full"
+                                    :invalid="!!form.errors.email"
+                                    autofocus
+                                    required
+                                />
+                                <label for="email">Email</label>
+                            </span>
 
-                <PrimaryButton
-                    class="ms-4"
-                    :class="{ 'opacity-25': form.processing }"
-                    :disabled="form.processing"
-                >
-                    Log in
-                </PrimaryButton>
-            </div>
-        </form>
+                            <small
+                                v-if="form.errors.email"
+                                class="mt-1 block text-sm text-red-600"
+                            >
+                                {{ form.errors.email }}
+                            </small>
+                        </div>
+
+                        <!-- Password -->
+                        <div>
+                            <span class="p-float-label w-full">
+                                <Password
+                                    id="password"
+                                    v-model="form.password"
+                                    toggleMask
+                                    :feedback="false"
+                                    inputClass="w-full"
+                                    class="w-full"
+                                    autocomplete="current-password"
+                                    :invalid="!!form.errors.password"
+                                    required
+                                />
+                                <label for="password">Jelszó</label>
+                            </span>
+
+                            <small
+                                v-if="form.errors.password"
+                                class="mt-1 block text-sm text-red-600"
+                            >
+                                {{ form.errors.password }}
+                            </small>
+                        </div>
+
+                        <!-- Remember -->
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-2">
+                                <Checkbox
+                                    inputId="remember"
+                                    v-model="form.remember"
+                                    :binary="true"
+                                />
+                                <label
+                                    for="remember"
+                                    class="cursor-pointer text-sm text-gray-600"
+                                >
+                                    Emlékezz rám
+                                </label>
+                            </div>
+
+                            <Link
+                                v-if="canResetPassword"
+                                :href="route('password.request')"
+                                class="text-sm text-gray-600 hover:text-gray-900 hover:underline"
+                            >
+                                Elfelejtetted?
+                            </Link>
+                        </div>
+
+                        <Divider class="my-2" />
+
+                        <!-- Submit -->
+                        <Button
+                            type="submit"
+                            label="Belépés"
+                            icon="pi pi-sign-in"
+                            class="w-full"
+                            :loading="form.processing"
+                            :disabled="form.processing"
+                        />
+                    </form>
+                </template>
+
+                <template #footer>
+                    <div class="text-center text-xs text-gray-500">
+                        © {{ new Date().getFullYear() }} Shift-Smith
+                    </div>
+                </template>
+            </Card>
+        </div>
     </GuestLayout>
 </template>

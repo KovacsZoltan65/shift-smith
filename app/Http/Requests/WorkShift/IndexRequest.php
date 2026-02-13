@@ -1,23 +1,21 @@
 <?php
 
-declare(strict_types=1);
+namespace App\Http\Requests\WorkShift;
 
-namespace App\Http\Requests\Company;
-
-use App\Models\Company;
+use App\Models\WorkShift;
 use Illuminate\Foundation\Http\FormRequest;
 
 class IndexRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Policy-t a controllerben fogjuk hívni (viewAny),
-        // itt true maradhat.
-        return $this->user()->can('companies.viewAny', Company::class);
+        return $this->user()->can('work_shift.viewAny', WorkShift::class);
     }
     
     /**
-     * @return array<string, array<int, string|\Illuminate\Validation\Rule>>
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -60,37 +58,5 @@ class IndexRequest extends FormRequest
             'field' => $field,
             'order' => $order,
         ]);
-    }
-    
-    /**
-     * @return array{
-     *   search?: string,
-     *   name?: string,
-     *   email?: string,
-     *   phone?: string,
-     *   field?: string,
-     *   order?: 'asc'|'desc',
-     *   page?: int,
-     *   per_page?: int
-     * }
-     */
-    public function validatedFilters(): array
-    {
-        $data = $this->validated();
-
-        $search = $data['search'] ?? null;
-        $search = \is_string($search) ? trim($search) : null;
-
-        if ($search === '' || $search === 'null' || $search === 'undefined') {
-            $search = null;
-        }
-
-        return [
-            'search'   => $search,
-            'field'    => $data['field'] ?? 'id',
-            'order'    => $data['order'] ?? 'desc',
-            'page'     => (int) ($data['page'] ?? 1),
-            'per_page' => (int) ($data['per_page'] ?? 10),
-        ];
     }
 }

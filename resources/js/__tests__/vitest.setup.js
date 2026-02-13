@@ -1,0 +1,74 @@
+import { vi } from "vitest";
+
+// modul-scope (látszik a mock factory-ból is)
+const allow = new Set([
+    // Users
+    "users.view",
+    "users.viewAny",
+    "users.create",
+    "users.update",
+    "users.delete",
+
+    // Employees
+    "employees.view",
+    "employees.viewAny",
+    "employees.create",
+    "employees.update",
+    "employees.delete",
+
+    // Companies
+    "companies.view",
+    "companies.viewAny",
+    "companies.create",
+    "companies.update",
+    "companies.delete",
+
+    // Roles
+    "roles.view",
+    "roles.viewAny",
+    "roles.create",
+    "roles.update",
+    "roles.delete",
+
+    // Permissions
+    "permissions.view",
+    "permissions.viewAny",
+    "permissions.create",
+    "permissions.update",
+    "permissions.delete",
+
+    // WorkShifts
+    "work_shifts.view",
+    "work_shifts.viewAny",
+    "work_shifts.create",
+    "work_shifts.update",
+    "work_shifts.delete",
+
+    // Assignments
+    "assignments.view",
+    "assignments.viewAny",
+    "assignments.create",
+    "assignments.update",
+    "assignments.delete",
+
+    // Shifts
+    "shifts.view",
+    "shifts.viewAny",
+    "shifts.create",
+    "shifts.update",
+    "shifts.delete",
+
+    // Planning
+    "planning.view",
+    "planning.viewAny",
+    "planning.create",
+    "planning.update",
+    "planning.delete",
+]);
+
+vi.mock("@/composables/usePermissions", () => ({
+    usePermissions: () => ({
+        has: (perm) => allow.has(perm),
+        __allow: allow, // opcionális: tesztben bővíthető
+    }),
+}));

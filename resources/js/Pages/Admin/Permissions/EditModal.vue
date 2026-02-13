@@ -11,6 +11,7 @@ const props = defineProps({
     modelValue: { type: Boolean, default: false },
     permission: { type: Object, default: null }, // {id,name,guard_name}
     defaultGuard: { type: String, default: "web" },
+    canUpdate: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(["update:modelValue", "saved"]);
@@ -143,7 +144,7 @@ const submit = async () => {
                     label="Mentés"
                     icon="pi pi-check"
                     :loading="saving"
-                    :disabled="!permission"
+                    :disabled="!permission || !props.canUpdate"
                     @click="submit"
                 />
             </div>

@@ -20,6 +20,12 @@ import EditModal from "@/Pages/Admin/Permissions/EditModal.vue";
 
 import { csrfFetch } from "@/lib/csrfFetch";
 
+import { usePermissions } from "@/composables/usePermissions";
+const { has } = usePermissions();
+const canCreate = has("permissions.create");
+const canUpdate = has("permissions.update");
+const canDelete = has("permissions.delete");
+
 const props = defineProps({
     title: { type: String, default: "Permissions" },
     filter: { type: Object, default: () => ({}) },
@@ -59,13 +65,13 @@ const openRowMenu = (event, row) => {
         {
             label: "Szerkesztés",
             icon: "pi pi-pencil",
-            disabled: actionLoading.value,
+            disabled: actionLoading.value || !canUpdate,
             command: () => openEditModal(row),
         },
         {
             label: "Törlés",
             icon: "pi pi-trash",
-            disabled: actionLoading.value,
+            disabled: actionLoading.value || !canDelete,
             command: () => confirmDeleteOne(row),
         },
     ];
@@ -302,13 +308,19 @@ onMounted(fetchPermissions);
     <ConfirmDialog />
 
     <!-- CREATE MODAL -->
-    <CreateModal v-model="createOpen" :defaultGuard="defaultGuard" @saved="onSaved" />
+    <CreateModal
+        v-model="createOpen"
+        :defaultGuard="defaultGuard"
+        :canCreate="canCreate"
+        @saved="onSaved"
+    />
 
     <!-- EDIT MODAL -->
     <EditModal
         v-model="editOpen"
         :permission="editPermission"
         :defaultGuard="defaultGuard"
+        :canUpdate="canUpdate"
         @saved="onSaved"
     />
 
@@ -318,14 +330,18 @@ onMounted(fetchPermissions);
                 <div class="flex items-center gap-3">
                     <h1 class="text-2xl font-semibold">{{ title }}</h1>
 
+                    <!-- CREATE -->
                     <Button
+                        v-if="canCreate"
                         label="Új permission"
                         icon="pi pi-plus"
                         size="small"
                         @click="openCreate"
                     />
 
+                    <!-- BULK DELETE -->
                     <Button
+                        v-if="canDelete"
                         label="Kijelöltek törlése"
                         icon="pi pi-trash"
                         severity="danger"

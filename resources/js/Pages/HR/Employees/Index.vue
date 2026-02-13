@@ -22,6 +22,12 @@ import CompanySelector from "@/Components/Selectors/CompanySelector.vue";
 
 const page = usePage();
 
+import { usePermissions } from "@/composables/usePermissions";
+const { has } = usePermissions();
+const canCreate = has("employees.create");
+const canUpdate = has("employees.update");
+const canDelete = has("employees.delete");
+
 const props = defineProps({
     title: { type: String, default: "Dolgozók" },
     filter: { type: Object, default: () => ({}) },
@@ -58,13 +64,13 @@ const openRowMenu = (event, row) => {
         {
             label: "Szerkesztés",
             icon: "pi pi-pencil",
-            disabled: actionLoading.value,
+            disabled: actionLoading.value || !canUpdate,
             command: () => openEditModal(row),
         },
         {
             label: "Törlés",
             icon: "pi pi-trash",
-            disabled: actionLoading.value,
+            disabled: actionLoading.value || !canDelete,
             command: () => confirmDeleteOne(row),
         },
     ];
@@ -336,10 +342,20 @@ onMounted(fetchEmployees);
     <ConfirmDialog />
 
     <!-- CREATE MODAL -->
-    <CreateModal v-model="createOpen" :defaultCompanyId="companyId" @saved="onSaved" />
+    <CreateModal
+        v-model="createOpen"
+        :defaultCompanyId="companyId"
+        :canCreate="canCreate"
+        @saved="onSaved"
+    />
 
     <!-- EDIT MODAL -->
-    <EditModal v-model="editOpen" :employee="editEmployee" @saved="onSaved" />
+    <EditModal
+        v-model="editOpen"
+        :employee="editEmployee"
+        :canUpdate="canUpdate"
+        @saved="onSaved"
+    />
 
     <AuthenticatedLayout>
         <div class="p-6">
@@ -347,7 +363,9 @@ onMounted(fetchEmployees);
                 <div class="flex items-center gap-3 flex-wrap">
                     <h1 class="text-2xl font-semibold">{{ title }}</h1>
 
+                    <!-- CREATE -->
                     <Button
+                        v-if="canCreate"
                         label="Új dolgozó"
                         icon="pi pi-plus"
                         size="small"
@@ -356,7 +374,9 @@ onMounted(fetchEmployees);
                         data-testid="employees-create"
                     />
 
+                    <!-- BULK DELETE -->
                     <Button
+                        v-if="canDelete"
                         label="Kijelöltek törlése"
                         icon="pi pi-trash"
                         severity="danger"

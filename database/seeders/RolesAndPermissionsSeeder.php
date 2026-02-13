@@ -10,6 +10,7 @@ use App\Models\Admin\Role;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\User;
+use App\Models\WorkShift;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\PermissionRegistrar;
@@ -37,6 +38,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'companies'   => Company::class,
             'roles'       => Role::class,
             'permissions' => Permission::class,
+            'work_shifts' => WorkShift::class,
+            'work_shifts_assignments' => \App\Models\WorkShiftAssignment::class,
         ];
 
         // Alap CRUD + force delete jogosultságok

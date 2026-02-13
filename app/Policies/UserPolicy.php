@@ -7,43 +7,51 @@ namespace App\Policies;
 use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
-class UserPolicy
+final class UserPolicy
 {
     use HandlesAuthorization;
 
+    public const PERM_VIEW_ANY   = 'users.viewAny';
+    public const PERM_VIEW       = 'users.view';
+    public const PERM_CREATE     = 'users.create';
+    public const PERM_UPDATE_ANY = 'users.updateAny';
+    public const PERM_UPDATE_SELF= 'users.updateSelf';
+    public const PERM_DELETE     = 'users.delete';
+
     public function before(User $user, string $ability): ?bool
     {
-        // superadmin mindent
         return $user->hasRole('superadmin') ? true : null;
     }
 
     public function viewAny(User $user): bool
     {
-        // példa: admin és manager láthatja a listát
-        return $user->hasAnyRole(['admin', 'manager']);
+        return $user->can(self::PERM_VIEW_ANY);
     }
 
     public function view(User $user, User $model): bool
     {
-        // önmagát láthatja, admin/manager már a before nélkül is igaz lehetne,
-        // de a before miatt superadmin úgyis true
-        return $user->id === $model->id || $user->hasAnyRole(['admin', 'manager']);
+        return $user->id === $model->id
+            ? $user->can(self::PERM_VIEW)
+            : $user->can(self::PERM_VIEW_ANY);
     }
 
     public function create(User $user): bool
     {
-        return $user->hasRole('admin');
+        return $user->can(self::PERM_CREATE);
     }
 
     public function update(User $user, User $model): bool
     {
-        // admin bárkit, user csak magát
-        return $user->hasRole('admin') || $user->id === $model->id;
+        if ($user->id === $model->id) {
+            return $user->can(self::PERM_UPDATE_SELF) || $user->can(self::PERM_UPDATE_ANY);
+        }
+
+        return $user->can(self::PERM_UPDATE_ANY);
     }
 
     public function delete(User $user, User $model): bool
     {
-        // admin törölhet, de magát ne (józan ész)
-        return $user->hasRole('admin') && $user->id !== $model->id;
+        return $user->id !== $model->id && $user->can(self::PERM_DELETE);
     }
 }
+

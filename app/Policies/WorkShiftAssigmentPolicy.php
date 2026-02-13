@@ -4,20 +4,21 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
-use App\Models\Admin\Role;
+use App\Models\WorkShift;
 use App\Models\User;
 use App\Policies\BasePolicy;
 
-final class RolePolicy extends BasePolicy
+final class WorkShiftAssigmentPolicy extends BasePolicy
 {
-    protected static function entity(): string { return 'roles'; }
+    protected $class = "work_shift_assignments";
+    protected static function entity(): string { return 'work_shift_assignments'; }
 
     public function viewAny(User $user): bool
     {
         return $user->can(self::perm("viewAny"));
     }
 
-    public function view(User $user, Role $role): bool
+    public function view(User $user): bool
     {
         return $user->can(self::perm("view"));
     }
@@ -27,12 +28,12 @@ final class RolePolicy extends BasePolicy
         return $user->can(self::perm("create"));
     }
 
-    public function update(User $user, Role $role): bool
+    public function update(User $user): bool
     {
         return $user->can(self::perm("update"));
     }
 
-    public function delete(User $user, Role $role): bool
+    public function delete(User $user): bool
     {
         return $user->can(self::perm("delete"));
     }

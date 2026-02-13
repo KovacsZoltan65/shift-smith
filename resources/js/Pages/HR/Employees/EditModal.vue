@@ -11,6 +11,7 @@ const props = defineProps({
     modelValue: { type: Boolean, default: false },
     employee: { type: Object, default: null },
     lockCompany: { type: Boolean, default: false }, // ha később kell
+    canUpdate: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(["update:modelValue", "saved"]);
@@ -189,6 +190,7 @@ const close = () => {
         />
 
         <template #footer>
+            <!-- MÉGSEM -->
             <Button
                 label="Mégse"
                 severity="secondary"
@@ -196,11 +198,12 @@ const close = () => {
                 :disabled="saving"
                 @click="close"
             />
+            <!-- MENTÉS -->
             <Button
                 label="Mentés"
                 icon="pi pi-check"
-                :loading="saving"
-                :disabled="saving"
+                :loading="loading"
+                :disabled="saving || !props.canUpdate"
                 @click="submit"
             />
         </template>
