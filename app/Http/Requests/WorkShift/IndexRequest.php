@@ -9,7 +9,7 @@ class IndexRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('work_shift.viewAny', WorkShift::class);
+        return $this->user()->can('work_shifts.viewAny', WorkShift::class);
     }
     
     /**
@@ -50,7 +50,7 @@ class IndexRequest extends FormRequest
             if ($sortOrder === -1 || $sortOrder === '-1') $order = 'desc';
         }
 
-        if (is_string($order)) {
+        if (\is_string($order)) {
             $order = strtolower($order);
         }
 
@@ -58,5 +58,37 @@ class IndexRequest extends FormRequest
             'field' => $field,
             'order' => $order,
         ]);
+    }
+
+    /**
+     * @return array{
+     *   search?: string,
+     *   name?: string,
+     *   email?: string,
+     *   phone?: string,
+     *   field?: string,
+     *   order?: 'asc'|'desc',
+     *   page?: int,
+     *   per_page?: int
+     * }
+     */
+    public function validatedFilters(): array
+    {
+        $data = $this->validated();
+
+        $search = $data['search'] ?? null;
+        $search = \is_string($search) ? trim($search) : null;
+
+        if ($search === '' || $search === 'null' || $search === 'undefined') {
+            $search = null;
+        }
+
+        return [
+            'search'   => $search,
+            'field'    => $data['field'] ?? 'id',
+            'order'    => $data['order'] ?? 'desc',
+            'page'     => (int) ($data['page'] ?? 1),
+            'per_page' => (int) ($data['per_page'] ?? 10),
+        ];
     }
 }

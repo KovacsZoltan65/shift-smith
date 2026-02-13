@@ -3,16 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Company\BulkDeleteRequest;
-use App\Http\Requests\Company\DeleteRequest;
 use App\Http\Requests\Company\IndexRequest;
 use App\Http\Requests\Company\StoreRequest;
 use App\Http\Requests\Company\UpdateRequest;
 use App\Models\Company;
 use App\Services\CompanyService;
-use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;

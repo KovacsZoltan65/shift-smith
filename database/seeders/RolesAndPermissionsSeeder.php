@@ -1,9 +1,6 @@
 <?php
 
 namespace Database\Seeders;
-//use Spatie\Permission\Models\Role;
-//use Spatie\Permission\Models\Permission;
-
 
 use App\Models\Admin\Permission;
 use App\Models\Admin\Role;
@@ -11,27 +8,49 @@ use App\Models\Company;
 use App\Models\Employee;
 use App\Models\User;
 use App\Models\WorkShift;
+use App\Support\MenuPermissions;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\PermissionRegistrar;
 
 class RolesAndPermissionsSeeder extends Seeder
 {
+    /**
+     * Fő belépési pont.
+     *
+     * Feladata:
+     *  - CRUD alapú permissionök generálása entitásonként
+     *  - alap szerepkörök létrehozása
+     *  - szerepkörök jogosultságainak kiosztása
+     *  - menü által használt permission stringek auditálása
+     */
     public function run(): void
     {
-        // Activity log kikapcsolása seedelés idejére,
-        // hogy ne szemeteljük tele a logot automatikus műveletekkel
+        /**
+         * Activity log kikapcsolása seedelés idejére.
+         * Így nem generálunk felesleges audit bejegyzéseket.
+         */
         activity()->disableLogging();
 
-        // Spatie Permission cache ürítése,
-        // különben régi jogosultságok maradhatnak memóriában
+        /**
+         * Spatie permission cache ürítése.
+         * Ha ezt nem tesszük meg, akkor a memóriában
+         * régi jogosultság lista maradhat.
+         */
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        // Konzol üzenet: seeder indul
         $this->command->info('🔐 PermissionSeeder: jogosultságok és szerepkörök seedelése indul...');
 
-        // Entitások, amelyekhez jogosultságokat generálunk
-        // kulcs: permission prefix, érték: model osztály
+        /**
+         * Entitások, amelyekhez jogosultságokat generálunk.
+         *
+         * Kulcs = permission prefix
+         * Érték = model osztály
+         *
+         * FONTOS:
+         * A menüben használt "can" stringeknek
+         * ezekkel a prefixekkel kell kezdődniük.
+         */
         $entities = [
             'users'       => User::class,
             'employees'   => Employee::class,
@@ -42,8 +61,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'work_shifts_assignments' => \App\Models\WorkShiftAssignment::class,
         ];
 
-        // Alap CRUD + force delete jogosultságok
-        // Ezek minden entitásra egységesen érvényesek
+        /**
+         * Alap CRUD + force delete jogosultságok.
+         * Ezek minden entitásra egységesen érvényesek.
+         */
         $baseActions = [
             'view', 'viewAny',
             'create', 'update',
@@ -51,65 +72,61 @@ class RolesAndPermissionsSeeder extends Seeder
             'forceDelete', 'forceDeleteAny',
         ];
 
-        // SoftDeletes-t használó modellek extra action-jei
+        /**
+         * SoftDeletes-t használó modellek extra action-jei.
+         */
         $softDeleteExtras = ['restore', 'restoreAny'];
 
-        // Progress bar becsült lépésszám:
-        // permission darabszám + (4 role létrehozás + 4 role sync)
+        /**
+         * Progress bar lépésszám becslése.
+         * (permission darabszám + 4 role létrehozás + 4 role sync)
+         */
         $estimated = 0;
 
-        // Előszámoljuk, hány permission fog létrejönni
         foreach ($entities as $entity => $modelClass) {
             $actions = $baseActions;
 
             // Ha a modell használja a SoftDeletes traitet,
-            // hozzáadjuk a restore jogosultságokat
+            // hozzáadjuk a restore jogokat.
             if (\in_array(SoftDeletes::class, class_uses_recursive($modelClass), true)) {
-                $actions = [
-                    ...$actions,
-                    ...$softDeleteExtras,
-                ];
+                $actions = [...$actions, ...$softDeleteExtras];
             }
 
-            // User entitás extra jogosultsága:
-            // szerepkörök kiosztása
+            // User-specifikus extra jog
             if ($entity === 'users') {
                 $actions[] = 'assignRoles';
             }
 
-            // Egyedi action-ök számolása
             $estimated += \count(array_unique($actions));
         }
 
-        // Role-ok: 4 create + 4 sync
+        // 4 role create + 4 sync
         $estimated += 8;
 
-        // Progress bar inicializálása
         $bar = $this->command->getOutput()->createProgressBar($estimated);
         $bar->start();
 
-        // Teljes permission + role seedelés egy DB tranzakcióban,
-        // hogy félbehagyás esetén ne maradjon inkonzisztens állapot
+        /**
+         * Teljes permission + role seedelés tranzakcióban.
+         * Így félbeszakadás esetén nem marad inkonzisztens állapot.
+         */
         \DB::transaction(function () use ($entities, $baseActions, $softDeleteExtras, $bar): void {
 
-            // Permission-ök létrehozása entitásonként
+            /**
+             * Permission generálás entitásonként.
+             */
             foreach ($entities as $entity => $modelClass) {
                 $actions = $baseActions;
 
-                // SoftDeletes extra action-ök
                 if (\in_array(SoftDeletes::class, class_uses_recursive($modelClass), true)) {
-                    $actions = [
-                        ...$actions,
-                        ...$softDeleteExtras,
-                    ];
+                    $actions = [...$actions, ...$softDeleteExtras];
                 }
 
-                // User-specifikus jogosultság
                 if ($entity === 'users') {
                     $actions[] = 'assignRoles';
                 }
 
-                // Permission rekordok létrehozása (idempotens módon)
+                // Idempotens létrehozás
                 foreach (array_unique($actions) as $action) {
                     Permission::firstOrCreate([
                         'name' => "{$entity}.{$action}",
@@ -118,50 +135,109 @@ class RolesAndPermissionsSeeder extends Seeder
                 }
             }
 
-            // Alap szerepkörök létrehozása
+            /**
+             * Alap szerepkörök létrehozása.
+             */
             $superAdminRole = Role::firstOrCreate(['name' => 'superadmin']); $bar->advance();
             $adminRole      = Role::firstOrCreate(['name' => 'admin']);      $bar->advance();
             $operatorRole   = Role::firstOrCreate(['name' => 'operator']);   $bar->advance();
             $userRole       = Role::firstOrCreate(['name' => 'user']);       $bar->advance();
 
-            // Superadmin: minden jogosultság megkap
+            /**
+             * Jogosultság kiosztási stratégia:
+             *
+             * superadmin → minden jog
+             * admin      → minden, kivéve forceDelete
+             * operator   → csak view és viewAny
+             * user       → csak view
+             */
+
             $superAdminRole->syncPermissions(Permission::all());
             $bar->advance();
 
-            // Admin: minden, kivéve force delete jogosultságok
             $adminRole->syncPermissions(
-                    Permission::where('name', 'not like', '%.forceDelete%')->get()
+                Permission::where('name', 'not like', '%.forceDelete%')->get()
             );
             $bar->advance();
 
-            // Operator: csak listázás és megtekintés
             $operatorRole->syncPermissions(
                 Permission::where(function ($q) {
                     $q->where('name', 'like', '%.viewAny')
-                    ->orWhere('name', 'like', '%.view');
+                      ->orWhere('name', 'like', '%.view');
                 })->get()
             );
             $bar->advance();
 
-            // User: csak egyedi megtekintés
             $userRole->syncPermissions(
                 Permission::where('name', 'like', '%.view')->get()
             );
             $bar->advance();
         });
 
-        // Progress bar lezárása
         $bar->finish();
         $this->command->newLine(2);
 
-        // Seeder kész
-        $this->command->info('✅ PermissionSeeder kész.');
+        /**
+         * Menü permission audit.
+         *
+         * Ellenőrzi, hogy a menüben használt
+         * "can: 'xxx.yyy'" stringek léteznek-e.
+         *
+         * Nem generál új jogokat,
+         * csak figyelmeztet, ha eltérés van.
+         */
+        $this->auditMenuPermissions();
 
-        // Permission cache újraürítése, hogy az új adatok azonnal éljenek
+        /**
+         * Cache újraürítése,
+         * hogy az új permission lista azonnal éljen.
+         */
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        // Activity log visszakapcsolása
+        /**
+         * Activity log visszakapcsolása.
+         */
         activity()->enableLogging();
+
+        $this->command->info('✅ PermissionSeeder kész.');
     }
 
+    /**
+     * Menü permission audit.
+     *
+     * Kigyűjti a menü definícióból a can stringeket,
+     * és ellenőrzi, hogy léteznek-e a permission táblában.
+     */
+    private function auditMenuPermissions(): void
+    {
+        $menuPerms = MenuPermissions::collect();
+
+        if (empty($menuPerms)) {
+            return;
+        }
+
+        $missing = [];
+
+        foreach ($menuPerms as $permissionName) {
+            if (!Permission::where('name', $permissionName)->exists()) {
+                $missing[] = $permissionName;
+            }
+        }
+
+        if (!empty($missing)) {
+            $this->command->warn('⚠️ Menü permission hiányzik:');
+
+            foreach ($missing as $p) {
+                $this->command->warn(" - {$p}");
+            }
+
+            /**
+             * Ha szigorú módot akarsz:
+             *
+             * throw new \RuntimeException(
+             *     'Missing menu permissions: ' . implode(', ', $missing)
+             * );
+             */
+        }
+    }
 }

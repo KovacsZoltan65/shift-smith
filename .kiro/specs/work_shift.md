@@ -155,7 +155,7 @@ Add routes consistent with Companies:
   - DELETE `/api/work-shifts/{id}` -> destroy
   - POST `/api/work-shifts/bulk-delete` -> bulkDelete
 
-Ensure route names match project conventions (`work-shifts.index`, `api.work-shifts.fetch`, etc.)
+Ensure route names match project conventions (`work_-_shifts.index`, `api.work-shifts.fetch`, etc.)
 If Companies uses `Route::prefix('api')...`, follow that.
 
 ## Frontend Tasks (Inertia + Vue + PrimeVue)

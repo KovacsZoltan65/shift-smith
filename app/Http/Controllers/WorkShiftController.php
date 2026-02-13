@@ -3,16 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\WorkShift\BulkDeleteRequest;
-use App\Http\Requests\WorkShift\DeleteRequest;
 use App\Http\Requests\WorkShift\IndexRequest;
 use App\Http\Requests\WorkShift\StoreRequest;
 use App\Http\Requests\WorkShift\UpdateRequest;
 use App\Models\WorkShift;
 use App\Services\WorkShiftService;
-use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,7 +29,7 @@ class WorkShiftController extends Controller
         $this->authorize('viewAny', WorkShift::class);
         
         return Inertia::render('WorkShifts/Index', [
-            'title'  => 'Cégek',
+            'title'  => 'Műszakok',
             'filter' => $request->validatedFilters(),
         ]);
     }

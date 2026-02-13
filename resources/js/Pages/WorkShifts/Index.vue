@@ -14,16 +14,19 @@ import Toast from "primevue/toast";
 import { useConfirm } from "primevue/useconfirm";
 import { useToast } from "primevue/usetoast";
 
-import CreateModal from "@/Pages/Companies/CreateModal.vue";
-import EditModal from "@/Pages/Companies/EditModal.vue";
+// WorkShifts modalok (útvonalat igazítsd a te struktúrádhoz)
+import CreateModal from "@/Pages/WorkShifts/CreateModal.vue";
+import EditModal from "@/Pages/WorkShifts/EditModal.vue";
 
 import { csrfFetch } from "@/lib/csrfFetch";
 
 import { usePermissions } from "@/composables/usePermissions";
 const { has } = usePermissions();
-const canCreate = has("companies.create");
-const canUpdate = has("companies.update");
-const canDelete = has("companies.delete");
+
+// Permission prefix: work_shifts.*
+const canCreate = has("work_shifts.create");
+const canUpdate = has("work_shifts.update");
+const canDelete = has("work_shifts.delete");
 
 const props = defineProps({
     title: String,
@@ -35,7 +38,7 @@ const confirm = useConfirm();
 
 const createOpen = ref(false);
 const editOpen = ref(false);
-const editCompany = ref(null);
+const editShift = ref(null);
 
 const loading = ref(false);
 const actionLoading = ref(false);
@@ -75,7 +78,7 @@ const openRowMenu = (event, row) => {
 };
 // ------------------------
 
-// lazy state (Users minta)
+// lazy state (Companies minta)
 const lazy = ref({
     first: 0,
     rows: 10,
@@ -92,13 +95,13 @@ const openCreate = () => {
 };
 
 const openEditModal = (row) => {
-    editCompany.value = row;
+    editShift.value = row;
     editOpen.value = true;
 };
 
 const onSaved = async (msg = "Mentve.") => {
     selected.value = [];
-    await fetchCompanies();
+    await fetchWorkShifts();
     toast.add({ severity: "success", summary: "Siker", detail: msg, life: 2000 });
 };
 
@@ -107,7 +110,7 @@ const onSearchInput = () => {
     t = setTimeout(() => {
         lazy.value.first = 0;
         lazy.value.page = 0;
-        fetchCompanies();
+        fetchWorkShifts();
     }, 300);
 };
 
@@ -130,12 +133,12 @@ const buildQuery = () => {
     return new URLSearchParams(q).toString();
 };
 
-const fetchCompanies = async () => {
+const fetchWorkShifts = async () => {
     loading.value = true;
     error.value = null;
 
     try {
-        const res = await fetch(`/companies/fetch?${buildQuery()}`, {
+        const res = await fetch(`/work_shifts/fetch?${buildQuery()}`, {
             headers: { "X-Requested-With": "XMLHttpRequest" },
         });
 
@@ -156,7 +159,7 @@ const onPage = (event) => {
     lazy.value.first = event.first;
     lazy.value.rows = event.rows;
     lazy.value.page = event.page;
-    fetchCompanies();
+    fetchWorkShifts();
 };
 
 const onSort = (event) => {
@@ -164,12 +167,14 @@ const onSort = (event) => {
     lazy.value.sortOrder = event.sortOrder;
     lazy.value.first = 0;
     lazy.value.page = 0;
-    fetchCompanies();
+    fetchWorkShifts();
 };
 
 const confirmDeleteOne = (row) => {
+    const label = row?.name ?? row?.title ?? `#${row?.id ?? ""}`;
+
     confirm.require({
-        message: `Biztos törlöd: ${row.name}?`,
+        message: `Biztos törlöd: ${label}?`,
         header: "Megerősítés",
         icon: "pi pi-exclamation-triangle",
         acceptLabel: "Törlés",
@@ -183,7 +188,7 @@ const deleteOne = async (id) => {
     actionLoading.value = true;
 
     try {
-        const res = await csrfFetch(`/companies/${id}`, {
+        const res = await csrfFetch(`/work_shifts/${id}`, {
             method: "DELETE",
             headers: {
                 "X-Requested-With": "XMLHttpRequest",
@@ -203,13 +208,13 @@ const deleteOne = async (id) => {
         toast.add({
             severity: "success",
             summary: "Siker",
-            detail: "Cég törölve",
+            detail: "Műszak törölve",
             life: 2500,
         });
 
         selected.value = selected.value.filter((x) => x.id !== id);
 
-        await fetchCompanies();
+        await fetchWorkShifts();
     } catch (e) {
         toast.add({
             severity: "error",
@@ -227,7 +232,7 @@ const confirmBulkDelete = () => {
     if (!ids.length) return;
 
     confirm.require({
-        message: `Biztos törlöd a kijelölt ${ids.length} céget?`,
+        message: `Biztos törlöd a kijelölt ${ids.length} műszakot?`,
         header: "Bulk törlés",
         icon: "pi pi-exclamation-triangle",
         acceptLabel: "Törlés",
@@ -241,7 +246,7 @@ const bulkDelete = async (ids) => {
     actionLoading.value = true;
 
     try {
-        const res = await csrfFetch(`/companies/destroy_bulk`, {
+        const res = await csrfFetch(`/work_shifts/destroy_bulk`, {
             method: "DELETE",
             headers: {
                 "Content-Type": "application/json",
@@ -267,7 +272,7 @@ const bulkDelete = async (ids) => {
         });
 
         selected.value = [];
-        await fetchCompanies();
+        await fetchWorkShifts();
     } catch (e) {
         toast.add({
             severity: "error",
@@ -280,7 +285,7 @@ const bulkDelete = async (ids) => {
     }
 };
 
-onMounted(fetchCompanies);
+onMounted(fetchWorkShifts);
 </script>
 
 <template>
@@ -295,7 +300,7 @@ onMounted(fetchCompanies);
     <!-- EDIT MODAL -->
     <EditModal
         v-model="editOpen"
-        :company="editCompany"
+        :workShift="editShift"
         :canUpdate="canUpdate"
         @saved="onSaved"
     />
@@ -309,11 +314,11 @@ onMounted(fetchCompanies);
                     <!-- CREATE -->
                     <Button
                         v-if="canCreate"
-                        label="Új cég"
+                        label="Új műszak"
                         icon="pi pi-plus"
                         size="small"
                         @click="openCreate"
-                        data-testid="companies-create"
+                        data-testid="work_shifts-create"
                     />
 
                     <!-- BULK DELETE -->
@@ -326,7 +331,7 @@ onMounted(fetchCompanies);
                         :disabled="!selected?.length || actionLoading || loading"
                         :loading="actionLoading"
                         @click="confirmBulkDelete"
-                        data-testid="companies-bulk-delete"
+                        data-testid="work_shifts-bulk-delete"
                     />
 
                     <div v-if="selected?.length" class="text-sm text-gray-600">
@@ -376,9 +381,19 @@ onMounted(fetchCompanies);
                 <Column selectionMode="multiple" headerStyle="width: 3rem" />
 
                 <Column field="id" header="ID" sortable style="width: 90px" />
+
+                <!-- Ha nálad "name" a mező, ok. Ha pl. "title", akkor írd át. -->
                 <Column field="name" header="Név" sortable />
-                <Column field="email" header="Email" sortable />
-                <Column field="phone" header="Telefon" sortable />
+
+                <!-- Tipikus WorkShift mezők (ha eltér, nyugodtan alakítsd) -->
+                <Column
+                    field="start_date"
+                    header="Kezdés"
+                    sortable
+                    style="width: 140px"
+                />
+                <Column field="end_date" header="Vége" sortable style="width: 140px" />
+
                 <Column field="active" header="Aktív" sortable style="width: 120px">
                     <template #body="{ data }">
                         <span
@@ -397,7 +412,7 @@ onMounted(fetchCompanies);
                 <!-- Actions -->
                 <Column
                     header="Műveletek"
-                    headerStyle="width: 3rem"
+                    headerStyle="width: 120px"
                     bodyStyle="white-space: nowrap;"
                 >
                     <template #body="{ data }">
@@ -410,7 +425,9 @@ onMounted(fetchCompanies);
                                 rounded
                                 :disabled="actionLoading"
                                 @click="openRowMenu($event, data)"
-                                :title="`Műveletek: ${data.name}`"
+                                :title="`Műveletek: ${
+                                    data.name ?? data.title ?? data.id
+                                }`"
                             />
                         </div>
                     </template>

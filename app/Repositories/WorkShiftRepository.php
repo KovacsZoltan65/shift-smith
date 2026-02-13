@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use App\Interfaces\WorkShiftRepositoryInterface;
+use App\Models\Company;
 use App\Models\WorkShift;
 use App\Services\CacheService;
 use App\Traits\Functions;
@@ -222,7 +223,7 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
     #[Override]
     public function destroy(int $id): bool
     {
-        return DB::transaction(function() use($int) {
+        return DB::transaction(function() use($id) {
             /** @var WorkShift $work_shift */
             $work_shift = WorkShift::query()->lockForUpdate()->findOrFail($id);
             
@@ -246,7 +247,7 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
      * @return array<int, array{id:int, name:string}>
      */
     #[Override]
-    public function getToSelect(array $params)
+    public function getToSelect(array $params): array
     {
         $needCache = (bool) config('cache.enable_work_shiftToSelect', false);
 

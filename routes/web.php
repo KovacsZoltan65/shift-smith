@@ -7,6 +7,7 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\WorkShiftController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -87,7 +88,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //Route::get('/employees', fn () => Inertia::render('HR/Employees/Index', ['title' => 'Dolgozók']))->name('employees.index');
     
     Route::get('/assignments', fn () => Inertia::render('HR/Assignments/Index'))->name('assignments.index');
-    Route::get('/shifts', fn () => Inertia::render('HR/Shifts/Index'))->name('shifts.index');
     Route::get('/planning', fn () => Inertia::render('HR/Planning/Index'))->name('planning.index');
 
     // Beállítások
@@ -230,6 +230,33 @@ Route::middleware(['auth', 'verified'])->prefix('employees')->as('employees.')->
         Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk');
     });
     
+/**
+ * ======================================
+ * WORK_SHIFTS
+ * ======================================
+ * Műszakok kezelése
+ */
+Route::middleware(['auth', 'verified'])
+    ->prefix('work_shifts')
+    ->as('work_shifts.')
+    ->controller(WorkShiftController::class)
+    ->group(function() {
+    // INDEX
+    Route::get('/', 'index')->name('index');
+    // FETCH
+    Route::get('/fetch', 'fetch')->name('fetch');
+    // SEARCH
+    Route::get('/{id}', 'getWorkShift')->name('by_id');
+    // CREATE
+    Route::post('/', 'store')->name('store');
+    // UPDATE
+    Route::put('/{id}', 'update')->whereNumber('id')->name('update');
+    // DELETE
+    Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
+    // BULK DELETE
+    Route::delete('destroy_bulk', 'bulkDelete')->name('destroy_bulk');
+});
+
 /**
  * ======================================
  */

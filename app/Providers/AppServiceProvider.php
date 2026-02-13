@@ -7,6 +7,7 @@ use App\Interfaces\Admin\RoleRepositoryInterface;
 use App\Interfaces\CompanyRepositoryInterface;
 use App\Interfaces\EmployeeRepositoryInterface;
 use App\Interfaces\UserRepositoryInterface;
+use App\Interfaces\WorkShiftRepositoryInterface;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Observers\CompanyObserver;
@@ -16,6 +17,7 @@ use App\Repositories\Admin\RoleRepository;
 use App\Repositories\CompanyRepository;
 use App\Repositories\EmployeeRepository;
 use App\Repositories\UserRepository;
+use App\Repositories\WorkShiftRepository;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Grammars\PostgresGrammar;
 use Illuminate\Support\Arr;
@@ -51,6 +53,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             EmployeeRepositoryInterface::class, 
             EmployeeRepository::class
+        );
+        $this->app->bind(
+            WorkShiftRepositoryInterface::class, 
+            WorkShiftRepository::class
         );
     }
 

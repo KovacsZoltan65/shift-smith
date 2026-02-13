@@ -12,7 +12,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 /** 
  * @property int|string $id
- * @property int|string company_id
+ * @property int|string $company_id
  * @property string $name
  * @property string $start_time
  * @property string $end_time

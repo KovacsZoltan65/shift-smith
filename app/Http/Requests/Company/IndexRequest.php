@@ -52,7 +52,7 @@ class IndexRequest extends FormRequest
             if ($sortOrder === -1 || $sortOrder === '-1') $order = 'desc';
         }
 
-        if (is_string($order)) {
+        if (\is_string($order)) {
             $order = strtolower($order);
         }
 

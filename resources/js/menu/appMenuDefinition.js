@@ -57,9 +57,9 @@ export const appMenuDefinition = [
             },
             {
                 title: "Műszakok",
-                route: "shifts.index",
-                key: "shifts.index",
-                can: "shifts.viewAny",
+                route: "work_shifts.index",
+                key: "work_shifts.index",
+                can: "work_shifts.viewAny",
             },
             {
                 title: "Tervezés",
