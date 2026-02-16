@@ -1,9 +1,10 @@
+<!-- resources/js/Pages/WorkSchedules/CreateModal.vue -->
 <script setup>
 import { reactive, ref, watch } from "vue";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 
-import WorkShiftFields from "./Partials/WorkShiftFields.vue";
+import WorkScheduleFields from "./Partials/WorkScheduleFields.vue";
 import { csrfFetch } from "@/lib/csrfFetch";
 
 const props = defineProps({
@@ -15,13 +16,13 @@ const emit = defineEmits(["update:modelValue", "saved"]);
 const loading = ref(false);
 const errors = reactive({});
 
-// ⚠️ form mezők: igazítsd a WorkShift migration / request mezőihez
-// Tipikus: name, start_date, end_date, active
 const form = ref({
+    company_id: null,
     name: "",
-    start_date: null, // pl. "08:00" (string) vagy null
-    end_date: null, // pl. "16:00"
-    active: true,
+    date_from: null,
+    date_to: null,
+    status: "draft",
+    notes: "",
 });
 
 watch(
@@ -29,12 +30,13 @@ watch(
     (open) => {
         if (!open) return;
 
-        // reset
         form.value = {
+            company_id: null,
             name: "",
-            start_date: null,
-            end_date: null,
-            active: true,
+            date_from: null,
+            date_to: null,
+            status: "draft",
+            notes: "",
         };
 
         Object.keys(errors).forEach((k) => delete errors[k]);
@@ -43,10 +45,11 @@ watch(
 
 const close = () => emit("update:modelValue", false);
 
-const formatDate = (d) => {
+const toYmd = (d) => {
     if (!d) return null;
-
-    return new Date(d).toISOString().slice(0, 10);
+    const dt = new Date(d);
+    if (Number.isNaN(dt.getTime())) return null;
+    return dt.toISOString().slice(0, 10);
 };
 
 const submit = async () => {
@@ -56,14 +59,17 @@ const submit = async () => {
     Object.keys(errors).forEach((k) => delete errors[k]);
 
     try {
-        const res = await csrfFetch("/work-shifts", {
+        const payload = {
+            ...form.value,
+            date_from: toYmd(form.value.date_from),
+            date_to: toYmd(form.value.date_to),
+            notes: form.value.notes || null,
+        };
+
+        const res = await csrfFetch("/work_schedules", {
             method: "POST",
             headers: { "Content-Type": "application/json", Accept: "application/json" },
-            body: JSON.stringify({
-                ...form.value,
-                start_date: formatDate(form.value.start_date),
-                end_date: formatDate(form.value.end_date),
-            }),
+            body: JSON.stringify(payload),
         });
 
         if (res.status === 422) {
@@ -78,7 +84,7 @@ const submit = async () => {
             throw new Error(body?.message ?? `HTTP ${res.status}`);
         }
 
-        emit("saved", "Műszak létrehozva.");
+        emit("saved", "Beosztás létrehozva.");
         close();
     } catch (e) {
         errors._global = e?.message ?? "Ismeretlen hiba";
@@ -92,21 +98,20 @@ const submit = async () => {
     <Dialog
         :visible="modelValue"
         modal
-        header="Új műszak"
-        :style="{ width: '520px' }"
+        header="Új beosztás"
+        :style="{ width: '620px' }"
         @update:visible="emit('update:modelValue', $event)"
-        data-testid="work-shifts-create-modal"
+        data-testid="work_schedules-create-modal"
     >
         <div class="space-y-4">
             <div v-if="errors._global" class="rounded border p-2 text-sm">
                 {{ errors._global }}
             </div>
 
-            <WorkShiftFields v-model="form" :errors="errors" :disabled="loading" />
+            <WorkScheduleFields v-model="form" :errors="errors" :disabled="loading" />
         </div>
 
         <template #footer>
-            <!-- CANCEL -->
             <Button
                 label="Mégse"
                 severity="secondary"
@@ -114,7 +119,6 @@ const submit = async () => {
                 @click="close"
             />
 
-            <!-- SAVE -->
             <Button
                 label="Mentés"
                 icon="pi pi-check"

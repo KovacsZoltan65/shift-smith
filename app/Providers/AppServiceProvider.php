@@ -7,6 +7,7 @@ use App\Interfaces\Admin\RoleRepositoryInterface;
 use App\Interfaces\CompanyRepositoryInterface;
 use App\Interfaces\EmployeeRepositoryInterface;
 use App\Interfaces\UserRepositoryInterface;
+use App\Interfaces\WorkScheduleRepositoryInterface;
 use App\Interfaces\WorkShiftRepositoryInterface;
 use App\Models\Company;
 use App\Models\Employee;
@@ -17,6 +18,7 @@ use App\Repositories\Admin\RoleRepository;
 use App\Repositories\CompanyRepository;
 use App\Repositories\EmployeeRepository;
 use App\Repositories\UserRepository;
+use App\Repositories\WorkScheduleRepository;
 use App\Repositories\WorkShiftRepository;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Grammars\PostgresGrammar;
@@ -25,7 +27,6 @@ use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use Inertia\Inertia;
-use function str_contains;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -57,6 +58,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             WorkShiftRepositoryInterface::class, 
             WorkShiftRepository::class
+        );
+        $this->app->bind(
+            WorkScheduleRepositoryInterface::class,
+            WorkScheduleRepository::class
         );
     }
 

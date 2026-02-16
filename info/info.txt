@@ -149,6 +149,17 @@ vendor/bin/pest --list-test
     vendor/bin/pest tests/Feature/Admin/Roles/RoleBulkDeleteTest.pest.php
     vendor/bin/pest tests/Feature/Admin/Roles/RoleDeleteTest.pest.php
 
+    // ------------------------------------
+    // WORK_SCHEDULE
+    // ------------------------------------
+    vendor/bin/pest tests/Feature/WorkSchedules/_SanityTest.pest.php
+    vendor/bin/pest tests/Feature/WorkSchedules/WorkScheduleIndexTest.pest.php  OK
+    vendor/bin/pest tests/Feature/WorkSchedules/WorkScheduleFetchTest.pest.php
+    vendor/bin/pest tests/Feature/WorkSchedules/WorkScheduleStoreTest.pest.php
+    vendor/bin/pest tests/Feature/WorkSchedules/WorkScheduleUpdateTest.pest.php
+    vendor/bin/pest tests/Feature/WorkSchedules/WorkScheduleBulkDeleteTest.pest.php
+    vendor/bin/pest tests/Feature/WorkSchedules/WorkScheduleDeleteTest.pest.php
+
 // ========================================
 
 

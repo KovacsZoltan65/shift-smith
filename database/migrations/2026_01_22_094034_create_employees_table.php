@@ -19,7 +19,7 @@ return new class extends Migration
             $table->id()->comment('Rekord azonosító');
 
             $table->foreignId('company_id')
-                ->constrained()
+                ->constrained('companies', 'id', 'company_employee')
                 ->onDelete('cascade');
 
             $table->string('first_name')->comment('Keresztnév');
@@ -30,8 +30,13 @@ return new class extends Migration
             $table->string('phone')->nullable()->comment('Telefonszám');
             $table->date('hired_at')->nullable()->comment('Felvétel dátuma');
             $table->boolean('active')->default(1)->index()->comment('Aktív');
+
             $table->timestamps();
             $table->softDeletes();
+
+            $table->index('first_name', 'employees_first_name_idx');
+            $table->index('last_name', 'employees_last_name_idx');
+            $table->index('email', 'employees_email_idx');
         });
     }
 

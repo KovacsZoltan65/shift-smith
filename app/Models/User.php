@@ -26,10 +26,10 @@ use Override;
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory,
-        Notifiable,
-        HasRoles,
-        LogsActivity;
+    use HasFactory;
+    use Notifiable;
+    use HasRoles;
+    use LogsActivity;
 
     /**
      * The attributes that are mass assignable.

@@ -7,6 +7,7 @@ use App\Models\Admin\Role;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\User;
+use App\Models\WorkSchedule;
 use App\Models\WorkShift;
 use App\Support\MenuPermissions;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -58,6 +59,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'roles'       => Role::class,
             'permissions' => Permission::class,
             'work_shifts' => WorkShift::class,
+            'work_schedules' => WorkSchedule::class,
             'work_shifts_assignments' => \App\Models\WorkShiftAssignment::class,
         ];
 

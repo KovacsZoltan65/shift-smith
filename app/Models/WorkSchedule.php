@@ -11,17 +11,16 @@ use Override;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-/** 
+/**
  * @property int|string $id
  * @property int|string $company_id
  * @property string $name
- * @property string $start_time
- * @property string $end_time
- * @property int $work_time_minutes
- * @property int $break_minutes
- * @property boolean $active
+ * @property string $date_from
+ * @property string $date_to
+ * @property string $status
+ * @property string|null $notes
  */
-class WorkShift extends Model
+class WorkSchedule extends Model
 {
     use HasFactory;
     use SoftDeletes;
@@ -31,40 +30,37 @@ class WorkShift extends Model
     protected $fillable = [
         'company_id',
         'name',
-        'start_time',
-        'end_time',
-        'work_time_minutes',
-        'break_minutes',
-        'active',
+        'date_from',
+        'date_to',
+        'status',
+        'notes',
     ];
 
-    /** @var list<string> */
-    protected $guarded = ['name_lc'];
-    
     /** @var array<string,string> */
     protected $casts = [
-        'active' => 'bool',
-        'start_time' => 'string',
-        'end_time' => 'string',
-        'work_time_minutes' => 'int',
+        'company_id' => 'int',
+        'date_from'  => 'date:Y-m-d',
+        'date_to'    => 'date:Y-m-d',
+        'status'     => 'string',
+        'notes'      => 'string',
     ];
-    
+
     /** @var array<int,string> */
-    public const SORTABLE = ['company_id', 'name', 'start_time', 'end_time', 'active',];
-    
+    public const SORTABLE = ['id', 'company_id', 'name', 'date_from', 'date_to', 'status', 'created_at'];
+
     /*
      * ========================= LOGOLÁS =========================
      */
     /** @var array<int,string> */
     protected static array $logAttributes = ['*'];
-    
+
     protected static bool $logOnlyDirty = true;
-    
-    protected static string $logName = 'work_shifts';
-    
+
+    protected static string $logName = 'work_schedules';
+
     /** @var array<int,string> */
     protected static array $recordEvents = ['created', 'updated', 'deleted'];
-    
+
     public function getLogNameToUse(string $eventName = ''): string
     {
         return static::$logName ?? 'default';
@@ -74,22 +70,18 @@ class WorkShift extends Model
     {
         return static::$logName;
     }
-    
+
     #[Override]
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logFillable()
-            ->dontLogIfAttributesChangedOnly(['remember_token'])
-            ->logExcept(['password', 'remember_token'])
-            //->dontLogAttributes(['password'])
-                ;
+            ->logFillable();
     }
-    
+
     /**
      * ===========================================================
      */
-    
+
     /** @return array<int,string> */
     public static function getSortable(): array
     {
@@ -97,35 +89,13 @@ class WorkShift extends Model
     }
 
     /**
-     * @param  Builder<WorkShift>  $query
-     * @return Builder<WorkShift>
+     * @param Builder<WorkSchedule> $query
+     * @return Builder<WorkSchedule>
      */
-    public function scopeActive(Builder $query): Builder
+    public function scopeForCompany(Builder $query, int $companyId): Builder
     {
-        return $query->where('active', APP_ACTIVE);
+        return $query->where('company_id', $companyId);
     }
-    
-    /**
-     * @param  Builder<WorkShift>  $query
-     * @return Builder<WorkShift>
-     */
-    public function scopeSearch(Builder $query, string $search): Builder
-    {
-        $s = trim($search);
-        if ($s === '') {
-            return $query;
-        }
-
-        return $query->where(function (Builder $q) use ($s) {
-            $q->where('name', 'like', "%{$s}%")
-              ->orWhere('start_time', 'like', "%{$s}%")
-              ->orWhere('end_time', 'like', "%{$s}%");
-        });
-    }
-    
-    /*
-     * ========================= RELATIONS =========================
-     */
 
     /**
      * @return BelongsTo<Company, $this>
@@ -134,8 +104,4 @@ class WorkShift extends Model
     {
         return $this->belongsTo(Company::class);
     }
-
-    /**
-     * ===========================================================
-     */
 }

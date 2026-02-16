@@ -13,7 +13,7 @@ it('átirányítja a vendégeket a bejelentkezéshez a cégek lekéréséhez', f
     $this->get(route('companies.fetch'))->assertRedirect();
 });
 
-it('denies companies fetch if user lacks viewAny permission', function (): void {
+it('megtagadja a vállalatok általi lekérést, ha a felhasználónak nincs viewAny engedélye', function (): void {
     $user = $this->createAdminUser();
     $user->syncRoles([]);
     $user->syncPermissions([]);
@@ -26,7 +26,7 @@ it('denies companies fetch if user lacks viewAny permission', function (): void 
         ->assertForbidden();
 });
 
-it('allows admin to fetch companies with meta + filter', function (): void {
+it('lehetővé teszi az adminisztrátor számára, hogy meta + szűrővel rendelkező cégeket kérjen le', function (): void {
     $user = $this->createAdminUser();
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();

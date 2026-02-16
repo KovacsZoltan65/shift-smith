@@ -7,6 +7,7 @@ use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\WorkScheduleController;
 use App\Http\Controllers\WorkShiftController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -255,6 +256,33 @@ Route::middleware(['auth', 'verified'])
     Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
     // BULK DELETE
     Route::delete('destroy_bulk', 'bulkDelete')->name('destroy_bulk');
+});
+
+/**
+ * ======================================
+ * WORK_SCHEDULES
+ * ======================================
+ * Beosztások kezelése
+ */
+Route::middleware(['auth', 'verified'])
+    ->prefix('work_schedules')
+    ->as('work_schedules.')
+    ->controller(WorkScheduleController::class)
+    ->group(function() {
+    // INDEX
+    Route::get('/', 'index')->name('index');
+    // FETCH
+    Route::get('/fetch', 'fetch')->name('fetch');
+    // SHOW
+    Route::get('/{id}', 'getWorkSchedule')->whereNumber('id')->name('by_id');
+    // CREATE
+    Route::post('/', 'store')->name('store');
+    // UPDATE
+    Route::put('/{id}', 'update')->whereNumber('id')->name('update');
+    // DELETE
+    Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
+    // BULK DELETE
+    Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk');
 });
 
 /**

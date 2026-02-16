@@ -29,6 +29,7 @@ class DatabaseSeeder extends Seeder
             WorkShiftSeeder::class,
             WorkShiftAssignmentSeeder::class,
 
+            WorkScheduleSeeder::class,
         ]);
         // User::factory(10)->create();
 

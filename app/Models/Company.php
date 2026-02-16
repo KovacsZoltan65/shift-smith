@@ -4,15 +4,12 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Override;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -28,10 +25,9 @@ use Spatie\Activitylog\Traits\LogsActivity;
  */
 class Company extends Model
 {
-    /** @use HasFactory<CompanyFactory> */
-    use HasFactory,
-        LogsActivity,
-        SoftDeletes;
+    use HasFactory;
+    use LogsActivity;
+    use SoftDeletes;
 
     /** @var list<string> */
     protected $fillable = ['name', 'email', 'address', 'phone', 'active'];

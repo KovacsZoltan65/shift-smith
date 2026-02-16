@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('work_shifts', function (Blueprint $table) {
+        Schema::create('break_times', function (Blueprint $table) {
             $table->engine('InnoDB');
             $table->charset('utf8mb4');
             $table->collation('utf8mb4_unicode_ci');
@@ -19,26 +19,24 @@ return new class extends Migration
             $table->id();
 
             $table->foreignId('company_id')
-                ->constrained('companies', 'id', 'company_work_shift')
+                ->constrained('companies')
                 ->cascadeOnDelete();
 
             $table->string('name');
             $table->time('start_time');
             $table->time('end_time');
-            $table->integer('work_time_minutes')->nullable();
-            $table->integer('break_minutes')->nullable();
 
             $table->boolean('active')->default(true);
 
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index(['company_id'], 'ws_company_id_idx');
-            $table->index(['name'], 'ws_name_idx');
-            $table->index(['start_time'], 'ws_start_time_idx');
-            $table->index(['end_time'], 'ws_end_time_idx');
-            $table->index(['company_id', 'active'], 'ws_company_active_idx');
-            $table->index(['company_id', 'name'], 'ws_company_name_idx');
+            $table->index(['company_id'], 'bt_company_id_idx');
+            $table->index(['name'], 'bt_name_idx');
+            $table->index(['start_time'], 'bt_start_idx');
+            $table->index(['end_time'], 'bt_end_idx');
+            $table->index(['start_time', 'end_time'], 'bt_start_end_idx');
+            $table->index(['company_id', 'active'], 'bt_company_active_idx');
         });
     }
 
@@ -47,6 +45,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('work_shifts');
+        Schema::dropIfExists('break_time');
     }
 };

@@ -51,9 +51,9 @@ export const appMenuDefinition = [
             },
             {
                 title: "Beosztások",
-                route: "assignments.index",
-                key: "assignments.index",
-                can: "assignments.viewAny",
+                route: "work_schedules.index",
+                key: "work_schedules.index",
+                can: "work_schedules.viewAny",
             },
             {
                 title: "Műszakok",

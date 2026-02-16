@@ -9,10 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Http\Request;
 use Override;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -32,8 +29,9 @@ use Spatie\Activitylog\Traits\LogsActivity;
  */
 class Employee extends Model
 {
-    /** @use HasFactory<EmployeeFactory> */
-    use HasFactory, LogsActivity, SoftDeletes;
+    use HasFactory;
+    use LogsActivity;
+    use SoftDeletes;
 
     protected $table = 'employees';
 
