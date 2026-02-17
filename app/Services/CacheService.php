@@ -150,17 +150,11 @@ class CacheService
             return;
         }
 
-        if (method_exists($store, 'getKeys')) {
-            /** @var array<int,string> $keys */
-            $keys = $store->getKeys($pattern);
-            foreach ($keys as $key) {
-                Cache::forget($key);
-            }
-
-            return;
-        }
-
-        Log::warning('Cache driver does not support pattern-based deletion.');
+        // Ha a store nem Redis és nincs pattern-based törlés támogatás
+        Log::warning('Cache driver does not support pattern-based deletion.', [
+            'store' => get_class($store),
+            'pattern' => $pattern,
+        ]);
     }
     
     protected function storeKey(string $tag, string $key): void

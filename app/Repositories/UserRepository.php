@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Auth;
 use Prettus\Repository\Criteria\RequestCriteria;
 use Prettus\Repository\Eloquent\BaseRepository;
 use Symfony\Component\HttpFoundation\Exception\JsonException;
@@ -66,7 +67,12 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
 
         $queryCallback = function () use ($term, $field, $direction, $perPage, $page, $appendQuery): LengthAwarePaginator {
             $q = User::query()
-                ->when($term, fn ($qq) => $qq->whereLike(['name', 'email'], $term))
+                ->when($term, function ($qq) use ($term) {
+                    $qq->where(function ($q) use ($term) {
+                        $q->where('name', 'like', "%{$term}%")
+                          ->orWhere('email', 'like', "%{$term}%");
+                    });
+                })
                 ->when($field, fn ($qq) => $qq->orderBy($field, $direction))
                 ->when(!$field, fn ($qq) => $qq->orderByDesc('id'));
 
@@ -205,8 +211,8 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      */
     public function bulkDelete(array $ids): int
     {
-        $authId = auth()->id();
-        abort_if(\in_array($authId, $ids, true), 403, 'Saját fiókot nem törölhetsz.');
+        $authUser = Auth::user();
+        abort_if($authUser && \in_array($authUser->id, $ids, true), 403, 'Saját fiókot nem törölhetsz.');
     
         return DB::transaction(function() use($ids): int {
             
@@ -235,7 +241,12 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             /** @var User $user */
             $user = User::query()->lockForUpdate()->findOrFail($id);
             
-            abort_if(auth()->id() === $user->id, 403, 'Saját fiókot nem törölhetsz.');
+            $authUser = Auth::user();
+            abort_if(
+                $authUser && $authUser->id === $user->id, 
+                403, 
+                'Saját fiókot nem törölhetsz.'
+            );
             
             DB::table('model_has_roles')
                 ->where('model_type', User::class)

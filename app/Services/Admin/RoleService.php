@@ -28,7 +28,7 @@ class RoleService
     /**
      * Summary of getRole
      * @param int $id
-     * @return \App\Models\Role
+     * @return \App\Models\Admin\Role
      */
     public function getRole(int $id): Role
     {

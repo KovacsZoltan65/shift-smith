@@ -1,0 +1,52 @@
+PHPStan Analízis Eredmény
+==========================
+
+Összesen: 69 hiba
+
+Kategóriák:
+-----------
+
+1. Copy-Paste Hibák (KRITIKUS): 15 hiba
+   - PermissionRepository: Role/Permission keveredés
+   - WorkShiftController: Rossz PHPDoc típusok
+   
+2. Típus Specifikáció Hiány: 25 hiba
+   - Array paraméterek típus nélkül ($ids, $data)
+   - Generic típusok hiánya (HasFactory, BelongsTo)
+   - Return típusok hiánya
+   
+3. Namespace Hibák: 8 hiba
+   - App\Models\Role vs App\Models\Admin\Role
+   - App\Models\Permission vs App\Models\Admin\Permission
+   
+4. Logikai Hibák: 10 hiba
+   - Nem létező metódusok hívása
+   - Nem létező konstansok
+   - Rossz offset kezelés
+   
+5. Felesleges Nullsafe Operátorok: 6 hiba
+   - Seeders: ?-> használata non-nullable típusokon
+   
+6. Egyéb: 5 hiba
+   - env() hívás config-on kívül
+   - Nem létező relációk
+
+Javasolt Megoldás:
+------------------
+
+A 69 hiba közül:
+- 20 hiba: Kritikus, azonnal javítandó (copy-paste, namespace)
+- 30 hiba: Közepes, típus annotációk hozzáadása
+- 19 hiba: Kisebb, opcionális javítások
+
+Mivel ez egy nagy refactoring lenne, javaslom:
+1. Kritikus hibák javítása (copy-paste, namespace)
+2. PHPStan szint csökkentése átmenetileg
+3. Fokozatos javítás a fejlesztés során
+
+Alternatíva:
+-----------
+PHPStan konfiguráció módosítása:
+- treatPhpDocTypesAsCertain: false
+- checkGenericClassInNonGenericObjectType: false
+- Egyes hibák ignorálása baseline fájllal

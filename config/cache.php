@@ -149,6 +149,7 @@ return [
     'enable_companies'          => false,
     'enable_employees'          => false,
     'enable_work_shifts'        => false,
+    'enable_work_schedules'     => false,
     
     'enable_companyToSelect'    => true,
     'enable_employeeToSelect'   => true,

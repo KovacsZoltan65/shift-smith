@@ -19,16 +19,16 @@ class PermissionService
      */
     public function fetch(Request $request): LengthAwarePaginator
     {
-        /** @var LengthAwarePaginator<int, Permission> $roles */
-        $permission = $this->repo->fetch($request);
+        /** @var LengthAwarePaginator<int, Permission> $permissions */
+        $permissions = $this->repo->fetch($request);
 
-        return $permission;
+        return $permissions;
     }
     
     /**
      * Summary of getPermission
      * @param int $id
-     * @return \App\Models\Permission
+     * @return \App\Models\Admin\Permission
      */
     public function getPermission(int $id): Permission
     {

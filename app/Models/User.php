@@ -88,7 +88,10 @@ class User extends Authenticatable implements MustVerifyEmail
      * ========================= LOGOLÁS =========================
      */
     /** @var array<int,string> */
-    protected static array $logAttributes = ['*'];
+    protected static array $logAttributes = ['name', 'email'];
+    
+    /** @var array<int,string> */
+    protected static array $logAttributesToIgnore = ['password', 'remember_token'];
     
     protected static bool $logOnlyDirty = true;
     

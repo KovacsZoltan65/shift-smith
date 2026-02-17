@@ -15,7 +15,7 @@ use Illuminate\Http\Request;
 use Override;
 use Prettus\Repository\Criteria\RequestCriteria;
 use Prettus\Repository\Eloquent\BaseRepository;
-use DB;
+use Illuminate\Support\Facades\DB;
 
 class PermissionRepository extends BaseRepository implements PermissionRepositoryInterface
 {
@@ -45,7 +45,7 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
     /**
      * 
      * @param Request $request
-     * @return LengthAwarePaginator<int, Role>
+     * @return LengthAwarePaginator<int, Permission>
      */
     #[Override]
     public function fetch(Request $request): LengthAwarePaginator
@@ -101,25 +101,25 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
         ];
         ksort($paramsForKey);
         
-        $version = $this->cacheVersionService->get(self::NS_ROLES_FETCH);
+        $version = $this->cacheVersionService->get(self::NS_PERMISSIONS_FETCH);
         $hash = hash('sha256', json_encode($paramsForKey, JSON_THROW_ON_ERROR));
         $key = "v{$version}:{$hash}";
 
-        /** @var LengthAwarePaginator<int, Role> $roles */
-        $permission = $this->cacheService->remember(
+        /** @var LengthAwarePaginator<int, Permission> $permissions */
+        $permissions = $this->cacheService->remember(
             tag: $this->tag,
             key: $key,
             callback: $queryCallback,
             ttl: (int) config('cache.ttl_fetch', 60)
         );
 
-        return $permission;
+        return $permissions;
     }
     
     /**
      * Rekord lekérése azonosító alapján
      * @param int $id
-     * @return \App\Models\Permission
+     * @return \App\Models\Admin\Permission
      */
     #[Override]
     public function getPermission(int $id): Permission
@@ -133,7 +133,7 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
     /**
      * Rekord lekérése név alapján
      * @param string $name
-     * @return \App\Models\Permission
+     * @return \App\Models\Admin\Permission
      */
     #[Override]
     public function getPermissionByName(string $name): Permission
@@ -167,7 +167,7 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
             $this->createDefaultSettings($permission);
             
             // Cache ürítése
-            $this->invalidateAfterRoleWrite();
+            $this->invalidateAfterPermissionWrite();
 
             return $permission;
         });
@@ -195,7 +195,7 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
             $this->updateDefaultSettings($permission);
 
             // Cache ürítése
-            $this->invalidateAfterRoleWrite();
+            $this->invalidateAfterPermissionWrite();
 
             return $permission;
         });
@@ -248,7 +248,7 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
     #[Override]
     public function getToSelect(array $params = []): array
     {
-        $needCache = (bool) config('cache.enable_permissionToSelect', false);
+        $needCache = (bool) config('cache.enable_permisionToSelect', false);
         
         // normalize (jövőbiztos)
         $params['only_active'] = array_key_exists('only_active', $params) ? (bool) $params['only_active'] : true;

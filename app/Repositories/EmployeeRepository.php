@@ -304,7 +304,7 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
             tag: self::NS_SELECTORS_EMPLOYEES,
             key: $key,
             callback: $queryCallback,
-            ttl: (int) config('cache.ttl_employeeToSelect', 1800)
+            ttl: (int) config('cache.ttl_fetch', 1800)
         );
     }
 

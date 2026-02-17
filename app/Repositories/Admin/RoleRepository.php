@@ -9,7 +9,7 @@ use App\Models\Admin\Role;
 use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
 use App\Traits\Functions;
-use DB;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Container\Container as AppContainer;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
@@ -125,7 +125,7 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
     /**
      * Rekord lekérése azonosító alapján
      * @param int $id
-     * @return \App\Models\Role
+     * @return \App\Models\Admin\Role
      */
     public function getRole(int $id): Role
     {
@@ -138,7 +138,7 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
     /**
      * Rekord lekérése név alapján
      * @param string $name
-     * @return \App\Models\Role
+     * @return \App\Models\Admin\Role
      */
     public function getRoleByName(string $name): Role
     {

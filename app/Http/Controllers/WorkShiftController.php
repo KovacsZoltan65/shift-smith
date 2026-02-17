@@ -20,10 +20,7 @@ class WorkShiftController extends Controller
 {
     public function __construct(
         private readonly WorkShiftService $service
-    ) {
-        // Ha használsz Policy-t:
-        // $this->authorizeResource(User::class, 'user');
-    }
+    ) {}
     
     public function index(IndexRequest $request): InertiaResponse
     {
@@ -104,10 +101,10 @@ class WorkShiftController extends Controller
         
         /**
          * @var array{
+         *   company_id: int,
          *   name: string, 
-         *   email: string,
-         *   address: string,
-         *   phone: string,
+         *   start_time: string,
+         *   end_time: string,
          *   active: bool
          * } $data
          */
@@ -139,10 +136,10 @@ class WorkShiftController extends Controller
     {
         /**
          * @var array{
-         *   name: string, 
-         *   email: string,
-         *   address: string,
-         *   phone: string,
+         *   company_id: int,
+         *   name: string,
+         *   start_time: string,
+         *   end_time: string,
          *   active: bool
          * } $data
          */
@@ -203,7 +200,6 @@ class WorkShiftController extends Controller
      */
     public function destroy(int $id): JsonResponse
     {
-        //$this->authorize('delete', WorkShift::class);
         $work_shift = $this->service->getWorkShift($id);
         $this->authorize(WorkShiftPolicy::PERM_DELETE, $work_shift);
         
