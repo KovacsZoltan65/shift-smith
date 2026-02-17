@@ -31,6 +31,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
  */
 class WorkSchedule extends Model
 {
+    /** @use HasFactory<\Database\Factories\WorkScheduleFactory> */
     use HasFactory;
     use SoftDeletes;
     use LogsActivity;

@@ -29,8 +29,16 @@ interface RoleRepositoryInterface
      */
     public function update(array $data, int $id): Role;
 
+    /**
+     * @param list<int> $ids
+     * @return int
+     */
     public function bulkDelete(array $ids): int;
     
+    /**
+     * @param int $id
+     * @return bool
+     */
     public function destroy(int $id): bool;
 
     /**

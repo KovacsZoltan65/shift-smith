@@ -89,7 +89,7 @@ class AppServiceProvider extends ServiceProvider
 
         $available_locales = config('app.available_locales', ['English' => 'en', 'Hungarian' => 'hu']);
         $supported_locales = config('app.supported_locales', ['en', 'hu']);
-        $locale = (Session::has('locale')) ? Session::get('locale') : env('APP_LOCALE');
+        $locale = (Session::has('locale')) ? Session::get('locale') : config('app.locale', 'en');
 
         Inertia::share([
             'errors' => function () {

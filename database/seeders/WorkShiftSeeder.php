@@ -17,7 +17,7 @@ class WorkShiftSeeder extends Seeder
     {
         // Biztonsági ellenőrzés
         if (!Company::exists()) {
-            $this->command?->warn('⚠️ Nincs Company rekord, WorkShift seeding kihagyva.');
+            $this->command->warn('⚠️ Nincs Company rekord, WorkShift seeding kihagyva.');
             return;
         }
         

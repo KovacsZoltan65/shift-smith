@@ -22,7 +22,7 @@ class WorkShiftService
      * Műszakok listázása lapozással és szűréssel
      * 
      * @param Request $request HTTP kérés (search, field, order, per_page paraméterekkel)
-     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator<WorkShift> Lapozott műszak lista
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator<int, WorkShift> Lapozott műszak lista
      */
     public function fetch(Request $request)
     {

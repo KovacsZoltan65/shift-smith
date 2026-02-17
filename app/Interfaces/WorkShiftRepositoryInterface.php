@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 interface WorkShiftRepositoryInterface
 {
     /**
-     * @return LengthAwarePaginator<int, \App\Models\Company>
+     * @return LengthAwarePaginator<int, WorkShift>
      */
     public function fetch(Request $request): LengthAwarePaginator;
     

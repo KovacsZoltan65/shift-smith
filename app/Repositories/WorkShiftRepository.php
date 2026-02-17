@@ -289,7 +289,7 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
      * Cache-elhető, csak aktív műszakokat ad vissza.
      * 
      * @param array{
-     *   only_with_companies?: bool
+     *   only_with_employees?: bool
      * } $params Szűrési paraméterek
      * @return array<int, array{id:int, name:string}> Műszakok tömbje
      */
@@ -299,19 +299,20 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
         $needCache = (bool) config('cache.enable_work_shiftToSelect', false);
 
         // normalize
-        $params['only_with_companies'] = !empty($params['only_with_companies']);
+        $params['only_with_employees'] = !empty($params['only_with_employees']);
         ksort($params);
 
-        $onlyWithCompanies = (bool) $params['only_with_companies'];
+        $onlyWithEmployees = (bool) $params['only_with_employees'];
 
-        $queryCallback = function () use ($onlyWithCompanies): array {
+        $queryCallback = function (): array {
             /** @var array<int, array{id: int, name: string}> $out */
-            $out = Company::active()
-                ->when($onlyWithCompanies, fn ($q) => $q->whereHas('companies'))
+            $out = WorkShift::active()
+                // Note: WorkShift modellnek nincs employees kapcsolata
+                // ->when($onlyWithEmployees, fn ($q) => $q->whereHas('employees'))
                 ->select(['id', 'name'])
                 ->orderBy('name')
                 ->get()
-                ->map(fn (Company $c): array => ['id' => (int) $c->id, 'name' => (string) $c->name])
+                ->map(fn (WorkShift $ws): array => ['id' => (int) $ws->id, 'name' => (string) $ws->name])
                 ->values()
                 ->all();
 

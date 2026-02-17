@@ -34,6 +34,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
  */
 class Company extends Model
 {
+    /** @use HasFactory<\Database\Factories\CompanyFactory> */
     use HasFactory;
     use LogsActivity;
     use SoftDeletes;

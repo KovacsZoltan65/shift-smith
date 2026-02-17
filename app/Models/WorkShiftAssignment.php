@@ -6,14 +6,29 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Műszak hozzárendelés model osztály
+ * 
+ * Dolgozók műszakokhoz rendelése adott napokra.
+ * Kapcsolódik céghez, műszakhoz és dolgozóhoz.
+ * 
+ * @property int $id
+ * @property int $company_id
+ * @property int $work_shift_id
+ * @property int $employee_id
+ * @property string $day Nap (Y-m-d)
+ * @property \Illuminate\Support\Carbon $created_at
+ * @property \Illuminate\Support\Carbon $updated_at
+ */
 class WorkShiftAssignment extends Model
 {
+    /** @use HasFactory<\Database\Factories\WorkShiftAssignmentFactory> */
     use HasFactory;
 
     /**
      * Tömegesen tölthető mezők
      *
-     * @var array<int, string>
+     * @var list<string>
      */
     protected $fillable = [
         'company_id',
@@ -36,7 +51,9 @@ class WorkShiftAssignment extends Model
     ];
 
     /**
-     * Company kapcsolat
+     * Cég kapcsolat
+     * 
+     * @return BelongsTo<Company, $this>
      */
     public function company(): BelongsTo
     {
@@ -44,7 +61,9 @@ class WorkShiftAssignment extends Model
     }
 
     /**
-     * WorkShift kapcsolat
+     * Műszak kapcsolat
+     * 
+     * @return BelongsTo<WorkShift, $this>
      */
     public function workShift(): BelongsTo
     {
@@ -52,7 +71,9 @@ class WorkShiftAssignment extends Model
     }
 
     /**
-     * Employee kapcsolat
+     * Dolgozó kapcsolat
+     * 
+     * @return BelongsTo<Employee, $this>
      */
     public function employee(): BelongsTo
     {

@@ -29,8 +29,16 @@ interface PermissionRepositoryInterface
      */
     public function update(array $data, int $id): Permission;
 
+    /**
+     * @param list<int> $ids
+     * @return int
+     */
     public function destroyBulk(array $ids): int;
     
+    /**
+     * @param int $id
+     * @return void
+     */
     public function destroy(int $id): bool;
 
     /**

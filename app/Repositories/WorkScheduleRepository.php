@@ -72,7 +72,7 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
         $term = $rawTerm === '' ? null : \mb_strtolower($rawTerm, 'UTF-8');
 
         // company scope: ha a userhez van company_id, az felülírja a query-t
-        $userCompanyId = (int) ($request->user()?->company_id ?? 0);
+        $userCompanyId = (int) ($request->user()->company_id ?? 0);
         $companyIdRaw = $request->input('company_id');
         $companyId = $userCompanyId > 0
             ? $userCompanyId

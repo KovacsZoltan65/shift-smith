@@ -206,7 +206,7 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
     public function update(array $data, $id): Permission
     {
         return DB::transaction(function () use ($data, $id) {
-            /** @var Permission $role */
+            /** @var Permission $permission */
             $permission = Permission::query()->lockForUpdate()->findOrFail($id);
 
             $permission->fill($data);

@@ -101,6 +101,16 @@ class WorkScheduleController extends Controller
     {
         $this->authorize('create', WorkSchedule::class);
 
+        /**
+         * @var array{
+         *   company_id: int,
+         *   name: string,
+         *   date_from: string,
+         *   date_to: string,
+         *   status: string,
+         *   notes?: string|null
+         * } $data
+         */
         $data = $request->validated();
 
         try {
@@ -121,6 +131,16 @@ class WorkScheduleController extends Controller
      */
     public function update(UpdateRequest $request, int $id): JsonResponse
     {
+        /**
+         * @var array{
+         *   company_id: int,
+         *   name: string,
+         *   date_from: string,
+         *   date_to: string,
+         *   status: string,
+         *   notes?: string|null
+         * } $data
+         */
         $data = $request->validated();
 
         try {

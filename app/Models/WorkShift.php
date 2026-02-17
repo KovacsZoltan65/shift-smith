@@ -32,6 +32,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
  */
 class WorkShift extends Model
 {
+    /** @use HasFactory<\Database\Factories\WorkShiftFactory> */
     use HasFactory;
     use SoftDeletes;
     use LogsActivity;

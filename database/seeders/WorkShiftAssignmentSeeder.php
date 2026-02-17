@@ -22,7 +22,7 @@ class WorkShiftAssignmentSeeder extends Seeder
             ->pluck('id');
 
         if ($companyIds->isEmpty()) {
-            $this->command?->warn('⚠️ Nincs olyan Company, ahol egyszerre lenne Employee és WorkShift.');
+            $this->command->warn('⚠️ Nincs olyan Company, ahol egyszerre lenne Employee és WorkShift.');
             return;
         }
 
@@ -39,7 +39,7 @@ class WorkShiftAssignmentSeeder extends Seeder
 
             if ($employeeIds->isEmpty() || $shiftIds->isEmpty()) {
                 // elvileg ide már nem jutunk, de maradjon biztos
-                $this->command?->warn("⚠️ Company #{$companyId}: nincs elég Employee/WorkShift, kihagyva.");
+                $this->command->warn("⚠️ Company #{$companyId}: nincs elég Employee/WorkShift, kihagyva.");
                 continue;
             }
 
@@ -47,7 +47,7 @@ class WorkShiftAssignmentSeeder extends Seeder
             $days = $this->generateDays(Carbon::now()->subDays(60), Carbon::now()->subDay());
 
             if ($days->isEmpty()) {
-                $this->command?->warn("⚠️ Company #{$companyId}: üres naplista, kihagyva.");
+                $this->command->warn("⚠️ Company #{$companyId}: üres naplista, kihagyva.");
                 continue;
             }
 

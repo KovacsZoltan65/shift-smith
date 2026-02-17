@@ -15,8 +15,31 @@ interface WorkScheduleRepositoryInterface
 
     public function getWorkSchedule(int $id): WorkSchedule;
 
+    /**
+     * @param array{
+     *   company_id: int,
+     *   name: string,
+     *   date_from: string,
+     *   date_to: string,
+     *   status: string,
+     *   notes?: string|null
+     * } $data
+     * @return WorkSchedule
+     */
     public function store(array $data): WorkSchedule;
 
+    /**
+     * @param array{
+     *   company_id: int,
+     *   name: string,
+     *   date_from: string,
+     *   date_to: string,
+     *   status: string,
+     *   notes?: string|null
+     * } $data
+     * @param int $id
+     * @return WorkSchedule
+     */
     public function update(array $data, int $id): WorkSchedule;
 
     /** @param list<int> $ids */

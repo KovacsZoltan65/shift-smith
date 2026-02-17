@@ -11,7 +11,7 @@ class WorkScheduleSeeder extends Seeder
     public function run(): void
     {
         if (! Company::exists()) {
-            $this->command?->warn('⚠️ Nincs Company rekord, WorkSchedule seeding kihagyva.');
+            $this->command->warn('⚠️ Nincs Company rekord, WorkSchedule seeding kihagyva.');
             return;
         }
 
