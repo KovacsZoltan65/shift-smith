@@ -15,16 +15,28 @@ use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
- * @property int $company_id
- * @property string $first_name
- * @property string|null $last_name
- * @property string|null $email
- * @property string|null $address
- * @property string|null $position
- * @property string|null $phone
- * @property string|null $hired_at
- * @property int $active
- * @property \App\Models\Company|null $company
+ * Dolgozó model osztály
+ * 
+ * Dolgozók adatainak tárolása és kezelése.
+ * Soft delete támogatással, activity log naplózással.
+ * Kapcsolódik egy céghez (company).
+ * 
+ * @property int $id Dolgozó azonosító
+ * @property int $company_id Cég azonosító
+ * @property string $first_name Keresztnév
+ * @property string|null $last_name Vezetéknév
+ * @property string|null $email Email cím
+ * @property string|null $address Cím
+ * @property string|null $position Beosztás
+ * @property string|null $phone Telefonszám
+ * @property string|null $hired_at Felvétel dátuma
+ * @property int $active Aktív státusz
+ * @property \App\Models\Company|null $company Kapcsolódó cég
+ * @property string $name Teljes név (computed)
+ * @property string|null $company_name Cég neve (computed)
+ * @property \Illuminate\Support\Carbon|null $deleted_at Törlés időpontja (soft delete)
+ * @property \Illuminate\Support\Carbon $created_at Létrehozás időpontja
+ * @property \Illuminate\Support\Carbon $updated_at Módosítás időpontja
  * @method static EmployeeFactory factory(...$parameters)
  */
 class Employee extends Model
@@ -58,6 +70,11 @@ class Employee extends Model
 
     protected $appends = ['name', 'company_name'];
 
+    /**
+     * Cég neve accessor
+     * 
+     * @return string|null Kapcsolódó cég neve vagy null
+     */
     public function getCompanyNameAttribute(): ?string
     {
         return $this->company?->name;
@@ -76,11 +93,22 @@ class Employee extends Model
     /** @var array<int,string> */
     protected static array $recordEvents = ['created', 'updated', 'deleted'];
     
+    /**
+     * Activity log név lekérése
+     * 
+     * @param string $eventName Esemény neve (created, updated, deleted)
+     * @return string Log csatorna neve
+     */
     public function getLogNameToUse(string $eventName = ''): string
     {
         return static::$logName ?? 'default';
     }
 
+    /**
+     * Cache tag név lekérése
+     * 
+     * @return string Cache tag azonosító
+     */
     public static function getTag(): string
     {
         return static::$logName;
@@ -101,20 +129,33 @@ class Employee extends Model
      * ===========================================================
      */
 
-    /** @return array<int,string> */
+    /**
+     * Rendezhető mezők listája
+     * 
+     * @return array<int,string> Rendezhető oszlopnevek
+     */
     public static function getSortable(): array
     {
         return self::SORTABLE;
     }
 
+    /**
+     * Teljes név accessor
+     * 
+     * Keresztnév és vezetéknév összefűzése.
+     * 
+     * @return string Teljes név
+     */
     public function getNameAttribute(): string
     {
         return "{$this->first_name} {$this->last_name}";
     }
 
     /**
-     * @param  Builder<Employee>  $query
-     * @return Builder<Employee>
+     * Aktív dolgozók szűrése
+     * 
+     * @param  Builder<Employee>  $query Query builder
+     * @return Builder<Employee> Szűrt query
      */
     public function scopeActive(Builder $query): Builder
     {
@@ -122,8 +163,13 @@ class Employee extends Model
     }
 
     /**
-     * @param  Builder<Employee>  $query
-     * @return Builder<Employee>
+     * Keresés több mezőben
+     * 
+     * Keres név, email, telefon és beosztás mezőkben.
+     * 
+     * @param  Builder<Employee>  $query Query builder
+     * @param  string  $search Keresési kifejezés
+     * @return Builder<Employee> Szűrt query
      */
     public function scopeSearch(Builder $query, string $search): Builder
     {
@@ -146,7 +192,11 @@ class Employee extends Model
      */
 
     /**
-     * @return BelongsTo<Company, $this>
+     * Dolgozó céghez tartozása
+     * 
+     * Egy dolgozó egy céghez tartozik (N:1 kapcsolat).
+     * 
+     * @return BelongsTo<Company, $this> Cég kapcsolata
      */
     public function company(): BelongsTo
     {

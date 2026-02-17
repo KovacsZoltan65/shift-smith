@@ -97,70 +97,10 @@ parameters:
 			path: app/Providers/AppServiceProvider.php
 
 		-
-			message: '#^Method App\\Repositories\\Admin\\PermissionRepository\:\:destroyBulk\(\) has parameter \$ids with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Repositories/Admin/PermissionRepository.php
-
-		-
 			message: '#^Variable \$role in PHPDoc tag @var does not match assigned variable \$permission\.$#'
 			identifier: varTag.differentVariable
 			count: 1
 			path: app/Repositories/Admin/PermissionRepository.php
-
-		-
-			message: '#^Call to function is_array\(\) with null will always evaluate to false\.$#'
-			identifier: function.impossibleType
-			count: 2
-			path: app/Repositories/Admin/RoleRepository.php
-
-		-
-			message: '#^Cannot unset offset ''permission_ids'' on array\{name\: string, guard_name\: string\}\.$#'
-			identifier: unset.offset
-			count: 2
-			path: app/Repositories/Admin/RoleRepository.php
-
-		-
-			message: '#^Method App\\Repositories\\Admin\\RoleRepository\:\:bulkDelete\(\) has parameter \$ids with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Repositories/Admin/RoleRepository.php
-
-		-
-			message: '#^Offset ''permission_ids'' on array\{name\: string, guard_name\: string\} on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 2
-			path: app/Repositories/Admin/RoleRepository.php
-
-		-
-			message: '#^Parameter \#1 \$array of function array_values contains unresolvable type\.$#'
-			identifier: argument.unresolvableType
-			count: 2
-			path: app/Repositories/Admin/RoleRepository.php
-
-		-
-			message: '#^Return type of call to function array_values contains unresolvable type\.$#'
-			identifier: function.unresolvableReturnType
-			count: 2
-			path: app/Repositories/Admin/RoleRepository.php
-
-		-
-			message: '#^Method App\\Repositories\\WorkScheduleRepository\:\:store\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Repositories/WorkScheduleRepository.php
-
-		-
-			message: '#^Method App\\Repositories\\WorkScheduleRepository\:\:update\(\) has parameter \$data with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
-			count: 1
-			path: app/Repositories/WorkScheduleRepository.php
-
-		-
-			message: '#^Method App\\Repositories\\WorkScheduleRepository\:\:update\(\) has parameter \$id with no type specified\.$#'
-			identifier: missingType.parameter
-			count: 1
-			path: app/Repositories/WorkScheduleRepository.php
 
 		-
 			message: '#^Using nullsafe property access "\?\-\>company_id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
@@ -181,20 +121,20 @@ parameters:
 			path: app/Repositories/WorkShiftRepository.php
 
 		-
-			message: '#^Method App\\Services\\Admin\\PermissionService\:\:destroyBulk\(\) has parameter \$ids with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
+			message: '#^Generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\WorkShift\> in PHPDoc tag @return does not specify all template types of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\: TKey, TValue$#'
+			identifier: generics.lessTypes
 			count: 1
-			path: app/Services/Admin/PermissionService.php
+			path: app/Services/WorkShiftService.php
 
 		-
-			message: '#^Method App\\Services\\Admin\\RoleService\:\:bulkDelete\(\) has parameter \$ids with no value type specified in iterable type array\.$#'
-			identifier: missingType.iterableValue
+			message: '#^Method App\\Services\\WorkShiftService\:\:fetch\(\) should return Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\WorkShift\> but returns Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<int, App\\Models\\Company\>\.$#'
+			identifier: return.type
 			count: 1
-			path: app/Services/Admin/RoleService.php
+			path: app/Services/WorkShiftService.php
 
 		-
-			message: '#^Method App\\Services\\WorkShiftService\:\:fetch\(\) has no return type specified\.$#'
-			identifier: missingType.return
+			message: '#^Type App\\Models\\WorkShift in generic type Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<App\\Models\\WorkShift\> in PHPDoc tag @return is not subtype of template type TKey of \(int\|string\) of interface Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\.$#'
+			identifier: generics.notSubtype
 			count: 1
 			path: app/Services/WorkShiftService.php
 

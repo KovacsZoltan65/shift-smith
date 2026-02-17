@@ -17,6 +17,13 @@ use Override;
 use Prettus\Repository\Criteria\RequestCriteria;
 use Prettus\Repository\Eloquent\BaseRepository;
 
+/**
+ * Munkabeosztás repository osztály
+ * 
+ * Adatbázis műveletek kezelése munkabeosztásokhoz.
+ * Cache támogatással, verziókezeléssel, lapozással és összetett szűrésekkel.
+ * Támogatja a cég scope-ot, státusz és dátum szűrést.
+ */
 class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepositoryInterface
 {
     use Functions;
@@ -26,6 +33,7 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
 
     private readonly CacheVersionService $cacheVersionService;
 
+    /** Cache namespace a munkabeosztások listázásához */
     private const NS_WORK_SCHEDULES_FETCH = 'work_schedules.fetch';
 
     public function __construct(
@@ -41,7 +49,14 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
     }
 
     /**
-     * @return LengthAwarePaginator<int, WorkSchedule>
+     * Munkabeosztások listázása lapozással, szűréssel és rendezéssel
+     * 
+     * Cache-elhető lekérdezés verziókezeléssel.
+     * Támogatja a keresést, cég scope-ot, státusz és dátum szűrést.
+     * User company_id automatikusan felülírja a query company_id-t.
+     * 
+     * @param Request $request HTTP kérés (search, company_id, status, date_from, date_to, field, order, per_page, page paraméterekkel)
+     * @return LengthAwarePaginator<int, WorkSchedule> Lapozott munkabeosztás lista
      */
     #[Override]
     public function fetch(Request $request): LengthAwarePaginator
@@ -134,6 +149,13 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
         return $out;
     }
 
+    /**
+     * Munkabeosztás lekérése azonosító alapján
+     * 
+     * @param int $id Munkabeosztás azonosító
+     * @return WorkSchedule Munkabeosztás model
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
+     */
     #[Override]
     public function getWorkSchedule(int $id): WorkSchedule
     {
@@ -143,6 +165,21 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
         return $workSchedule;
     }
 
+    /**
+     * Új munkabeosztás létrehozása
+     * 
+     * Tranzakcióban futtatva, cache invalidálással.
+     * 
+     * @param array{
+     *   company_id: int,
+     *   name: string,
+     *   date_from: string,
+     *   date_to: string,
+     *   status: string,
+     *   notes?: string|null
+     * } $data Munkabeosztás adatok
+     * @return WorkSchedule Létrehozott munkabeosztás
+     */
     #[Override]
     public function store(array $data): WorkSchedule
     {
@@ -156,6 +193,23 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
         });
     }
 
+    /**
+     * Munkabeosztás adatainak frissítése
+     * 
+     * Tranzakcióban futtatva, pesszimista zárolással.
+     * Frissítés után cache invalidálás.
+     * 
+     * @param array{
+     *   company_id: int,
+     *   name: string,
+     *   date_from: string,
+     *   date_to: string,
+     *   status: string,
+     *   notes?: string|null
+     * } $data Frissítendő adatok
+     * @param int $id Munkabeosztás azonosító
+     * @return WorkSchedule Frissített munkabeosztás
+     */
     #[Override]
     public function update(array $data, $id): WorkSchedule
     {
@@ -174,7 +228,14 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
     }
 
     /**
-     * @param list<int> $ids
+     * Több munkabeosztás törlése egyszerre
+     * 
+     * Tranzakcióban futtatva, cache invalidálással.
+     * Publikált beosztások nem törölhetők (RuntimeException).
+     * 
+     * @param list<int> $ids Munkabeosztás azonosítók tömbje
+     * @return int A törölt rekordok száma
+     * @throws \RuntimeException Ha publikált beosztást próbálunk törölni
      */
     #[Override]
     public function bulkDelete(array $ids): int
@@ -197,6 +258,16 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
         });
     }
 
+    /**
+     * Egy munkabeosztás törlése
+     * 
+     * Tranzakcióban futtatva, pesszimista zárolással.
+     * Publikált beosztások nem törölhetők (RuntimeException).
+     * 
+     * @param int $id Munkabeosztás azonosító
+     * @return bool Sikeres törlés esetén true
+     * @throws \RuntimeException Ha publikált beosztást próbálunk törölni
+     */
     #[Override]
     public function destroy(int $id): bool
     {
@@ -216,6 +287,14 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
         });
     }
 
+    /**
+     * Cache invalidálás munkabeosztás írási műveletek után
+     * 
+     * Növeli a verzió számot a munkabeosztás listázás cache-hez.
+     * DB commit után fut, így biztosítva a konzisztenciát.
+     * 
+     * @return void
+     */
     private function invalidateAfterWrite(): void
     {
         DB::afterCommit(function (): void {
@@ -223,12 +302,24 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
         });
     }
 
+    /**
+     * Repository model osztály megadása
+     * 
+     * @return string Model osztály neve
+     */
     #[Override]
     public function model(): string
     {
         return WorkSchedule::class;
     }
 
+    /**
+     * Repository inicializálás
+     * 
+     * Criteria-k regisztrálása (pl. query string alapú szűrés).
+     * 
+     * @return void
+     */
     public function boot(): void
     {
         $this->pushCriteria(app(RequestCriteria::class));

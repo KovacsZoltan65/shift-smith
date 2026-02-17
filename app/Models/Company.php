@@ -14,14 +14,23 @@ use Override;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-/** 
- * @property int|string $id
- * @property string $name
- * @property string $name_lc
- * @property string $email
- * @property string $address
- * @property string $phone
- * @property boolean $active
+/**
+ * Cég model osztály
+ * 
+ * Cégek adatainak tárolása és kezelése.
+ * Soft delete támogatással, activity log naplózással.
+ * Kapcsolódó dolgozók (employees) kezelése.
+ * 
+ * @property int|string $id Cég azonosító
+ * @property string $name Cég neve
+ * @property string $name_lc Cég neve kisbetűvel (kereséshez)
+ * @property string $email Email cím
+ * @property string $address Cím
+ * @property string $phone Telefonszám
+ * @property boolean $active Aktív státusz
+ * @property \Illuminate\Support\Carbon|null $deleted_at Törlés időpontja (soft delete)
+ * @property \Illuminate\Support\Carbon $created_at Létrehozás időpontja
+ * @property \Illuminate\Support\Carbon $updated_at Módosítás időpontja
  */
 class Company extends Model
 {
@@ -56,11 +65,22 @@ class Company extends Model
     /** @var array<int,string> */
     protected static array $recordEvents = ['created', 'updated', 'deleted'];
     
+    /**
+     * Activity log név lekérése
+     * 
+     * @param string $eventName Esemény neve (created, updated, deleted)
+     * @return string Log csatorna neve
+     */
     public function getLogNameToUse(string $eventName = ''): string
     {
         return static::$logName ?? 'default';
     }
 
+    /**
+     * Cache tag név lekérése
+     * 
+     * @return string Cache tag azonosító
+     */
     public static function getTag(): string
     {
         return static::$logName;
@@ -81,15 +101,21 @@ class Company extends Model
      * ===========================================================
      */
 
-    /** @return array<int,string> */
+    /**
+     * Rendezhető mezők listája
+     * 
+     * @return array<int,string> Rendezhető oszlopnevek
+     */
     public static function getSortable(): array
     {
         return self::SORTABLE;
     }
 
     /**
-     * @param  Builder<Company>  $query
-     * @return Builder<Company>
+     * Aktív cégek szűrése
+     * 
+     * @param  Builder<Company>  $query Query builder
+     * @return Builder<Company> Szűrt query
      */
     public function scopeActive(Builder $query): Builder
     {
@@ -97,8 +123,13 @@ class Company extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
-     * @return Builder<self>
+     * Keresés név, email és telefon mezőkben
+     * 
+     * Request paraméterek alapján szűr név, email és telefon mezőkre.
+     * 
+     * @param  Builder<self>  $query Query builder
+     * @param  Request  $request HTTP kérés objektum
+     * @return Builder<self> Szűrt query
      */
     public function scopeSearch(Builder $query, Request $request): Builder
     {
@@ -132,7 +163,11 @@ class Company extends Model
      */
 
     /**
-     * @return HasMany<Employee, $this>
+     * Céghez tartozó dolgozók kapcsolata
+     * 
+     * Egy céghez több dolgozó tartozhat (1:N kapcsolat).
+     * 
+     * @return HasMany<Employee, $this> Dolgozók kapcsolata
      */
     public function employees(): HasMany
     {

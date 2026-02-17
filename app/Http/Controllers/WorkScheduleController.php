@@ -15,12 +15,30 @@ use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
+/**
+ * Munkabeosztás controller osztály
+ * 
+ * HTTP kérések kezelése munkabeosztások CRUD műveleteihez.
+ * Inertia.js frontend integráció és JSON API végpontok.
+ * Policy-alapú autorizációval és publikálás védelem.
+ */
 class WorkScheduleController extends Controller
 {
+    /**
+     * Constructor
+     * 
+     * @param WorkScheduleService $service Munkabeosztás service
+     */
     public function __construct(
         private readonly WorkScheduleService $service
     ) {}
 
+    /**
+     * Munkabeosztások lista oldal megjelenítése
+     * 
+     * @param IndexRequest $request Validált kérés
+     * @return InertiaResponse Inertia válasz a WorkSchedules/Index komponenssel
+     */
     public function index(IndexRequest $request): InertiaResponse
     {
         $this->authorize(WorkSchedulePolicy::PERM_VIEW_ANY, WorkSchedule::class);
@@ -31,6 +49,12 @@ class WorkScheduleController extends Controller
         ]);
     }
 
+    /**
+     * Munkabeosztások listázása JSON formátumban
+     * 
+     * @param IndexRequest $request Validált kérés
+     * @return JsonResponse Lapozott munkabeosztás lista JSON-ben
+     */
     public function fetch(IndexRequest $request): JsonResponse
     {
         $this->authorize(WorkSchedulePolicy::PERM_VIEW_ANY, WorkSchedule::class);
@@ -49,6 +73,12 @@ class WorkScheduleController extends Controller
         ], Response::HTTP_OK);
     }
 
+    /**
+     * Egy munkabeosztás lekérése azonosító alapján
+     * 
+     * @param int $id Munkabeosztás azonosító
+     * @return JsonResponse Munkabeosztás adatok JSON-ben
+     */
     public function getWorkSchedule(int $id): JsonResponse
     {
         $workSchedule = $this->service->getWorkSchedule($id);
@@ -61,6 +91,12 @@ class WorkScheduleController extends Controller
         }
     }
 
+    /**
+     * Új munkabeosztás létrehozása
+     * 
+     * @param StoreRequest $request Validált kérés
+     * @return JsonResponse Létrehozott munkabeosztás JSON-ben
+     */
     public function store(StoreRequest $request): JsonResponse
     {
         $this->authorize('create', WorkSchedule::class);
@@ -76,6 +112,13 @@ class WorkScheduleController extends Controller
         }
     }
 
+    /**
+     * Munkabeosztás adatainak frissítése
+     * 
+     * @param UpdateRequest $request Validált kérés
+     * @param int $id Munkabeosztás azonosító
+     * @return JsonResponse Frissített munkabeosztás JSON-ben
+     */
     public function update(UpdateRequest $request, int $id): JsonResponse
     {
         $data = $request->validated();
@@ -93,6 +136,14 @@ class WorkScheduleController extends Controller
         }
     }
 
+    /**
+     * Egy munkabeosztás törlése
+     * 
+     * Publikált beosztások nem törölhetők.
+     * 
+     * @param int $id Munkabeosztás azonosító
+     * @return JsonResponse Törlés eredménye JSON-ben
+     */
     public function destroy(int $id): JsonResponse
     {
         $workSchedule = $this->service->getWorkSchedule($id);
@@ -108,6 +159,14 @@ class WorkScheduleController extends Controller
         }
     }
 
+    /**
+     * Több munkabeosztás törlése egyszerre
+     * 
+     * Publikált beosztások nem törölhetők.
+     * 
+     * @param BulkDeleteRequest $request Validált kérés
+     * @return JsonResponse Törlés eredménye JSON-ben
+     */
     public function bulkDelete(BulkDeleteRequest $request): JsonResponse
     {
         $this->authorize(WorkSchedulePolicy::PERM_DELETE_ANY, WorkSchedule::class);

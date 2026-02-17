@@ -17,6 +17,13 @@ use Prettus\Repository\Criteria\RequestCriteria;
 use Prettus\Repository\Eloquent\BaseRepository;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Jogosultság repository osztály
+ * 
+ * Adatbázis műveletek kezelése jogosultságokhoz (Spatie Permission).
+ * Cache támogatással, verziókezeléssel és lapozással.
+ * Szerepkör és model kapcsolatok kezelésével.
+ */
 class PermissionRepository extends BaseRepository implements PermissionRepositoryInterface
 {
     use Functions;
@@ -26,7 +33,9 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
     
     private readonly CacheVersionService $cacheVersionService;
     
+    /** Cache namespace a jogosultságok listázásához */
     private const NS_PERMISSIONS_FETCH = 'permissions.fetch';
+    /** Cache namespace a jogosultság selector listához */
     private const NS_SELECTORS_PERMISSIONS = 'selectors.permissions';
 
     public function __construct(
@@ -43,9 +52,13 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
     }
     
     /**
+     * Jogosultságok listázása lapozással, szűréssel és rendezéssel
      * 
-     * @param Request $request
-     * @return LengthAwarePaginator<int, Permission>
+     * Cache-elhető lekérdezés verziókezeléssel.
+     * Támogatja a keresést (név, guard_name), rendezést és lapozást.
+     * 
+     * @param Request $request HTTP kérés (search, field, order, per_page, page paraméterekkel)
+     * @return LengthAwarePaginator<int, Permission> Lapozott jogosultság lista
      */
     #[Override]
     public function fetch(Request $request): LengthAwarePaginator
@@ -145,12 +158,16 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
     }
     
     /**
-     * Summary of store
+     * Új jogosultság létrehozása
+     * 
+     * Tranzakcióban futtatva, alapértelmezett beállításokkal.
+     * Létrehozás után cache invalidálás.
+     * 
      * @param array{
      *   name: string,
      *   guard_name: string,
-     * } $data
-     * @return Permission
+     * } $data Jogosultság adatok
+     * @return Permission Létrehozott jogosultság
      */
     #[Override]
     public function store(array $data): Permission
@@ -174,13 +191,17 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
     }
     
     /**
-     * Summary of update
+     * Jogosultság adatainak frissítése
+     * 
+     * Tranzakcióban futtatva, pesszimista zárolással.
+     * Frissítés után cache invalidálás.
+     * 
      * @param array{
      *    name: string,
      *    guard_name: string,
-     * } $data
-     * @param int $id
-     * @return Permission
+     * } $data Frissítendő adatok
+     * @param int $id Jogosultság azonosító
+     * @return Permission Frissített jogosultság
      */
     public function update(array $data, $id): Permission
     {
@@ -202,6 +223,15 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
     }
     
     //
+    /**
+     * Több jogosultság törlése egyszerre
+     * 
+     * Tranzakcióban futtatva, kapcsolódó szerepkör és model kapcsolatok törléssel.
+     * Cache invalidálás.
+     * 
+     * @param list<int> $ids Jogosultság azonosítók tömbje
+     * @return int A törölt rekordok száma
+     */
     #[Override]
     public function destroyBulk(array $ids): int
     {
@@ -218,6 +248,16 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
         });
     }
 
+    /**
+     * Egy jogosultság törlése
+     * 
+     * Tranzakcióban futtatva, pesszimista zárolással.
+     * Törli a szerepkör és model kapcsolatokat, beállításokat.
+     * Cache invalidálás.
+     * 
+     * @param int $id Jogosultság azonosító
+     * @return bool Sikeres törlés esetén true
+     */
     #[Override]
     public function destroy(int $id): bool
     {
@@ -242,8 +282,13 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
     }
     
     /**
-     * Summary of getToSelect
-     * @return array<int, array{id: int, name: string}>
+     * Jogosultságok lekérése select listához
+     * 
+     * Egyszerűsített jogosultság lista (id, name) dropdown/select mezőkhöz.
+     * Cache-elhető.
+     * 
+     * @param array<string, mixed> $params Szűrési paraméterek (jelenleg nem használt)
+     * @return array<int, array{id:int, name:string}> Jogosultságok tömbje
      */
     #[Override]
     public function getToSelect(array $params = []): array
@@ -287,6 +332,14 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
         );
     }
     
+    /**
+     * Cache invalidálás jogosultság írási műveletek után
+     * 
+     * Növeli a verzió számokat a jogosultság listázás és selector cache-ekhez.
+     * DB commit után fut, így biztosítva a konzisztenciát.
+     * 
+     * @return void
+     */
     private function invalidateAfterPermissionWrite(): void
     {
         DB::afterCommit(function (): void {
@@ -298,18 +351,48 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
         });
     }
 
+    /**
+     * Alapértelmezett beállítások létrehozása új jogosultsághoz
+     * 
+     * @param Permission $permission Jogosultság model
+     * @return void
+     */
     private function createDefaultSettings(Permission $permission): void{}
 
+    /**
+     * Alapértelmezett beállítások frissítése
+     * 
+     * @param Permission $permission Jogosultság model
+     * @return void
+     */
     private function updateDefaultSettings(Permission $permission): void{}
 
+    /**
+     * Alapértelmezett beállítások törlése
+     * 
+     * @param Permission $permission Jogosultság model
+     * @return void
+     */
     private function deleteDefaultSettings(Permission $permission): void{}
 
+    /**
+     * Repository model osztály megadása
+     * 
+     * @return string Model osztály neve
+     */
     #[Override]
     public function model(): string
     {
         return Permission::class;
     }
 
+    /**
+     * Repository inicializálás
+     * 
+     * Criteria-k regisztrálása (pl. query string alapú szűrés).
+     * 
+     * @return void
+     */
     public function boot(): void
     {
         // Ha később Criteria-t akarsz (pl. query stringből automatikusan),

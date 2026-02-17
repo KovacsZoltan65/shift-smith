@@ -18,6 +18,12 @@ use Prettus\Repository\Eloquent\BaseRepository;
 use App\Services\Cache\CacheVersionService;
 use Override;
 
+/**
+ * Műszak repository osztály
+ * 
+ * Adatbázis műveletek kezelése műszakokhoz.
+ * Cache támogatással, verziókezeléssel és lapozással.
+ */
 class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryInterface
 {
     use Functions;
@@ -27,7 +33,9 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
     
     private readonly CacheVersionService $cacheVersionService;
     
+    /** Cache namespace a műszakok listázásához */
     private const NS_WORK_SHIFT_FETCH = 'work_shifts.fetch';
+    /** Cache namespace a műszak selector listához */
     private const NS_SELECTORS_WORK_SHIFT = 'selectors.work_shifts';
     
     public function __construct(
@@ -44,9 +52,13 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
     }
     
     /**
+     * Műszakok listázása lapozással, szűréssel és rendezéssel
      * 
-     * @param Request $request
-     * @return LengthAwarePaginator<int, WorkShift>
+     * Cache-elhető lekérdezés verziókezeléssel.
+     * Támogatja a keresést (név, email), rendezést és lapozást.
+     * 
+     * @param Request $request HTTP kérés (search, field, order, per_page, page paraméterekkel)
+     * @return LengthAwarePaginator<int, WorkShift> Lapozott műszak lista
      */
     #[Override]
     public function fetch(Request $request): LengthAwarePaginator
@@ -122,6 +134,13 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
         return $work_shifts;
     }
     
+    /**
+     * Műszak lekérése azonosító alapján
+     * 
+     * @param int $id Műszak azonosító
+     * @return WorkShift Műszak model
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
+     */
     #[Override]
     public function getWorkShift(int $id): WorkShift
     {
@@ -131,6 +150,13 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
         return $work_shift;
     }
 
+    /**
+     * Műszak lekérése név alapján
+     * 
+     * @param string $name Műszak neve
+     * @return WorkShift Műszak model
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
+     */
     #[Override]
     public function getWorkShiftByName(string $name): WorkShift
     {
@@ -142,15 +168,19 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
     }
     
     /**
-     * Summary of store
+     * Új műszak létrehozása
+     * 
+     * Tranzakcióban futtatva, alapértelmezett beállításokkal.
+     * Létrehozás után cache invalidálás.
+     * 
      * @param array{
      *    company_id: int,
      *    name: string,
      *    start_time: string,
      *    end_time: string,
      *    active: boolean
-     * } $data
-     * @return WorkShift
+     * } $data Műszak adatok
+     * @return WorkShift Létrehozott műszak
      */
     #[Override]
     public function store(array $data): WorkShift
@@ -169,16 +199,20 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
     }
     
     /**
-     * Summary of update
+     * Műszak adatainak frissítése
+     * 
+     * Tranzakcióban futtatva, pesszimista zárolással.
+     * Frissítés után cache invalidálás.
+     * 
      * @param array{
      *    company_id: int,
      *    name: string,
      *    start_time: string,
      *    end_time: string,
      *    active: boolean
-     * } $data
-     * @param int $id
-     * @return WorkShift
+     * } $data Frissítendő adatok
+     * @param int $id Műszak azonosító
+     * @return WorkShift Frissített műszak
      */
     #[Override]
     public function update(array $data, $id): WorkShift
@@ -201,8 +235,12 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
     }
     
     /**
-     * @param list<int> $ids
-     * @return int
+     * Több műszak törlése egyszerre
+     * 
+     * Tranzakcióban futtatva, cache invalidálással.
+     * 
+     * @param list<int> $ids Műszak azonosítók tömbje
+     * @return int A törölt rekordok száma
      */
     #[Override]
     public function bulkDelete(array $ids): int
@@ -217,8 +255,13 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
     }
 
     /**
-     * @param int $id
-     * @return bool
+     * Egy műszak törlése
+     * 
+     * Tranzakcióban futtatva, pesszimista zárolással.
+     * Törli a kapcsolódó beállításokat és invalidálja a cache-t.
+     * 
+     * @param int $id Műszak azonosító
+     * @return bool Sikeres törlés esetén true
      */
     #[Override]
     public function destroy(int $id): bool
@@ -240,11 +283,15 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
     }
 
     /**
+     * Műszakok lekérése select listához
+     * 
+     * Egyszerűsített műszak lista (id, name) dropdown/select mezőkhöz.
+     * Cache-elhető, csak aktív műszakokat ad vissza.
+     * 
      * @param array{
      *   only_with_companies?: bool
-     * } $params
-     *
-     * @return array<int, array{id:int, name:string}>
+     * } $params Szűrési paraméterek
+     * @return array<int, array{id:int, name:string}> Műszakok tömbje
      */
     #[Override]
     public function getToSelect(array $params): array
@@ -287,6 +334,14 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
         );
     }
 
+    /**
+     * Cache invalidálás műszak írási műveletek után
+     * 
+     * Növeli a verzió számokat a műszak listázás és selector cache-ekhez.
+     * DB commit után fut, így biztosítva a konzisztenciát.
+     * 
+     * @return void
+     */
     private function invalidateAfterWorkShiftWrite(): void
     {
         DB::afterCommit(function():void {
@@ -298,18 +353,48 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
         });
     }
     
+    /**
+     * Alapértelmezett beállítások létrehozása új műszakhoz
+     * 
+     * @param WorkShift $work_shift Műszak model
+     * @return void
+     */
     private function createDefaultSettings(WorkShift $work_shift): void{}
 
+    /**
+     * Alapértelmezett beállítások frissítése
+     * 
+     * @param WorkShift $work_shift Műszak model
+     * @return void
+     */
     private function updateDefaultSettings(WorkShift $work_shift): void{}
 
+    /**
+     * Alapértelmezett beállítások törlése
+     * 
+     * @param WorkShift $work_shift Műszak model
+     * @return void
+     */
     private function deleteDefaultSettings(WorkShift $work_shift): void{}
 
+    /**
+     * Repository model osztály megadása
+     * 
+     * @return string Model osztály neve
+     */
     #[Override]
     public function model(): string
     {
         return WorkShift::class;
     }
 
+    /**
+     * Repository inicializálás
+     * 
+     * Criteria-k regisztrálása (pl. query string alapú szűrés).
+     * 
+     * @return void
+     */
     public function boot(): void
     {
         // Ha később Criteria-t akarsz (pl. query stringből automatikusan),

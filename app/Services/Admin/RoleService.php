@@ -7,6 +7,13 @@ use App\Models\Admin\Role;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 
+/**
+ * Szerepkör szolgáltatás osztály
+ * 
+ * Üzleti logikai réteg a szerepkörök (roles) kezeléséhez.
+ * Spatie Permission csomag integrációval.
+ * Repository pattern-t használ az adatbázis műveletekhez.
+ */
 class RoleService
 {
     public function __construct(
@@ -14,8 +21,10 @@ class RoleService
     ) {}
     
     /**
-     * @param Request $request
-     * @return LengthAwarePaginator<int, Role>
+     * Szerepkörök listázása lapozással és szűréssel
+     * 
+     * @param Request $request HTTP kérés (search, field, order, per_page paraméterekkel)
+     * @return LengthAwarePaginator<int, Role> Lapozott szerepkör lista
      */
     public function fetch(Request $request): LengthAwarePaginator
     {
@@ -26,27 +35,37 @@ class RoleService
     }
     
     /**
-     * Summary of getRole
-     * @param int $id
-     * @return \App\Models\Admin\Role
+     * Egy szerepkör lekérése azonosító alapján
+     * 
+     * @param int $id Szerepkör azonosító
+     * @return Role Szerepkör model
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
      */
     public function getRole(int $id): Role
     {
         return $this->repo->getRole($id);
     }
     
+    /**
+     * Szerepkör lekérése név alapján
+     * 
+     * @param string $name Szerepkör neve
+     * @return Role Szerepkör model
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
+     */
     public function getRoleByName(string $name): Role
     {
         return $this->repo->getRoleByName($name);
     }
     
     /**
-     * Summary of store
+     * Új szerepkör létrehozása
+     * 
      * @param array{
      *   name: string,
      *   guard_name: string,
-     * } $data
-     * @return Role
+     * } $data Szerepkör adatok
+     * @return Role Létrehozott szerepkör
      */
     public function store(array $data): Role
     {
@@ -54,19 +73,28 @@ class RoleService
     }
     
     /**
-     * Summary of update
+     * Szerepkör adatainak frissítése
+     * 
      * @param array{
      *    name: string,
      *    guard_name: string,
-     * } $data
-     * @param int $id
-     * @return Role
+     * } $data Frissítendő adatok
+     * @param int $id Szerepkör azonosító
+     * @return Role Frissített szerepkör
      */
     public function update(array $data, $id): Role
     {
         return $this->repo->update($data, $id);
     }
     
+    /**
+     * Több szerepkör törlése egyszerre
+     * 
+     * Automatikusan kiszűri a duplikátumokat.
+     * 
+     * @param list<int> $ids Szerepkör azonosítók tömbje
+     * @return int A törölt rekordok száma
+     */
     public function bulkDelete(array $ids): int
     {
         // opcionális tisztítás: nullok/duplikátumok kiszűrése
@@ -76,9 +104,10 @@ class RoleService
     }
     
     /**
-     * Summary of destroy
-     * @param int $id
-     * @return bool
+     * Egy szerepkör törlése
+     * 
+     * @param int $id Szerepkör azonosító
+     * @return bool Sikeres törlés esetén true
      */
     public function destroy(int $id): bool
     {
@@ -86,8 +115,11 @@ class RoleService
     }
     
     /**
-     * Summary of getToSelect
-     * @return array<int, array{id: int, name: string}>
+     * Szerepkörök lekérése select listához
+     * 
+     * Egyszerűsített szerepkör lista (id, name) dropdown/select mezőkhöz.
+     * 
+     * @return array<int, array{id: int, name: string}> Szerepkörök tömbje
      */
     public function getToSelect(): array
     {

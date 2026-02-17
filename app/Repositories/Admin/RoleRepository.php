@@ -17,6 +17,13 @@ use Prettus\Repository\Criteria\RequestCriteria;
 use Prettus\Repository\Eloquent\BaseRepository;
 use Spatie\Permission\PermissionRegistrar;
 
+/**
+ * Szerepkör repository osztály
+ * 
+ * Adatbázis műveletek kezelése szerepkörökhoz (Spatie Permission).
+ * Cache támogatással, verziókezeléssel és lapozással.
+ * Jogosultságok szinkronizálásával és permission cache kezeléssel.
+ */
 class RoleRepository extends BaseRepository implements RoleRepositoryInterface
 {
     use Functions;
@@ -26,7 +33,9 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
     
     private readonly CacheVersionService $cacheVersionService;
     
+    /** Cache namespace a szerepkörök listázásához */
     private const NS_ROLES_FETCH = 'roles.fetch';
+    /** Cache namespace a szerepkör selector listához */
     private const NS_SELECTORS_ROLES = 'selectors.roles';
 
     public function __construct(
@@ -43,9 +52,14 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
     }
 
     /**
+     * Szerepkörök listázása lapozással, szűréssel és rendezéssel
      * 
-     * @param Request $request
-     * @return LengthAwarePaginator<int, Role>
+     * Cache-elhető lekérdezés verziókezeléssel.
+     * Tartalmazza a felhasználók számát (users_count) is.
+     * Támogatja a keresést (név, guard_name), rendezést és lapozást.
+     * 
+     * @param Request $request HTTP kérés (search, field, order, per_page, page paraméterekkel)
+     * @return LengthAwarePaginator<int, Role> Lapozott szerepkör lista
      */
     public function fetch(Request $request): LengthAwarePaginator
     {
@@ -149,12 +163,17 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
     }
 
     /**
-     * Summary of store
+     * Új szerepkör létrehozása
+     * 
+     * Tranzakcióban futtatva, jogosultságok szinkronizálással.
+     * Spatie Permission cache flush és saját cache invalidálás.
+     * 
      * @param array{
      *   name: string,
      *   guard_name: string,
-     * } $data
-     * @return Role
+     *   permission_ids?: array<int>|null
+     * } $data Szerepkör adatok
+     * @return Role Létrehozott szerepkör
      */
     public function store(array $data): Role
     {
@@ -181,13 +200,18 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
     }
 
     /**
-     * Summary of update
+     * Szerepkör adatainak frissítése
+     * 
+     * Tranzakcióban futtatva, pesszimista zárolással.
+     * Jogosultságok szinkronizálása és Spatie Permission cache flush.
+     * 
      * @param array{
      *    name: string,
      *    guard_name: string,
-     * } $data
-     * @param int $id
-     * @return Role
+     *    permission_ids?: array<int>|null
+     * } $data Frissítendő adatok
+     * @param int $id Szerepkör azonosító
+     * @return Role Frissített szerepkör
      */
     public function update(array $data, $id): Role
     {
@@ -218,6 +242,14 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
         });
     }
 
+    /**
+     * Több szerepkör törlése egyszerre
+     * 
+     * Tranzakcióban futtatva, cache invalidálással.
+     * 
+     * @param list<int> $ids Szerepkör azonosítók tömbje
+     * @return int A törölt rekordok száma
+     */
     public function bulkDelete(array $ids): int
     {
         return DB::transaction(function() use($ids): int {
@@ -229,6 +261,15 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
         });
     }
     
+    /**
+     * Egy szerepkör törlése
+     * 
+     * Tranzakcióban futtatva, pesszimista zárolással.
+     * Törli a kapcsolódó beállításokat és invalidálja a cache-t.
+     * 
+     * @param int $id Szerepkör azonosító
+     * @return bool Sikeres törlés esetén true
+     */
     public function destroy(int $id): bool
     {
         return DB::transaction(function () use ($id) {
@@ -248,8 +289,13 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
     }
 
     /**
-     * Summary of getToSelect
-     * @return array<int, array{id: int, name: string}>
+     * Szerepkörök lekérése select listához
+     * 
+     * Egyszerűsített szerepkör lista (id, name) dropdown/select mezőkhöz.
+     * Cache-elhető.
+     * 
+     * @param array<string, mixed> $params Szűrési paraméterek (jelenleg nem használt)
+     * @return array<int, array{id:int, name:string}> Szerepkörök tömbje
      */
     public function getToSelect(array $params = []): array
     {
@@ -294,6 +340,14 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
         );
     }
     
+    /**
+     * Cache invalidálás szerepkör írási műveletek után
+     * 
+     * Növeli a verzió számokat a szerepkör listázás és selector cache-ekhez.
+     * DB commit után fut, így biztosítva a konzisztenciát.
+     * 
+     * @return void
+     */
     private function invalidateAfterRoleWrite(): void
     {
         DB::afterCommit(function (): void {
@@ -305,17 +359,47 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
         });
     }
 
+    /**
+     * Alapértelmezett beállítások létrehozása új szerepkörhöz
+     * 
+     * @param Role $role Szerepkör model
+     * @return void
+     */
     private function createDefaultSettings(Role $role): void{}
 
+    /**
+     * Alapértelmezett beállítások frissítése
+     * 
+     * @param Role $role Szerepkör model
+     * @return void
+     */
     private function updateDefaultSettings(Role $role): void{}
 
+    /**
+     * Alapértelmezett beállítások törlése
+     * 
+     * @param Role $role Szerepkör model
+     * @return void
+     */
     private function deleteDefaultSettings(Role $role): void{}
 
+    /**
+     * Repository model osztály megadása
+     * 
+     * @return string Model osztály neve
+     */
     public function model(): string
     {
         return Role::class;
     }
 
+    /**
+     * Repository inicializálás
+     * 
+     * Criteria-k regisztrálása (pl. query string alapú szűrés).
+     * 
+     * @return void
+     */
     public function boot(): void
     {
         // Ha később Criteria-t akarsz (pl. query stringből automatikusan),

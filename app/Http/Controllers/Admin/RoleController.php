@@ -15,21 +15,29 @@ use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
+/**
+ * Szerepkör controller osztály
+ * 
+ * HTTP kérések kezelése szerepkörök CRUD műveleteihez.
+ * Inertia.js frontend integráció és JSON API végpontok.
+ * Spatie Permission integráció.
+ */
 class RoleController extends Controller
 {
+    /**
+     * Constructor
+     * 
+     * @param RoleService $service Szerepkör service
+     */
     public function __construct(
         private readonly RoleService $service
     ) {}
     
     /**
-     * Index oldal betöltése.
-     *
-     * Ez a metódus adatokat egy InertiaResponse objektet, amely tartalmazza a szerepkörök
-     * oldalát, és a meta adatokat, amely tartalmazza a szerepkörök számát, az oldal számát,
-     * a lapok számát, és az utolsó oldal számát.
-     *
-     * @param IndexRequest $request A lekérendő szerepkörök azonosítója.
-     * @return InertiaResponse A szerepkörök oldala egy InertiaResponse objektumban.
+     * Szerepkörök lista oldal megjelenítése
+     * 
+     * @param IndexRequest $request Validált kérés
+     * @return InertiaResponse Inertia válasz az Admin/Roles/Index komponenssel
      */
     public function index(IndexRequest $request): InertiaResponse
     {
@@ -45,15 +53,10 @@ class RoleController extends Controller
     }
 
     /**
-     * Adatok az index oldalhoz.
-     *
-     * Ez a metódus adatokat szolgáltat az index oldalhoz.
-     * A metódus egy szerepkör listát ad vissza, amely tartalmazza a szerepkörök adata mezőjét, és a meta adatokat,
-     * amely tartalmazza a szerepkörök számát, az oldal számát, a lapok számát, és az utolsó oldal számát.
-     * A metódus a szerepkörök listáját egy JsonResponse objektumban adja vissza.
-     *
-     * @param IndexRequest $request A lekérendő szerepkörök azonosítója.
-     * @return JsonResponse A szerepkörök listája egy JsonResponse objektumban.
+     * Szerepkörök listázása JSON formátumban
+     * 
+     * @param IndexRequest $request Validált kérés
+     * @return JsonResponse Lapozott szerepkör lista JSON-ben
      */
     public function fetch(IndexRequest $request): JsonResponse
     {
@@ -73,15 +76,12 @@ class RoleController extends Controller
         ], Response::HTTP_OK);
     }
     
-    /*
-     * Szerepkör lekérése az azonosítója alapján.
-     * Ez a metódus egy szerepkört kér le az azonosítója alapján.
-     * Először lekéri a szerepkört az adatbázisból, majd ellenőrzi, hogy a felhasználó jogosult-e megtekinteni azt.
-     * Ha a felhasználó jogosult, akkor a szerepkört JSON formátumban adja vissza.
-     * Ha a felhasználó nem jogosult, akkor egy 500 Internal Server Error üzenetet ad vissza.
-     * @param int $id A lekérendő szerepkör azonosítója.
-     * @return JsonResponse A szerepkör JSON formátumban, vagy egy 500 Internal Server Error válasz.
-     * @throws Throwable Ha hiba történik a szerepkör lekérése során.
+    /**
+     * Egy szerepkör lekérése azonosító alapján
+     * 
+     * @param int $id Szerepkör azonosító
+     * @return JsonResponse Szerepkör adatok JSON-ben
+     * @throws Throwable
      */
     public function getRole(int $id): JsonResponse
     {
@@ -109,14 +109,11 @@ class RoleController extends Controller
     }
     
     /**
-     * Név alapján kér le egy szerepkört.
-     *
-     * Ez a metódus név alapján kér le egy szerepkört az adatbázisból.
-     * Kivételt dob, ha a szerepkör nem létezik.
-     *
-     * @param string $name A lekérendő szerepkör neve.
-     * @return JsonResponse A szerepkör JSON válaszként.
-     * @throws Throwable Ha a szerepkör nem létezik.
+     * Szerepkör lekérése név alapján
+     * 
+     * @param string $name Szerepkör neve
+     * @return JsonResponse Szerepkör adatok JSON-ben
+     * @throws Throwable
      */
     public function getRoleByName(string $name): JsonResponse
     {
@@ -144,7 +141,10 @@ class RoleController extends Controller
     }
 
     /**
-     * Backward compatible alias (route-ok miatt).
+     * Szerepkör lekérése név alapján (backward compatible alias)
+     * 
+     * @param string $name Szerepkör neve
+     * @return JsonResponse Szerepkör adatok JSON-ben
      */
     public function byName(string $name): JsonResponse
     {
@@ -152,14 +152,10 @@ class RoleController extends Controller
     }
     
     /**
-     * Létrehoz egy új szerepkört.
-     *
-     * Ez a vezérlőmetódus új szerepkört hoz létre a megadott adatokkal.
-     * Érvényesíti a bejövő kérést, majd meghívja a szolgáltatás metódusát a szerepkör
-     * tárolására.
-     *
-     * @param StoreRequest $request
-     * @return JsonResponse Egy JSON válasz a létrehozott szerepkörrel.
+     * Új szerepkör létrehozása
+     * 
+     * @param StoreRequest $request Validált kérés
+     * @return JsonResponse Létrehozott szerepkör JSON-ben
      * @throws \Throwable
      */
     public function store(StoreRequest $request): JsonResponse
@@ -189,13 +185,11 @@ class RoleController extends Controller
     }
     
     /**
-     * Meglévő rekord adatainak frissítése.
-     *
-     * Engedélyezés: 'update' policy.
-     *
-     * @param  UpdateRequest  $request
-     * @param  int  $id  A módosítandó rekord azonosítója.
-     * @return JsonResponse  A frissített rekord adatait tartalmazó JSON válasz.
+     * Szerepkör adatainak frissítése
+     * 
+     * @param UpdateRequest $request Validált kérés
+     * @param int $id Szerepkör azonosító
+     * @return JsonResponse Frissített szerepkör JSON-ben
      * @throws \Throwable
      */
     public function update(UpdateRequest $request, $id): JsonResponse
@@ -223,6 +217,12 @@ class RoleController extends Controller
         }
     }
     
+    /**
+     * Több szerepkör törlése egyszerre
+     * 
+     * @param BulkDeleteRequest $request Validált kérés
+     * @return JsonResponse Törlés eredménye JSON-ben
+     */
     public function bulkDelete(BulkDeleteRequest $request): JsonResponse
     {
         $this->authorize('deleteAny', Role::class);
@@ -244,7 +244,10 @@ class RoleController extends Controller
     }
 
     /**
-     * Backward compatible alias (route-ok miatt).
+     * Több szerepkör törlése egyszerre (backward compatible alias)
+     * 
+     * @param BulkDeleteRequest $request Validált kérés
+     * @return JsonResponse Törlés eredménye JSON-ben
      */
     public function destroyBulk(BulkDeleteRequest $request): JsonResponse
     {
@@ -252,11 +255,10 @@ class RoleController extends Controller
     }
     
     /**
-     * Egyetlen rekord törlése.
-     *
-     * Engedélyezés: 'delete' policy.
-     *
-     * @param  int  $id  A törlendo rekord azonosítója.
+     * Egy szerepkör törlése
+     * 
+     * @param int $id Szerepkör azonosító
+     * @return JsonResponse Törlés eredménye JSON-ben
      * @throws Throwable
      */
     public function destroy(int $id): JsonResponse
@@ -276,13 +278,9 @@ class RoleController extends Controller
     }
     
     /**
-     * Rekordokat tartalmazó többi lista lekérdezéséhez.
-     *
-     * A lista a következ  összetevőket tartalmazza:
-     * - id: azonosító
-     * - name: a rekord neve
-     *
-     * @return array<int, array{id: int, name: string}> A rekordokat tartalmazó többi lista.
+     * Szerepkörök lekérése select listához
+     * 
+     * @return array<int, array{id: int, name: string}> Szerepkörök listája
      */
     public function getToSelect(): array
     {

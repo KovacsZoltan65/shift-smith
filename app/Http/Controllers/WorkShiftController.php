@@ -16,12 +16,30 @@ use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
+/**
+ * Műszak controller osztály
+ * 
+ * HTTP kérések kezelése műszakok CRUD műveleteihez.
+ * Inertia.js frontend integráció és JSON API végpontok.
+ * Policy-alapú autorizációval.
+ */
 class WorkShiftController extends Controller
 {
+    /**
+     * Constructor
+     * 
+     * @param WorkShiftService $service Műszak service
+     */
     public function __construct(
         private readonly WorkShiftService $service
     ) {}
     
+    /**
+     * Műszakok lista oldal megjelenítése
+     * 
+     * @param IndexRequest $request Validált kérés
+     * @return InertiaResponse Inertia válasz a WorkShifts/Index komponenssel
+     */
     public function index(IndexRequest $request): InertiaResponse
     {
         $this->authorize(WorkShiftPolicy::PERM_VIEW_ANY, WorkShift::class);
@@ -32,6 +50,12 @@ class WorkShiftController extends Controller
         ]);
     }
     
+    /**
+     * Műszakok listázása JSON formátumban
+     * 
+     * @param IndexRequest $request Validált kérés
+     * @return JsonResponse Lapozott műszak lista JSON-ben
+     */
     public function fetch(IndexRequest $request): JsonResponse
     {
         $this->authorize(WorkShiftPolicy::PERM_VIEW_ANY, WorkShift::class);
@@ -51,8 +75,10 @@ class WorkShiftController extends Controller
     }
     
     /**
-     * @param int $id
-     * @return \Illuminate\Http\JsonResponse  A cég adatait tartalmazó JSON válasz.
+     * Egy műszak lekérése azonosító alapján
+     * 
+     * @param int $id Műszak azonosító
+     * @return JsonResponse Műszak adatok JSON-ben
      */
     public function getWorkShift(int $id): JsonResponse
     {
@@ -73,9 +99,10 @@ class WorkShiftController extends Controller
     }
     
     /**
+     * Műszak lekérése név alapján
      * 
-     * @param string $name
-     * @return JsonResponse
+     * @param string $name Műszak neve
+     * @return JsonResponse Műszak adatok JSON-ben
      */
     public function getWorkShiftByName(string $name): JsonResponse
     {
@@ -95,6 +122,12 @@ class WorkShiftController extends Controller
         }
     }
     
+    /**
+     * Új műszak létrehozása
+     * 
+     * @param StoreRequest $request Validált kérés
+     * @return JsonResponse Létrehozott műszak JSON-ben
+     */
     public function store(StoreRequest $request): JsonResponse
     {
         $this->authorize(WorkShiftPolicy::PERM_CREATE, WorkShift::class);
@@ -123,13 +156,11 @@ class WorkShiftController extends Controller
     }
     
     /**
-     * Meglévő rekord adatainak frissítése.
-     *
-     * Engedélyezés: 'update' policy.
-     *
-     * @param  \App\Http\Requests\WorkShift\UpdateRequest  $request
-     * @param  int  $id  A módosítandó rekord azonosítója.
-     * @return \Illuminate\Http\JsonResponse  A frissített rekord adatait tartalmazó JSON válasz.
+     * Műszak adatainak frissítése
+     * 
+     * @param UpdateRequest $request Validált kérés
+     * @param int $id Műszak azonosító
+     * @return JsonResponse Frissített műszak JSON-ben
      * @throws \Throwable
      */
     public function update(UpdateRequest $request, $id): JsonResponse
@@ -161,13 +192,10 @@ class WorkShiftController extends Controller
     }
     
     /**
-     * Több rekord törlése egyszerre.
-     *
-     * Engedélyezés: 'delete' policy.
-     * Validálás: BulkDeleteRequest.
-     *
-     * @param  \App\Http\Requests\WorkShift\BulkDeleteRequest  $request
-     * @return \Illuminate\Http\JsonResponse
+     * Több műszak törlése egyszerre
+     * 
+     * @param BulkDeleteRequest $request Validált kérés
+     * @return JsonResponse Törlés eredménye JSON-ben
      * @throws \Throwable
      */
     public function bulkDelete(BulkDeleteRequest $request): JsonResponse
@@ -191,11 +219,10 @@ class WorkShiftController extends Controller
     }
     
     /**
-     * Egyetlen rekord törlése.
-     *
-     * Engedélyezés: 'delete' policy.
-     *
-     * @param  int  $id  A törlendő rekord azonosítója.
+     * Egy műszak törlése
+     * 
+     * @param int $id Műszak azonosító
+     * @return JsonResponse Törlés eredménye JSON-ben
      * @throws \Throwable
      */
     public function destroy(int $id): JsonResponse
@@ -215,8 +242,12 @@ class WorkShiftController extends Controller
     }
     
     /**
-     * Summary of getToSelect
-     * @return array<int, array{id: int, name: string}>
+     * Műszakok lekérése select listához
+     * 
+     * Opcionális szűrés dolgozókkal rendelkező műszakokra.
+     * 
+     * @param Request $request HTTP kérés
+     * @return array<int, array{id: int, name: string}> Műszakok listája
      */
     public function getToSelect(Request $request): array
     {

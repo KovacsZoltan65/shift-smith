@@ -20,6 +20,13 @@ use Prettus\Repository\Criteria\RequestCriteria;
 use Prettus\Repository\Eloquent\BaseRepository;
 use Symfony\Component\HttpFoundation\Exception\JsonException;
 
+/**
+ * Felhasználó repository osztály
+ * 
+ * Adatbázis műveletek kezelése felhasználókhoz.
+ * Cache támogatással, verziókezeléssel és lapozással.
+ * Spatie Permission integráció a szerepkörök és jogosultságok kezeléséhez.
+ */
 class UserRepository extends BaseRepository implements UserRepositoryInterface
 {
     use Functions;
@@ -29,7 +36,9 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     
     private readonly CacheVersionService $cacheVersionService;
     
+    /** Cache namespace a felhasználók listázásához */
     private const NS_USERS_FETCH = 'users.fetch';
+    /** Cache namespace a felhasználó selector listához */
     private const NS_SELECTORS_USERS = 'selectors.users';
     
     public function __construct(
@@ -44,6 +53,15 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
         $this->cacheVersionService = $cacheVersionService;
     }
 
+    /**
+     * Felhasználók listázása lapozással, szűréssel és rendezéssel
+     * 
+     * Cache-elhető lekérdezés verziókezeléssel.
+     * Támogatja a keresést (név, email), rendezést és lapozást.
+     * 
+     * @param Request $request HTTP kérés (search, field, order, per_page, page paraméterekkel)
+     * @return LengthAwarePaginator<int, User> Lapozott felhasználó lista
+     */
     public function fetch(Request $request): LengthAwarePaginator
     {
         $needCache = (bool) config('cache.enable_users', false);
@@ -113,10 +131,11 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     }
         
     /**
-     * Rekord lekérése azonosító alapján
+     * Felhasználó lekérése azonosító alapján
      * 
-     * @param int $id
-     * @return User
+     * @param int $id Felhasználó azonosító
+     * @return User Felhasználó model
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
      */
     public function getUser(int $id): User
     {
@@ -127,10 +146,11 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     }
     
     /**
-     * Rekord lekérése név alapján
+     * Felhasználó lekérése név alapján
      * 
-     * @param string $name
-     * @return User
+     * @param string $name Felhasználó neve
+     * @return User Felhasználó model
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
      */
     public function getUserByName(string $name): User
     {
@@ -141,7 +161,10 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     }
     
     /**
-     * Új felhasználó mentése
+     * Új felhasználó létrehozása
+     * 
+     * Tranzakcióban futtatva, jelszó reset link küldéssel.
+     * Létrehozás után cache invalidálás.
      * 
       * @param array{
       *   name: string,
@@ -149,8 +172,8 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
       *   password: string,
       *   company_id?: int|null,
       *   is_active?: bool,
-      * } $data
-     * @return User
+      * } $data Felhasználó adatok
+     * @return User Létrehozott felhasználó
      */
     public function store(array $data): User
     {
@@ -175,7 +198,10 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     }
     
     /**
-     * Felhasználó adatainak mentése
+     * Felhasználó adatainak frissítése
+     * 
+     * Tranzakcióban futtatva, pesszimista zárolással.
+     * Frissítés után cache invalidálás.
      * 
      * @param array{
      *   name: string,
@@ -183,9 +209,9 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      *   password: string,
      *   company_id?: int|null,
      *   is_active?: bool,
-     * } $data
-     * @param int $id
-     * @return User
+     * } $data Frissítendő adatok
+     * @param int $id Felhasználó azonosító
+     * @return User Frissített felhasználó
      */
     public function update(array $data, $id): User
     {
@@ -206,8 +232,13 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     }
     
     /**
-     * @param list<int> $ids
-     * @return int
+     * Több felhasználó törlése egyszerre
+     * 
+     * Tranzakcióban futtatva, szerepkörök és jogosultságok törléssel.
+     * Saját fiók törlése tiltva (403 hiba).
+     * 
+     * @param list<int> $ids Felhasználó azonosítók tömbje
+     * @return int A törölt rekordok száma
      */
     public function bulkDelete(array $ids): int
     {
@@ -235,6 +266,16 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
         });
     }
     
+    /**
+     * Egy felhasználó törlése
+     * 
+     * Tranzakcióban futtatva, pesszimista zárolással.
+     * Törli a szerepköröket, jogosultságokat és beállításokat.
+     * Saját fiók törlése tiltva (403 hiba).
+     * 
+     * @param int $id Felhasználó azonosító
+     * @return bool Sikeres törlés esetén true
+     */
     public function destroy(int $id): bool
     {
         return DB::transaction(function() use($id) {
@@ -270,6 +311,14 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
         });
     }
     
+    /**
+     * Cache invalidálás felhasználó írási műveletek után
+     * 
+     * Növeli a verzió számokat a felhasználó listázás és selector cache-ekhez.
+     * DB commit után fut, így biztosítva a konzisztenciát.
+     * 
+     * @return void
+     */
     private function invalidateAfterUserWrite(): void
     {
         DB::afterCommit(function():void {
@@ -282,31 +331,46 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     }
     
     /**
-     * Summary of createDefaultSettings
-     * @param User $user
+     * Alapértelmezett beállítások létrehozása új felhasználóhoz
+     * 
+     * @param User $user Felhasználó model
      * @return void
      */
     private function createDefaultSettings(User $user): void{}
     
     /**
-     * Summary of updateDefaultSettings
-     * @param User $user
+     * Alapértelmezett beállítások frissítése
+     * 
+     * @param User $user Felhasználó model
      * @return void
      */
     private function updateDefaultSettings(User $user): void{}
     
     /**
-     * Summary of deleteDefaultSettings
-     * @param User $user    
+     * Alapértelmezett beállítások törlése
+     * 
+     * @param User $user Felhasználó model
      * @return void
      */
     private function deleteDefaultSettings(User $user): void{}
     
+    /**
+     * Repository model osztály megadása
+     * 
+     * @return string Model osztály neve
+     */
     public function model(): string
     {
         return User::class;
     }
 
+    /**
+     * Repository inicializálás
+     * 
+     * Criteria-k regisztrálása (pl. query string alapú szűrés).
+     * 
+     * @return void
+     */
     public function boot(): void
     {
         // Ha később Criteria-t akarsz (pl. query stringből automatikusan),

@@ -18,10 +18,20 @@ use Spatie\Activitylog\LogOptions;
 use Override;
 
 /**
+ * Felhasználó model osztály
+ * 
+ * Laravel Authenticatable kiterjesztése email verifikációval.
+ * Spatie Permission integráció szerepkör és jogosultság kezeléshez.
+ * Activity log támogatással minden módosítás naplózásához.
+ * 
  * @property int $id
- * @property string $name
- * @property string $email
- * @property string $password
+ * @property string $name Felhasználó teljes neve
+ * @property string $email Email cím (egyedi)
+ * @property string $password Hashelve tárolt jelszó
+ * @property \Illuminate\Support\Carbon|null $email_verified_at Email megerősítés időpontja
+ * @property string|null $remember_token Bejelentkezve maradás token
+ * @property \Illuminate\Support\Carbon $created_at Létrehozás időpontja
+ * @property \Illuminate\Support\Carbon $updated_at Módosítás időpontja
  */
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -69,9 +79,12 @@ class User extends Authenticatable implements MustVerifyEmail
     }
     
     /**
+     * Felhasználó összes jogosultságának lekérése map formátumban
+     * 
      * Kulcs: permission név, érték: true (frontend gyors lookuphoz).
+     * Spatie Permission trait getAllPermissions() metódusát használja.
      *
-     * @return Collection<string,bool>
+     * @return Collection<string,bool> Jogosultság név => true párok
      */
     public function getPermissionArray(): Collection
     {
@@ -100,11 +113,22 @@ class User extends Authenticatable implements MustVerifyEmail
     /** @var array<int,string> */
     protected static array $recordEvents = ['created', 'updated', 'deleted'];
     
+    /**
+     * Activity log név lekérése
+     * 
+     * @param string $eventName Esemény neve (created, updated, deleted)
+     * @return string Log csatorna neve
+     */
     public function getLogNameToUse(string $eventName = ''): string
     {
         return static::$logName ?? 'default';
     }
 
+    /**
+     * Cache tag név lekérése
+     * 
+     * @return string Cache tag azonosító
+     */
     public static function getTag(): string
     {
         return static::$logName;
@@ -125,15 +149,21 @@ class User extends Authenticatable implements MustVerifyEmail
      * ===========================================================
      */
     
-    /** @return array<int,string> */
+    /**
+     * Rendezhető mezők listája
+     * 
+     * @return array<int,string> Rendezhető oszlopnevek
+     */
     public static function getSortable(): array
     {
         return self::$sortable;
     }
 
     /**
-     * @param  Builder<User>  $query
-     * @return Builder<User>
+     * Aktív felhasználók szűrése
+     * 
+     * @param  Builder<User>  $query Query builder
+     * @return Builder<User> Szűrt query
      */
     public function scopeActive(Builder $query): Builder
     {
@@ -141,8 +171,13 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * @param  Builder<self>  $query
-     * @return Builder<self>
+     * Keresés név és email mezőkben
+     * 
+     * Request paraméterek alapján szűr név és email mezőkre.
+     * 
+     * @param  Builder<self>  $query Query builder
+     * @param  Request  $request HTTP kérés objektum
+     * @return Builder<self> Szűrt query
      */
     public function scopeSearch(Builder $query, Request $request): Builder
     {

@@ -11,15 +11,24 @@ use Override;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
-/** 
- * @property int|string $id
- * @property int|string $company_id
- * @property string $name
- * @property string $start_time
- * @property string $end_time
- * @property int $work_time_minutes
- * @property int $break_minutes
- * @property boolean $active
+/**
+ * Műszak model osztály
+ * 
+ * Műszakok (work shifts) adatainak tárolása és kezelése.
+ * Soft delete támogatással, activity log naplózással.
+ * Kapcsolódik egy céghez (company).
+ * 
+ * @property int|string $id Műszak azonosító
+ * @property int|string $company_id Cég azonosító
+ * @property string $name Műszak neve
+ * @property string $start_time Kezdési időpont (HH:MM)
+ * @property string $end_time Befejezési időpont (HH:MM)
+ * @property int $work_time_minutes Munka idő percekben
+ * @property int $break_minutes Szünet idő percekben
+ * @property boolean $active Aktív státusz
+ * @property \Illuminate\Support\Carbon|null $deleted_at Törlés időpontja (soft delete)
+ * @property \Illuminate\Support\Carbon $created_at Létrehozás időpontja
+ * @property \Illuminate\Support\Carbon $updated_at Módosítás időpontja
  */
 class WorkShift extends Model
 {
@@ -65,11 +74,22 @@ class WorkShift extends Model
     /** @var array<int,string> */
     protected static array $recordEvents = ['created', 'updated', 'deleted'];
     
+    /**
+     * Activity log név lekérése
+     * 
+     * @param string $eventName Esemény neve (created, updated, deleted)
+     * @return string Log csatorna neve
+     */
     public function getLogNameToUse(string $eventName = ''): string
     {
         return static::$logName ?? 'default';
     }
 
+    /**
+     * Cache tag név lekérése
+     * 
+     * @return string Cache tag azonosító
+     */
     public static function getTag(): string
     {
         return static::$logName;
@@ -90,15 +110,21 @@ class WorkShift extends Model
      * ===========================================================
      */
     
-    /** @return array<int,string> */
+    /**
+     * Rendezhető mezők listája
+     * 
+     * @return array<int,string> Rendezhető oszlopnevek
+     */
     public static function getSortable(): array
     {
         return self::SORTABLE;
     }
 
     /**
-     * @param  Builder<WorkShift>  $query
-     * @return Builder<WorkShift>
+     * Aktív műszakok szűrése
+     * 
+     * @param  Builder<WorkShift>  $query Query builder
+     * @return Builder<WorkShift> Szűrt query
      */
     public function scopeActive(Builder $query): Builder
     {
@@ -106,8 +132,13 @@ class WorkShift extends Model
     }
     
     /**
-     * @param  Builder<WorkShift>  $query
-     * @return Builder<WorkShift>
+     * Keresés név és időpont mezőkben
+     * 
+     * Keres név, kezdési és befejezési időpont mezőkben.
+     * 
+     * @param  Builder<WorkShift>  $query Query builder
+     * @param  string  $search Keresési kifejezés
+     * @return Builder<WorkShift> Szűrt query
      */
     public function scopeSearch(Builder $query, string $search): Builder
     {
@@ -128,7 +159,11 @@ class WorkShift extends Model
      */
 
     /**
-     * @return BelongsTo<Company, $this>
+     * Műszak céghez tartozása
+     * 
+     * Egy műszak egy céghez tartozik (N:1 kapcsolat).
+     * 
+     * @return BelongsTo<Company, $this> Cég kapcsolata
      */
     public function company(): BelongsTo
     {

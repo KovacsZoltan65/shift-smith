@@ -16,12 +16,27 @@ use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
+/**
+ * Munkavállaló controller osztály
+ * 
+ * HTTP kérések kezelése munkavállalók CRUD műveleteihez.
+ * Inertia.js frontend integráció és JSON API végpontok.
+ * Policy-alapú autorizációval.
+ */
 class EmployeeController extends Controller
 {
     public function __construct(
             private readonly EmployeeService $service
     ) {}
     
+    /**
+     * Munkavállalók lista oldal megjelenítése
+     * 
+     * Inertia oldal renderelés szűrési paraméterekkel.
+     * 
+     * @param IndexRequest $request Validált kérés (search, company_id, field, order, per_page)
+     * @return InertiaResponse Inertia válasz a HR/Employees/Index komponenssel
+     */
     public function index(IndexRequest $request): InertiaResponse
     {
         $this->authorize(EmployeePolicy::PERM_VIEW_ANY, Employee::class);
@@ -32,6 +47,14 @@ class EmployeeController extends Controller
         ]);
     }
     
+    /**
+     * Munkavállalók listázása JSON formátumban
+     * 
+     * Lapozott lista meta adatokkal (current_page, per_page, total, last_page).
+     * 
+     * @param IndexRequest $request Validált kérés
+     * @return JsonResponse Lapozott munkavállaló lista JSON-ben
+     */
     public function fetch(IndexRequest $request): JsonResponse
     {
         $this->authorize(EmployeePolicy::PERM_VIEW_ANY, Employee::class);
@@ -51,8 +74,10 @@ class EmployeeController extends Controller
     }
     
     /**
-     * @param int $id
-     * @return JsonResponse  A dolgozó adatait tartalmazó JSON válasz.
+     * Egy munkavállaló lekérése azonosító alapján
+     * 
+     * @param int $id Munkavállaló azonosító
+     * @return JsonResponse Munkavállaló adatok JSON-ben
      */
     public function getEmployee(int $id): JsonResponse
     {
@@ -73,9 +98,10 @@ class EmployeeController extends Controller
     }
     
     /**
+     * Munkavállaló lekérése név alapján
      * 
-     * @param string $name
-     * @return JsonResponse
+     * @param string $name Munkavállaló keresztneve
+     * @return JsonResponse Munkavállaló adatok JSON-ben
      */
     public function getEmployeeByName(string $name): JsonResponse
     {
@@ -95,6 +121,14 @@ class EmployeeController extends Controller
         }
     }
     
+    /**
+     * Új munkavállaló létrehozása
+     * 
+     * Validált adatokkal új munkavállaló létrehozása.
+     * 
+     * @param StoreRequest $request Validált kérés (company_id, first_name, last_name, email, address, phone, hired_at, active)
+     * @return JsonResponse Létrehozott munkavállaló JSON-ben
+     */
     public function store(StoreRequest $request): JsonResponse
     {
         $this->authorize(EmployeePolicy::PERM_CREATE, Employee::class);
@@ -220,8 +254,12 @@ class EmployeeController extends Controller
     }
     
     /**
-     * Summary of getToSelect
-     * @return array<int, array{id: int, name: string}>
+     * Munkavállalók lekérése select listához
+     * 
+     * Egyszerűsített lista (id, name) dropdown/select mezőkhöz.
+     * 
+     * @param Request $request HTTP kérés
+     * @return array<int, array{id: int, name: string}> Munkavállalók tömbje
      */
     public function getToSelect(Request $request): array
     {

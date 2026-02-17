@@ -16,12 +16,27 @@ use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
+/**
+ * Cég controller osztály
+ * 
+ * HTTP kérések kezelése cégek CRUD műveleteihez.
+ * Inertia.js frontend integráció és JSON API végpontok.
+ * Policy-alapú autorizációval.
+ */
 class CompanyController extends Controller
 {
     public function __construct(
         private readonly CompanyService $service
     ) {}
     
+    /**
+     * Cégek lista oldal megjelenítése
+     * 
+     * Inertia oldal renderelés szűrési paraméterekkel.
+     * 
+     * @param IndexRequest $request Validált kérés (search, field, order, per_page)
+     * @return InertiaResponse Inertia válasz a Companies/Index komponenssel
+     */
     public function index(IndexRequest $request): InertiaResponse
     {
         $this->authorize(CompanyPolicy::PERM_VIEW_ANY, Company::class);
@@ -32,6 +47,14 @@ class CompanyController extends Controller
         ]);
     }
     
+    /**
+     * Cégek listázása JSON formátumban
+     * 
+     * Lapozott lista meta adatokkal (current_page, per_page, total, last_page).
+     * 
+     * @param IndexRequest $request Validált kérés
+     * @return JsonResponse Lapozott cég lista JSON-ben
+     */
     public function fetch(IndexRequest $request): JsonResponse
     {
         $this->authorize(CompanyPolicy::PERM_VIEW_ANY, Company::class);
@@ -51,8 +74,10 @@ class CompanyController extends Controller
     }
     
     /**
-     * @param int $id
-     * @return \Illuminate\Http\JsonResponse  A cég adatait tartalmazó JSON válasz.
+     * Egy cég lekérése azonosító alapján
+     * 
+     * @param int $id Cég azonosító
+     * @return JsonResponse Cég adatok JSON-ben
      */
     public function getCompany(int $id): JsonResponse
     {
@@ -73,9 +98,10 @@ class CompanyController extends Controller
     }
     
     /**
+     * Cég lekérése név alapján
      * 
-     * @param string $name
-     * @return JsonResponse
+     * @param string $name Cég neve
+     * @return JsonResponse Cég adatok JSON-ben
      */
     public function getCompanyByName(string $name): JsonResponse
     {
@@ -95,6 +121,14 @@ class CompanyController extends Controller
         }
     }
     
+    /**
+     * Új cég létrehozása
+     * 
+     * Validált adatokkal új cég létrehozása.
+     * 
+     * @param StoreRequest $request Validált kérés (name, email, address, phone, active)
+     * @return JsonResponse Létrehozott cég JSON-ben
+     */
     public function store(StoreRequest $request): JsonResponse
     {
         $this->authorize(CompanyPolicy::PERM_CREATE, Company::class);
@@ -215,8 +249,13 @@ class CompanyController extends Controller
     }
     
     /**
-     * Summary of getToSelect
-     * @return array<int, array{id: int, name: string}>
+     * Cégek lekérése select listához
+     * 
+     * Egyszerűsített lista (id, name) dropdown/select mezőkhöz.
+     * Opcionálisan csak olyan cégek, amelyeknek van munkavállalója.
+     * 
+     * @param Request $request HTTP kérés (only_with_employees paraméterrel)
+     * @return array<int, array{id: int, name: string}> Cégek tömbje
      */
     public function getToSelect(Request $request): array
     {

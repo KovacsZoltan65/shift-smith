@@ -12,10 +12,28 @@ use Illuminate\Cache\RedisStore;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Cache szolgáltatás osztály
+ * 
+ * Egységes cache kezelést biztosít tag-alapú és tag nélküli cache store-okhoz.
+ * Támogatja a Redis, Memcached és file-based cache driver-eket.
+ */
 class CacheService
 {
     use Functions;
     
+    /**
+     * Érték tárolása a cache-ben
+     * 
+     * Tag-alapú cache esetén (Redis, Memcached) natív tag támogatást használ.
+     * Egyéb driver-ek esetén manuális kulcs nyilvántartást végez.
+     * 
+     * @param string $tag Cache tag azonosító (pl. 'users', 'companies')
+     * @param string $key Cache kulcs azonosító
+     * @param mixed $value Tárolandó érték
+     * @param DateTimeInterface|DateInterval|int $ttl Élettartam másodpercben vagy DateTime objektum
+     * @return void
+     */
     public function put(string $tag, string $key, mixed $value, DateTimeInterface|DateInterval|int $ttl = 3600): void
     {
         //$cacheKey = "{$tag}:{$key}";
@@ -30,10 +48,18 @@ class CacheService
     }
     
     /**
+     * Érték lekérése cache-ből vagy callback végrehajtása
+     * 
+     * Ha az érték nincs cache-ben, végrehajtja a callback-et és eltárolja az eredményt.
+     * Generic típus támogatással biztosítja a típusbiztonságot.
+     * 
      * @template TCacheValue
-     *
-     * @param Closure():TCacheValue $callback
-     * @return TCacheValue
+     * 
+     * @param string $tag Cache tag azonosító
+     * @param string $key Cache kulcs azonosító
+     * @param Closure():TCacheValue $callback Callback függvény, ami előállítja az értéket
+     * @param DateTimeInterface|DateInterval|int $ttl Élettartam másodpercben vagy DateTime objektum
+     * @return TCacheValue A cache-ből vagy callback-ből származó érték
      */
     public function remember(
         string $tag,
@@ -56,6 +82,15 @@ class CacheService
         return $value;
     }
     
+    /**
+     * Összes cache bejegyzés törlése egy tag alapján
+     * 
+     * Tag-alapú cache esetén natív flush-t használ.
+     * Egyéb driver-ek esetén a manuálisan nyilvántartott kulcsokat törli.
+     * 
+     * @param string $tag Cache tag azonosító
+     * @return void
+     */
     public function forgetAll(string $tag): void
     {
         if (Cache::supportsTags()) {
@@ -136,6 +171,15 @@ class CacheService
     }
     */
     
+    /**
+     * Cache bejegyzések törlése minta alapján
+     * 
+     * Csak Redis cache driver esetén működik, pattern-based kulcs kereséssel.
+     * Más driver-ek esetén figyelmeztetést logol.
+     * 
+     * @param string $pattern Keresési minta (pl. 'users:*', 'companies:active:*')
+     * @return void
+     */
     public function forgetAllMatching(string $pattern): void
     {
         $store = Cache::getStore();
@@ -157,6 +201,16 @@ class CacheService
         ]);
     }
     
+    /**
+     * Cache kulcs nyilvántartásba vétele tag nélküli driver-ek esetén
+     * 
+     * Manuálisan tárolja a kulcsokat egy listában, hogy később törölhetők legyenek.
+     * Csak akkor hívódik, ha a cache driver nem támogatja a tag-eket.
+     * 
+     * @param string $tag Cache tag azonosító
+     * @param string $key Cache kulcs azonosító
+     * @return void
+     */
     protected function storeKey(string $tag, string $key): void
     {
         /** @var array<int,string> $keys */

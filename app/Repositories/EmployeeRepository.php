@@ -18,6 +18,13 @@ use Override;
 use Prettus\Repository\Criteria\RequestCriteria;
 use Prettus\Repository\Eloquent\BaseRepository;
 
+/**
+ * Munkavállaló repository osztály
+ * 
+ * Adatbázis műveletek kezelése munkavállalókhoz.
+ * Cache támogatással, verziókezeléssel és lapozással.
+ * Cég szűrés támogatással és cross-cache invalidálással.
+ */
 class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInterface
 {
     use Functions;
@@ -27,8 +34,11 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
     
     private readonly CacheVersionService $cacheVersionService;
     
+    /** Cache namespace a munkavállalók listázásához */
     private const NS_EMPLOYEES_FETCH = 'employees.fetch';
+    /** Cache namespace a munkavállaló selector listához */
     private const NS_SELECTORS_EMPLOYEES = 'selectors.employees';
+    /** Cache namespace a cég selector listához (cross-invalidálás) */
     private const NS_SELECTORS_COMPANIES = 'selectors.companies';
     
     public function __construct(
@@ -44,6 +54,15 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
         $this->cacheVersionService = $cacheVersionService;
     }
     
+    /**
+     * Munkavállalók listázása lapozással, szűréssel és rendezéssel
+     * 
+     * Cache-elhető lekérdezés verziókezeléssel.
+     * Támogatja a keresést (név, email), cég szűrést, rendezést és lapozást.
+     * 
+     * @param Request $request HTTP kérés (search, company_id, field, order, per_page, page paraméterekkel)
+     * @return LengthAwarePaginator<int, Employee> Lapozott munkavállaló lista
+     */
     #[Override]
     public function fetch(Request $request): LengthAwarePaginator
     {
@@ -122,6 +141,15 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
         return $employees;
     }
     
+    /**
+     * Munkavállaló lekérése pesszimista zárolással
+     * 
+     * Frissítési műveletekhez használatos, hogy elkerülje a race condition-öket.
+     * 
+     * @param int $id Munkavállaló azonosító
+     * @return Employee Munkavállaló model (zárolva)
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
+     */
     public function findOrFailForUpdate(int $id): Employee
     {
         /** @var Employee $employee */
@@ -133,9 +161,11 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
     }
     
     /**
-     * Summary of getEmployee
-     * @param int $id
-     * @return Employee
+     * Munkavállaló lekérése azonosító alapján
+     * 
+     * @param int $id Munkavállaló azonosító
+     * @return Employee Munkavállaló model
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
      */
     public function getEmployee(int $id): Employee
     {
@@ -145,6 +175,13 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
         return $employee;
     }
 
+    /**
+     * Munkavállaló lekérése keresztnév alapján
+     * 
+     * @param string $name Munkavállaló keresztneve
+     * @return Employee Munkavállaló model
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
+     */
     public function getEmployeeByName(string $name): Employee
     {
         /** @var Employee $employee */
@@ -154,7 +191,11 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
     }
     
     /**
-     * Summary of store
+     * Új munkavállaló létrehozása
+     * 
+     * Tranzakcióban futtatva, alapértelmezett beállításokkal.
+     * Létrehozás után cache invalidálás (beleértve a cég selector-t is).
+     * 
      * @param array{
      *   first_name: string,
      *   last_name: string,
@@ -162,8 +203,8 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
      *   phone?: string|null,
      *   email?: string|null,
      *   hired_at: string|null
-     * } $data
-     * @return Employee
+     * } $data Munkavállaló adatok
+     * @return Employee Létrehozott munkavállaló
      */
     public function store(array $data): Employee
     {
@@ -181,7 +222,11 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
     }
     
     /**
-     * Summary of update
+     * Munkavállaló adatainak frissítése
+     * 
+     * Tranzakcióban futtatva, pesszimista zárolással.
+     * Ha a cég megváltozik, a cég selector cache is invalidálódik.
+     * 
      * @param array{
      *   first_name: string,
      *   last_name: string,
@@ -191,9 +236,9 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
      *   hired_at?: string|null,
      *   active?: bool,
      *   company_id?: int|null
-     * } $data
-     * @param int $id
-     * @return Employee
+     * } $data Frissítendő adatok
+     * @param int $id Munkavállaló azonosító
+     * @return Employee Frissített munkavállaló
      */
     public function update(array $data, $id): Employee
     {
@@ -219,8 +264,13 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
     }
     
     /**
-     * @param list<int> $ids
-     * @return int
+     * Több munkavállaló törlése egyszerre
+     * 
+     * Tranzakcióban futtatva, cache invalidálással.
+     * A cég selector cache is invalidálódik.
+     * 
+     * @param list<int> $ids Munkavállaló azonosítók tömbje
+     * @return int A törölt rekordok száma
      */
     #[Override]
     public function bulkDelete(array $ids): int
@@ -234,6 +284,15 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
         });
     }
 
+    /**
+     * Egy munkavállaló törlése
+     * 
+     * Tranzakcióban futtatva, pesszimista zárolással.
+     * Törli a kapcsolódó beállításokat és invalidálja a cache-eket.
+     * 
+     * @param int $id Munkavállaló azonosító
+     * @return bool Sikeres törlés esetén true
+     */
     #[Override]
     public function destroy(int $id): bool
     {
@@ -253,11 +312,16 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
     }
 
     /**
+     * Munkavállalók lekérése select listához
+     * 
+     * Egyszerűsített munkavállaló lista (id, name) dropdown/select mezőkhöz.
+     * Cache-elhető, opcionálisan csak aktív munkavállalókat ad vissza.
+     * A név formátuma: "Vezetéknév Keresztnév".
+     * 
      * @param array{
      *   only_active?: bool
-     * } $params
-     *
-     * @return array<int, array{id:int, name:string}>
+     * } $params Szűrési paraméterek
+     * @return array<int, array{id:int, name:string}> Munkavállalók tömbje
      */
     #[Override]
     public function getToSelect(array $params = []): array
@@ -308,6 +372,16 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
         );
     }
 
+    /**
+     * Cache invalidálás munkavállaló írási műveletek után
+     * 
+     * Növeli a verzió számokat a munkavállaló cache-ekhez.
+     * Opcionálisan invalidálja a cég selector cache-t is (ha a cég munkavállalói változtak).
+     * DB commit után fut, így biztosítva a konzisztenciát.
+     * 
+     * @param bool $affectsCompanySelector Ha true, a cég selector cache is invalidálódik
+     * @return void
+     */
     private function invalidateAfterEmployeeWrite(bool $affectsCompanySelector = true): void
     {
         DB::afterCommit(function () use ($affectsCompanySelector): void {
@@ -324,18 +398,48 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
         });
     }
     
+    /**
+     * Alapértelmezett beállítások létrehozása új munkavállalóhoz
+     * 
+     * @param Employee $employee Munkavállaló model
+     * @return void
+     */
     private function createDefaultSettings(Employee $employee): void{}
 
+    /**
+     * Alapértelmezett beállítások frissítése
+     * 
+     * @param Employee $employee Munkavállaló model
+     * @return void
+     */
     private function updateDefaultSettings(Employee $employee): void{}
 
+    /**
+     * Alapértelmezett beállítások törlése
+     * 
+     * @param Employee $employee Munkavállaló model
+     * @return void
+     */
     private function deleteDefaultSettings(Employee $employee): void{}
 
+    /**
+     * Repository model osztály megadása
+     * 
+     * @return string Model osztály neve
+     */
     #[Override]
     public function model(): string
     {
         return Employee::class;
     }
 
+    /**
+     * Repository inicializálás
+     * 
+     * Criteria-k regisztrálása (pl. query string alapú szűrés).
+     * 
+     * @return void
+     */
     public function boot(): void
     {
         $this->pushCriteria(app(RequestCriteria::class));

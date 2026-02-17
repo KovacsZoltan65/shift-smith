@@ -12,13 +12,22 @@ use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
- * @property int|string $id
- * @property int|string $company_id
- * @property string $name
- * @property string $date_from
- * @property string $date_to
- * @property string $status
- * @property string|null $notes
+ * Munkabeosztás model osztály
+ * 
+ * Munkabeosztások (work schedules) adatainak tárolása és kezelése.
+ * Soft delete támogatással, activity log naplózással.
+ * Kapcsolódik egy céghez (company).
+ * 
+ * @property int|string $id Munkabeosztás azonosító
+ * @property int|string $company_id Cég azonosító
+ * @property string $name Munkabeosztás neve
+ * @property string $date_from Kezdő dátum (Y-m-d)
+ * @property string $date_to Befejező dátum (Y-m-d)
+ * @property string $status Státusz (draft, published, archived)
+ * @property string|null $notes Megjegyzések
+ * @property \Illuminate\Support\Carbon|null $deleted_at Törlés időpontja (soft delete)
+ * @property \Illuminate\Support\Carbon $created_at Létrehozás időpontja
+ * @property \Illuminate\Support\Carbon $updated_at Módosítás időpontja
  */
 class WorkSchedule extends Model
 {
@@ -61,11 +70,22 @@ class WorkSchedule extends Model
     /** @var array<int,string> */
     protected static array $recordEvents = ['created', 'updated', 'deleted'];
 
+    /**
+     * Activity log név lekérése
+     * 
+     * @param string $eventName Esemény neve (created, updated, deleted)
+     * @return string Log csatorna neve
+     */
     public function getLogNameToUse(string $eventName = ''): string
     {
         return static::$logName ?? 'default';
     }
 
+    /**
+     * Cache tag név lekérése
+     * 
+     * @return string Cache tag azonosító
+     */
     public static function getTag(): string
     {
         return static::$logName;
@@ -82,15 +102,22 @@ class WorkSchedule extends Model
      * ===========================================================
      */
 
-    /** @return array<int,string> */
+    /**
+     * Rendezhető mezők listája
+     * 
+     * @return array<int,string> Rendezhető oszlopnevek
+     */
     public static function getSortable(): array
     {
         return self::SORTABLE;
     }
 
     /**
-     * @param Builder<WorkSchedule> $query
-     * @return Builder<WorkSchedule>
+     * Cég szerinti szűrés
+     * 
+     * @param Builder<WorkSchedule> $query Query builder
+     * @param int $companyId Cég azonosító
+     * @return Builder<WorkSchedule> Szűrt query
      */
     public function scopeForCompany(Builder $query, int $companyId): Builder
     {
@@ -98,7 +125,11 @@ class WorkSchedule extends Model
     }
 
     /**
-     * @return BelongsTo<Company, $this>
+     * Munkabeosztás céghez tartozása
+     * 
+     * Egy munkabeosztás egy céghez tartozik (N:1 kapcsolat).
+     * 
+     * @return BelongsTo<Company, $this> Cég kapcsolata
      */
     public function company(): BelongsTo
     {

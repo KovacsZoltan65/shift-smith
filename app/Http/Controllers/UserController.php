@@ -17,8 +17,20 @@ use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
+/**
+ * Felhasználó controller osztály
+ * 
+ * HTTP kérések kezelése felhasználók CRUD műveleteihez.
+ * Inertia.js frontend integráció és JSON API végpontok.
+ * Policy-alapú autorizációval és saját fiók védelem.
+ */
 class UserController extends Controller
 {
+    /**
+     * Constructor
+     * 
+     * @param UserService $service Felhasználó service
+     */
     public function __construct(
         private readonly UserService $service
     ) {
@@ -26,6 +38,12 @@ class UserController extends Controller
         // $this->authorizeResource(User::class, 'user');
     }
 
+    /**
+     * Felhasználók lista oldal megjelenítése
+     * 
+     * @param IndexRequest $request Validált kérés
+     * @return InertiaResponse Inertia válasz a Users/Index komponenssel
+     */
     public function index(IndexRequest $request): InertiaResponse
     {
         $this->authorize(UserPolicy::PERM_VIEW_ANY, User::class);
@@ -36,6 +54,12 @@ class UserController extends Controller
         ]);
     }
 
+    /**
+     * Felhasználók listázása JSON formátumban
+     * 
+     * @param IndexRequest $request Validált kérés
+     * @return JsonResponse Lapozott felhasználó lista JSON-ben
+     */
     public function fetch(IndexRequest $request): JsonResponse
     {
         $this->authorize(UserPolicy::PERM_VIEW_ANY, User::class);
@@ -86,10 +110,10 @@ class UserController extends Controller
     }
     
     /**
+     * Felhasználó lekérése név alapján
      * 
-     * 
-     * @param Request $request
-     * @return JsonResponse
+     * @param Request $request HTTP kérés
+     * @return JsonResponse Felhasználó adatok JSON-ben
      */
     public function byName(Request $request): JsonResponse
     {
@@ -110,11 +134,10 @@ class UserController extends Controller
     }
     
     /**
-     * Új rekord létrehozása.
-     *
-     * Engedélyezés: 'create' policy.
-     * Siker esetén a létrehozott rekord adatait adja vissza 201-es státuszkóddal.
-     *
+     * Új felhasználó létrehozása
+     * 
+     * @param StoreRequest $request Validált kérés
+     * @return JsonResponse Létrehozott felhasználó JSON-ben
      * @throws \Throwable
      */
     public function store(StoreRequest $request): JsonResponse
@@ -142,6 +165,15 @@ class UserController extends Controller
         }
     }
     
+    /**
+     * Jelszó visszaállító email küldése
+     * 
+     * Saját fiókra nem küldhető.
+     * 
+     * @param Request $request HTTP kérés
+     * @param User $user Felhasználó
+     * @return JsonResponse Küldés eredménye JSON-ben
+     */
     public function sendPasswordReset(Request $request, User $user): JsonResponse
     {
         $this->authorize(UserPolicy::PERM_UPDATE, $user); // vagy külön ability
@@ -158,13 +190,11 @@ class UserController extends Controller
     }
     
     /**
-     * Meglévő rekord adatainak frissítése.
-     *
-     * Engedélyezés: 'update' policy.
-     *
-     * @param  \App\Http\Requests\User\UpdateRequest  $request
-     * @param  int  $id  A módosítandó rekord azonosítója.
-     * @return \Illuminate\Http\JsonResponse  A frissített rekord adatait tartalmazó JSON válasz.
+     * Felhasználó adatainak frissítése
+     * 
+     * @param UpdateRequest $request Validált kérés
+     * @param int $id Felhasználó azonosító
+     * @return JsonResponse Frissített felhasználó JSON-ben
      * @throws \Throwable
      */
     public function update(UpdateRequest $request, int $id): JsonResponse
@@ -184,11 +214,10 @@ class UserController extends Controller
     }
     
     /**
-     * Egyetlen rekord törlése.
-     *
-     * Engedélyezés: 'delete' policy.
-     *
-     * @param  int  $id  A törlendo rekord azonosítója.
+     * Egy felhasználó törlése
+     * 
+     * @param int $id Felhasználó azonosító
+     * @return JsonResponse Törlés eredménye JSON-ben
      * @throws \Throwable
      */
     public function destroy(int $id): JsonResponse
@@ -208,13 +237,12 @@ class UserController extends Controller
     }
     
     /**
-     * Több rekord törlése egyszerre.
-     *
-     * Engedélyezés: 'delete' policy.
-     * Validálás: BulkDeleteRequest.
-     *
-     * @param  BulkDeleteRequest  $request
-     * @return \Illuminate\Http\JsonResponse
+     * Több felhasználó törlése egyszerre
+     * 
+     * Saját fiók nem törölhető.
+     * 
+     * @param BulkDeleteRequest $request Validált kérés
+     * @return JsonResponse Törlés eredménye JSON-ben
      * @throws \Throwable
      */
     public function bulkDelete(BulkDeleteRequest $request): JsonResponse

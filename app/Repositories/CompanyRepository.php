@@ -16,6 +16,13 @@ use Prettus\Repository\Criteria\RequestCriteria;
 use Prettus\Repository\Eloquent\BaseRepository;
 use App\Services\Cache\CacheVersionService;
 
+/**
+ * Cég repository osztály
+ * 
+ * Adatbázis műveletek kezelése cégekhez.
+ * Cache támogatással, verziókezeléssel és lapozással.
+ * Prettus Repository pattern implementáció.
+ */
 class CompanyRepository extends BaseRepository implements CompanyRepositoryInterface
 {
     use Functions;
@@ -25,7 +32,9 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     
     private readonly CacheVersionService $cacheVersionService;
     
+    /** Cache namespace a cégek listázásához */
     private const NS_COMPANIES_FETCH = 'companies.fetch';
+    /** Cache namespace a cég selector listához */
     private const NS_SELECTORS_COMPANIES = 'selectors.companies';
 
     public function __construct(
@@ -42,9 +51,13 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     }
     
     /**
+     * Cégek listázása lapozással, szűréssel és rendezéssel
      * 
-     * @param Request $request
-     * @return LengthAwarePaginator<int, Company>
+     * Cache-elhető lekérdezés verziókezeléssel.
+     * Támogatja a keresést (név, email), rendezést és lapozást.
+     * 
+     * @param Request $request HTTP kérés (search, field, order, per_page, page paraméterekkel)
+     * @return LengthAwarePaginator<int, Company> Lapozott cég lista
      */
     public function fetch(Request $request): LengthAwarePaginator
     {
@@ -120,9 +133,11 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     }
     
     /**
-     * Summary of getCompany
-     * @param int $id
-     * @return \App\Models\Company
+     * Egy cég lekérése azonosító alapján
+     * 
+     * @param int $id Cég azonosító
+     * @return Company Cég model
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
      */
     public function getCompany(int $id): Company
     {
@@ -133,10 +148,11 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     }
     
     /**
-     * Summary of getCompanyByName
-     * @param string $name
-     * @return \App\Models\Company
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
+     * Cég lekérése név alapján
+     * 
+     * @param string $name Cég neve
+     * @return Company Cég model
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
      */
     public function getCompanyByName(string $name): Company
     {
@@ -148,11 +164,16 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     }
     
     /**
+     * Cégek lekérése select listához
+     * 
+     * Egyszerűsített cég lista (id, name) dropdown/select mezőkhöz.
+     * Cache-elhető, csak aktív cégeket ad vissza.
+     * Opcionálisan szűrhető csak olyan cégekre, amelyeknek van munkavállalója.
+     * 
      * @param array{
      *   only_with_employees?: bool
-     * } $params
-     *
-     * @return array<int, array{id:int, name:string}>
+     * } $params Szűrési paraméterek
+     * @return array<int, array{id:int, name:string}> Cégek tömbje
      */
     public function getToSelect(array $params): array
     {
@@ -195,14 +216,18 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     }
     
     /**
-     * Summary of store
+     * Új cég létrehozása
+     * 
+     * Tranzakcióban futtatva, alapértelmezett beállításokkal.
+     * Létrehozás után cache invalidálás.
+     * 
      * @param array{
      *   name: string,
      *   address?: string|null,
      *   phone?: string|null,
      *   email?: string|null
-     * } $data
-     * @return Company
+     * } $data Cég adatok
+     * @return Company Létrehozott cég
      */
     public function store(array $data): Company
     {
@@ -220,16 +245,20 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     }
     
     /**
-     * Summary of update
+     * Cég adatainak frissítése
+     * 
+     * Tranzakcióban futtatva, pesszimista zárolással.
+     * Frissítés után cache invalidálás.
+     * 
      * @param array{
      *    name: string,
      *    email: string,
      *    address: string,
      *    phone: string,
      *    active: boolean
-     * } $data
-     * @param int $id
-     * @return Company
+     * } $data Frissítendő adatok
+     * @param int $id Cég azonosító
+     * @return Company Frissített cég
      */
     public function update(array $data, $id): Company
     {
@@ -251,8 +280,12 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     }
     
     /**
-     * @param list<int> $ids
-     * @return int
+     * Több cég törlése egyszerre
+     * 
+     * Tranzakcióban futtatva, cache invalidálással.
+     * 
+     * @param list<int> $ids Cég azonosítók tömbje
+     * @return int A törölt rekordok száma
      */
     public function bulkDelete(array $ids): int
     {
@@ -266,8 +299,13 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     }
     
     /**
-     * @param int $id
-     * @return bool
+     * Egy cég törlése
+     * 
+     * Tranzakcióban futtatva, pesszimista zárolással.
+     * Törli a kapcsolódó beállításokat és invalidálja a cache-t.
+     * 
+     * @param int $id Cég azonosító
+     * @return bool Sikeres törlés esetén true
      */
     public function destroy(int $id): bool
     {
@@ -297,6 +335,14 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
 //        $this->cacheService->forgetAll('companies_select');
 //    }
     
+    /**
+     * Cache invalidálás cég írási műveletek után
+     * 
+     * Növeli a verzió számokat a cég listázás és selector cache-ekhez.
+     * DB commit után fut, így biztosítva a konzisztenciát.
+     * 
+     * @return void
+     */
     private function invalidateAfterCompanyWrite(): void
     {
         DB::afterCommit(function():void {
@@ -308,17 +354,47 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
         });
     }
     
+    /**
+     * Alapértelmezett beállítások létrehozása új céghez
+     * 
+     * @param Company $company Cég model
+     * @return void
+     */
     private function createDefaultSettings(Company $company): void{}
 
+    /**
+     * Alapértelmezett beállítások frissítése
+     * 
+     * @param Company $company Cég model
+     * @return void
+     */
     private function updateDefaultSettings(Company $company): void{}
 
+    /**
+     * Alapértelmezett beállítások törlése
+     * 
+     * @param Company $company Cég model
+     * @return void
+     */
     private function deleteDefaultSettings(Company $company): void{}
     
+    /**
+     * Repository model osztály megadása
+     * 
+     * @return string Model osztály neve
+     */
     public function model(): string
     {
         return Company::class;
     }
 
+    /**
+     * Repository inicializálás
+     * 
+     * Criteria-k regisztrálása (pl. query string alapú szűrés).
+     * 
+     * @return void
+     */
     public function boot(): void
     {
         // Ha később Criteria-t akarsz (pl. query stringből automatikusan),

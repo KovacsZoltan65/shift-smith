@@ -2,10 +2,24 @@
 
 namespace app\Services\Cache;
 
+/**
+ * Cache kulcs generáló szolgáltatás
+ * 
+ * Stabil hash generálást biztosít cache kulcsokhoz paraméterek alapján.
+ * A paraméterek normalizálása garantálja, hogy azonos adatok mindig
+ * ugyanazt a hash-t eredményezzék.
+ */
 final class CacheKeyService
 {
     /**
-     * @param array<string, scalar|null> $params
+     * Stabil hash generálás paraméterekből
+     * 
+     * Normalizálja a paramétereket (rendezés, típus konverzió) és
+     * SHA-256 hash-t generál belőlük. Azonos paraméterek mindig
+     * ugyanazt a hash-t eredményezik.
+     * 
+     * @param array<string, scalar|null> $params Paraméterek tömbje
+     * @return string SHA-256 hash (64 karakter)
      */
     public static function stableHash(array $params): string
     {
@@ -14,7 +28,13 @@ final class CacheKeyService
     }
 
     /**
-     * @param array<string, scalar|null> $params
+     * Paraméterek normalizálása
+     * 
+     * - Kulcsok ABC sorrendbe rendezése
+     * - String '1'/'0' értékek konvertálása boolean-ra
+     * 
+     * @param array<string, scalar|null> $params Paraméterek tömbje (referencia)
+     * @return void
      */
     private static function normalize(array &$params): void
     {

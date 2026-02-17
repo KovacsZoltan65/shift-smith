@@ -7,6 +7,12 @@ use App\Models\Employee;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 
+/**
+ * Munkavállaló szolgáltatás osztály
+ * 
+ * Üzleti logikai réteg a munkavállalók kezeléséhez.
+ * Repository pattern-t használ az adatbázis műveletekhez.
+ */
 class EmployeeService
 {
     public function __construct(
@@ -14,8 +20,10 @@ class EmployeeService
     ) {}
     
     /**
-     * @param Request $request
-     * @return LengthAwarePaginator<int, Employee>
+     * Munkavállalók listázása lapozással és szűréssel
+     * 
+     * @param Request $request HTTP kérés (search, field, order, per_page paraméterekkel)
+     * @return LengthAwarePaginator<int, Employee> Lapozott munkavállaló lista
      */
     public function fetch(Request $request): LengthAwarePaginator
     {
@@ -23,21 +31,32 @@ class EmployeeService
     }
     
     /**
-     * Summary of getEmployee
-     * @param int $id
-     * @return Employee
+     * Egy munkavállaló lekérése azonosító alapján
+     * 
+     * @param int $id Munkavállaló azonosító
+     * @return Employee Munkavállaló model
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
      */
     public function getEmployee(int $id): Employee
     {
         return $this->repo->getEmployee($id);
     }
     
+    /**
+     * Munkavállaló lekérése név alapján
+     * 
+     * @param string $name Munkavállaló neve
+     * @return Employee Munkavállaló model
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
+     */
     public function getEmployeeByName(string $name): Employee
     {
         return $this->repo->getEmployeeByName($name);
     }
     
     /**
+     * Új munkavállaló létrehozása
+     * 
      * @param array{
      *   first_name: string,
      *   last_name: string,
@@ -47,7 +66,8 @@ class EmployeeService
      *   hired_at: string,
      *   company_id?: int|null,
      *   active?: bool
-     * } $data
+     * } $data Munkavállaló adatok
+     * @return Employee Létrehozott munkavállaló
      */
     public function store(array $data): Employee
     {
@@ -58,7 +78,8 @@ class EmployeeService
     }
     
     /**
-     * Summary of update
+     * Munkavállaló adatainak frissítése
+     * 
      * @param array{
      *    first_name: string,
      *    last_name: string,
@@ -67,9 +88,9 @@ class EmployeeService
      *    phone: string,
      *    hired_at: string,
      *    active: boolean
-     * } $data
-     * @param int $id
-     * @return Employee
+     * } $data Frissítendő adatok
+     * @param int $id Munkavállaló azonosító
+     * @return Employee Frissített munkavállaló
      */
     public function update(array $data, $id): Employee
     {
@@ -77,8 +98,12 @@ class EmployeeService
     }
     
     /**
-     * @param list<int> $ids
-     * @return int
+     * Több munkavállaló törlése egyszerre
+     * 
+     * Automatikusan kiszűri a duplikátumokat.
+     * 
+     * @param list<int> $ids Munkavállaló azonosítók tömbje
+     * @return int A törölt rekordok száma
      */
     public function bulkDelete(array $ids): int
     {
@@ -88,9 +113,10 @@ class EmployeeService
     }
     
     /**
-     * Summary of destroy
-     * @param int $id
-     * @return bool
+     * Egy munkavállaló törlése
+     * 
+     * @param int $id Munkavállaló azonosító
+     * @return bool Sikeres törlés esetén true
      */
     public function destroy(int $id): bool
     {
@@ -98,11 +124,14 @@ class EmployeeService
     }
     
     /**
+     * Munkavállalók lekérése select listához
+     * 
+     * Egyszerűsített munkavállaló lista (id, name) dropdown/select mezőkhöz.
+     * 
      * @param array{
      *   only_active?: bool
-     * } $params
-     *
-     * @return array<int, array{id:int, name:string}>
+     * } $params Szűrési paraméterek
+     * @return array<int, array{id:int, name:string}> Munkavállalók tömbje
      */
     public function getToSelect(array $params): array
     {

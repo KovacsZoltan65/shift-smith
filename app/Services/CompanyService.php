@@ -7,6 +7,12 @@ use App\Models\Company;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 
+/**
+ * Cég szolgáltatás osztály
+ * 
+ * Üzleti logikai réteg a cégek kezeléséhez.
+ * Repository pattern-t használ az adatbázis műveletekhez.
+ */
 class CompanyService
 {
     public function __construct(
@@ -14,8 +20,10 @@ class CompanyService
     ) {}
     
     /**
-     * @param Request $request
-     * @return LengthAwarePaginator<int, Company>
+     * Cégek listázása lapozással és szűréssel
+     * 
+     * @param Request $request HTTP kérés (search, field, order, per_page paraméterekkel)
+     * @return LengthAwarePaginator<int, Company> Lapozott cég lista
      */
     public function fetch(Request $request): LengthAwarePaginator
     {
@@ -23,9 +31,11 @@ class CompanyService
     }
     
     /**
-     * Summary of getCompany
-     * @param int $id
-     * @return \App\Models\Company
+     * Egy cég lekérése azonosító alapján
+     * 
+     * @param int $id Cég azonosító
+     * @return Company Cég model
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
      */
     public function getCompany(int $id): Company
     {
@@ -33,9 +43,11 @@ class CompanyService
     }
     
     /**
-     * Summary of getCompanyByName
-     * @param string $name
-     * @return Company
+     * Cég lekérése név alapján
+     * 
+     * @param string $name Cég neve
+     * @return Company Cég model
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
      */
     public function getCompanyByName(string $name): Company
     {
@@ -43,14 +55,15 @@ class CompanyService
     }
     
     /**
-     * Summary of store
+     * Új cég létrehozása
+     * 
      * @param array{
      *   name: string,
      *   email: string,
      *   address: string|null,
      *   phone: string|null
-     * } $data
-     * @return Company
+     * } $data Cég adatok
+     * @return Company Létrehozott cég
      */
     public function store(array $data): Company
     {
@@ -58,16 +71,17 @@ class CompanyService
     }
     
     /**
-     * Summary of update
+     * Cég adatainak frissítése
+     * 
      * @param array{
      *    name: string,
      *    email: string,
      *    address: string,
      *    phone: string,
      *    active: boolean
-     * } $data
-     * @param int $id
-     * @return Company
+     * } $data Frissítendő adatok
+     * @param int $id Cég azonosító
+     * @return Company Frissített cég
      */
     public function update(array $data, $id): Company
     {
@@ -75,8 +89,12 @@ class CompanyService
     }
     
     /**
-     * @param list<int> $ids
-     * @return int
+     * Több cég törlése egyszerre
+     * 
+     * Automatikusan kiszűri a duplikátumokat.
+     * 
+     * @param list<int> $ids Cég azonosítók tömbje
+     * @return int A törölt rekordok száma
      */
     public function bulkDelete(array $ids): int
     {
@@ -87,9 +105,10 @@ class CompanyService
     }
     
     /**
-     * Summary of destroy
-     * @param int $id
-     * @return bool
+     * Egy cég törlése
+     * 
+     * @param int $id Cég azonosító
+     * @return bool Sikeres törlés esetén true
      */
     public function destroy(int $id): bool
     {
@@ -97,11 +116,14 @@ class CompanyService
     }
     
     /**
+     * Cégek lekérése select listához
+     * 
+     * Egyszerűsített cég lista (id, name) dropdown/select mezőkhöz.
+     * 
      * @param array{
      *   only_with_employees?: bool
-     * } $params
-     *
-     * @return array<int, array{id:int, name:string}>
+     * } $params Szűrési paraméterek
+     * @return array<int, array{id:int, name:string}> Cégek tömbje
      */
     public function getToSelect(array $params): array
     {

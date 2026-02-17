@@ -16,21 +16,29 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
+/**
+ * Jogosultság controller osztály
+ * 
+ * HTTP kérések kezelése jogosultságok CRUD műveleteihez.
+ * Inertia.js frontend integráció és JSON API végpontok.
+ * Spatie Permission integráció cache flush-sal.
+ */
 class PermissionController extends Controller
 {
+    /**
+     * Constructor
+     * 
+     * @param PermissionService $service Jogosultság service
+     */
     public function __construct(
             private readonly PermissionService $service
     ) {}
     
     /**
-     * Index oldal betöltése.
-     *
-     * Ez a metódus adatokat egy InertiaResponse objektet, amely tartalmazza a jogosultságok
-     * oldalát, és a meta adatokat, amely tartalmazza a jogosultságok számát, az oldal számát,
-     * a lapok számát, és az utolsó oldal számát.
-     *
-     * @param IndexRequest $request A lekérendő jogosultságok azonosítója.
-     * @return InertiaResponse A jogosultságok oldala egy InertiaResponse objektumban.
+     * Jogosultságok lista oldal megjelenítése
+     * 
+     * @param IndexRequest $request Validált kérés
+     * @return InertiaResponse Inertia válasz az Admin/Permissions/Index komponenssel
      */
     public function index(IndexRequest $request): InertiaResponse
     {
@@ -43,15 +51,10 @@ class PermissionController extends Controller
     }
     
     /**
-     * Adatok az index oldalhoz.
-     *
-     * Ez a metódus adatokat szolgáltat az index oldalhoz.
-     * A metódus egy szabály listát ad vissza, amely tartalmazza a szabályok adata mezőjét, és a meta adatokat,
-     * amely tartalmazza a szabályok számát, az oldal számát, a lapok számát, és az utolsó oldal számát.
-     * A metódus a szerepkörök listáját egy JsonResponse objektumban adja vissza.
-     *
-     * @param IndexRequest $request A lekérendő szabályok azonosítója.
-     * @return JsonResponse A szabályok listája egy JsonResponse objektumban.
+     * Jogosultságok listázása JSON formátumban
+     * 
+     * @param IndexRequest $request Validált kérés
+     * @return JsonResponse Lapozott jogosultság lista JSON-ben
      */
     public function fetch(IndexRequest $request): JsonResponse
     {
@@ -71,15 +74,12 @@ class PermissionController extends Controller
         ], Response::HTTP_OK);
     }
     
-    /*
-     * Szabály lekérése az azonosítója alapján.
-     * Ez a metódus egy szabályt kér le az azonosítója alapján.
-     * Először lekéri a szabályt az adatbázisból, majd ellenőrzi, hogy a felhasználó jogosult-e megtekinteni azt.
-     * Ha a felhasználó jogosult, akkor a szabályt JSON formátumban adja vissza.
-     * Ha a felhasználó nem jogosult, akkor egy 500 Internal Server Error üzenetet ad vissza.
-     * @param int $id A lekérendő szabály azonosítója.
-     * @return JsonResponse A szerepkör JSON formátumban, vagy egy 500 Internal Server Error válasz.
-     * @throws Throwable Ha hiba történik a szabály lekérése során.
+    /**
+     * Egy jogosultság lekérése azonosító alapján
+     * 
+     * @param int $id Jogosultság azonosító
+     * @return JsonResponse Jogosultság adatok JSON-ben
+     * @throws Throwable
      */
     public function getPermission(int $id): JsonResponse
     {
@@ -100,14 +100,11 @@ class PermissionController extends Controller
     }
     
     /**
-     * Név alapján kér le egy szerepkört.
-     *
-     * Ez a metódus név alapján kér le egy szerepkört az adatbázisból.
-     * Kivételt dob, ha a szerepkör nem létezik.
-     *
-     * @param string $name A lekérendő szabály neve.
-     * @return JsonResponse A szabály JSON válaszként.
-     * @throws Throwable Ha a szabály nem létezik.
+     * Jogosultság lekérése név alapján
+     * 
+     * @param string $name Jogosultság neve
+     * @return JsonResponse Jogosultság adatok JSON-ben
+     * @throws Throwable
      */
     public function getPermissionByName(string $name): JsonResponse
     {
@@ -129,14 +126,12 @@ class PermissionController extends Controller
     }
     
     /**
-     * Létrehoz egy új szerepkört.
-     *
-     * Ez a vezérlőmetódus új szerepkört hoz létre a megadott adatokkal.
-     * Érvényesíti a bejövő kérést, majd meghívja a szolgáltatás metódusát a szerepkör
-     * tárolására.
-     *
-     * @param StoreRequest $request
-     * @return JsonResponse Egy JSON válasz a létrehozott szabályokkal.
+     * Új jogosultság létrehozása
+     * 
+     * Cache flush a Spatie Permission registrar-ban.
+     * 
+     * @param StoreRequest $request Validált kérés
+     * @return JsonResponse Létrehozott jogosultság JSON-ben
      * @throws \Throwable
      */
     public function store(StoreRequest $request): JsonResponse
@@ -168,13 +163,11 @@ class PermissionController extends Controller
     }
     
     /**
-     * Meglévő rekord adatainak frissítése.
-     *
-     * Engedélyezés: 'update' policy.
-     *
-     * @param  UpdateRequest  $request
-     * @param  int  $id  A módosítandó rekord azonosítója.
-     * @return JsonResponse  A frissített rekord adatait tartalmazó JSON válasz.
+     * Jogosultság adatainak frissítése
+     * 
+     * @param UpdateRequest $request Validált kérés
+     * @param int $id Jogosultság azonosító
+     * @return JsonResponse Frissített jogosultság JSON-ben
      * @throws \Throwable
      */
     public function update(UpdateRequest $request, $id): JsonResponse
@@ -202,6 +195,14 @@ class PermissionController extends Controller
         }
     }
     
+    /**
+     * Több jogosultság törlése egyszerre
+     * 
+     * Cache flush a Spatie Permission registrar-ban.
+     * 
+     * @param BulkDeleteRequest $request Validált kérés
+     * @return JsonResponse Törlés eredménye JSON-ben
+     */
     public function destroyBulk(BulkDeleteRequest $request): JsonResponse
     {
         $this->authorize('deleteAny', Permission::class);
@@ -224,6 +225,12 @@ class PermissionController extends Controller
         }
     }
     
+    /**
+     * Egy jogosultság törlése
+     * 
+     * @param int $id Jogosultság azonosító
+     * @return JsonResponse Törlés eredménye JSON-ben
+     */
     public function destroy(int $id): JsonResponse
     {
         $role = $this->service->getPermission($id);
@@ -241,13 +248,9 @@ class PermissionController extends Controller
     }
     
     /**
-     * Rekordokat tartalmazó többi lista lekérdezéséhez.
-     *
-     * A lista a következ  összetevőket tartalmazza:
-     * - id: azonosító
-     * - name: a rekord neve
-     *
-     * @return array<int, array{id: int, name: string}> A rekordokat tartalmazó többi lista.
+     * Jogosultságok lekérése select listához
+     * 
+     * @return array<int, array{id: int, name: string}> Jogosultságok listája
      */
     public function getToSelect(): array
     {
