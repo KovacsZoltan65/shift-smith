@@ -20,10 +20,7 @@ class CompanyController extends Controller
 {
     public function __construct(
         private readonly CompanyService $service
-    ) {
-        // Ha használsz Policy-t:
-        // $this->authorizeResource(User::class, 'user');
-    }
+    ) {}
     
     public function index(IndexRequest $request): InertiaResponse
     {
@@ -203,7 +200,6 @@ class CompanyController extends Controller
      */
     public function destroy(int $id): JsonResponse
     {
-        //$this->authorize('delete', Company::class);
         $company = $this->service->getCompany($id);
         $this->authorize(CompanyPolicy::PERM_DELETE, $company);
         

@@ -112,46 +112,36 @@ Route::middleware(['auth', 'verified'])
         // ---------------------------------------
         
         // SELECTOROK
-        Route::get('/selectors/roles', [RoleController::class, 'getToSelect'])->name('selectors.roles');
-        Route::get('/selectors/permissions', [PermissionController::class, 'getToSelect'])->name('selectors.permissions');
-        // INDEX
-        Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
-        // FETCH
-        Route::get('/roles/fetch', [RoleController::class, 'fetch'])->name('roles.fetch');
-        // SEARCH
-        Route::get('/roles/{id}', [RoleController::class, 'getRole'])->whereNumber('id')->name('roles.by_id');
-        // SEARCH BY NAME
-        Route::get('/roles/name/{name}', [RoleController::class, 'getRoleByName'])->where('name', '[A-Za-z0-9_.@\- ]+')->name('roles.by_name');
-        // CREATE
-        Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
-        // UPDATE
-        Route::put('/roles/{id}', [RoleController::class, 'update'])->whereNumber('id')->name('roles.update');
-        // DELETE
-        Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->whereNumber('id')->name('roles.destroy');
-        // BULK DELETE
-        Route::delete('/roles/destroy_bulk', [RoleController::class, 'destroyBulk'])->name('roles.destroy_bulk');
+        Route::get('/selectors/roles', [RoleController::class, 'getToSelect'])->name('selectors.roles')->middleware('throttle:120,1');
+        Route::get('/selectors/permissions', [PermissionController::class, 'getToSelect'])->name('selectors.permissions')->middleware('throttle:120,1');
+        
+        // Olvasási műveletek
+        Route::get('/roles', [RoleController::class, 'index'])->name('roles.index')->middleware('throttle:60,1');
+        Route::get('/roles/fetch', [RoleController::class, 'fetch'])->name('roles.fetch')->middleware('throttle:60,1');
+        Route::get('/roles/{id}', [RoleController::class, 'getRole'])->whereNumber('id')->name('roles.by_id')->middleware('throttle:60,1');
+        Route::get('/roles/name/{name}', [RoleController::class, 'getRoleByName'])->where('name', '[A-Za-z0-9_.@\- ]+')->name('roles.by_name')->middleware('throttle:60,1');
+        
+        // Írási műveletek
+        Route::post('/roles', [RoleController::class, 'store'])->name('roles.store')->middleware('throttle:20,1');
+        Route::put('/roles/{id}', [RoleController::class, 'update'])->whereNumber('id')->name('roles.update')->middleware('throttle:30,1');
+        Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->whereNumber('id')->name('roles.destroy')->middleware('throttle:20,1');
+        Route::delete('/roles/destroy_bulk', [RoleController::class, 'destroyBulk'])->name('roles.destroy_bulk')->middleware('throttle:10,1');
         
         // ---------------------------------------
         // PERMISSION
         // ---------------------------------------
         
-        // (Selector már fent, itt nem duplikáljuk)
-        // INDEX
-        Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions.index');
-        // FETCH
-        Route::get('/permissions/fetch', [PermissionController::class, 'fetch'])->name('permissions.fetch');
-        // SEARCH
-        Route::get('/permissions/{id}', [PermissionController::class, 'getPermission'])->whereNumber('id')->name('permissions.by_id');
-        // SEARCH BY NAME
-        Route::get('/permissions/name/{name}', [PermissionController::class, 'getPermissionByName'])->where('name', '[A-Za-z0-9_.@\- ]+')->name('permissions.by_name');
-        // CREATE
-        Route::post('/permissions', [PermissionController::class, 'store'])->name('permissions.store');
-        // UPDATE
-        Route::put('/permissions/{id}', [PermissionController::class, 'update'])->whereNumber('id')->name('permissions.update');
-        // DELETE
-        Route::delete('/permissions/{id}', [PermissionController::class, 'destroy'])->whereNumber('id')->name('permissions.destroy');
-        // BULK DELETE
-        Route::delete('/permissions/destroy_bulk', [PermissionController::class, 'destroyBulk'])->name('permissions.destroy_bulk');
+        // Olvasási műveletek
+        Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions.index')->middleware('throttle:60,1');
+        Route::get('/permissions/fetch', [PermissionController::class, 'fetch'])->name('permissions.fetch')->middleware('throttle:60,1');
+        Route::get('/permissions/{id}', [PermissionController::class, 'getPermission'])->whereNumber('id')->name('permissions.by_id')->middleware('throttle:60,1');
+        Route::get('/permissions/name/{name}', [PermissionController::class, 'getPermissionByName'])->where('name', '[A-Za-z0-9_.@\- ]+')->name('permissions.by_name')->middleware('throttle:60,1');
+        
+        // Írási műveletek
+        Route::post('/permissions', [PermissionController::class, 'store'])->name('permissions.store')->middleware('throttle:20,1');
+        Route::put('/permissions/{id}', [PermissionController::class, 'update'])->whereNumber('id')->name('permissions.update')->middleware('throttle:30,1');
+        Route::delete('/permissions/{id}', [PermissionController::class, 'destroy'])->whereNumber('id')->name('permissions.destroy')->middleware('throttle:20,1');
+        Route::delete('/permissions/destroy_bulk', [PermissionController::class, 'destroyBulk'])->name('permissions.destroy_bulk')->middleware('throttle:10,1');
         
     });
     
@@ -164,24 +154,26 @@ Route::middleware(['auth', 'verified'])
  */
 Route::middleware(['auth', 'verified'])
         ->prefix('users')->as('users.')->controller(UserController::class)->group(function () {
-        // INDEX
-        Route::get('/', 'index')->name('index');
+        // INDEX - olvasási műveletek
+        Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
         // FETCH
-        Route::get('/fetch', 'fetch')->name('fetch');
-        // BULK DESTROY  ✅ legyen ELŐBB
-        Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk');
-        // SEARCH BY NAME
-        Route::get('/name/{name}', 'byName')->where('name', '[A-Za-z0-9_.@\- ]+')->name('by_name');
-        // PASSWORD RESET EMAIL
-        Route::post('/{user}/password-reset', 'sendPasswordReset')->name('send_password_reset');
-        // CREATE
-        Route::post('/', 'store')->name('store');
-        // UPDATE
-        Route::put('/{id}', 'update')->whereNumber('id')->name('update');
+        Route::get('/fetch', 'fetch')->name('fetch')->middleware('throttle:60,1');
         // GET BY ID
-        Route::get('/{id}', 'getUser')->whereNumber('id')->name('by_id');
+        Route::get('/{id}', 'getUser')->whereNumber('id')->name('by_id')->middleware('throttle:60,1');
+        // SEARCH BY NAME
+        Route::get('/name/{name}', 'byName')->where('name', '[A-Za-z0-9_.@\- ]+')->name('by_name')->middleware('throttle:60,1');
+        
+        // Írási műveletek - szigorúbb limit
+        // CREATE
+        Route::post('/', 'store')->name('store')->middleware('throttle:20,1');
+        // UPDATE
+        Route::put('/{id}', 'update')->whereNumber('id')->name('update')->middleware('throttle:30,1');
         // DELETE
-        Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
+        Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy')->middleware('throttle:20,1');
+        // BULK DESTROY
+        Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
+        // PASSWORD RESET EMAIL - nagyon szigorú limit
+        Route::post('/{user}/password-reset', 'sendPasswordReset')->name('send_password_reset')->middleware('throttle:5,1');
     });
 
 
@@ -191,21 +183,21 @@ Route::middleware(['auth', 'verified'])
  * ======================================
  * Cégek kezelése
  */
-Route::middleware(['auth', 'verified'])->prefix('companies')->as('companies.')->controller(CompanyController::class)->group(function() {
-        // INDEX
-        Route::get('/', 'index')->name('index');
-        // FETCH
-        Route::get('/fetch', 'fetch')->name('fetch');        
-        // SEARCH
-        Route::get('/{id}', 'getCompany')->whereNumber('id')->name('by_id');
-        // CREATE
-        Route::post('/', 'store')->name('store');
-        // UPDATE
-        Route::put('/{id}', 'update')->whereNumber('id')->name('update');
-        // DELETE
-        Route::delete('/{id}', 'destroy')->name('destroy');
-        // BULK DELETE
-        Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk');
+Route::middleware(['auth', 'verified'])
+    ->prefix('companies')
+    ->as('companies.')
+    ->controller(CompanyController::class)
+    ->group(function() {
+        // Olvasási műveletek
+        Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
+        Route::get('/fetch', 'fetch')->name('fetch')->middleware('throttle:60,1');
+        Route::get('/{id}', 'getCompany')->whereNumber('id')->name('by_id')->middleware('throttle:60,1');
+        
+        // Írási műveletek
+        Route::post('/', 'store')->name('store')->middleware('throttle:20,1');
+        Route::put('/{id}', 'update')->whereNumber('id')->name('update')->middleware('throttle:30,1');
+        Route::delete('/{id}', 'destroy')->name('destroy')->middleware('throttle:20,1');
+        Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
     });
     
 /**
@@ -214,21 +206,21 @@ Route::middleware(['auth', 'verified'])->prefix('companies')->as('companies.')->
  * ======================================
  * Dolgozók kezelése
  */
-Route::middleware(['auth', 'verified'])->prefix('employees')->as('employees.')->controller(EmployeeController::class)->group(function() {
-        // INDEX
-        Route::get('/', 'index')->name('index');
-        // FETCH
-        Route::get('/fetch', 'fetch')->name('fetch');
-        // SEARCH
-        Route::get('/{id}', 'getEmployee')->whereNumber('id')->name('by_id');
-        // CREATE
-        Route::post('/', 'store')->name('store');
-        // UPDATE
-        Route::put('/{id}', 'update')->whereNumber('id')->name('update');
-        // DELETE
-        Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
-        // BULK DELETE
-        Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk');
+Route::middleware(['auth', 'verified'])
+    ->prefix('employees')
+    ->as('employees.')
+    ->controller(EmployeeController::class)
+    ->group(function() {
+        // Olvasási műveletek
+        Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
+        Route::get('/fetch', 'fetch')->name('fetch')->middleware('throttle:60,1');
+        Route::get('/{id}', 'getEmployee')->whereNumber('id')->name('by_id')->middleware('throttle:60,1');
+        
+        // Írási műveletek
+        Route::post('/', 'store')->name('store')->middleware('throttle:20,1');
+        Route::put('/{id}', 'update')->whereNumber('id')->name('update')->middleware('throttle:30,1');
+        Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy')->middleware('throttle:20,1');
+        Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
     });
     
 /**
@@ -242,20 +234,16 @@ Route::middleware(['auth', 'verified'])
     ->as('work_shifts.')
     ->controller(WorkShiftController::class)
     ->group(function() {
-    // INDEX
-    Route::get('/', 'index')->name('index');
-    // FETCH
-    Route::get('/fetch', 'fetch')->name('fetch');
-    // SEARCH
-    Route::get('/{id}', 'getWorkShift')->name('by_id');
-    // CREATE
-    Route::post('/', 'store')->name('store');
-    // UPDATE
-    Route::put('/{id}', 'update')->whereNumber('id')->name('update');
-    // DELETE
-    Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
-    // BULK DELETE
-    Route::delete('destroy_bulk', 'bulkDelete')->name('destroy_bulk');
+    // Olvasási műveletek
+    Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
+    Route::get('/fetch', 'fetch')->name('fetch')->middleware('throttle:60,1');
+    Route::get('/{id}', 'getWorkShift')->name('by_id')->middleware('throttle:60,1');
+    
+    // Írási műveletek
+    Route::post('/', 'store')->name('store')->middleware('throttle:20,1');
+    Route::put('/{id}', 'update')->whereNumber('id')->name('update')->middleware('throttle:30,1');
+    Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy')->middleware('throttle:20,1');
+    Route::delete('destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
 });
 
 /**
@@ -269,20 +257,16 @@ Route::middleware(['auth', 'verified'])
     ->as('work_schedules.')
     ->controller(WorkScheduleController::class)
     ->group(function() {
-    // INDEX
-    Route::get('/', 'index')->name('index');
-    // FETCH
-    Route::get('/fetch', 'fetch')->name('fetch');
-    // SHOW
-    Route::get('/{id}', 'getWorkSchedule')->whereNumber('id')->name('by_id');
-    // CREATE
-    Route::post('/', 'store')->name('store');
-    // UPDATE
-    Route::put('/{id}', 'update')->whereNumber('id')->name('update');
-    // DELETE
-    Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
-    // BULK DELETE
-    Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk');
+    // Olvasási műveletek
+    Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
+    Route::get('/fetch', 'fetch')->name('fetch')->middleware('throttle:60,1');
+    Route::get('/{id}', 'getWorkSchedule')->whereNumber('id')->name('by_id')->middleware('throttle:60,1');
+    
+    // Írási műveletek
+    Route::post('/', 'store')->name('store')->middleware('throttle:20,1');
+    Route::put('/{id}', 'update')->whereNumber('id')->name('update')->middleware('throttle:30,1');
+    Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy')->middleware('throttle:20,1');
+    Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
 });
 
 /**
