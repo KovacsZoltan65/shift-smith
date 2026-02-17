@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Role;
 
+use App\Models\Admin\Role;
 use App\Models\Company;
+use App\Policies\RolePolicy;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -10,7 +12,7 @@ class StoreRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('roles.create') ?? false;
+        return $this->user()?->can(RolePolicy::PERM_CREATE, Role::class) ?? false;
     }
     
     /**

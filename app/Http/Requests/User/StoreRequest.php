@@ -3,6 +3,7 @@
 namespace App\Http\Requests\User;
 
 use App\Models\User;
+use App\Policies\UserPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
 
@@ -13,7 +14,7 @@ class StoreRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can(UserPolicy::PERM_CREATE, User::class) ?? false;
     }
 
     /**
@@ -24,8 +25,15 @@ class StoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|string|email|max:255|unique:users',
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'password' => ['required', 'string', 'confirmed', Password::min(8)
+                ->letters()
+                ->mixedCase()
+                ->numbers()
+                ->symbols()
+            ],
+            'password_confirmation' => ['required', 'string'],
         ];
     }
 }

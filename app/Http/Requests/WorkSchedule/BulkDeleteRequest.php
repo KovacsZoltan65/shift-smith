@@ -3,13 +3,14 @@
 namespace App\Http\Requests\WorkSchedule;
 
 use App\Models\WorkSchedule;
+use App\Policies\WorkSchedulePolicy;
 use Illuminate\Foundation\Http\FormRequest;
 
 class BulkDeleteRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('work_schedules.deleteAny', WorkSchedule::class) ?? false;
+        return $this->user()?->can(WorkSchedulePolicy::PERM_DELETE_ANY, WorkSchedule::class) ?? false;
     }
 
     /**

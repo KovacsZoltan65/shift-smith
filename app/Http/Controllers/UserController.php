@@ -7,6 +7,7 @@ use App\Http\Requests\User\IndexRequest;
 use App\Http\Requests\User\StoreRequest;
 use App\Http\Requests\User\UpdateRequest;
 use App\Models\User;
+use App\Policies\UserPolicy;
 use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,7 +28,7 @@ class UserController extends Controller
 
     public function index(IndexRequest $request): InertiaResponse
     {
-        $this->authorize('viewAny', User::class);
+        $this->authorize(UserPolicy::PERM_VIEW_ANY, User::class);
         
         return Inertia::render('Users/Index', [
             'title'  => 'Felhasználók',
@@ -37,7 +38,7 @@ class UserController extends Controller
 
     public function fetch(IndexRequest $request): JsonResponse
     {
-        $this->authorize('viewAny', User::class);
+        $this->authorize(UserPolicy::PERM_VIEW_ANY, User::class);
 
         $users = $this->service->fetch($request);
 
@@ -68,10 +69,9 @@ class UserController extends Controller
      */
     public function getUser(int $id): JsonResponse
     {
-        $this->authorize('view', User::class);
-        
         try {
             $user = $this->service->getUser($id);
+            $this->authorize(UserPolicy::PERM_VIEW, $user);
 
             return response()->json(
                 $user,
@@ -93,10 +93,9 @@ class UserController extends Controller
      */
     public function byName(Request $request): JsonResponse
     {
-        $this->authorize('view', User::class);
-        
         try {
             $user = $this->service->getUserByName($request->input('name'));
+            $this->authorize(UserPolicy::PERM_VIEW, $user);
 
             return response()->json(
                 $user,
@@ -120,7 +119,7 @@ class UserController extends Controller
      */
     public function store(StoreRequest $request): JsonResponse
     {
-        $this->authorize('create', User::class);
+        $this->authorize(UserPolicy::PERM_CREATE, User::class);
         
         /** @var array{
          *   name: string,
@@ -143,11 +142,11 @@ class UserController extends Controller
         }
     }
     
-    public function sendPasswordReset(User $user): JsonResponse
+    public function sendPasswordReset(Request $request, User $user): JsonResponse
     {
-        //$this->authorize('update', $user); // vagy külön ability
+        $this->authorize(UserPolicy::PERM_UPDATE, $user); // vagy külön ability
 
-        abort_if(auth()->id() === $user->id, 403, 'Saját magadnak innen ne.');
+        abort_if($request->user()->id === $user->id, 403, 'Saját magadnak innen ne.');
 
         $status = Password::sendResetLink(['email' => $user->email]);
 
@@ -170,7 +169,7 @@ class UserController extends Controller
      */
     public function update(UpdateRequest $request, int $id): JsonResponse
     {
-        $this->authorize('update', User::class);
+        $this->authorize(UserPolicy::PERM_UPDATE, User::class);
         
         try {
             $user = $this->service->update($request, $id);
@@ -194,7 +193,7 @@ class UserController extends Controller
      */
     public function destroy(int $id): JsonResponse
     {
-        $this->authorize('delete', User::class);
+        $this->authorize(UserPolicy::PERM_DELETE, User::class);
         
         try {
             $deleted = $this->service->destroy($id);
@@ -220,9 +219,10 @@ class UserController extends Controller
      */
     public function bulkDelete(BulkDeleteRequest $request): JsonResponse
     {
-        $this->authorize('delete', User::class);
+        $this->authorize(UserPolicy::PERM_DELETE, User::class);
         
-        $authId = auth()->id();
+        /** @var int $authId */
+        $authId = $request->user()->id;
 
         $data = $request->validated();
         

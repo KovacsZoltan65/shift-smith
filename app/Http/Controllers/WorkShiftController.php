@@ -7,6 +7,7 @@ use App\Http\Requests\WorkShift\IndexRequest;
 use App\Http\Requests\WorkShift\StoreRequest;
 use App\Http\Requests\WorkShift\UpdateRequest;
 use App\Models\WorkShift;
+use App\Policies\WorkShiftPolicy;
 use App\Services\WorkShiftService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,7 +27,7 @@ class WorkShiftController extends Controller
     
     public function index(IndexRequest $request): InertiaResponse
     {
-        $this->authorize('viewAny', WorkShift::class);
+        $this->authorize(WorkShiftPolicy::PERM_VIEW_ANY, WorkShift::class);
         
         return Inertia::render('WorkShifts/Index', [
             'title'  => 'Műszakok',
@@ -36,7 +37,7 @@ class WorkShiftController extends Controller
     
     public function fetch(IndexRequest $request): JsonResponse
     {
-        $this->authorize('viewAny', WorkShift::class);
+        $this->authorize(WorkShiftPolicy::PERM_VIEW_ANY, WorkShift::class);
         
         $work_shifts = $this->service->fetch($request);
 
@@ -58,10 +59,8 @@ class WorkShiftController extends Controller
      */
     public function getWorkShift(int $id): JsonResponse
     {
-        //$this->authorize('view', WorkShift::class);
-        
         $work_shift = $this->service->getWorkShift($id);
-        $this->authorize('view', $work_shift);
+        $this->authorize(WorkShiftPolicy::PERM_VIEW, $work_shift);
 
         try {
             return response()->json(
@@ -84,7 +83,7 @@ class WorkShiftController extends Controller
     public function getWorkShiftByName(string $name): JsonResponse
     {
         $work_shift = $this->service->getWorkShiftByName($name);
-        $this->authorize('view', $work_shift);
+        $this->authorize(WorkShiftPolicy::PERM_VIEW, $work_shift);
         
         try {
             return response()->json(
@@ -101,7 +100,7 @@ class WorkShiftController extends Controller
     
     public function store(StoreRequest $request): JsonResponse
     {
-        $this->authorize('create', WorkShift::class);
+        $this->authorize(WorkShiftPolicy::PERM_CREATE, WorkShift::class);
         
         /**
          * @var array{
@@ -138,8 +137,6 @@ class WorkShiftController extends Controller
      */
     public function update(UpdateRequest $request, $id): JsonResponse
     {
-        //$this->authorize('update', WorkShift::class);
-        
         /**
          * @var array{
          *   name: string, 
@@ -153,7 +150,7 @@ class WorkShiftController extends Controller
 
         try {
             $work_shift = $this->service->getWorkShift($id);
-            $this->authorize('update', $work_shift);
+            $this->authorize(WorkShiftPolicy::PERM_UPDATE, $work_shift);
         
             $updated = $this->service->update($data, $id);
 
@@ -178,7 +175,7 @@ class WorkShiftController extends Controller
      */
     public function bulkDelete(BulkDeleteRequest $request): JsonResponse
     {
-        $this->authorize('deleteAny', WorkShift::class);
+        $this->authorize(WorkShiftPolicy::PERM_DELETE_ANY, WorkShift::class);
         
         $data = $request->validated();
 
@@ -208,7 +205,7 @@ class WorkShiftController extends Controller
     {
         //$this->authorize('delete', WorkShift::class);
         $work_shift = $this->service->getWorkShift($id);
-        $this->authorize('delete', $work_shift);
+        $this->authorize(WorkShiftPolicy::PERM_DELETE, $work_shift);
         
         try {
             $deleted = $this->service->destroy($id);

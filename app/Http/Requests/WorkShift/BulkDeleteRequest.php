@@ -3,13 +3,14 @@
 namespace App\Http\Requests\WorkShift;
 
 use App\Models\WorkShift;
+use App\Policies\WorkShiftPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 
 class BulkDeleteRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('work_shift.deleteAny', WorkShift::class);
+        return $this->user()->can(WorkShiftPolicy::PERM_DELETE_ANY, WorkShift::class);
     }
     
     /**

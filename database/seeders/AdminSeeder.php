@@ -27,20 +27,4 @@ class AdminSeeder extends Seeder
             $user->assignRole('admin');
         }
     }
-
-
-    public function run_old(): void
-    {
-        $user = User::firstOrCreate(
-            ['email' => 'admin@shift-smith.com'],
-            [
-                'name' => 'Admin',
-                'password' => Hash::make('v9dJY#IzSV4!*Sv3%mUM'),
-            ]
-        );
-
-        if (! $user->hasRole('admin')) {
-            $user->assignRole('admin');
-        }
-    }
 }

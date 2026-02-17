@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Permission;
 
 use App\Models\Admin\Permission;
+use App\Policies\PermissionPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 
 class BulkDeleteRequest extends FormRequest
@@ -12,7 +13,7 @@ class BulkDeleteRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('permissions.deleteAny', Permission::class);
+        return $this->user()->can(PermissionPolicy::PERM_DELETE_ANY, Permission::class);
     }
 
     /**

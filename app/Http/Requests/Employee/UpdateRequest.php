@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Employee;
 
+use App\Models\Employee;
+use App\Policies\EmployeePolicy;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateRequest extends FormRequest
@@ -9,7 +11,7 @@ class UpdateRequest extends FormRequest
     public function authorize(): bool
     {
         // Controllerben authorizeResource is lesz, de itt is maradhat
-        return $this->user()?->can(\App\Policies\EmployeePolicy::PERM_UPDATE) ?? false;
+        return $this->user()?->can(EmployeePolicy::PERM_UPDATE, Employee::class) ?? false;
     }
 
     /**

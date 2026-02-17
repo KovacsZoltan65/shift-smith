@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Permission;
 
 use App\Models\Admin\Permission;
+use App\Policies\PermissionPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 
 class DeleteRequest extends FormRequest
@@ -12,7 +13,7 @@ class DeleteRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('roles.delete', Permission::class);
+        return $this->user()->can(PermissionPolicy::PERM_DELETE, Permission::class);
     }
 
     /**

@@ -2,13 +2,15 @@
 
 namespace App\Http\Requests\Employee;
 
+use App\Models\Employee;
+use App\Policies\EmployeePolicy;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can(\App\Policies\EmployeePolicy::PERM_CREATE) ?? false;
+        return $this->user()?->can(EmployeePolicy::PERM_CREATE, Employee::class) ?? false;
     }
 
     /**

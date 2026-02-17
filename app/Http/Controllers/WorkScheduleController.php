@@ -7,6 +7,7 @@ use App\Http\Requests\WorkSchedule\IndexRequest;
 use App\Http\Requests\WorkSchedule\StoreRequest;
 use App\Http\Requests\WorkSchedule\UpdateRequest;
 use App\Models\WorkSchedule;
+use App\Policies\WorkSchedulePolicy;
 use App\Services\WorkScheduleService;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
@@ -22,7 +23,7 @@ class WorkScheduleController extends Controller
 
     public function index(IndexRequest $request): InertiaResponse
     {
-        $this->authorize('viewAny', WorkSchedule::class);
+        $this->authorize(WorkSchedulePolicy::PERM_VIEW_ANY, WorkSchedule::class);
 
         return Inertia::render('WorkSchedules/Index', [
             'title'  => 'Beosztások',
@@ -32,7 +33,7 @@ class WorkScheduleController extends Controller
 
     public function fetch(IndexRequest $request): JsonResponse
     {
-        $this->authorize('viewAny', WorkSchedule::class);
+        $this->authorize(WorkSchedulePolicy::PERM_VIEW_ANY, WorkSchedule::class);
 
         $workSchedules = $this->service->fetch($request);
 
@@ -51,7 +52,7 @@ class WorkScheduleController extends Controller
     public function getWorkSchedule(int $id): JsonResponse
     {
         $workSchedule = $this->service->getWorkSchedule($id);
-        $this->authorize('view', $workSchedule);
+        $this->authorize(WorkSchedulePolicy::PERM_VIEW, $workSchedule);
 
         try {
             return response()->json($workSchedule, Response::HTTP_OK);
@@ -81,7 +82,7 @@ class WorkScheduleController extends Controller
 
         try {
             $workSchedule = $this->service->getWorkSchedule($id);
-            $this->authorize('update', $workSchedule);
+            $this->authorize(WorkSchedulePolicy::PERM_UPDATE, $workSchedule);
 
             $updated = $this->service->update($data, $id);
 
@@ -95,7 +96,7 @@ class WorkScheduleController extends Controller
     public function destroy(int $id): JsonResponse
     {
         $workSchedule = $this->service->getWorkSchedule($id);
-        $this->authorize('delete', $workSchedule);
+        $this->authorize(WorkSchedulePolicy::PERM_DELETE, $workSchedule);
 
         try {
             $deleted = $this->service->destroy($id);
@@ -109,7 +110,7 @@ class WorkScheduleController extends Controller
 
     public function bulkDelete(BulkDeleteRequest $request): JsonResponse
     {
-        $this->authorize('deleteAny', WorkSchedule::class);
+        $this->authorize(WorkSchedulePolicy::PERM_DELETE_ANY, WorkSchedule::class);
 
         $data = $request->validated();
 

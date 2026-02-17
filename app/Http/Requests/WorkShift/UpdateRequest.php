@@ -3,13 +3,14 @@
 namespace App\Http\Requests\WorkShift;
 
 use App\Models\WorkShift;
+use App\Policies\WorkShiftPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('work_shift.update', WorkShift::class);
+        return $this->user()->can(WorkShiftPolicy::PERM_UPDATE, WorkShift::class);
     }
     
     /**

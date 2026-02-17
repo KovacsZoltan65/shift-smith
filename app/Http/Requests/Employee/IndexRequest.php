@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Employee;
 
 use App\Models\Employee;
+use App\Policies\EmployeePolicy;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -10,7 +11,7 @@ class IndexRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('employees.viewAny', Employee::class) ?? false;
+        return $this->user()?->can(EmployeePolicy::PERM_VIEW_ANY, Employee::class) ?? false;
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\User;
 
 use App\Models\User;
+use App\Policies\UserPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 
 class BulkDeleteRequest extends FormRequest
@@ -12,7 +13,7 @@ class BulkDeleteRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('delete', User::class);
+        return $this->user()->can(UserPolicy::PERM_DELETE_ANY, User::class);
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Company;
 
 use App\Models\Company;
+use App\Policies\CompanyPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -10,7 +11,7 @@ class StoreRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('companies.create') ?? false;
+        return $this->user()?->can(CompanyPolicy::PERM_CREATE, Company::class) ?? false;
     }
     
     /**

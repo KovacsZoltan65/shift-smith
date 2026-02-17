@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Permission;
 
+use App\Models\Admin\Permission;
+use App\Policies\PermissionPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 
 class IndexRequest extends FormRequest
@@ -11,7 +13,7 @@ class IndexRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->can('permissions.viewAny') ?? false;
+        return $this->user()?->can(PermissionPolicy::PERM_VIEW_ANY, Permission::class) ?? false;
     }
 
     /**

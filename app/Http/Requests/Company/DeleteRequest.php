@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Company;
 
 use App\Models\Company;
+use App\Policies\CompanyPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 
 class DeleteRequest extends FormRequest
@@ -12,7 +13,7 @@ class DeleteRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('companies.delete', Company::class);
+        return $this->user()->can(CompanyPolicy::PERM_DELETE, Company::class);
     }
 
     /**

@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Role;
 
+use App\Models\Admin\Role;
+use App\Policies\RolePolicy;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -9,7 +11,7 @@ class UpdateRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('roles.update') ?? false;
+        return $this->user()?->can(RolePolicy::PERM_UPDATE, Role::class) ?? false;
     }
     
     /**

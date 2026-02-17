@@ -2,13 +2,15 @@
 
 namespace App\Http\Requests\Permission;
 
+use App\Models\Admin\Permission;
+use App\Policies\PermissionPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('roles.create') ?? false;
+        return $this->user()?->can(PermissionPolicy::PERM_CREATE, Permission::class) ?? false;
     }
     
     /**

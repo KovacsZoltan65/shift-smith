@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\User;
 
+use App\Models\User;
+use App\Policies\UserPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 
 class IndexRequest extends FormRequest
@@ -12,7 +14,7 @@ class IndexRequest extends FormRequest
     {
         // Policy-t a controllerben fogjuk hívni (viewAny),
         // itt true maradhat.
-        return true;
+        return $this->user()?->can(UserPolicy::PERM_VIEW_ANY, User::class) ?? false;
     }
 
     /**

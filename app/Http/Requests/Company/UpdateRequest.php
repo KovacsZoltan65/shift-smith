@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Company;
 
+use App\Models\Company;
+use App\Policies\CompanyPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -9,7 +11,7 @@ class UpdateRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('companies.update') ?? false;
+        return $this->user()?->can(CompanyPolicy::PERM_UPDATE, Company::class) ?? false;
     }
     
     /**

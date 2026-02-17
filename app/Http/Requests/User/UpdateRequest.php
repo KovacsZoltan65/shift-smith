@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\User;
 
+use App\Models\User;
+use App\Policies\UserPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
 
@@ -12,7 +14,7 @@ class UpdateRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can(UserPolicy::PERM_UPDATE, User::class) ?? false;
     }
 
     /**
@@ -25,11 +27,15 @@ class UpdateRequest extends FormRequest
         $id = (int) $this->route('id');
         
         return [
-            'name'                  => ['required', 'string', 'max:255'],
-            'email'                 => "required|unique:users,email,{$id}",
-            //'password'              => ['nullable', 'confirmed', Password::defaults()],
-            //'password_confirmation' => 'sometimes|required_with:password|same:password',
-            //'role'                  => ['required'],
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'string', 'email', 'max:255', "unique:users,email,{$id}"],
+            'password' => ['nullable', 'string', 'confirmed', Password::min(8)
+                ->letters()
+                ->mixedCase()
+                ->numbers()
+                ->symbols()
+            ],
+            'password_confirmation' => ['nullable', 'required_with:password', 'string'],
         ];
     }
 }

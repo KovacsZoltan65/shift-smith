@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Employee;
 
 use App\Models\Employee;
+use App\Policies\EmployeePolicy;
 use Illuminate\Foundation\Http\FormRequest;
 
 class DeleteRequest extends FormRequest
@@ -12,7 +13,7 @@ class DeleteRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('employees.delete', Employee::class);
+        return $this->user()->can(EmployeePolicy::PERM_DELETE, Employee::class);
     }
 
     /**

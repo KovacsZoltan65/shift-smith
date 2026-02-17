@@ -3,6 +3,7 @@
 namespace App\Http\Requests\WorkSchedule;
 
 use App\Models\WorkSchedule;
+use App\Policies\WorkSchedulePolicy;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -10,7 +11,7 @@ class IndexRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('work_schedules.viewAny', WorkSchedule::class) ?? false;
+        return $this->user()?->can(WorkSchedulePolicy::PERM_VIEW_ANY, WorkSchedule::class) ?? false;
     }
 
     /**

@@ -7,6 +7,7 @@ use App\Http\Requests\Company\IndexRequest;
 use App\Http\Requests\Company\StoreRequest;
 use App\Http\Requests\Company\UpdateRequest;
 use App\Models\Company;
+use App\Policies\CompanyPolicy;
 use App\Services\CompanyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,7 +27,7 @@ class CompanyController extends Controller
     
     public function index(IndexRequest $request): InertiaResponse
     {
-        $this->authorize('viewAny', Company::class);
+        $this->authorize(CompanyPolicy::PERM_VIEW_ANY, Company::class);
         
         return Inertia::render('Companies/Index', [
             'title'  => 'Cégek',
@@ -36,7 +37,7 @@ class CompanyController extends Controller
     
     public function fetch(IndexRequest $request): JsonResponse
     {
-        $this->authorize('viewAny', Company::class);
+        $this->authorize(CompanyPolicy::PERM_VIEW_ANY, Company::class);
         
         $companies = $this->service->fetch($request);
 
@@ -58,10 +59,8 @@ class CompanyController extends Controller
      */
     public function getCompany(int $id): JsonResponse
     {
-        //$this->authorize('view', Company::class);
-        
         $company = $this->service->getCompany($id);
-        $this->authorize('view', $company);
+        $this->authorize(CompanyPolicy::PERM_VIEW, $company);
 
         try {
             return response()->json(
@@ -84,7 +83,7 @@ class CompanyController extends Controller
     public function getCompanyByName(string $name): JsonResponse
     {
         $company = $this->service->getCompanyByName($name);
-        $this->authorize('view', $company);
+        $this->authorize(CompanyPolicy::PERM_VIEW, $company);
         
         try {
             return response()->json(
@@ -101,7 +100,7 @@ class CompanyController extends Controller
     
     public function store(StoreRequest $request): JsonResponse
     {
-        $this->authorize('create', Company::class);
+        $this->authorize(CompanyPolicy::PERM_CREATE, Company::class);
         
         /**
          * @var array{
@@ -138,8 +137,6 @@ class CompanyController extends Controller
      */
     public function update(UpdateRequest $request, $id): JsonResponse
     {
-        //$this->authorize('update', Company::class);
-        
         /**
          * @var array{
          *   name: string, 
@@ -153,7 +150,7 @@ class CompanyController extends Controller
 
         try {
             $company = $this->service->getCompany($id);
-            $this->authorize('update', $company);
+            $this->authorize(CompanyPolicy::PERM_UPDATE, $company);
         
             $updated = $this->service->update($data, $id);
 
@@ -178,7 +175,7 @@ class CompanyController extends Controller
      */
     public function bulkDelete(BulkDeleteRequest $request): JsonResponse
     {
-        $this->authorize('deleteAny', Company::class);
+        $this->authorize(CompanyPolicy::PERM_DELETE_ANY, Company::class);
         
         $data = $request->validated();
 
@@ -208,7 +205,7 @@ class CompanyController extends Controller
     {
         //$this->authorize('delete', Company::class);
         $company = $this->service->getCompany($id);
-        $this->authorize('delete', $company);
+        $this->authorize(CompanyPolicy::PERM_DELETE, $company);
         
         try {
             $deleted = $this->service->destroy($id);

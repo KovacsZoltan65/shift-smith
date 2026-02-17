@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Company;
 
 use App\Models\Company;
+use App\Policies\CompanyPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 
 class BulkDeleteRequest extends FormRequest
@@ -12,7 +13,7 @@ class BulkDeleteRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('companies.deleteAny', Company::class);
+        return $this->user()->can(CompanyPolicy::PERM_DELETE_ANY, Company::class);
     }
 
     /**

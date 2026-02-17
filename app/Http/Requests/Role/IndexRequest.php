@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Role;
 
+use App\Models\Admin\Role;
+use App\Policies\RolePolicy;
 use Illuminate\Foundation\Http\FormRequest;
 
 class IndexRequest extends FormRequest
@@ -11,7 +13,7 @@ class IndexRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->can('roles.viewAny') ?? false;
+        return $this->user()?->can(RolePolicy::PERM_VIEW_ANY, Role::class) ?? false;
     }
 
     /**

@@ -3,13 +3,14 @@
 namespace App\Http\Requests\Employee;
 
 use App\Models\Employee;
+use App\Policies\EmployeePolicy;
 use Illuminate\Foundation\Http\FormRequest;
 
 class BulkDeleteRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('employees.deleteAny', Employee::class);
+        return $this->user()->can(EmployeePolicy::PERM_DELETE_ANY, Employee::class);
     }
 
     /**

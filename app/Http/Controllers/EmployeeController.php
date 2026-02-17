@@ -3,16 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Employee\BulkDeleteRequest;
-use App\Http\Requests\Employee\DeleteRequest;
 use App\Http\Requests\Employee\IndexRequest;
 use App\Http\Requests\Employee\StoreRequest;
 use App\Http\Requests\Employee\UpdateRequest;
 use App\Models\Employee;
+use App\Policies\EmployeePolicy;
 use App\Services\EmployeeService;
-use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,13 +20,11 @@ class EmployeeController extends Controller
 {
     public function __construct(
             private readonly EmployeeService $service
-    ) {
-        //
-    }
+    ) {}
     
     public function index(IndexRequest $request): InertiaResponse
     {
-        $this->authorize('viewAny', Employee::class);
+        $this->authorize(EmployeePolicy::PERM_VIEW_ANY, Employee::class);
         
         return Inertia::render('HR/Employees/Index', [
             'title'  => 'Dolgozók',
@@ -38,7 +34,7 @@ class EmployeeController extends Controller
     
     public function fetch(IndexRequest $request): JsonResponse
     {
-        $this->authorize('viewAny', Employee::class);
+        $this->authorize(EmployeePolicy::PERM_VIEW_ANY, Employee::class);
         
         $employee = $this->service->fetch($request);
 
@@ -61,7 +57,7 @@ class EmployeeController extends Controller
     public function getEmployee(int $id): JsonResponse
     {
         $employee = $this->service->getEmployee($id);
-        $this->authorize('view', $employee);
+        $this->authorize(EmployeePolicy::PERM_VIEW, $employee);
 
         try {
             return response()->json(
@@ -83,10 +79,10 @@ class EmployeeController extends Controller
      */
     public function getEmployeeByName(string $name): JsonResponse
     {
-        $employee = $this->service->getEmployeeByName($name);
-        $this->authorize('view', $employee);
-        
         try {
+            $employee = $this->service->getEmployeeByName($name);
+            $this->authorize(EmployeePolicy::PERM_VIEW, $employee);
+
             return response()->json(
                 $employee,
                 Response::HTTP_OK
@@ -101,7 +97,7 @@ class EmployeeController extends Controller
     
     public function store(StoreRequest $request): JsonResponse
     {
-        $this->authorize('create', Employee::class);
+        $this->authorize(EmployeePolicy::PERM_CREATE, Employee::class);
         
         /**
          * @var array{
@@ -141,8 +137,6 @@ class EmployeeController extends Controller
      */
     public function update(UpdateRequest $request, $id): JsonResponse
     {
-        //$this->authorize('update', Company::class);
-        
         /**
          * @var array{
          *   first_name: string, 
@@ -158,7 +152,7 @@ class EmployeeController extends Controller
 
         try {
             $employee = $this->service->getEmployee($id);
-            $this->authorize('update', $employee);
+            $this->authorize(EmployeePolicy::PERM_UPDATE, $employee);
         
             $updated = $this->service->update($data, $id);
 
@@ -183,7 +177,7 @@ class EmployeeController extends Controller
      */
     public function bulkDelete(BulkDeleteRequest $request): JsonResponse
     {
-        $this->authorize('deleteAny', Employee::class);
+        $this->authorize(EmployeePolicy::PERM_DELETE_ANY, Employee::class);
         
         $data = $request->validated();
 
@@ -211,11 +205,10 @@ class EmployeeController extends Controller
      */
     public function destroy(int $id): JsonResponse
     {
-        //$this->authorize('delete', Company::class);
-        $employee = $this->service->getEmployee($id);
-        $this->authorize('delete', $employee);
-        
         try {
+            $employee = $this->service->getEmployee($id);
+            $this->authorize(EmployeePolicy::PERM_DELETE, $employee);
+            
             $deleted = $this->service->destroy($id);
 
             return response()->json($deleted, Response::HTTP_OK);
@@ -232,8 +225,6 @@ class EmployeeController extends Controller
      */
     public function getToSelect(Request $request): array
     {
-        $params = [];
-        
-        return $this->service->getToSelect($params);
+        return $this->service->getToSelect([]);
     }
 }

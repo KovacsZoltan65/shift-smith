@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Permission;
 
+use App\Models\Admin\Permission;
+use App\Policies\PermissionPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -9,7 +11,7 @@ class UpdateRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('permissions.update') ?? false;
+        return $this->user()?->can(PermissionPolicy::PERM_UPDATE, Permission::class) ?? false;
     }
     
     /**

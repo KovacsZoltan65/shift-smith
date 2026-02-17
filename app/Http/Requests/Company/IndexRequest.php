@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Company;
 
 use App\Models\Company;
+use App\Policies\CompanyPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 
 class IndexRequest extends FormRequest
@@ -13,7 +14,7 @@ class IndexRequest extends FormRequest
     {
         // Policy-t a controllerben fogjuk hívni (viewAny),
         // itt true maradhat.
-        return $this->user()->can('companies.viewAny', Company::class);
+        return $this->user()->can(CompanyPolicy::PERM_VIEW_ANY, Company::class);
     }
     
     /**
