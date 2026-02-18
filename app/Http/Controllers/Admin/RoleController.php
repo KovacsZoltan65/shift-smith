@@ -102,7 +102,7 @@ class RoleController extends Controller
             ], Response::HTTP_OK);
         } catch(Throwable $th) {
             return response()->json(
-                ['error' => $th->getMessage()],
+                ['message' => 'Váratlan hiba történt.'],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
@@ -134,7 +134,7 @@ class RoleController extends Controller
             ], Response::HTTP_OK);
         } catch(Throwable $th) {
             return response()->json(
-                ['error' => $th->getMessage()],
+                ['message' => 'Váratlan hiba történt.'],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
@@ -178,7 +178,7 @@ class RoleController extends Controller
             return response()->json($role, Response::HTTP_OK);
         } catch(Throwable $th) {
             return response()->json(
-                ['error' => $th->getMessage()],
+                ['message' => 'Váratlan hiba történt.'],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
@@ -211,7 +211,7 @@ class RoleController extends Controller
             return response()->json($updated, Response::HTTP_OK);
         } catch(Throwable $th) {
             return response()->json(
-                ['error' => $th->getMessage()],
+                ['message' => 'Váratlan hiba történt.'],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }

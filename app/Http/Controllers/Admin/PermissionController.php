@@ -93,7 +93,7 @@ class PermissionController extends Controller
             );
         } catch(Throwable $th) {
             return response()->json(
-                ['error' => $th->getMessage()],
+                ['message' => 'Váratlan hiba történt.'],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
@@ -119,7 +119,7 @@ class PermissionController extends Controller
             );
         } catch(Throwable $th) {
             return response()->json(
-                ['error' => $th->getMessage()],
+                ['message' => 'Váratlan hiba történt.'],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
@@ -156,7 +156,7 @@ class PermissionController extends Controller
             return response()->json($permission, Response::HTTP_OK);
         } catch(Throwable $th) {
             return response()->json(
-                ['error' => $th->getMessage()],
+                ['message' => 'Váratlan hiba történt.'],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
@@ -189,7 +189,7 @@ class PermissionController extends Controller
             return response()->json($updated, Response::HTTP_OK);
         } catch(Throwable $th) {
             return response()->json(
-                ['error' => $th->getMessage()],
+                ['message' => 'Váratlan hiba történt.'],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
