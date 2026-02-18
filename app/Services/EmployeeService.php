@@ -6,6 +6,8 @@ use App\Interfaces\EmployeeRepositoryInterface;
 use App\Models\Employee;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
+use App\Data\Employee\EmployeeData;
+use App\Data\Employee\EmployeeIndexData;
 
 /**
  * Munkavállaló szolgáltatás osztály
@@ -54,47 +56,38 @@ class EmployeeService
         return $this->repo->getEmployeeByName($name);
     }
     
-    /**
-     * Új munkavállaló létrehozása
-     * 
-     * @param array{
-     *   first_name: string,
-     *   last_name: string,
-     *   address?: string|null,
-     *   phone?: string|null,
-     *   email?: string|null,
-     *   hired_at: string,
-     *   company_id?: int|null,
-     *   active?: bool
-     * } $data Munkavállaló adatok
-     * @return Employee Létrehozott munkavállaló
-     */
-    public function store(array $data): Employee
+    public function store(EmployeeData $data): Employee
     {
-        /** @var Employee $employee */
-        $employee = $this->repo->store($data);
+        $employee = $this->repo->store([
+            'company_id' => $data->company_id,
+            'first_name' => $data->first_name,
+            'last_name' => $data->last_name,
+            'email' => $data->email,
+            'address' => $data->address,
+            'position' => $data->position,
+            'phone' => $data->phone,
+            'hired_at' => $data->hired_at,
+            'active' => $data->active,
+        ]);
 
-        return $employee;
+        return EmployeeData::fromModel($employee);
     }
     
-    /**
-     * Munkavállaló adatainak frissítése
-     * 
-     * @param array{
-     *    first_name: string,
-     *    last_name: string,
-     *    email: string,
-     *    address: string,
-     *    phone: string,
-     *    hired_at: string,
-     *    active: boolean
-     * } $data Frissítendő adatok
-     * @param int $id Munkavállaló azonosító
-     * @return Employee Frissített munkavállaló
-     */
-    public function update(array $data, $id): Employee
+    public function update($id, CompanyData $data): Employee
     {
-        return $this->repo->update($data, $id);
+        $employee = $this->repo->update([
+            'company_id' => $data->company_id,
+            'first_name' => $data->first_name,
+            'last_name' => $data->last_name,
+            'email' => $data->email,
+            'address' => $data->address,
+            'position' => $data->position,
+            'phone' => $data->phone,
+            'hired_at' => $data->hired_at,
+            'active' => $data->active,
+        ], $id);
+
+        return EmployeeData::fromModel($employee);
     }
     
     /**

@@ -20,6 +20,10 @@ Route::middleware('guest')->group(function () {
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
 
+    // PrimeVue demo login (guest-only)
+    Route::get('prime-login', [AuthenticatedSessionController::class, 'primeCreate'])
+        ->name('prime.login');
+
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])

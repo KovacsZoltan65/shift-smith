@@ -15,6 +15,8 @@ use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
+use App\Data\Employee\EmployeeData;
+use App\Data\Employee\EmployeeIndexData;
 
 /**
  * Munkavállaló controller osztály
@@ -59,18 +61,41 @@ class EmployeeController extends Controller
     {
         $this->authorize(EmployeePolicy::PERM_VIEW_ANY, Employee::class);
         
-        $employee = $this->service->fetch($request);
-
+        $employees = $this->service->fetch($request);
+        
+        $items = EmployeeIndexData::collect($employees->items());
+        
         return response()->json([
-            'data' => $employee->items(),
+            'message' => 'Dolgozók sikeresen lekérve.',
+            'data' => $items,
             'meta' => [
-                'current_page' => $employee->currentPage(),
-                'per_page'     => $employee->perPage(),
-                'total'        => $employee->total(),
-                'last_page'    => $employee->lastPage(),
+                'current_page' => $employees->currentPage(),
+                'per_page' => $employees->perPage(),
+                'total' => $employees->total(),
+                'last_page' => $employees->lastPage(),
             ],
             'filter' => $request->validatedFilters(),
         ], Response::HTTP_OK);
+        
+        /*
+        $this->authorize(EmployeePolicy::PERM_VIEW_ANY, Employee::class);
+        
+        $employees = $this->service->fetch($request);
+
+        $items = EmployeeIndexData::collect($employees->items());
+
+        return response()->json([
+            'message' => 'Dolgozók sikeresen lekérdezve',
+            'data' => $items,
+            'meta' => [
+                'current_page' => $employees->currentPage(),
+                'per_page'     => $employees->perPage(),
+                'total'        => $employees->total(),
+                'last_page'    => $employees->lastPage(),
+            ],
+            'filter' => $request->validatedFilters(),
+        ], Response::HTTP_OK);
+        */
     }
     
     /**
@@ -121,82 +146,27 @@ class EmployeeController extends Controller
         }
     }
     
-    /**
-     * Új munkavállaló létrehozása
-     * 
-     * Validált adatokkal új munkavállaló létrehozása.
-     * 
-     * @param StoreRequest $request Validált kérés (company_id, first_name, last_name, email, address, phone, hired_at, active)
-     * @return JsonResponse Létrehozott munkavállaló JSON-ben
-     */
-    public function store(StoreRequest $request): JsonResponse
+    public function store(EmployeeData $data): JsonResponse
     {
         $this->authorize(EmployeePolicy::PERM_CREATE, Employee::class);
-        
-        /**
-         * @var array{
-         *   company_id: int,
-         *   first_name: string, 
-         *   last_name: string,
-         *   email: string,
-         *   address: string,
-         *   phone: string,
-         *   hired_at: string,
-         *   active: bool
-         * } $data
-         */
-        $data = $request->validated();
-        
-        try {
-            $employee = $this->service->store($data);
-
-            return response()->json($employee, Response::HTTP_OK);
-        } catch(Throwable $th) {
-            return response()->json(
-                ['error' => $th->getMessage()],
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        }
+        $created = $this->service->store($data);
+        return response()->json([
+            'message' => 'A dolgozó sikeresen létrehozva.',
+            'data' => $created,
+        ], Response::HTTP_CREATED);
     }
     
-    /**
-     * Meglévő rekord adatainak frissítése.
-     *
-     * Engedélyezés: 'update' policy.
-     *
-     * @param  \App\Http\Requests\Employee\UpdateRequest  $request
-     * @param  int  $id  A módosítandó rekord azonosítója.
-     * @return JsonResponse  A frissített rekord adatait tartalmazó JSON válasz.
-     * @throws \Throwable
-     */
-    public function update(UpdateRequest $request, $id): JsonResponse
+    public function update(int $id, EmployeeData $data): JsonResponse
     {
-        /**
-         * @var array{
-         *   first_name: string, 
-         *   last_name: string, 
-         *   email: string,
-         *   address: string,
-         *   phone: string,
-         *   hired_at: string,
-         *   active: bool
-         * } $data
-         */
-        $data = $request->validated();
-
-        try {
-            $employee = $this->service->getEmployee($id);
-            $this->authorize(EmployeePolicy::PERM_UPDATE, $employee);
+        $employee = $this->service->getEmployee($id);
+        $this->authorize(EmployeePolicy::PERM_UPDATE, $employee);
         
-            $updated = $this->service->update($data, $id);
-
-            return response()->json($updated, Response::HTTP_OK);
-        } catch(Throwable $th) {
-            return response()->json(
-                ['error' => $th->getMessage()],
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        }
+        $updated = $this->service->update($data, $id);
+        
+        return response()->json([
+            'message' => 'A dolgozó sikeresen frissítve.',
+            'data' => $updated,
+        ], Response::HTTP_OK);
     }
     
     /**

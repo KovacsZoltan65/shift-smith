@@ -24,6 +24,8 @@ import DeleteModal from "@/Pages/WorkSchedules/DeleteModal.vue";
 import CompanySelector from "@/Components/Selectors/CompanySelector.vue";
 import { csrfFetch } from "@/lib/csrfFetch";
 
+import { toYmd } from "@/helpers/functions.js";
+
 import { usePermissions } from "@/composables/usePermissions";
 const { has } = usePermissions();
 
@@ -144,14 +146,6 @@ const onSearchInput = () => {
         lazy.value.page = 0;
         fetchWorkSchedules();
     }, 300);
-};
-
-const toYmd = (d) => {
-    if (!d) return null;
-    if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
-    const dt = new Date(d);
-    if (Number.isNaN(dt.getTime())) return null;
-    return dt.toISOString().slice(0, 10);
 };
 
 const buildQuery = () => {
@@ -333,6 +327,7 @@ onMounted(fetchWorkSchedules);
                     <div class="flex items-center gap-3">
                         <h1 class="text-2xl font-semibold">{{ title }}</h1>
 
+                        <!-- CREATE -->
                         <Button
                             v-if="canCreate"
                             label="Új beosztás"
@@ -352,7 +347,7 @@ onMounted(fetchWorkSchedules);
                             @click="fetchWorkSchedules"
                             data-testid="work_schedules-refresh"
                         />
-
+                        <!-- BULK DELETE -->
                         <Button
                             v-if="canDeleteAny"
                             label="Kijelöltek törlése"

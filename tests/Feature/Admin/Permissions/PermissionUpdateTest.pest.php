@@ -78,15 +78,6 @@ it('lehetővé teszi az adminisztrátor számára az engedélyek frissítését 
         ->putJson(route('admin.permissions.update', ['id' => $permission->id]), $payload)
         ->assertOk();
     
-    /*
-    $response = $this->actingAs($user)
-        ->putJson(route('admin.permissions.update', ['id' => $permission->id]), $payload);
-
-    $response->dump();
-    $response->dumpHeaders();
-    expect($response->status())->toBe(200);
-    */
-    
     $this->assertDatabaseHas('permissions', [
         'id' => $permission->id,
         'name' => $payload['name'],

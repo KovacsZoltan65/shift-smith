@@ -25,6 +25,17 @@ class AuthenticatedSessionController extends Controller
     }
 
     /**
+     * Display the PrimeVue demo login view.
+     */
+    public function primeCreate(): Response
+    {
+        return Inertia::render('Auth/PrimeLogin', [
+            'canResetPassword' => Route::has('password.request'),
+            'status' => session('status'),
+        ]);
+    }
+
+    /**
      * Handle an incoming authentication request.
      */
     public function store(LoginRequest $request): RedirectResponse

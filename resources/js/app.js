@@ -14,6 +14,14 @@ import { ConfirmationService } from "primevue";
 import Aura from "@primevue/themes/aura";
 
 import "primeicons/primeicons.css";
+import Button from "primevue/button";
+import Card from "primevue/card";
+import InputText from "primevue/inputtext";
+import Password from "primevue/password";
+import Checkbox from "primevue/checkbox";
+import Toast from "primevue/toast";
+import Divider from "primevue/divider";
+import Message from "primevue/message";
 
 const appName = import.meta.env.VITE_APP_NAME || "Laravel";
 
@@ -37,6 +45,14 @@ createInertiaApp({
             .use(ConfirmationService)
             .use(ZiggyVue)
             .directive("tooltip", Tooltip)
+            .component("Button", Button)
+            .component("Card", Card)
+            .component("InputText", InputText)
+            .component("Password", Password)
+            .component("Checkbox", Checkbox)
+            .component("Toast", Toast)
+            .component("Divider", Divider)
+            .component("Message", Message)
             .mixin({
                 methods: {
                     can: (permissions) => {

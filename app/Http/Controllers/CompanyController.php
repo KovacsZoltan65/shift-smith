@@ -4,8 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Company\BulkDeleteRequest;
 use App\Http\Requests\Company\IndexRequest;
-use App\Http\Requests\Company\StoreRequest;
-use App\Http\Requests\Company\UpdateRequest;
 use App\Models\Company;
 use App\Policies\CompanyPolicy;
 use App\Services\CompanyService;
@@ -14,7 +12,8 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
-use Throwable;
+use App\Data\Company\CompanyData;
+use App\Data\Company\CompanyIndexData;
 
 /**
  * Cég controller osztály
@@ -61,8 +60,11 @@ class CompanyController extends Controller
         
         $companies = $this->service->fetch($request);
 
+        $items = CompanyIndexData::collect($companies->items());
+
         return response()->json([
-            'data' => $companies->items(),
+            'message' => 'Cégek sikeresen lekérve.',
+            'data' => $items,
             'meta' => [
                 'current_page' => $companies->currentPage(),
                 'per_page'     => $companies->perPage(),
@@ -81,20 +83,13 @@ class CompanyController extends Controller
      */
     public function getCompany(int $id): JsonResponse
     {
-        $company = $this->service->getCompany($id);
+        $company = $this->service->find($id);
         $this->authorize(CompanyPolicy::PERM_VIEW, $company);
 
-        try {
-            return response()->json(
-                $company,
-                Response::HTTP_OK
-            );
-        } catch(Throwable $th) {
-            return response()->json(
-                ['error' => $th->getMessage()],
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        }
+        return response()->json([
+            'message' => 'Cég sikeresen lekérve.',
+            'data' => CompanyData::fromModel($company),
+        ], Response::HTTP_OK);
     }
     
     /**
@@ -105,20 +100,13 @@ class CompanyController extends Controller
      */
     public function getCompanyByName(string $name): JsonResponse
     {
-        $company = $this->service->getCompanyByName($name);
+        $company = $this->service->findByName($name);
         $this->authorize(CompanyPolicy::PERM_VIEW, $company);
         
-        try {
-            return response()->json(
-                $company,
-                Response::HTTP_OK
-            );
-        } catch(Throwable $th) {
-            return response()->json(
-                ['error' => $th->getMessage()],
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        }
+        return response()->json([
+            'message' => 'Cég sikeresen lekérve.',
+            'data' => CompanyData::fromModel($company),
+        ], Response::HTTP_OK);
     }
     
     /**
@@ -129,69 +117,29 @@ class CompanyController extends Controller
      * @param StoreRequest $request Validált kérés (name, email, address, phone, active)
      * @return JsonResponse Létrehozott cég JSON-ben
      */
-    public function store(StoreRequest $request): JsonResponse
+    public function store(CompanyData $data): JsonResponse
     {
         $this->authorize(CompanyPolicy::PERM_CREATE, Company::class);
-        
-        /**
-         * @var array{
-         *   name: string, 
-         *   email: string,
-         *   address: string,
-         *   phone: string,
-         *   active: bool
-         * } $data
-         */
-        $data = $request->validated();
 
-        try {
-            $company = $this->service->store($data);
+        $created = $this->service->store($data);
 
-            return response()->json($company, Response::HTTP_OK);
-        } catch(Throwable $th) {
-            return response()->json(
-                ['error' => $th->getMessage()],
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        }
+        return response()->json([
+            'message' => 'A cég sikeresen létrehozva.',
+            'data' => $created,
+        ], Response::HTTP_CREATED);
     }
-    
-    /**
-     * Meglévő rekord adatainak frissítése.
-     *
-     * Engedélyezés: 'update' policy.
-     *
-     * @param  \App\Http\Requests\Company\UpdateRequest  $request
-     * @param  int  $id  A módosítandó rekord azonosítója.
-     * @return \Illuminate\Http\JsonResponse  A frissített rekord adatait tartalmazó JSON válasz.
-     * @throws \Throwable
-     */
-    public function update(UpdateRequest $request, $id): JsonResponse
+
+    public function update(int $id, CompanyData $data): JsonResponse
     {
-        /**
-         * @var array{
-         *   name: string, 
-         *   email: string,
-         *   address: string,
-         *   phone: string,
-         *   active: bool
-         * } $data
-         */
-        $data = $request->validated();
+        $company = $this->service->find($id);
+        $this->authorize(CompanyPolicy::PERM_UPDATE, $company);
 
-        try {
-            $company = $this->service->getCompany($id);
-            $this->authorize(CompanyPolicy::PERM_UPDATE, $company);
-        
-            $updated = $this->service->update($data, $id);
+        $updated = $this->service->update($id, $data);
 
-            return response()->json($updated, Response::HTTP_OK);
-        } catch(Throwable $th) {
-            return response()->json(
-                ['error' => $th->getMessage()],
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        }
+        return response()->json([
+            'message' => 'Cég sikeresen frissítve.',
+            'data' => $updated,
+        ], Response::HTTP_OK);
     }
     
     /**
@@ -234,18 +182,15 @@ class CompanyController extends Controller
      */
     public function destroy(int $id): JsonResponse
     {
-        $company = $this->service->getCompany($id);
+        $company = $this->service->find($id);
         $this->authorize(CompanyPolicy::PERM_DELETE, $company);
         
-        try {
-            $deleted = $this->service->destroy($id);
+        $deleted = $this->service->destroy($id);
 
-            return response()->json($deleted, Response::HTTP_OK);
-        } catch(Throwable $th) {
-            return response()->json([
-                'message' => 'Törlés sikertelen.',
-            ], Response::HTTP_INTERNAL_SERVER_ERROR);
-        }
+        return response()->json([
+            'message' => $deleted ? 'Törlés sikeres.' : 'Törlés sikertelen.',
+            'deleted' => (bool) $deleted,
+        ], $deleted ? Response::HTTP_OK : Response::HTTP_INTERNAL_SERVER_ERROR);
     }
     
     /**

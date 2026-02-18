@@ -20,6 +20,8 @@ import EditModal from "@/Pages/HR/Employees/EditModal.vue";
 import { csrfFetch } from "@/lib/csrfFetch";
 import CompanySelector from "@/Components/Selectors/CompanySelector.vue";
 
+import { toYmd } from "@/helpers/functions.js";
+
 const page = usePage();
 
 import { usePermissions } from "@/composables/usePermissions";
@@ -374,6 +376,18 @@ onMounted(fetchEmployees);
                         data-testid="employees-create"
                     />
 
+                    <!-- FRISSÍTÉS -->
+                    <Button
+                        label="Frissítés"
+                        icon="pi pi-refresh"
+                        severity="secondary"
+                        size="small"
+                        :disabled="loading || actionLoading"
+                        :loading="loading"
+                        @click="fetchEmployees"
+                        data-testid="employees-refresh"
+                    />
+
                     <!-- BULK DELETE -->
                     <Button
                         v-if="canDelete"
@@ -461,10 +475,16 @@ onMounted(fetchEmployees);
 
                 <Column field="email" header="Email" sortable />
                 <Column field="phone" header="Telefon" sortable />
-                <Column field="hired_at" header="Belépés" sortable style="width: 140px">
+
+                <!-- BELÉPÉS -->
+                <Column 
+                    field="hired_at" 
+                    header="Belépés" sortable 
+                    style="width: 140px"
+                >
                     <template #body="{ data }">
                         <span class="text-sm">
-                            {{ data.hired_at ?? "-" }}
+                            {{ toYmd(data.hired_at) ?? "-" }}
                         </span>
                     </template>
                 </Column>

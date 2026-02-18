@@ -67,7 +67,13 @@ const submit = async () => {
             throw new Error(body?.message ?? `HTTP ${res.status}`);
         }
 
-        emit("saved");
+        // Backend adapter:
+        // - régi: response lehetett { id, ... }
+        // - új: { message, data: { ... } }
+        const body = await res.json().catch(() => null);
+        const company = body?.data ?? body;
+
+        emit("saved", company);
         close();
     } catch (e) {
         errors._global = e?.message ?? "Ismeretlen hiba";
@@ -107,7 +113,7 @@ const submit = async () => {
                 label="Mentés"
                 icon="pi pi-check"
                 :loading="loading"
-                :disabled="saving || !props.canCreate"
+                :disabled="loading || !props.canCreate"
                 @click="submit"
             />
         </template>

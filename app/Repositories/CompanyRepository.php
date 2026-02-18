@@ -214,7 +214,7 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
             ttl: (int) config('cache.ttl_fetch', 1800)
         );
     }
-    
+
     /**
      * Új cég létrehozása
      * 
@@ -243,7 +243,7 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
             return $company;
         });
     }
-    
+
     /**
      * Cég adatainak frissítése
      * 

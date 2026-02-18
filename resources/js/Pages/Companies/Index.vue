@@ -143,8 +143,15 @@ const fetchCompanies = async () => {
 
         const json = await res.json();
 
-        rows.value = json.data ?? [];
-        totalRecords.value = json.meta?.total ?? 0;
+        // Backend adapter:
+        // - régi: { data: [...] }
+        // - új (spatie data/egységes): { message, data: [...] } vagy { message, data: { data: [...] }, meta }
+        const items = Array.isArray(json?.data)
+            ? json.data
+            : (json?.data?.data ?? []);
+
+        rows.value = items;
+        totalRecords.value = json?.meta?.total ?? 0;
     } catch (e) {
         error.value = e?.message || "Ismeretlen hiba";
     } finally {
@@ -314,6 +321,18 @@ onMounted(fetchCompanies);
                         size="small"
                         @click="openCreate"
                         data-testid="companies-create"
+                    />
+
+                    <!-- FRISSÍTÉS -->
+                    <Button
+                        label="Frissítés"
+                        icon="pi pi-refresh"
+                        severity="secondary"
+                        size="small"
+                        :disabled="loading || actionLoading"
+                        :loading="loading"
+                        @click="fetchCompanies"
+                        data-testid="companies-refresh"
                     />
 
                     <!-- BULK DELETE -->

@@ -10,6 +10,8 @@ use App\Models\Employee;
 use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
 use App\Traits\Functions;
+use App\Data\Employee\EmployeeData;
+use App\Data\Employee\EmployeeIndexData;
 use Illuminate\Container\Container as AppContainer;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;

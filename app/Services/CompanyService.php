@@ -6,6 +6,7 @@ use App\Interfaces\CompanyRepositoryInterface;
 use App\Models\Company;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
+use App\Data\Company\CompanyData;
 
 /**
  * Cég szolgáltatás osztály
@@ -29,63 +30,60 @@ class CompanyService
     {
         return $this->repo->fetch($request);
     }
-    
+
     /**
-     * Egy cég lekérése azonosító alapján
-     * 
-     * @param int $id Cég azonosító
-     * @return Company Cég model
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
+     * Model lookup (auth/policy friendly).
      */
-    public function getCompany(int $id): Company
+    public function find(int $id): Company
     {
         return $this->repo->getCompany($id);
     }
-    
+
     /**
-     * Cég lekérése név alapján
-     * 
-     * @param string $name Cég neve
-     * @return Company Cég model
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
+     * Model lookup by name (auth/policy friendly).
      */
-    public function getCompanyByName(string $name): Company
+    public function findByName(string $name): Company
     {
         return $this->repo->getCompanyByName($name);
     }
-    
+
     /**
-     * Új cég létrehozása
      * 
-     * @param array{
-     *   name: string,
-     *   email: string,
-     *   address: string|null,
-     *   phone: string|null
-     * } $data Cég adatok
-     * @return Company Létrehozott cég
      */
-    public function store(array $data): Company
+public function getById(int $id): CompanyData
     {
-        return $this->repo->store($data);
+        return CompanyData::fromModel($this->repo->getCompany($id));
     }
-    
-    /**
-     * Cég adatainak frissítése
-     * 
-     * @param array{
-     *    name: string,
-     *    email: string,
-     *    address: string,
-     *    phone: string,
-     *    active: boolean
-     * } $data Frissítendő adatok
-     * @param int $id Cég azonosító
-     * @return Company Frissített cég
-     */
-    public function update(array $data, $id): Company
+
+    public function getByName(string $name): CompanyData
     {
-        return $this->repo->update($data, $id);
+        return CompanyData::fromModel($this->repo->getCompanyByName($name));
+    }
+
+    public function store(CompanyData $data): CompanyData
+    {
+        $company = $this->repo->store([
+            'name'    => $data->name,
+            'email'   => $data->email,
+            'address' => $data->address,
+            'phone'   => $data->phone,
+            'active'  => $data->active,
+        ]);
+
+        return CompanyData::fromModel($company);
+    }
+
+    public function update(int $id, CompanyData $data): CompanyData
+    {
+        $company = $this->repo->update([
+            'name'    => $data->name,
+            'email'   => $data->email,
+            'address' => $data->address,
+            'phone'   => $data->phone,
+            'active'  => $data->active,
+        ], $id);
+
+        return CompanyData::fromModel($company);
     }
     
     /**
