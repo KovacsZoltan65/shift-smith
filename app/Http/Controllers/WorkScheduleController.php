@@ -87,7 +87,7 @@ class WorkScheduleController extends Controller
         try {
             return response()->json($workSchedule, Response::HTTP_OK);
         } catch (Throwable $th) {
-            return response()->json(['error' => $th->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+            return response()->json(['message' => 'Váratlan hiba történt.'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -118,7 +118,7 @@ class WorkScheduleController extends Controller
 
             return response()->json($workSchedule, Response::HTTP_OK);
         } catch (Throwable $th) {
-            return response()->json(['message' => $th->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+            return response()->json(['message' => 'Váratlan hiba történt.'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -152,7 +152,7 @@ class WorkScheduleController extends Controller
             return response()->json($updated, Response::HTTP_OK);
         } catch (Throwable $th) {
             $code = $th instanceof \RuntimeException ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_INTERNAL_SERVER_ERROR;
-            return response()->json(['message' => $th->getMessage()], $code);
+            return response()->json(['message' => $code === Response::HTTP_UNPROCESSABLE_ENTITY ? $th->getMessage() : 'Váratlan hiba történt.'], $code);
         }
     }
 
@@ -175,7 +175,7 @@ class WorkScheduleController extends Controller
             return response()->json($deleted, Response::HTTP_OK);
         } catch (Throwable $th) {
             $code = $th instanceof \RuntimeException ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_INTERNAL_SERVER_ERROR;
-            return response()->json(['message' => $th->getMessage()], $code);
+            return response()->json(['message' => $code === Response::HTTP_UNPROCESSABLE_ENTITY ? $th->getMessage() : 'Váratlan hiba történt.'], $code);
         }
     }
 
@@ -204,7 +204,7 @@ class WorkScheduleController extends Controller
             $code = $th instanceof \RuntimeException ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_INTERNAL_SERVER_ERROR;
 
             return response()->json([
-                'message' => $th->getMessage() ?: 'Törlés sikertelen.',
+                'message' => $code === Response::HTTP_UNPROCESSABLE_ENTITY ? ($th->getMessage() ?: 'Törlés sikertelen.') : 'Váratlan hiba történt.',
             ], $code);
         }
     }
