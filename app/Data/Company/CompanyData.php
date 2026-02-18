@@ -27,13 +27,14 @@ class CompanyData extends Data
         #[Required, Email, Max(150), Unique('companies', 'email', new RouteParameterReference('id'))]
         public string $email,
 
-        #[Nullable, StringType, max(255)]
+        #[Nullable, StringType, Max(255)]
         public ?string $address,
 
         #[StringType, Max(50)]
         public ?string $phone,
 
-        public bool $active,
+        #[BooleanType]
+        public bool $active = true,
 
         #[MapName('created_at')]
         public ?string $createdAt,

@@ -116,7 +116,7 @@ class EmployeeController extends Controller
             );
         } catch(Throwable $th) {
             return response()->json(
-                ['error' => $th->getMessage()],
+                ['message' => 'Váratlan hiba történt'],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
@@ -140,7 +140,7 @@ class EmployeeController extends Controller
             );
         } catch(Throwable $th) {
             return response()->json(
-                ['error' => $th->getMessage()],
+                ['message' => 'Váratlan hiba történt'],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }

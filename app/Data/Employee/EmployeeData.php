@@ -17,7 +17,6 @@ class EmployeeData extends Data
     public function __construct(
         public ?int $id,
 
-        #[Required]
         public ?int $company_id,
 
         #[Required, StringType]
@@ -35,14 +34,14 @@ class EmployeeData extends Data
         #[Required, StringType]
         public string $position,
 
-        #[Required, StringType]
-        public string $phone,
+        #[Nullable, StringType, Max(50)]
+        public ?string $phone,
 
-        #[Required, StringType]
-        public string $hired_at,
+        #[DateFormat('Y-m-d')]
+        public ?string $hired_at,
 
-        #[Required, BooleanType]
-        public bool $active,
+        #[BooleanType]
+        public bool $active = true,
 
     ) {}
 

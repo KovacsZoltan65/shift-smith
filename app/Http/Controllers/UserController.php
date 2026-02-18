@@ -103,7 +103,7 @@ class UserController extends Controller
             );
         } catch(Throwable $th) {
             return response()->json(
-                ['error' => $th->getMessage()],
+                ['message' => 'Váratlan hiba történt'],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
@@ -127,7 +127,7 @@ class UserController extends Controller
             );
         } catch(Throwable $th) {
             return response()->json(
-                ['error' => $th->getMessage()],
+                ['message' => 'Váratlan hiba történt'],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
@@ -159,7 +159,7 @@ class UserController extends Controller
             return response()->json($user, Response::HTTP_OK);
         } catch(Throwable $th) {
             return response()->json(
-                ['error' => $th->getMessage()],
+                ['message' => 'Váratlan hiba történt'],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
@@ -207,7 +207,7 @@ class UserController extends Controller
             return response()->json($user, Response::HTTP_OK);
         } catch(Throwable $th) {
             return response()->json(
-                ['error' => $th->getMessage()],
+                ['message' => 'Váratlan hiba történt'],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
@@ -230,7 +230,7 @@ class UserController extends Controller
             return response()->json($deleted, Response::HTTP_OK);
         } catch (Throwable $th) {
             return response()->json(
-                ['error' => $th->getMessage()],
+                ['message' => 'Váratlan hiba történt'],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
