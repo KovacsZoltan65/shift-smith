@@ -23,6 +23,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 
 import Index from "@/Pages/Companies/Index.vue";
+import { usePermissions } from "@/composables/usePermissions";
 
 // -----------------------------------------------------------------------------
 // Inertia stub (Head + usePage)
@@ -430,5 +431,72 @@ describe("Companies CRUD (Index.vue) – onMounted fetch alapú", () => {
         expect(
             calls.filter((u) => u.startsWith("/companies/fetch?")).length,
         ).toBeGreaterThanOrEqual(2);
+    });
+
+    it("fetch hiba esetén hibaüzenetet jelenít meg", async () => {
+        globalThis.fetch = vi.fn(async () => ({
+            ok: false,
+            status: 500,
+            json: async () => ({}),
+        }));
+
+        const wrapper = mount(Index, {
+            props: { title: "Cégek", filter: {} },
+            global: { stubs },
+        });
+
+        await flushPromises();
+
+        expect(wrapper.text()).toContain("Hiba");
+        expect(wrapper.text()).toContain("HTTP 500");
+    });
+
+    it("delete hiba esetén error toastot mutat", async () => {
+        const wrapper = mount(Index, {
+            props: { title: "Cégek", filter: {} },
+            global: { stubs },
+        });
+
+        await flushPromises();
+
+        csrfFetchMock.mockResolvedValueOnce({
+            ok: false,
+            status: 500,
+            json: async () => ({ message: "Törlés sikertelen." }),
+        });
+
+        wrapper.vm.confirmDeleteOne({ id: 1, name: "Test Cég Kft." });
+        await confirmAccept();
+        await flushPromises();
+
+        expect(toastAdd).toHaveBeenCalledWith(
+            expect.objectContaining({
+                severity: "error",
+                detail: "Törlés sikertelen.",
+            }),
+        );
+    });
+
+    it("jogosultság nélkül elrejti a létrehozás és bulk törlés gombokat", async () => {
+        const { __allow } = usePermissions();
+        __allow.delete("companies.create");
+        __allow.delete("companies.delete");
+
+        const wrapper = mount(Index, {
+            props: { title: "Cégek", filter: {} },
+            global: { stubs },
+        });
+
+        await flushPromises();
+
+        expect(wrapper.find('[data-testid="companies-create"]').exists()).toBe(
+            false,
+        );
+        expect(
+            wrapper.find('[data-testid="companies-bulk-delete"]').exists(),
+        ).toBe(false);
+
+        __allow.add("companies.create");
+        __allow.add("companies.delete");
     });
 });

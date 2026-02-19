@@ -392,6 +392,33 @@ describe("Employees CRUD (Index.vue)", () => {
         expect(wrapper.vm.selected).toEqual([]);
     });
 
+    it("bulkDelete hiba esetén error toast és a selected nem ürül", async () => {
+        const wrapper = mount(Index, {
+            global: { stubs },
+        });
+
+        await flushPromises();
+
+        wrapper.vm.selected = [employeesList[0], employeesList[1]];
+
+        csrfFetchMock.mockResolvedValueOnce({
+            ok: false,
+            status: 500,
+            json: async () => ({ message: "Bulk törlés sikertelen." }),
+        });
+
+        await wrapper.vm.bulkDelete([1, 2]);
+        await flushPromises();
+
+        expect(toastAdd).toHaveBeenCalledWith(
+            expect.objectContaining({
+                severity: "error",
+                detail: "Bulk törlés sikertelen.",
+            }),
+        );
+        expect(wrapper.vm.selected).toEqual([employeesList[0], employeesList[1]]);
+    });
+
     // -------------------------------------------------------------------------
     // Search debounce
     // -------------------------------------------------------------------------

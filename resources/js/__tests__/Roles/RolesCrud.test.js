@@ -350,4 +350,66 @@ describe("Roles CRUD (Index.vue) – onMounted fetch alapú", () => {
             calls.filter((u) => u.startsWith("/admin/roles/fetch?")).length,
         ).toBeGreaterThanOrEqual(2);
     });
+
+    it("Bulk törlés: confirmBulkDelete -> accept -> csrfFetch DELETE /admin/roles/destroy_bulk -> selected ürül", async () => {
+        const wrapper = mount(Index, { global: { stubs } });
+
+        await flushPromises();
+
+        wrapper.vm.selected = [rolesList[0], rolesList[1]];
+        wrapper.vm.confirmBulkDelete();
+
+        expect(typeof confirmAccept).toBe("function");
+
+        await confirmAccept();
+        await flushPromises();
+
+        expect(csrfFetchMock).toHaveBeenCalledWith(
+            "/admin/roles/destroy_bulk",
+            expect.objectContaining({
+                method: "DELETE",
+                body: JSON.stringify({ ids: [1, 2] }),
+            }),
+        );
+
+        expect(wrapper.vm.selected).toEqual([]);
+        expect(toastAdd).toHaveBeenCalledWith(
+            expect.objectContaining({ severity: "success" }),
+        );
+    });
+
+    it("Edit hiba esetén nem nyit modált és error toastot mutat", async () => {
+        globalThis.fetch = vi.fn(async (url) => {
+            const u = String(url);
+            if (u.startsWith("/admin/roles/fetch?")) {
+                return mockFetchOk({
+                    data: { current_page: 1, data: rolesList },
+                    meta: { total: rolesList.length },
+                    filter: {},
+                });
+            }
+            if (u === "/admin/roles/1") {
+                return {
+                    ok: false,
+                    status: 500,
+                    json: async () => ({}),
+                };
+            }
+            return mockFetchOk({ data: [] });
+        });
+
+        const wrapper = mount(Index, { global: { stubs } });
+        await flushPromises();
+
+        await wrapper.vm.openEditModal({ id: 1, name: "Admin" });
+        await flushPromises();
+
+        expect(wrapper.find('[data-testid="edit-modal"]').exists()).toBe(false);
+        expect(toastAdd).toHaveBeenCalledWith(
+            expect.objectContaining({
+                severity: "error",
+                detail: "HTTP 500",
+            }),
+        );
+    });
 });
