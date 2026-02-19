@@ -61,6 +61,8 @@ it('updates employee and bumps caches; company selector bumps only when company_
             'first_name' => 'Updated',
             'last_name'  => $employee->last_name,
             'email'      => 'emp@test.hu',
+            'address'    => 'Frissített cím 1.',
+            'position'   => 'Operátor',
             'active'     => true,
         ])
         ->assertOk();
@@ -76,6 +78,8 @@ it('updates employee and bumps caches; company selector bumps only when company_
             'first_name' => 'Updated',
             'last_name'  => $employee->last_name,
             'email'      => 'emp@test.hu',
+            'address'    => 'Frissített cím 2.',
+            'position'   => 'Műszakvezető',
             'active'     => true,
         ])
         ->assertOk();

@@ -7,7 +7,6 @@ use App\Models\Employee;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use App\Data\Employee\EmployeeData;
-use App\Data\Employee\EmployeeIndexData;
 
 /**
  * Munkavállaló szolgáltatás osztály
@@ -63,9 +62,9 @@ class EmployeeService
      * Új munkavállaló létrehozása.
      *
      * @param EmployeeData $data Validált DTO adatok
-     * @return Employee Létrehozott munkavállaló
+     * @return EmployeeData Létrehozott munkavállaló
      */
-    public function store(EmployeeData $data): Employee
+    public function store(EmployeeData $data): EmployeeData
     {
         $employee = $this->repo->store([
             'company_id' => $data->company_id,
@@ -86,10 +85,10 @@ class EmployeeService
      * Munkavállaló adatainak frissítése.
      *
      * @param int $id Munkavállaló azonosító
-     * @param CompanyData $data Frissítendő DTO adatok
-     * @return Employee Frissített munkavállaló
+     * @param EmployeeData $data Frissítendő DTO adatok
+     * @return EmployeeData Frissített munkavállaló
      */
-    public function update($id, CompanyData $data): Employee
+    public function update(EmployeeData $data, int $id): EmployeeData
     {
         $employee = $this->repo->update([
             'company_id' => $data->company_id,

@@ -17,9 +17,14 @@ it('denies company creation if user lacks permission', function (): void {
     $user = User::factory()->create();
     $user->assignRole('user');
 
+    $payload = Company::factory()->make([
+        'name' => 'Nope',
+        'active' => true,
+    ])->only(['name', 'email', 'address', 'phone', 'active']);
+
     $this
         ->actingAs($user)
-        ->postJson(route('companies.store'), ['name' => 'Nope'])
+        ->postJson(route('companies.store'), $payload)
         ->assertForbidden();
 
     $this->assertDatabaseMissing('companies', ['name' => 'Nope']);
@@ -55,7 +60,7 @@ it('allows admin to store a company and bumps cache versions', function (): void
     $this
         ->actingAs($user)
         ->postJson(route('companies.store'), $payload)
-        ->assertOk();
+        ->assertCreated();
 
     $this->assertDatabaseHas('companies', [
         'name' => 'Test Company Kft.',
@@ -95,10 +100,11 @@ it('enforces unique email among not-soft-deleted companies', function (): void {
     $payloadAfterDelete = Company::factory()->make([
         'name' => 'Allowed After Delete',
         'email' => $email,
+        'active' => true,
     ])->only(['name', 'email', 'address', 'phone', 'active']);
 
     $this
         ->actingAs($user)
         ->postJson(route('companies.store'), $payloadAfterDelete)
-        ->assertOk();
+        ->assertCreated();
 });

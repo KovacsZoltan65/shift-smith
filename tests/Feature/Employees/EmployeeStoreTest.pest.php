@@ -48,18 +48,26 @@ it('allows admin to store employee and bumps cache versions', function (): void 
         'first_name' => 'Nagy',
         'last_name'  => 'Anna',
         'email'      => 'nagy.anna@test.hu',
+        'address'    => 'Teszt utca 1.',
+        'position'   => 'Operátor',
+        'hired_at'   => '2026-02-01',
         'active'     => true,
     ])->only(['company_id', 'first_name', 'last_name', 'email', 'phone', 'position', 'hired_at', 'active']);
 
+    $payload['address'] = 'Teszt utca 1.';
+    $payload['hired_at'] = '2026-02-01';
+
     $this->actingAs($user)
         ->postJson(route('employees.store'), $payload)
-        ->assertOk();
+        ->assertCreated();
 
     $this->assertDatabaseHas('employees', [
         'company_id' => $company->id,
         'first_name' => 'Nagy',
         'last_name'  => 'Anna',
         'email'      => 'nagy.anna@test.hu',
+        'address'    => 'Teszt utca 1.',
+        'position'   => 'Operátor',
     ]);
 
     expect($versioner->get('employees.fetch'))->toBe(2);

@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Models\Company;
+use App\Services\Cache\CacheVersionService;
+use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function (): void {
@@ -28,12 +30,12 @@ it('denies company delete if user lacks permission', function (): void {
 
 it('allows admin to delete a company (soft delete) and bumps cache versions', function (): void {
 
-    $user = $this->createAdminUser(); // <- ha nálad ez létezik a CreatesUsers trait-ben
-    $user->syncRoles([]);
-    $user->syncPermissions([]);
+    $user = $this->createAdminUser();
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user = $user->refresh();
+
+    $versioner = app(CacheVersionService::class);
 
     /** @var Company $company */
     $company = Company::factory()->create();
@@ -45,7 +47,7 @@ it('allows admin to delete a company (soft delete) and bumps cache versions', fu
         ->actingAs($user)
         ->deleteJson(route('companies.destroy', ['id' => $company->id]))
         ->assertOk()
-        ->assertJson(true);
+        ->assertJson(['deleted' => true]);
 
     $this->assertSoftDeleted('companies', ['id' => $company->id]);
 

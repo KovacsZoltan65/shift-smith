@@ -15,16 +15,20 @@ beforeEach(function (): void {
 it('denies company update if user lacks permission', function (): void {
     /** @var User $user */
     $user = $this->createAdminUser();
-    $user->assignRole('user');
+    $user->syncRoles([]);
+    $user->syncPermissions([]);
 
     /** @var Company $company */
     $company = Company::factory()->create();
 
+    $payload = Company::factory()->make([
+        'name' => 'New',
+        'active' => true,
+    ])->only(['name', 'email', 'address', 'phone', 'active']);
+
     $this
         ->actingAs($user)
-        ->putJson(route('companies.update', ['id' => $company->id]), [
-            'name' => 'New',
-        ])
+        ->putJson(route('companies.update', ['id' => $company->id]), $payload)
         ->assertForbidden();
 });
 
@@ -96,6 +100,7 @@ it('allows keeping the same email on update (unique ignore current id)', functio
     $payload = Company::factory()->make([
         'name' => 'Same Email Updated',
         'email' => $email,
+        'active' => true,
     ])->only(['name', 'email', 'address', 'phone', 'active']);
 
     $this

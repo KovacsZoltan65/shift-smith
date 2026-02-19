@@ -60,8 +60,6 @@ it('lehetővé teszi az adminisztrátor számára az engedélyek törlését és
         ->deleteJson(route('admin.permissions.destroy', ['id' => $permission->id]))
         ->assertOk()
         ->assertContent('true');
-
-    $resp->dump();
     
     // Spatie Permission alapból nem softdelete-ol, hanem hard delete
     $this->assertDatabaseMissing('permissions', ['id' => $permission->id]);

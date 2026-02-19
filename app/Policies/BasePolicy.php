@@ -38,6 +38,10 @@ abstract class BasePolicy
      */
     protected static function perm(string $action): string
     {
+        if (str_contains($action, '.')) {
+            return $action;
+        }
+
         return static::entity().'.'.$action;
     }
 

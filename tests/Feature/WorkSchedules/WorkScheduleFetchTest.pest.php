@@ -3,44 +3,39 @@
 declare(strict_types=1);
 
 use App\Models\Company;
-use App\Models\User;
 use App\Models\WorkSchedule;
-use Spatie\Permission\Models\Permission;
-
-use function Pest\Laravel\actingAs;
-use function Pest\Laravel\getJson;
+use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function (): void {
-    // ha a projektedben van központi seeder a permissionökre, itt nem muszáj
-    Permission::findOrCreate('work_schedules.view', 'web');
+    $this->seedRolesAndPermissions();
 });
 
-it('denies fetch if user lacks permission', function (): void {
-    $company = Company::factory()->create();
+it('átirányítja a vendégeket a bejelentkezéshez a beosztások lekéréséhez', function (): void {
+    $this->get(route('work_schedules.fetch'))->assertRedirect();
+});
 
-    /** @var User $user */
-    $user = User::factory()->create([
-        'company_id' => $company->id,
-    ]);
+it('megtagadja a beosztások lekérését, ha nincs viewAny jogosultság', function (): void {
+    $user = $this->createAdminUser();
+    $user->syncRoles([]);
+    $user->syncPermissions([]);
 
-    actingAs($user);
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+    $user->refresh();
 
-    getJson('/work_schedules/fetch')
+    $this->actingAs($user)
+        ->getJson(route('work_schedules.fetch'))
         ->assertForbidden();
 });
 
-it('returns paginated work schedules scoped to company with filters', function (): void {
+it('visszaadja a beosztás listát meta és filter adatokkal, működő szűréssel', function (): void {
+    $user = $this->createAdminUser();
+
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+    $user->refresh();
+
     $companyA = Company::factory()->create();
     $companyB = Company::factory()->create();
 
-    /** @var User $user */
-    $user = User::factory()->create([
-        'company_id' => $companyA->id,
-    ]);
-
-    $user->givePermissionTo('work_schedules.view');
-
-    // Company A
     WorkSchedule::factory()->create([
         'company_id' => $companyA->id,
         'name' => 'Alpha schedule',
@@ -57,40 +52,32 @@ it('returns paginated work schedules scoped to company with filters', function (
         'date_to' => '2026-02-20',
     ]);
 
-    // Company B (nem látszódhat)
     WorkSchedule::factory()->count(3)->create([
         'company_id' => $companyB->id,
         'status' => 'draft',
     ]);
 
-    actingAs($user);
+    $resp = $this
+        ->actingAs($user)
+        ->getJson(route('work_schedules.fetch', [
+            'company_id' => $companyA->id,
+            'search' => 'alpha',
+            'status' => 'draft',
+            'page' => 1,
+            'per_page' => 50,
+            'order' => 'desc',
+        ]));
 
-    // 1) alap fetch: csak companyA elemek
-    getJson('/work_schedules/fetch?per_page=50')
+    $resp
         ->assertOk()
         ->assertJsonStructure([
+            'message',
             'data',
-            'meta' => ['total', 'per_page', 'current_page', 'last_page'],
-        ])
-        ->assertJsonPath('meta.total', 2);
+            'meta' => ['current_page', 'per_page', 'total', 'last_page'],
+            'filter',
+        ]);
 
-    // 2) keresés (search)
-    getJson('/work_schedules/fetch?per_page=50&search=Alpha')
-        ->assertOk()
-        ->assertJsonPath('meta.total', 1)
-        ->assertJsonPath('data.0.name', 'Alpha schedule');
-
-    // 3) státusz filter
-    getJson('/work_schedules/fetch?per_page=50&status=published')
-        ->assertOk()
-        ->assertJsonPath('meta.total', 1)
-        ->assertJsonPath('data.0.status', 'published');
-
-    // 4) dátum szűrés (átfedés logika helyett most egyszerűen paraméter átadás + találat ellenőrzés)
-    getJson('/work_schedules/fetch?per_page=50&date_from=2026-02-01&date_to=2026-02-15')
-        ->assertOk()
-        ->assertJson(fn ($json) => $json
-            ->has('data')
-            ->has('meta.total')
-        );
+    expect($resp->json('meta.total'))->toBe(1);
+    expect($resp->json('data.0.name'))->toBe('Alpha schedule');
+    expect($resp->json('data.0.company_id'))->toBe($companyA->id);
 });

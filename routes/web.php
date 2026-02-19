@@ -195,7 +195,7 @@ Route::middleware(['auth', 'verified'])
         // Írási műveletek
         Route::post('/', 'store')->name('store')->middleware('throttle:20,1');
         Route::put('/{id}', 'update')->whereNumber('id')->name('update')->middleware('throttle:30,1');
-        Route::delete('/{id}', 'destroy')->name('destroy')->middleware('throttle:20,1');
+        Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy')->middleware('throttle:20,1');
         Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
     });
     

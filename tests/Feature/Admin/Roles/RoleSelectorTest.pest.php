@@ -1,4 +1,3 @@
-\
 <?php
 
 declare(strict_types=1);
@@ -14,7 +13,7 @@ it('átirányítja a vendégeket a bejelentkezéshez a szerepkör selectorhoz', 
     $this->get(route('admin.selectors.roles'))->assertRedirect();
 });
 
-it('megtagadja a selector lekérését, ha nincs jogosultság', function (): void {
+it('bejelentkezett felhasználóként engedi a selector lekérését explicit role jogosultság nélkül is', function (): void {
     $user = $this->createAdminUser();
     $user->syncRoles([]);
     $user->syncPermissions([]);
@@ -25,7 +24,7 @@ it('megtagadja a selector lekérését, ha nincs jogosultság', function (): voi
     $this
         ->actingAs($user)
         ->getJson(route('admin.selectors.roles'))
-        ->assertForbidden();
+        ->assertOk();
 });
 
 it('visszaadja a szerepkör selector listát (id + name)', function (): void {

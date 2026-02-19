@@ -64,10 +64,13 @@ it('allows admin to store a work schedule and bumps cache versions', function ()
         'status' => 'draft',
     ])->only(['company_id', 'name', 'date_from', 'date_to', 'status', 'notes']);
 
+    $payload['date_from'] = \Illuminate\Support\Carbon::parse((string) $payload['date_from'])->format('Y-m-d');
+    $payload['date_to'] = \Illuminate\Support\Carbon::parse((string) $payload['date_to'])->format('Y-m-d');
+
     $this
         ->actingAs($user)
         ->postJson(route('work_schedules.store'), $payload)
-        ->assertOk();
+        ->assertCreated();
 
     $this->assertDatabaseHas('work_schedules', [
         'company_id' => $company->id,

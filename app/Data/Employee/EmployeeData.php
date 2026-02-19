@@ -4,8 +4,10 @@ namespace App\Data\Employee;
 
 use App\Models\Employee;
 use Spatie\LaravelData\Data;
+use Spatie\LaravelData\Attributes\Validation\DateFormat;
 use Spatie\LaravelData\Attributes\Validation\Email;
 use Spatie\LaravelData\Attributes\Validation\Max;
+use Spatie\LaravelData\Attributes\Validation\Nullable;
 use Spatie\LaravelData\Attributes\Validation\Required;
 use Spatie\LaravelData\Attributes\Validation\StringType;
 use Spatie\LaravelData\Attributes\Validation\BooleanType;
@@ -40,7 +42,7 @@ class EmployeeData extends Data
         #[Required, StringType]
         public string $last_name,
 
-        #[Required, Email, Max(150), Unique('employees', 'email', new RouteParameterReference('id'))]
+        #[Required, Email, Max(150), Unique('employees', 'email', null, new RouteParameterReference('id', null, true))]
         public string $email,
 
         #[Required, StringType]

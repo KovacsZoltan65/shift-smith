@@ -7,6 +7,7 @@ use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Attributes\MapName;
 use Spatie\LaravelData\Attributes\Validation\Email;
 use Spatie\LaravelData\Attributes\Validation\Max;
+use Spatie\LaravelData\Attributes\Validation\BooleanType;
 use Spatie\LaravelData\Attributes\Validation\Nullable;
 use Spatie\LaravelData\Attributes\Validation\Required;
 use Spatie\LaravelData\Attributes\Validation\StringType;
@@ -33,7 +34,7 @@ class CompanyData extends Data
         #[Required, StringType, Max(150)]
         public string $name,
 
-        #[Required, Email, Max(150), Unique('companies', 'email', new RouteParameterReference('id'))]
+        #[Required, Email, Max(150), Unique('companies', 'email', null, new RouteParameterReference('id', null, true), null, true)]
         public string $email,
 
         #[Nullable, StringType, Max(255)]

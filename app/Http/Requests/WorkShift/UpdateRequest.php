@@ -20,6 +20,14 @@ class UpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [];
+        return [
+            'company_id' => ['required', 'integer', 'exists:companies,id'],
+            'name' => ['required', 'string', 'max:150'],
+            'start_time' => ['required', 'date_format:H:i:s'],
+            'end_time' => ['required', 'date_format:H:i:s'],
+            'work_time_minutes' => ['nullable', 'integer', 'min:0'],
+            'break_minutes' => ['nullable', 'integer', 'min:0'],
+            'active' => ['required', 'boolean'],
+        ];
     }
 }
