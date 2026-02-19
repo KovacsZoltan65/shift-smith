@@ -77,6 +77,15 @@ class WorkPatternRepository extends BaseRepository implements WorkPatternReposit
 
         $queryCallback = function () use ($companyId, $term, $field, $direction, $perPage, $page, $appendQuery): LengthAwarePaginator {
             $q = WorkPattern::query()
+                ->select('work_patterns.*')
+                ->selectSub(
+                    fn ($sub) => $sub
+                        ->from('employee_work_patterns')
+                        ->selectRaw('COUNT(DISTINCT employee_id)')
+                        ->whereColumn('employee_work_patterns.work_pattern_id', 'work_patterns.id')
+                        ->whereNull('employee_work_patterns.deleted_at'),
+                    'employees_count'
+                )
                 ->when($companyId > 0, fn ($qq) => $qq->where('company_id', $companyId))
                 ->when($term, function ($qq) use ($term): void {
                     $qq->where(function ($q) use ($term): void {

@@ -321,6 +321,7 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
      * A név formátuma: "Vezetéknév Keresztnév".
      * 
      * @param array{
+     *   company_id?: int|null,
      *   only_active?: bool
      * } $params Szűrési paraméterek
      * @return array<int, array{id:int, name:string}> Munkavállalók tömbje
@@ -331,13 +332,23 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
         $needCache = (bool) config('cache.enable_employeeToSelect', false);
 
         // normalize params (jövőbiztos)
+        $companyId = null;
+        if (\array_key_exists('company_id', $params) && $params['company_id'] !== null && $params['company_id'] !== '') {
+            $companyId = (int) $params['company_id'];
+        }
+        $params['company_id'] = $companyId;
         $params['only_active'] = \array_key_exists('only_active', $params) ? (bool) $params['only_active'] : true;
         ksort($params);
 
         $onlyActive = (bool) $params['only_active'];
+        $companyId = $params['company_id'];
 
-        $queryCallback = function () use ($onlyActive): array {
+        $queryCallback = function () use ($onlyActive, $companyId): array {
             $q = Employee::query();
+
+            if ($companyId !== null) {
+                $q->where('company_id', $companyId);
+            }
 
             if ($onlyActive) {
                 $q->active(); // scopeActive

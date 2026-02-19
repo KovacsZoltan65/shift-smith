@@ -9,6 +9,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkPatternController;
+use App\Http\Controllers\WorkShiftAssignmentController;
 use App\Http\Controllers\WorkScheduleController;
 use App\Http\Controllers\WorkShiftController;
 use App\Http\Controllers\DashboardController;
@@ -265,6 +266,22 @@ Route::middleware(['auth', 'verified'])
     Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy')->middleware('throttle:20,1');
     Route::delete('destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
 });
+
+/**
+ * ======================================
+ * WORK_SHIFT ASSIGNMENTS
+ * ======================================
+ */
+Route::middleware(['auth', 'verified'])
+    ->prefix('work_shifts/{work_shift}/assignments')
+    ->whereNumber('work_shift')
+    ->as('work_shift_assignments.')
+    ->controller(WorkShiftAssignmentController::class)
+    ->group(function (): void {
+        Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
+        Route::post('/', 'store')->name('store')->middleware('throttle:20,1');
+        Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy')->middleware('throttle:20,1');
+    });
 
 /**
  * ======================================

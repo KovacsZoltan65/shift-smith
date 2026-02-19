@@ -18,6 +18,7 @@ class WorkPatternIndexData extends Data
      * @param string $name Munkarend név
      * @param string $type Munkarend típus
      * @param ?int $weekly_minutes Heti munkaidő percben
+     * @param int $employees_count Hozzárendelt dolgozók száma
      * @param bool $active Aktív állapot
      * @param ?string $created_at Létrehozás ideje
      */
@@ -27,6 +28,7 @@ class WorkPatternIndexData extends Data
         public string $name,
         public string $type,
         public ?int $weekly_minutes = null,
+        public int $employees_count = 0,
         public bool $active = true,
         public ?string $created_at = null,
     ) {}
@@ -45,6 +47,7 @@ class WorkPatternIndexData extends Data
             name: (string) $workPattern->name,
             type: (string) $workPattern->type,
             weekly_minutes: $workPattern->weekly_minutes,
+            employees_count: (int) ($workPattern->employees_count ?? 0),
             active: (bool) $workPattern->active,
             created_at: optional($workPattern->created_at)?->toDateTimeString(),
         );

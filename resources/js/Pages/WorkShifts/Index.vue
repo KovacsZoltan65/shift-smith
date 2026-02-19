@@ -17,6 +17,7 @@ import { useToast } from "primevue/usetoast";
 // WorkShifts modalok (útvonalat igazítsd a te struktúrádhoz)
 import CreateModal from "@/Pages/WorkShifts/CreateModal.vue";
 import EditModal from "@/Pages/WorkShifts/EditModal.vue";
+import AssignmentModal from "@/Pages/WorkShifts/AssignmentModal.vue";
 
 import { csrfFetch } from "@/lib/csrfFetch";
 
@@ -27,6 +28,7 @@ const { has } = usePermissions();
 const canCreate = has("work_shifts.create");
 const canUpdate = has("work_shifts.update");
 const canDelete = has("work_shifts.delete");
+const canAssignEmployee = has("work_shifts.update");
 
 const props = defineProps({
     title: String,
@@ -39,6 +41,8 @@ const confirm = useConfirm();
 const createOpen = ref(false);
 const editOpen = ref(false);
 const editShift = ref(null);
+const assignmentOpen = ref(false);
+const assignmentShift = ref(null);
 
 const loading = ref(false);
 const actionLoading = ref(false);
@@ -72,6 +76,12 @@ const openRowMenu = (event, row) => {
             disabled: actionLoading.value || !canDelete,
             command: () => confirmDeleteOne(row),
         },
+        {
+            label: "Dolgozó hozzárendelés",
+            icon: "pi pi-user-plus",
+            disabled: actionLoading.value || !canAssignEmployee,
+            command: () => openAssignmentModal(row),
+        },
     ];
 
     rowMenu.value.toggle(event);
@@ -97,6 +107,11 @@ const openCreate = () => {
 const openEditModal = (row) => {
     editShift.value = row;
     editOpen.value = true;
+};
+
+const openAssignmentModal = (row) => {
+    assignmentShift.value = row;
+    assignmentOpen.value = true;
 };
 
 const onSaved = async (msg = "Mentve.") => {
@@ -303,6 +318,13 @@ onMounted(fetchWorkShifts);
         :workShift="editShift"
         :canUpdate="canUpdate"
         @saved="onSaved"
+    />
+
+    <AssignmentModal
+        v-model="assignmentOpen"
+        :workShift="assignmentShift"
+        :canAssign="canAssignEmployee"
+        :canDelete="canAssignEmployee"
     />
 
     <AuthenticatedLayout>

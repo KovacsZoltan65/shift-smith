@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Műszak hozzárendelés model osztály
@@ -24,6 +25,7 @@ class WorkShiftAssignment extends Model
 {
     /** @use HasFactory<\Database\Factories\WorkShiftAssignmentFactory> */
     use HasFactory;
+    use SoftDeletes;
 
     /**
      * Tömegesen tölthető mezők
@@ -47,6 +49,7 @@ class WorkShiftAssignment extends Model
      */
     protected $casts = [
         'day' => 'date:Y-m-d',
+        'active' => 'bool',
         // 'meta' => 'array',
     ];
 

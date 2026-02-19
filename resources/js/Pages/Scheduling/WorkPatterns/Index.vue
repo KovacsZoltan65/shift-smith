@@ -15,6 +15,7 @@ import { useToast } from "primevue/usetoast";
 import CompanySelector from "@/Components/Selectors/CompanySelector.vue";
 import CreateModal from "@/Pages/Scheduling/WorkPatterns/CreateModal.vue";
 import EditModal from "@/Pages/Scheduling/WorkPatterns/EditModal.vue";
+import EmployeeAssignModal from "@/Pages/Scheduling/WorkPatterns/EmployeeAssignModal.vue";
 import { csrfFetch } from "@/lib/csrfFetch";
 import { usePermissions } from "@/composables/usePermissions";
 
@@ -24,6 +25,7 @@ const canCreate = has("work_patterns.create");
 const canUpdate = has("work_patterns.update");
 const canDelete = has("work_patterns.delete");
 const canBulkDelete = has("work_patterns.bulkDelete");
+const canAssignEmployee = has("employee_work_patterns.assign");
 
 const props = defineProps({
     title: { type: String, default: "Munkarendek" },
@@ -36,6 +38,8 @@ const confirm = useConfirm();
 const createOpen = ref(false);
 const editOpen = ref(false);
 const editWorkPattern = ref(null);
+const employeeAssignOpen = ref(false);
+const assignWorkPattern = ref(null);
 
 const loading = ref(false);
 const actionLoading = ref(false);
@@ -81,6 +85,11 @@ const openEditModal = (row) => {
     editOpen.value = true;
 };
 
+const openAssignModal = (row) => {
+    assignWorkPattern.value = row;
+    employeeAssignOpen.value = true;
+};
+
 const openRowMenu = (event, row) => {
     rowMenuModel.value = [
         {
@@ -88,6 +97,12 @@ const openRowMenu = (event, row) => {
             icon: "pi pi-pencil",
             disabled: actionLoading.value || !canUpdate,
             command: () => openEditModal(row),
+        },
+        {
+            label: "Dolgozó hozzárendelése",
+            icon: "pi pi-user-plus",
+            disabled: actionLoading.value || !canAssignEmployee,
+            command: () => openAssignModal(row),
         },
         {
             label: "Törlés",
@@ -103,6 +118,7 @@ const openRowMenu = (event, row) => {
 const onSaved = async (message = "Mentve.") => {
     createOpen.value = false;
     editOpen.value = false;
+    employeeAssignOpen.value = false;
     selected.value = [];
     await fetchWorkPatterns();
     toast.add({ severity: "success", summary: "Siker", detail: message, life: 2500 });
@@ -279,6 +295,13 @@ onMounted(fetchWorkPatterns);
         @saved="onSaved"
     />
 
+    <EmployeeAssignModal
+        v-model="employeeAssignOpen"
+        :workPattern="assignWorkPattern"
+        :canAssign="canAssignEmployee"
+        @saved="onSaved"
+    />
+
     <AuthenticatedLayout>
         <div class="p-6">
             <div class="mb-4 flex items-center justify-between gap-3">
@@ -377,6 +400,7 @@ onMounted(fetchWorkPatterns);
                 </Column>
 
                 <Column field="weekly_minutes" header="Heti perc" sortable />
+                <Column field="employees_count" header="Dolgozók száma" style="width: 150px" />
 
                 <Column field="active" header="Aktív" sortable style="width: 120px">
                     <template #body="{ data }">
