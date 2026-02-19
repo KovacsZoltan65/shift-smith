@@ -13,10 +13,19 @@ use Spatie\LaravelData\Attributes\Validation\StringType;
 use Spatie\LaravelData\Attributes\Validation\Unique;
 use Spatie\LaravelData\Support\Validation\References\RouteParameterReference;
 
+/**
+ * Teljes cég DTO create/update és részletes megjelenítés célra.
+ */
 class CompanyData extends Data
 {
     /**
-     * Create a new class instance.
+     * @param ?int $id Cég azonosító
+     * @param string $name Cég név
+     * @param string $email Cég e-mail cím
+     * @param ?string $address Cég címe
+     * @param ?string $phone Cég telefonszáma
+     * @param bool $active Aktív státusz
+     * @param ?string $createdAt Létrehozás ideje
      */
     public function __construct(
         public ?int $id,
@@ -40,6 +49,12 @@ class CompanyData extends Data
         public ?string $createdAt,
     ) {}
 
+    /**
+     * DTO előállítása modelből.
+     *
+     * @param Company $company Cég model
+     * @return self
+     */
     public static function fromModel(Company $company): self
     {
         return new self(

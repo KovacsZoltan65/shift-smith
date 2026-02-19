@@ -16,6 +16,9 @@ use App\Data\Company\CompanyData;
  */
 class CompanyService
 {
+    /**
+     * @param CompanyRepositoryInterface $repo Cég repository
+     */
     public function __construct(
         private readonly CompanyRepositoryInterface $repo
     ) {}
@@ -32,7 +35,10 @@ class CompanyService
     }
 
     /**
-     * Model lookup (auth/policy friendly).
+     * Cég lekérése azonosító alapján (policy-barát model lookup).
+     *
+     * @param int $id Cég azonosító
+     * @return Company Cég model
      */
     public function find(int $id): Company
     {
@@ -40,7 +46,10 @@ class CompanyService
     }
 
     /**
-     * Model lookup by name (auth/policy friendly).
+     * Cég lekérése név alapján (policy-barát model lookup).
+     *
+     * @param string $name Cég név
+     * @return Company Cég model
      */
     public function findByName(string $name): Company
     {
@@ -48,18 +57,33 @@ class CompanyService
     }
 
     /**
-     * 
+     * Cég DTO lekérése azonosító alapján.
+     *
+     * @param int $id Cég azonosító
+     * @return CompanyData Cég DTO
      */
-public function getById(int $id): CompanyData
+    public function getById(int $id): CompanyData
     {
         return CompanyData::fromModel($this->repo->getCompany($id));
     }
 
+    /**
+     * Cég DTO lekérése név alapján.
+     *
+     * @param string $name Cég név
+     * @return CompanyData Cég DTO
+     */
     public function getByName(string $name): CompanyData
     {
         return CompanyData::fromModel($this->repo->getCompanyByName($name));
     }
 
+    /**
+     * Új cég létrehozása.
+     *
+     * @param CompanyData $data Validált DTO adatok
+     * @return CompanyData Létrehozott cég DTO
+     */
     public function store(CompanyData $data): CompanyData
     {
         $company = $this->repo->store([
@@ -73,6 +97,13 @@ public function getById(int $id): CompanyData
         return CompanyData::fromModel($company);
     }
 
+    /**
+     * Cég adatainak frissítése.
+     *
+     * @param int $id Cég azonosító
+     * @param CompanyData $data Frissítendő DTO adatok
+     * @return CompanyData Frissített cég DTO
+     */
     public function update(int $id, CompanyData $data): CompanyData
     {
         $company = $this->repo->update([

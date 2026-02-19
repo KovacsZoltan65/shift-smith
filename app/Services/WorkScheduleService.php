@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Data\WorkSchedule\WorkScheduleData;
 use App\Interfaces\WorkScheduleRepositoryInterface;
 use App\Models\WorkSchedule;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -15,6 +16,9 @@ use Illuminate\Http\Request;
  */
 class WorkScheduleService
 {
+    /**
+     * @param WorkScheduleRepositoryInterface $repo Munkabeosztás repository
+     */
     public function __construct(
         private readonly WorkScheduleRepositoryInterface $repo
     ) {}
@@ -43,40 +47,55 @@ class WorkScheduleService
     }
 
     /**
-     * Új munkabeosztás létrehozása
-     * 
-     * @param array{
-     *   company_id:int,
-     *   name:string,
-     *   date_from:string,
-     *   date_to:string,
-     *   status:string,
-     *   notes?:string|null
-     * } $data Munkabeosztás adatok
-     * @return WorkSchedule Létrehozott munkabeosztás
+     * Munkabeosztás lekérése azonosító alapján (policy-barát model lookup).
+     *
+     * @param int $id Munkabeosztás azonosító
+     * @return WorkSchedule Munkabeosztás model
      */
-    public function store(array $data): WorkSchedule
+    public function find(int $id): WorkSchedule
     {
-        return $this->repo->store($data);
+        return $this->repo->getWorkSchedule($id);
     }
 
     /**
-     * Munkabeosztás adatainak frissítése
-     * 
-     * @param array{
-     *   company_id:int,
-     *   name:string,
-     *   date_from:string,
-     *   date_to:string,
-     *   status:string,
-     *   notes?:string|null
-     * } $data Frissítendő adatok
-     * @param int $id Munkabeosztás azonosító
-     * @return WorkSchedule Frissített munkabeosztás
+     * Új munkabeosztás létrehozása.
+     *
+     * @param WorkScheduleData $data Validált DTO adatok
+     * @return WorkScheduleData Létrehozott munkabeosztás DTO
      */
-    public function update(array $data, int $id): WorkSchedule
+    public function store(WorkScheduleData $data): WorkScheduleData
     {
-        return $this->repo->update($data, $id);
+        $workSchedule = $this->repo->store([
+            'company_id' => $data->company_id,
+            'name' => $data->name,
+            'date_from' => $data->date_from,
+            'date_to' => $data->date_to,
+            'status' => $data->status,
+            'notes' => $data->notes,
+        ]);
+
+        return WorkScheduleData::fromModel($workSchedule);
+    }
+
+    /**
+     * Munkabeosztás adatainak frissítése.
+     *
+     * @param int $id Munkabeosztás azonosító
+     * @param WorkScheduleData $data Frissítendő DTO adatok
+     * @return WorkScheduleData Frissített munkabeosztás DTO
+     */
+    public function update(int $id, WorkScheduleData $data): WorkScheduleData
+    {
+        $workSchedule = $this->repo->update([
+            'company_id' => $data->company_id,
+            'name' => $data->name,
+            'date_from' => $data->date_from,
+            'date_to' => $data->date_to,
+            'status' => $data->status,
+            'notes' => $data->notes,
+        ], $id);
+
+        return WorkScheduleData::fromModel($workSchedule);
     }
 
     /**

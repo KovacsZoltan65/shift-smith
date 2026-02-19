@@ -24,6 +24,9 @@ use App\Data\Company\CompanyIndexData;
  */
 class CompanyController extends Controller
 {
+    /**
+     * @param CompanyService $service Cég szolgáltatás
+     */
     public function __construct(
         private readonly CompanyService $service
     ) {}
@@ -114,7 +117,7 @@ class CompanyController extends Controller
      * 
      * Validált adatokkal új cég létrehozása.
      * 
-     * @param StoreRequest $request Validált kérés (name, email, address, phone, active)
+     * @param CompanyData $data Validált DTO adatok
      * @return JsonResponse Létrehozott cég JSON-ben
      */
     public function store(CompanyData $data): JsonResponse
@@ -129,6 +132,13 @@ class CompanyController extends Controller
         ], Response::HTTP_CREATED);
     }
 
+    /**
+     * Cég adatainak frissítése.
+     *
+     * @param int $id Cég azonosító
+     * @param CompanyData $data Validált DTO adatok
+     * @return JsonResponse Frissített cég JSON-ben
+     */
     public function update(int $id, CompanyData $data): JsonResponse
     {
         $company = $this->service->find($id);

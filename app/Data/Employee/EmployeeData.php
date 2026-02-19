@@ -12,8 +12,23 @@ use Spatie\LaravelData\Attributes\Validation\BooleanType;
 use Spatie\LaravelData\Attributes\Validation\Unique;
 use Spatie\LaravelData\Support\Validation\References\RouteParameterReference;
 
+/**
+ * Teljes munkavállaló DTO create/update és részletes megjelenítés célra.
+ */
 class EmployeeData extends Data
 {
+    /**
+     * @param ?int $id Munkavállaló azonosító
+     * @param ?int $company_id Cég azonosító
+     * @param string $first_name Keresztnév
+     * @param string $last_name Vezetéknév
+     * @param string $email E-mail cím
+     * @param string $address Cím
+     * @param string $position Pozíció
+     * @param ?string $phone Telefonszám
+     * @param ?string $hired_at Belépés dátuma (Y-m-d)
+     * @param bool $active Aktív státusz
+     */
     public function __construct(
         public ?int $id,
 
@@ -45,6 +60,12 @@ class EmployeeData extends Data
 
     ) {}
 
+    /**
+     * DTO előállítása modelből.
+     *
+     * @param Employee $employee Munkavállaló model
+     * @return self
+     */
     public static function fromModel(Employee $employee): self
     {
         return new self(

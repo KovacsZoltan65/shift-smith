@@ -12,6 +12,15 @@ use Spatie\LaravelData\Data;
  */
 class CompanyIndexData extends Data
 {
+    /**
+     * @param int $id Cég azonosító
+     * @param string $name Cég név
+     * @param string $email Cég e-mail cím
+     * @param ?string $address Cég címe
+     * @param ?string $phone Cég telefonszáma
+     * @param bool $active Aktív státusz
+     * @param ?string $createdAt Létrehozás ideje
+     */
     public function __construct(
         public int $id,
         public string $name,
@@ -22,6 +31,12 @@ class CompanyIndexData extends Data
         public ?string $createdAt,
     ) {}
 
+    /**
+     * DTO előállítása modelből.
+     *
+     * @param Company $company Cég model
+     * @return self
+     */
     public static function fromModel(Company $company): self
     {
         return new self(

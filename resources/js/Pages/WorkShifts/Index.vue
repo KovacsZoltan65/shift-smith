@@ -321,6 +321,18 @@ onMounted(fetchWorkShifts);
                         data-testid="work_shifts-create"
                     />
 
+                    <!-- FRISSÍTÉS -->
+                    <Button
+                        label="Frissítés"
+                        icon="pi pi-refresh"
+                        severity="secondary"
+                        size="small"
+                        :disabled="loading || actionLoading"
+                        :loading="loading"
+                        @click="fetchWorkShifts"
+                        data-testid="work_shifts-refresh"
+                    />
+
                     <!-- BULK DELETE -->
                     <Button
                         v-if="canDelete"
@@ -387,12 +399,26 @@ onMounted(fetchWorkShifts);
 
                 <!-- Tipikus WorkShift mezők (ha eltér, nyugodtan alakítsd) -->
                 <Column
-                    field="start_date"
+                    field="start_time"
                     header="Kezdés"
                     sortable
                     style="width: 140px"
                 />
-                <Column field="end_date" header="Vége" sortable style="width: 140px" />
+                <Column field="end_time" header="Vége" sortable style="width: 140px" />
+
+                <Column
+                    field="work_time_minutes"
+                    header="Munkaidő"
+                    sortable
+                    style="width: 140px"
+                />
+
+                <Column
+                    field="break_minutes"
+                    header="Szünet"
+                    sortable
+                    style="width: 140px"
+                />
 
                 <Column field="active" header="Aktív" sortable style="width: 120px">
                     <template #body="{ data }">

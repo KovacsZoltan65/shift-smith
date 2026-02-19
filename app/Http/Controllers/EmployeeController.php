@@ -27,6 +27,9 @@ use App\Data\Employee\EmployeeIndexData;
  */
 class EmployeeController extends Controller
 {
+    /**
+     * @param EmployeeService $service Munkavállaló szolgáltatás
+     */
     public function __construct(
             private readonly EmployeeService $service
     ) {}
@@ -146,6 +149,12 @@ class EmployeeController extends Controller
         }
     }
     
+    /**
+     * Új munkavállaló létrehozása.
+     *
+     * @param EmployeeData $data Validált DTO adatok
+     * @return JsonResponse Létrehozott munkavállaló JSON-ben
+     */
     public function store(EmployeeData $data): JsonResponse
     {
         $this->authorize(EmployeePolicy::PERM_CREATE, Employee::class);
@@ -156,6 +165,13 @@ class EmployeeController extends Controller
         ], Response::HTTP_CREATED);
     }
     
+    /**
+     * Munkavállaló adatainak frissítése.
+     *
+     * @param int $id Munkavállaló azonosító
+     * @param EmployeeData $data Validált DTO adatok
+     * @return JsonResponse Frissített munkavállaló JSON-ben
+     */
     public function update(int $id, EmployeeData $data): JsonResponse
     {
         $employee = $this->service->getEmployee($id);
@@ -205,6 +221,7 @@ class EmployeeController extends Controller
      * Engedélyezés: 'delete' policy.
      *
      * @param  int  $id  A törlendo rekord azonosítója.
+     * @return JsonResponse Törlés eredménye JSON-ben
      * @throws \Throwable
      */
     public function destroy(int $id): JsonResponse

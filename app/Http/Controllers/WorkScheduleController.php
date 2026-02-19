@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Data\WorkSchedule\WorkScheduleData;
+use App\Data\WorkSchedule\WorkScheduleIndexData;
 use App\Http\Requests\WorkSchedule\BulkDeleteRequest;
 use App\Http\Requests\WorkSchedule\IndexRequest;
-use App\Http\Requests\WorkSchedule\StoreRequest;
-use App\Http\Requests\WorkSchedule\UpdateRequest;
 use App\Models\WorkSchedule;
 use App\Policies\WorkSchedulePolicy;
 use App\Services\WorkScheduleService;
@@ -60,9 +60,11 @@ class WorkScheduleController extends Controller
         $this->authorize(WorkSchedulePolicy::PERM_VIEW_ANY, WorkSchedule::class);
 
         $workSchedules = $this->service->fetch($request);
+        $items = WorkScheduleIndexData::collect($workSchedules->items());
 
         return response()->json([
-            'data' => $workSchedules->items(),
+            'message' => 'Beosztások sikeresen lekérve.',
+            'data' => $items,
             'meta' => [
                 'current_page' => $workSchedules->currentPage(),
                 'per_page'     => $workSchedules->perPage(),
@@ -81,88 +83,51 @@ class WorkScheduleController extends Controller
      */
     public function getWorkSchedule(int $id): JsonResponse
     {
-        $workSchedule = $this->service->getWorkSchedule($id);
+        $workSchedule = $this->service->find($id);
         $this->authorize(WorkSchedulePolicy::PERM_VIEW, $workSchedule);
 
-        try {
-            return response()->json($workSchedule, Response::HTTP_OK);
-        } catch (Throwable $th) {
-            return response()->json(
-                ['message' => 'Váratlan hiba történt'],
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        }
+        return response()->json([
+            'message' => 'Beosztás sikeresen lekérve.',
+            'data' => WorkScheduleData::fromModel($workSchedule),
+        ], Response::HTTP_OK);
     }
 
     /**
      * Új munkabeosztás létrehozása
      * 
-     * @param StoreRequest $request Validált kérés
+     * @param WorkScheduleData $data Validált adat DTO
      * @return JsonResponse Létrehozott munkabeosztás JSON-ben
      */
-    public function store(StoreRequest $request): JsonResponse
+    public function store(WorkScheduleData $data): JsonResponse
     {
-        $this->authorize('create', WorkSchedule::class);
+        $this->authorize(WorkSchedulePolicy::PERM_CREATE, WorkSchedule::class);
 
-        /**
-         * @var array{
-         *   company_id: int,
-         *   name: string,
-         *   date_from: string,
-         *   date_to: string,
-         *   status: string,
-         *   notes?: string|null
-         * } $data
-         */
-        $data = $request->validated();
+        $created = $this->service->store($data);
 
-        try {
-            $workSchedule = $this->service->store($data);
-
-            return response()->json($workSchedule, Response::HTTP_OK);
-        } catch (Throwable $th) {
-            return response()->json(
-                ['message' => 'Váratlan hiba történt'],
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        }
+        return response()->json([
+            'message' => 'A beosztás sikeresen létrehozva.',
+            'data' => $created,
+        ], Response::HTTP_CREATED);
     }
 
     /**
      * Munkabeosztás adatainak frissítése
      * 
-     * @param UpdateRequest $request Validált kérés
      * @param int $id Munkabeosztás azonosító
+     * @param WorkScheduleData $data Validált adat DTO
      * @return JsonResponse Frissített munkabeosztás JSON-ben
      */
-    public function update(UpdateRequest $request, int $id): JsonResponse
+    public function update(int $id, WorkScheduleData $data): JsonResponse
     {
-        /**
-         * @var array{
-         *   company_id: int,
-         *   name: string,
-         *   date_from: string,
-         *   date_to: string,
-         *   status: string,
-         *   notes?: string|null
-         * } $data
-         */
-        $data = $request->validated();
+        $workSchedule = $this->service->find($id);
+        $this->authorize(WorkSchedulePolicy::PERM_UPDATE, $workSchedule);
 
-        try {
-            $workSchedule = $this->service->getWorkSchedule($id);
-            $this->authorize(WorkSchedulePolicy::PERM_UPDATE, $workSchedule);
+        $updated = $this->service->update($id, $data);
 
-            $updated = $this->service->update($data, $id);
-
-            return response()->json($updated, Response::HTTP_OK);
-        } catch (Throwable $th) {
-            $code = $th instanceof \RuntimeException ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_INTERNAL_SERVER_ERROR;
-            return response()->json(
-                ['message' => 'Váratlan hiba történt'],
-                $code
-            );
-        }
+        return response()->json([
+            'message' => 'Beosztás sikeresen frissítve.',
+            'data' => $updated,
+        ], Response::HTTP_OK);
     }
 
     /**

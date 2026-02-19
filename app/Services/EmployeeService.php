@@ -17,6 +17,9 @@ use App\Data\Employee\EmployeeIndexData;
  */
 class EmployeeService
 {
+    /**
+     * @param EmployeeRepositoryInterface $repo Munkavállaló repository
+     */
     public function __construct(
         private readonly EmployeeRepositoryInterface $repo
     ) {}
@@ -56,6 +59,12 @@ class EmployeeService
         return $this->repo->getEmployeeByName($name);
     }
     
+    /**
+     * Új munkavállaló létrehozása.
+     *
+     * @param EmployeeData $data Validált DTO adatok
+     * @return Employee Létrehozott munkavállaló
+     */
     public function store(EmployeeData $data): Employee
     {
         $employee = $this->repo->store([
@@ -73,6 +82,13 @@ class EmployeeService
         return EmployeeData::fromModel($employee);
     }
     
+    /**
+     * Munkavállaló adatainak frissítése.
+     *
+     * @param int $id Munkavállaló azonosító
+     * @param CompanyData $data Frissítendő DTO adatok
+     * @return Employee Frissített munkavállaló
+     */
     public function update($id, CompanyData $data): Employee
     {
         $employee = $this->repo->update([

@@ -5,8 +5,23 @@ namespace App\Data\Employee;
 use App\Models\Employee;
 use Spatie\LaravelData\Data;
 
+/**
+ * Minimal munkavállaló DTO táblázatos listázáshoz.
+ */
 class EmployeeIndexData extends Data
 {
+    /**
+     * @param ?int $id Munkavállaló azonosító
+     * @param int $company_id Cég azonosító
+     * @param string $first_name Keresztnév
+     * @param string $last_name Vezetéknév
+     * @param string $email E-mail cím
+     * @param string $address Cím
+     * @param string $position Pozíció
+     * @param string $phone Telefonszám
+     * @param string $hired_at Belépés dátuma
+     * @param bool $active Aktív státusz
+     */
     public function __construct(
         public ?int $id,
         public int $company_id,
@@ -21,6 +36,12 @@ class EmployeeIndexData extends Data
 
     ) {}
 
+    /**
+     * DTO előállítása modelből.
+     *
+     * @param Employee $employee Munkavállaló model
+     * @return self
+     */
     public static function fromModel(Employee $employee): self
     {
         return new self(
