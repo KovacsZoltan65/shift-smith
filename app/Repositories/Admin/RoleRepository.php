@@ -184,7 +184,7 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
             /** @var Role $role */
             $role = Role::query()->create($data);
 
-            if (is_array($permissionIds)) {
+            if (\is_array($permissionIds)) {
                 $permissionIds = array_values(array_unique(array_map('intval', $permissionIds)));
                 $role->syncPermissions($permissionIds);
                 app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -226,7 +226,7 @@ class RoleRepository extends BaseRepository implements RoleRepositoryInterface
             $role->save();
             $role->refresh();
 
-            if (is_array($permissionIds)) {
+            if (\is_array($permissionIds)) {
                 $permissionIds = array_values(array_unique(array_map('intval', $permissionIds)));
                 $role->syncPermissions($permissionIds);
                 app(PermissionRegistrar::class)->forgetCachedPermissions();

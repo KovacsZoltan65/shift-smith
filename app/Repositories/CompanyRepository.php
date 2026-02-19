@@ -325,16 +325,6 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
         });
     }
     
-//    private function invalidateCompaniesSelectorCache(): void
-//    {
-//        // selector cache: v{version}:{hash(params)}
-//        $namespace = 'selectors.companies';
-//        $this->cacheVersionService->bump($namespace);
-//
-//        // opcionális: régi bejegyzések takarítása is
-//        $this->cacheService->forgetAll('companies_select');
-//    }
-    
     /**
      * Cache invalidálás cég írási műveletek után
      * 
