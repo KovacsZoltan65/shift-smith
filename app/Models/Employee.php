@@ -62,6 +62,7 @@ class Employee extends Model
     /** @var array<int,string> */
     public const SORTABLE = [
         'id',
+        'name',
         'first_name',
         'last_name',
         'email',

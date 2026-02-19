@@ -101,9 +101,15 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
                             ->orWhereRaw('LOWER(last_name) like ?', ["%{$term}%"])
                             ->orWhereRaw('LOWER(email) like ?', ["%{$term}%"]);
                     });
-                })
-                ->when($field, fn ($qq) => $qq->orderBy($field, $direction))
-                ->when(!$field, fn ($qq) => $qq->orderByDesc('id'));
+                });
+
+            if ($field === 'name') {
+                $q->orderBy('last_name', $direction)->orderBy('first_name', $direction);
+            } elseif ($field) {
+                $q->orderBy($field, $direction);
+            } else {
+                $q->orderByDesc('id');
+            }
 
             $paginator = $q->paginate($perPage, ['*'], 'page', $page);
             $paginator->appends($appendQuery);
