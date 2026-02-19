@@ -26,6 +26,7 @@ it('megtagadja az szerepek indexelését, ha a felhasználónak nincs viewAny jo
 
 it('Az Admin/Roles/Index ablakot jeleníti meg az adminisztrátor számára (tehetetlenség), és átadja a szűrő alapértelmezett értékeit.', function (): void {
     $user = $this->createAdminUser();
+    $this->withoutVite();
 
     $this->actingAs($user)
         ->get(route('admin.roles.index'))

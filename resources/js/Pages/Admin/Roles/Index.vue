@@ -104,7 +104,8 @@ const openEditModal = (row) => {
                 },
             });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            editRole.value = await res.json();
+            const json = await res.json();
+            editRole.value = json?.data ?? json;
             editOpen.value = true;
         } catch (e) {
             toast.add({
@@ -176,7 +177,11 @@ const fetchRoles = async () => {
          *
          * Tehát a rekord tömb: json.data.data
          */
-        rows.value = json?.data?.data ?? [];
+        const items = Array.isArray(json?.data)
+            ? json.data
+            : (json?.data?.data ?? []);
+
+        rows.value = items;
         totalRecords.value = json?.meta?.total ?? 0;
     } catch (e) {
         error.value = e?.message || "Ismeretlen hiba";

@@ -167,19 +167,12 @@ class CompanyController extends Controller
         $this->authorize(CompanyPolicy::PERM_DELETE_ANY, Company::class);
         
         $data = $request->validated();
+        $deleted = $this->service->bulkDelete($data['ids']);
 
-        try {
-            $deleted = $this->service->bulkDelete($data['ids']);
-            
-            return response()->json([
+        return response()->json([
                 'message' => 'Sikeres törlés.',
                 'deleted' => $deleted,
             ], Response::HTTP_OK);
-        } catch(Throwable $th) {
-            return response()->json([
-                'message' => 'Törlés sikertelen.',
-            ], Response::HTTP_INTERNAL_SERVER_ERROR);
-        }
     }
     
     /**

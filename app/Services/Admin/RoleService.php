@@ -2,6 +2,7 @@
 
 namespace App\Services\Admin;
 
+use App\Data\Role\RoleData;
 use App\Interfaces\Admin\RoleRepositoryInterface;
 use App\Models\Admin\Role;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -33,6 +34,28 @@ class RoleService
 
         return $roles;
     }
+
+    /**
+     * Egy szerepkör lekérése azonosító alapján (policy-barát model lookup).
+     *
+     * @param int $id Szerepkör azonosító
+     * @return Role Szerepkör model
+     */
+    public function find(int $id): Role
+    {
+        return $this->repo->getRole($id);
+    }
+
+    /**
+     * Szerepkör lekérése név alapján (policy-barát model lookup).
+     *
+     * @param string $name Szerepkör neve
+     * @return Role Szerepkör model
+     */
+    public function findByName(string $name): Role
+    {
+        return $this->repo->getRoleByName($name);
+    }
     
     /**
      * Egy szerepkör lekérése azonosító alapján
@@ -43,7 +66,7 @@ class RoleService
      */
     public function getRole(int $id): Role
     {
-        return $this->repo->getRole($id);
+        return $this->find($id);
     }
     
     /**
@@ -55,36 +78,64 @@ class RoleService
      */
     public function getRoleByName(string $name): Role
     {
-        return $this->repo->getRoleByName($name);
+        return $this->findByName($name);
+    }
+
+    /**
+     * Szerepkör DTO lekérése azonosító alapján.
+     *
+     * @param int $id Szerepkör azonosító
+     * @return RoleData Szerepkör DTO
+     */
+    public function getById(int $id): RoleData
+    {
+        return RoleData::fromModel($this->repo->getRole($id));
+    }
+
+    /**
+     * Szerepkör DTO lekérése név alapján.
+     *
+     * @param string $name Szerepkör neve
+     * @return RoleData Szerepkör DTO
+     */
+    public function getByName(string $name): RoleData
+    {
+        return RoleData::fromModel($this->repo->getRoleByName($name));
     }
     
     /**
      * Új szerepkör létrehozása
      * 
-     * @param array{
-     *   name: string,
-     *   guard_name: string,
-     * } $data Szerepkör adatok
-     * @return Role Létrehozott szerepkör
+     * @param RoleData $data Szerepkör adatok
+     * @return RoleData Létrehozott szerepkör DTO
      */
-    public function store(array $data): Role
+    public function store(RoleData $data): RoleData
     {
-        return $this->repo->store($data);
+        $role = $this->repo->store([
+            'name' => $data->name,
+            'guard_name' => $data->guard_name,
+            'permission_ids' => $data->permission_ids,
+        ]);
+
+        return RoleData::fromModel($role);
     }
     
     /**
      * Szerepkör adatainak frissítése
      * 
-     * @param array{
-     *    name: string,
-     *    guard_name: string,
-     * } $data Frissítendő adatok
+     * @param RoleData $data Frissítendő adatok
      * @param int $id Szerepkör azonosító
-     * @return Role Frissített szerepkör
+     * @return RoleData Frissített szerepkör DTO
      */
-    public function update(array $data, $id): Role
+    public function update(RoleData $data, int $id): RoleData
     {
-        return $this->repo->update($data, $id);
+        $role = $this->repo->update([
+            'name' => $data->name,
+            'guard_name' => $data->guard_name,
+            'permission_ids' => $data->permission_ids,
+        ], $id);
+
+        return RoleData::fromModel($role);
     }
     
     /**

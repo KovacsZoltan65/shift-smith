@@ -253,6 +253,29 @@ describe("Roles CRUD (Index.vue) – onMounted fetch alapú", () => {
         expect(wrapper.text()).toContain("User");
     });
 
+    it("rendereli a listát az új backend payloadból is (data: [...])", async () => {
+        globalThis.fetch = vi.fn(async (url) => {
+            const u = String(url);
+
+            if (u.startsWith("/admin/roles/fetch?")) {
+                return mockFetchOk({
+                    message: "ok",
+                    data: rolesList,
+                    meta: { total: rolesList.length },
+                    filter: {},
+                });
+            }
+
+            return mockFetchOk({ data: [] });
+        });
+
+        const wrapper = mount(Index, { global: { stubs } });
+        await flushPromises();
+
+        expect(wrapper.text()).toContain("Admin");
+        expect(wrapper.text()).toContain("User");
+    });
+
     // -------------------------------------------------------------------------
     // 2) Create flow
     // - roles-create gomb -> CreateModal nyílik
@@ -349,6 +372,43 @@ describe("Roles CRUD (Index.vue) – onMounted fetch alapú", () => {
         expect(
             calls.filter((u) => u.startsWith("/admin/roles/fetch?")).length,
         ).toBeGreaterThanOrEqual(2);
+    });
+
+    it("Szerkesztésnél kezeli az új detail payloadot (message + data)", async () => {
+        globalThis.fetch = vi.fn(async (url) => {
+            const u = String(url);
+
+            if (u.startsWith("/admin/roles/fetch?")) {
+                return mockFetchOk({
+                    data: { current_page: 1, data: rolesList },
+                    meta: { total: rolesList.length },
+                    filter: {},
+                });
+            }
+
+            if (u === "/admin/roles/1") {
+                return mockFetchOk({
+                    message: "ok",
+                    data: {
+                        id: 1,
+                        name: "Admin",
+                        guard_name: "web",
+                        permission_ids: [1, 2],
+                    },
+                });
+            }
+
+            return mockFetchOk({ data: [] });
+        });
+
+        const wrapper = mount(Index, { global: { stubs } });
+        await flushPromises();
+
+        await wrapper.vm.openEditModal({ id: 1, name: "Admin" });
+        await flushPromises();
+
+        expect(wrapper.find('[data-testid="edit-modal"]').exists()).toBe(true);
+        expect(wrapper.find('[data-testid="edit-role-id"]').text()).toBe("1");
     });
 
     it("Bulk törlés: confirmBulkDelete -> accept -> csrfFetch DELETE /admin/roles/destroy_bulk -> selected ürül", async () => {

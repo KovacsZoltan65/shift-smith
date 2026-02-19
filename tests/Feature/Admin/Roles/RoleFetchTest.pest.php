@@ -78,7 +78,7 @@ it('támogatja a keresést, és alapértelmezés szerint azonosító szerint (id
 
     $resp->assertOk();
 
-    $items = $resp->json('data.data');
+    $items = $resp->json('data');
     expect($items)->toBeArray();
     
     $names = collect($items)->pluck('name');

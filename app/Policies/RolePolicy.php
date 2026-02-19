@@ -27,14 +27,14 @@ use App\Policies\BasePolicy;
  */
 final class RolePolicy extends BasePolicy
 {
-    public const PERM_VIEW_ANY = 'employees.viewAny';
-    public const PERM_VIEW = 'employees.view';
-    public const PERM_CREATE = 'employees.create';
-    public const PERM_UPDATE = 'employees.update';
-    public const PERM_UPDATE_ANY = 'employees.updateAny';
-    public const PERM_UPDATE_SELF = 'employees.updateSelf';
-    public const PERM_DELETE = 'employees.delete';
-    public const PERM_DELETE_ANY = 'employees.deleteAny';
+    public const PERM_VIEW_ANY = 'roles.viewAny';
+    public const PERM_VIEW = 'roles.view';
+    public const PERM_CREATE = 'roles.create';
+    public const PERM_UPDATE = 'roles.update';
+    public const PERM_UPDATE_ANY = 'roles.updateAny';
+    public const PERM_UPDATE_SELF = 'roles.updateSelf';
+    public const PERM_DELETE = 'roles.delete';
+    public const PERM_DELETE_ANY = 'roles.deleteAny';
 
     /**
      * Entity név lekérése

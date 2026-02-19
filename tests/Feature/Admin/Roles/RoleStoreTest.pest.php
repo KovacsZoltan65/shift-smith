@@ -60,9 +60,14 @@ it('lehetővé teszi adminnak a szerepkör létrehozását, permission sync-kel 
         ->actingAs($user)
         ->postJson(route('admin.roles.store'), $payload);
 
-    $resp->assertOk();
+    $resp
+        ->assertCreated()
+        ->assertJsonStructure([
+            'message',
+            'data' => ['id', 'name', 'guard_name', 'permission_ids'],
+        ]);
 
-    $roleId = $resp->json('id');
+    $roleId = $resp->json('data.id');
     expect($roleId)->toBeInt();
 
     /** @var Role $role */

@@ -2,18 +2,18 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Data\Role\RoleData;
+use App\Data\Role\RoleIndexData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Role\BulkDeleteRequest;
 use App\Http\Requests\Role\IndexRequest;
-use App\Http\Requests\Role\StoreRequest;
-use App\Http\Requests\Role\UpdateRequest;
 use App\Models\Admin\Role;
+use App\Policies\RolePolicy;
 use App\Services\Admin\RoleService;
 use Illuminate\Http\JsonResponse;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
-use Throwable;
 
 /**
  * Szerepkör controller osztály
@@ -41,10 +41,7 @@ class RoleController extends Controller
      */
     public function index(IndexRequest $request): InertiaResponse
     {
-        /**
-         * A szerepkörök oldalát megjelenítéséhez kell hozzáférni.
-         */
-        $this->authorize('viewAny', Role::class);
+        $this->authorize(RolePolicy::PERM_VIEW_ANY, Role::class);
         
         return Inertia::render('Admin/Roles/Index', [
             'title'  => 'Szerepkörök',
@@ -60,12 +57,14 @@ class RoleController extends Controller
      */
     public function fetch(IndexRequest $request): JsonResponse
     {
-        $this->authorize('viewAny', Role::class);
+        $this->authorize(RolePolicy::PERM_VIEW_ANY, Role::class);
         
         $roles = $this->service->fetch($request);
+        $items = RoleIndexData::collect($roles->items());
         
         return response()->json([
-            'data' => $roles,
+            'message' => 'Szerepkörök sikeresen lekérve.',
+            'data' => $items,
             'meta' => [
                 'current_page' => $roles->currentPage(),
                 'per_page' => $roles->perPage(),
@@ -81,31 +80,16 @@ class RoleController extends Controller
      * 
      * @param int $id Szerepkör azonosító
      * @return JsonResponse Szerepkör adatok JSON-ben
-     * @throws Throwable
      */
     public function getRole(int $id): JsonResponse
     {
-        $role = $this->service->getRole($id);
-        $this->authorize('view', $role);
-        
-        try {
-            // Normalizált payload (frontend barát)
-            $role->loadMissing('permissions');
+        $role = $this->service->find($id);
+        $this->authorize(RolePolicy::PERM_VIEW, $role);
 
-            return response()->json([
-                'id' => (int) $role->id,
-                'name' => (string) $role->name,
-                'guard_name' => (string) $role->guard_name,
-                'permission_ids' => $role->permissions->pluck('id')->map(fn ($id) => (int) $id)->all(),
-                'created_at' => $role->created_at,
-                'updated_at' => $role->updated_at,
-            ], Response::HTTP_OK);
-        } catch(Throwable $th) {
-            return response()->json(
-                ['message' => 'Váratlan hiba történt'],
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        }
+        return response()->json([
+            'message' => 'Szerepkör sikeresen lekérve.',
+            'data' => RoleData::fromModel($role),
+        ], Response::HTTP_OK);
     }
     
     /**
@@ -113,31 +97,16 @@ class RoleController extends Controller
      * 
      * @param string $name Szerepkör neve
      * @return JsonResponse Szerepkör adatok JSON-ben
-     * @throws Throwable
      */
     public function getRoleByName(string $name): JsonResponse
     {
-        /** @var Role $role */
-        $role = Role::where('name', '=', $name)->firstOrFail();
-        $this->authorize('view', $role);
-        
-        try {
-            $role->loadMissing('permissions');
+        $role = $this->service->findByName($name);
+        $this->authorize(RolePolicy::PERM_VIEW, $role);
 
-            return response()->json([
-                'id' => (int) $role->id,
-                'name' => (string) $role->name,
-                'guard_name' => (string) $role->guard_name,
-                'permission_ids' => $role->permissions->pluck('id')->map(fn ($id) => (int) $id)->all(),
-                'created_at' => $role->created_at,
-                'updated_at' => $role->updated_at,
-            ], Response::HTTP_OK);
-        } catch(Throwable $th) {
-            return response()->json(
-                ['message' => 'Váratlan hiba történt'],
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        }
+        return response()->json([
+            'message' => 'Szerepkör sikeresen lekérve.',
+            'data' => RoleData::fromModel($role),
+        ], Response::HTTP_OK);
     }
 
     /**
@@ -154,67 +123,39 @@ class RoleController extends Controller
     /**
      * Új szerepkör létrehozása
      * 
-     * @param StoreRequest $request Validált kérés
+     * @param RoleData $data Validált DTO adatok
      * @return JsonResponse Létrehozott szerepkör JSON-ben
-     * @throws \Throwable
      */
-    public function store(StoreRequest $request): JsonResponse
+    public function store(RoleData $data): JsonResponse
     {
-        $this->authorize('create', Role::class);
-        
-        /**
-         * A kérésből származó validált adatok.
-         *
-         * @var array{
-         *   name: string,
-         *   guard_name: string
-         * } $data
-         */
-        $data = $request->validated();
-        
-        try {
-            $role = $this->service->store($data);
-            
-            return response()->json($role, Response::HTTP_OK);
-        } catch(Throwable $th) {
-            return response()->json(
-                ['message' => 'Váratlan hiba történt'],
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        }
+        $this->authorize(RolePolicy::PERM_CREATE, Role::class);
+
+        $created = $this->service->store($data);
+
+        return response()->json([
+            'message' => 'A szerepkör sikeresen létrehozva.',
+            'data' => $created,
+        ], Response::HTTP_CREATED);
     }
     
     /**
      * Szerepkör adatainak frissítése
      * 
-     * @param UpdateRequest $request Validált kérés
      * @param int $id Szerepkör azonosító
+     * @param RoleData $data Validált DTO adatok
      * @return JsonResponse Frissített szerepkör JSON-ben
-     * @throws \Throwable
      */
-    public function update(UpdateRequest $request, $id): JsonResponse
+    public function update(int $id, RoleData $data): JsonResponse
     {
-        /**
-         * @var array{
-         *   name: string, 
-         *   guard_name: string,
-         * } $data
-         */
-        $data = $request->validated();
-        
-        try {
-            $role = $this->service->getRole($id);
-            $this->authorize('update', $role);
-            
-            $updated = $this->service->update($data, $id);
-            
-            return response()->json($updated, Response::HTTP_OK);
-        } catch(Throwable $th) {
-            return response()->json(
-                ['message' => 'Váratlan hiba történt'],
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        }
+        $role = $this->service->find($id);
+        $this->authorize(RolePolicy::PERM_UPDATE, $role);
+
+        $updated = $this->service->update($data, $id);
+
+        return response()->json([
+            'message' => 'Szerepkör sikeresen frissítve.',
+            'data' => $updated,
+        ], Response::HTTP_OK);
     }
     
     /**
@@ -225,22 +166,15 @@ class RoleController extends Controller
      */
     public function bulkDelete(BulkDeleteRequest $request): JsonResponse
     {
-        $this->authorize('deleteAny', Role::class);
+        $this->authorize(RolePolicy::PERM_DELETE_ANY, Role::class);
         
         $data = $request->validated();
-        
-        try {
-            $deleted = $this->service->bulkDelete($data['ids']);
-            
-            return response()->json([
-                'message' => 'Sikeres törlés.',
-                'deleted' => $deleted,
-            ], Response::HTTP_OK);
-        } catch(Throwable $th) {
-            return response()->json([
-                'message' => 'Törlés sikertelen.',
-            ], Response::HTTP_INTERNAL_SERVER_ERROR);
-        }
+        $deleted = $this->service->bulkDelete($data['ids']);
+
+        return response()->json([
+            'message' => 'Sikeres törlés.',
+            'deleted' => $deleted,
+        ], Response::HTTP_OK);
     }
 
     /**
@@ -259,22 +193,17 @@ class RoleController extends Controller
      * 
      * @param int $id Szerepkör azonosító
      * @return JsonResponse Törlés eredménye JSON-ben
-     * @throws Throwable
      */
     public function destroy(int $id): JsonResponse
     {
-        $role = $this->service->getRole($id);
-        $this->authorize('delete', $role);
-        
-        try {
-            $deleted = $this->service->destroy($id);
+        $role = $this->service->find($id);
+        $this->authorize(RolePolicy::PERM_DELETE, $role);
+        $deleted = $this->service->destroy($id);
 
-            return response()->json($deleted, Response::HTTP_OK);
-        } catch(Throwable $th) {
-            return response()->json([
-                'message' => 'Törlés sikertelen.',
-            ], Response::HTTP_INTERNAL_SERVER_ERROR);
-        }
+        return response()->json([
+            'message' => $deleted ? 'Törlés sikeres.' : 'Törlés sikertelen.',
+            'deleted' => (bool) $deleted,
+        ], $deleted ? Response::HTTP_OK : Response::HTTP_INTERNAL_SERVER_ERROR);
     }
     
     /**
