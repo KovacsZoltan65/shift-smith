@@ -193,4 +193,21 @@ class WorkPatternController extends Controller
             Response::HTTP_OK
         );
     }
+
+    /**
+     * Munkarendhez rendelt dolgozók listázása.
+     *
+     * @param int $id Munkarend azonosító
+     * @return JsonResponse Dolgozó lista
+     */
+    public function getEmployees(int $id): JsonResponse
+    {
+        $workPattern = $this->service->find($id);
+        $this->authorize(WorkPatternPolicy::PERM_VIEW, $workPattern);
+
+        return response()->json([
+            'message' => 'Hozzárendelt dolgozók sikeresen lekérve.',
+            'data' => $this->service->getAssignedEmployees($id),
+        ], Response::HTTP_OK);
+    }
 }

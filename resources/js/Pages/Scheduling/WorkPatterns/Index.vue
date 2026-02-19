@@ -16,6 +16,7 @@ import CompanySelector from "@/Components/Selectors/CompanySelector.vue";
 import CreateModal from "@/Pages/Scheduling/WorkPatterns/CreateModal.vue";
 import EditModal from "@/Pages/Scheduling/WorkPatterns/EditModal.vue";
 import EmployeeAssignModal from "@/Pages/Scheduling/WorkPatterns/EmployeeAssignModal.vue";
+import EmployeesModal from "@/Pages/Scheduling/WorkPatterns/EmployeesModal.vue";
 import { csrfFetch } from "@/lib/csrfFetch";
 import { usePermissions } from "@/composables/usePermissions";
 
@@ -40,6 +41,8 @@ const editOpen = ref(false);
 const editWorkPattern = ref(null);
 const employeeAssignOpen = ref(false);
 const assignWorkPattern = ref(null);
+const employeesOpen = ref(false);
+const employeesWorkPattern = ref(null);
 
 const loading = ref(false);
 const actionLoading = ref(false);
@@ -90,6 +93,11 @@ const openAssignModal = (row) => {
     employeeAssignOpen.value = true;
 };
 
+const openEmployeesModal = (row) => {
+    employeesWorkPattern.value = row;
+    employeesOpen.value = true;
+};
+
 const openRowMenu = (event, row) => {
     rowMenuModel.value = [
         {
@@ -103,6 +111,12 @@ const openRowMenu = (event, row) => {
             icon: "pi pi-user-plus",
             disabled: actionLoading.value || !canAssignEmployee,
             command: () => openAssignModal(row),
+        },
+        {
+            label: "Dolgozók listája",
+            icon: "pi pi-users",
+            disabled: actionLoading.value,
+            command: () => openEmployeesModal(row),
         },
         {
             label: "Törlés",
@@ -119,6 +133,7 @@ const onSaved = async (message = "Mentve.") => {
     createOpen.value = false;
     editOpen.value = false;
     employeeAssignOpen.value = false;
+    employeesOpen.value = false;
     selected.value = [];
     await fetchWorkPatterns();
     toast.add({ severity: "success", summary: "Siker", detail: message, life: 2500 });
@@ -302,6 +317,11 @@ onMounted(fetchWorkPatterns);
         @saved="onSaved"
     />
 
+    <EmployeesModal
+        v-model="employeesOpen"
+        :workPattern="employeesWorkPattern"
+    />
+
     <AuthenticatedLayout>
         <div class="p-6">
             <div class="mb-4 flex items-center justify-between gap-3">
@@ -400,7 +420,17 @@ onMounted(fetchWorkPatterns);
                 </Column>
 
                 <Column field="weekly_minutes" header="Heti perc" sortable />
-                <Column field="employees_count" header="Dolgozók száma" style="width: 150px" />
+                <Column field="employees_count" header="Dolgozók száma" style="width: 150px">
+                    <template #body="{ data }">
+                        <Button
+                            :label="String(data.employees_count ?? 0)"
+                            text
+                            size="small"
+                            class="p-0"
+                            @click="openEmployeesModal(data)"
+                        />
+                    </template>
+                </Column>
 
                 <Column field="active" header="Aktív" sortable style="width: 120px">
                     <template #body="{ data }">

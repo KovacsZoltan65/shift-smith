@@ -319,6 +319,7 @@ Route::middleware(['auth', 'verified'])
         Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
         Route::get('/fetch', 'fetch')->name('fetch')->middleware('throttle:60,1');
         Route::get('/selector', 'getToSelect')->name('selector')->middleware('throttle:120,1');
+        Route::get('/{id}/employees', 'getEmployees')->whereNumber('id')->name('employees')->middleware('throttle:60,1');
         Route::get('/{id}', 'getWorkPattern')->whereNumber('id')->name('by_id')->middleware('throttle:60,1');
 
         Route::post('/', 'store')->name('store')->middleware('throttle:20,1');

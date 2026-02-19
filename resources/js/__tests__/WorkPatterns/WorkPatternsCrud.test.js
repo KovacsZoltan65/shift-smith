@@ -73,6 +73,11 @@ const stubs = {
         emits: ["update:modelValue", "saved"],
         template: `<div v-if="modelValue"><button data-testid="assign-save" @click="$emit('saved', 'ok');$emit('update:modelValue', false)">save</button></div>`,
     },
+    EmployeesModal: {
+        props: ["modelValue", "workPattern"],
+        emits: ["update:modelValue"],
+        template: `<div v-if="modelValue">employees-modal</div>`,
+    },
 };
 
 function ok(json) {

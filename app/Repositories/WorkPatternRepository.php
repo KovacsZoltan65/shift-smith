@@ -252,6 +252,57 @@ class WorkPatternRepository extends BaseRepository implements WorkPatternReposit
     }
 
     /**
+     * @inheritDoc
+     */
+    public function getAssignedEmployees(int $workPatternId): array
+    {
+        /** @var array<int, array{
+         *   id:int,
+         *   employee_id:int,
+         *   name:string,
+         *   email:?string,
+         *   phone:?string,
+         *   date_from:string,
+         *   date_to:?string,
+         *   is_primary:bool
+         * }> $out
+         */
+        $out = DB::table('employee_work_patterns as ewp')
+            ->join('employees as e', 'e.id', '=', 'ewp.employee_id')
+            ->where('ewp.work_pattern_id', $workPatternId)
+            ->whereNull('ewp.deleted_at')
+            ->whereNull('e.deleted_at')
+            ->select([
+                'ewp.id',
+                'ewp.employee_id',
+                DB::raw("CONCAT(e.last_name, ' ', e.first_name) as name"),
+                'e.email',
+                'e.phone',
+                'ewp.date_from',
+                'ewp.date_to',
+                'ewp.is_primary',
+            ])
+            ->orderByDesc('ewp.is_primary')
+            ->orderBy('e.last_name')
+            ->orderBy('e.first_name')
+            ->get()
+            ->map(static fn ($row): array => [
+                'id' => (int) $row->id,
+                'employee_id' => (int) $row->employee_id,
+                'name' => (string) $row->name,
+                'email' => $row->email ? (string) $row->email : null,
+                'phone' => $row->phone ? (string) $row->phone : null,
+                'date_from' => (string) $row->date_from,
+                'date_to' => $row->date_to ? (string) $row->date_to : null,
+                'is_primary' => (bool) $row->is_primary,
+            ])
+            ->values()
+            ->all();
+
+        return $out;
+    }
+
+    /**
      * Cache invalidálás írási műveletek után.
      *
      * @param int $companyId Cég azonosító

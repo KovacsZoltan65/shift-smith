@@ -123,4 +123,24 @@ class WorkPatternService
     {
         return $this->repo->getToSelect($companyId, $onlyActive);
     }
+
+    /**
+     * Munkarendhez rendelt dolgozók listázása.
+     *
+     * @param int $workPatternId Munkarend azonosító
+     * @return array<int, array{
+     *   id:int,
+     *   employee_id:int,
+     *   name:string,
+     *   email:?string,
+     *   phone:?string,
+     *   date_from:string,
+     *   date_to:?string,
+     *   is_primary:bool
+     * }>
+     */
+    public function getAssignedEmployees(int $workPatternId): array
+    {
+        return $this->repo->getAssignedEmployees($workPatternId);
+    }
 }
