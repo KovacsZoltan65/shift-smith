@@ -6,7 +6,9 @@ use App\Models\Admin\Permission;
 use App\Models\Admin\Role;
 use App\Models\Company;
 use App\Models\Employee;
+use App\Models\EmployeeWorkPattern;
 use App\Models\User;
+use App\Models\WorkPattern;
 use App\Models\WorkSchedule;
 use App\Models\WorkShift;
 use App\Support\MenuPermissions;
@@ -61,6 +63,16 @@ class RolesAndPermissionsSeeder extends Seeder
             'work_shifts' => WorkShift::class,
             'work_schedules' => WorkSchedule::class,
             'work_shifts_assignments' => \App\Models\WorkShiftAssignment::class,
+            'work_patterns' => WorkPattern::class,
+            'employee_work_patterns' => EmployeeWorkPattern::class,
+        ];
+
+        /** @var list<string> $customPermissions */
+        $customPermissions = [
+            'work_patterns.bulkDelete',
+            'employee_work_patterns.assign',
+            'employee_work_patterns.unassign',
+            'employee_work_patterns.view',
         ];
 
         /**
@@ -103,6 +115,7 @@ class RolesAndPermissionsSeeder extends Seeder
         }
 
         // 4 role create + 4 sync
+        $estimated += \count($customPermissions);
         $estimated += 8;
 
         $bar = $this->command->getOutput()->createProgressBar($estimated);
@@ -112,7 +125,7 @@ class RolesAndPermissionsSeeder extends Seeder
          * Teljes permission + role seedelés tranzakcióban.
          * Így félbeszakadás esetén nem marad inkonzisztens állapot.
          */
-        \DB::transaction(function () use ($entities, $baseActions, $softDeleteExtras, $bar): void {
+        \DB::transaction(function () use ($entities, $baseActions, $softDeleteExtras, $customPermissions, $bar): void {
 
             /**
              * Permission generálás entitásonként.
@@ -135,6 +148,11 @@ class RolesAndPermissionsSeeder extends Seeder
                     ]);
                     $bar->advance();
                 }
+            }
+
+            foreach ($customPermissions as $permissionName) {
+                Permission::firstOrCreate(['name' => $permissionName]);
+                $bar->advance();
             }
 
             /**

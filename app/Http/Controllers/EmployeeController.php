@@ -250,6 +250,12 @@ class EmployeeController extends Controller
      */
     public function getToSelect(Request $request): array
     {
-        return $this->service->getToSelect([]);
+        $companyId = $request->input('company_id');
+        $onlyActive = $request->boolean('only_active', true);
+
+        return $this->service->getToSelect([
+            'company_id' => ($companyId === null || $companyId === '') ? null : (int) $companyId,
+            'only_active' => $onlyActive,
+        ]);
     }
 }

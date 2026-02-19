@@ -62,6 +62,12 @@ export const appMenuDefinition = [
                 can: "work_shifts.viewAny",
             },
             {
+                title: "Munkarendek",
+                route: "work_patterns.index",
+                key: "work_patterns.index",
+                can: "work_patterns.viewAny",
+            },
+            {
                 title: "Tervezés",
                 route: "planning.index",
                 key: "planning.index",

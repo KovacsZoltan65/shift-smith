@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Data\Employee;
 
 use App\Models\Employee;
@@ -34,7 +36,8 @@ class EmployeeData extends Data
     public function __construct(
         public ?int $id,
 
-        public ?int $company_id,
+        #[Required]
+        public int $company_id,
 
         #[Required, StringType]
         public string $first_name,
@@ -42,20 +45,20 @@ class EmployeeData extends Data
         #[Required, StringType]
         public string $last_name,
 
-        #[Required, Email, Max(150), Unique('employees', 'email', null, new RouteParameterReference('id', null, true))]
+        #[Required, Email, Max(120), Unique('employees', 'email', null, new RouteParameterReference('id', null, true))]
         public string $email,
 
-        #[Required, StringType]
-        public string $address,
+        #[Nullable, StringType, Max(255)]
+        public ?string $address = null,
 
-        #[Required, StringType]
-        public string $position,
+        #[Nullable, StringType, Max(120)]
+        public ?string $position = null,
 
         #[Nullable, StringType, Max(50)]
-        public ?string $phone,
+        public ?string $phone = null,
 
-        #[DateFormat('Y-m-d')]
-        public ?string $hired_at,
+        #[Nullable, DateFormat('Y-m-d')]
+        public ?string $hired_at = null,
 
         #[BooleanType]
         public bool $active = true,
@@ -79,7 +82,7 @@ class EmployeeData extends Data
             address: $employee->address,
             position: $employee->position,
             phone: $employee->phone,
-            hired_at: $employee->hired_at,
+            hired_at: optional($employee->hired_at)?->format('Y-m-d'),
             active: $employee->active,
         );
     }

@@ -202,7 +202,7 @@ const close = () => {
             <Button
                 label="Mentés"
                 icon="pi pi-check"
-                :loading="loading"
+                :loading="saving"
                 :disabled="saving || !props.canUpdate"
                 @click="submit"
             />

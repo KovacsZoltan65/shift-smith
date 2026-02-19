@@ -16,6 +16,7 @@ import Menu from "primevue/menu";
 
 import CreateModal from "@/Pages/HR/Employees/CreateModal.vue";
 import EditModal from "@/Pages/HR/Employees/EditModal.vue";
+import WorkPatternModal from "@/Pages/HR/Employees/WorkPatternModal.vue";
 
 import { csrfFetch } from "@/lib/csrfFetch";
 import CompanySelector from "@/Components/Selectors/CompanySelector.vue";
@@ -29,6 +30,9 @@ const { has } = usePermissions();
 const canCreate = has("employees.create");
 const canUpdate = has("employees.update");
 const canDelete = has("employees.delete");
+const canViewEmployeeWorkPatterns = has("employee_work_patterns.view");
+const canAssignEmployeeWorkPatterns = has("employee_work_patterns.assign");
+const canUnassignEmployeeWorkPatterns = has("employee_work_patterns.unassign");
 
 const props = defineProps({
     title: { type: String, default: "Dolgozók" },
@@ -42,6 +46,8 @@ const confirm = useConfirm();
 const createOpen = ref(false);
 const editOpen = ref(false);
 const editEmployee = ref(null);
+const workPatternOpen = ref(false);
+const selectedEmployeeForWorkPattern = ref(null);
 
 const loading = ref(false);
 const actionLoading = ref(false);
@@ -74,6 +80,12 @@ const openRowMenu = (event, row) => {
             icon: "pi pi-trash",
             disabled: actionLoading.value || !canDelete,
             command: () => confirmDeleteOne(row),
+        },
+        {
+            label: "Munkarend",
+            icon: "pi pi-calendar",
+            disabled: actionLoading.value || !canViewEmployeeWorkPatterns,
+            command: () => openWorkPatternModal(row),
         },
     ];
 
@@ -109,9 +121,15 @@ const openEditModal = (row) => {
     editOpen.value = true;
 };
 
+const openWorkPatternModal = (row) => {
+    selectedEmployeeForWorkPattern.value = row;
+    workPatternOpen.value = true;
+};
+
 const onSaved = async (msg = "Mentve.") => {
     createOpen.value = false;
     editOpen.value = false;
+    workPatternOpen.value = false;
 
     selected.value = [];
     await fetchEmployees();
@@ -357,6 +375,13 @@ onMounted(fetchEmployees);
         :employee="editEmployee"
         :canUpdate="canUpdate"
         @saved="onSaved"
+    />
+
+    <WorkPatternModal
+        v-model="workPatternOpen"
+        :employee="selectedEmployeeForWorkPattern"
+        :canAssign="canAssignEmployeeWorkPatterns"
+        :canUnassign="canUnassignEmployeeWorkPatterns"
     />
 
     <AuthenticatedLayout>

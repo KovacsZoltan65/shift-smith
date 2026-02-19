@@ -28,6 +28,7 @@ class DatabaseSeeder extends Seeder
             
             WorkShiftSeeder::class,
             WorkShiftAssignmentSeeder::class,
+            WorkPatternSeeder::class,
 
             WorkScheduleSeeder::class,
         ]);
