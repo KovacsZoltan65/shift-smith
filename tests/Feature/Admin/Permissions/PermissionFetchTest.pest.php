@@ -100,8 +100,8 @@ it('támogatja a keresést, és alapértelmezés szerint azonosító szerint (id
     $searchTotal = (int) ($respSearch->json('meta.total') ?? 0);
     expect($searchTotal)->toBeLessThanOrEqual($baseTotal);
 
-    // FONTOS: a rekordok a te API-dban: data.data
-    $rows = (array) $respSearch->json('data.data');
+    // rekordok a normalizált API-ban: data
+    $rows = (array) $respSearch->json('data');
 
     // ha van találat, akkor a payloadban szerepeljen a token
     if ($searchTotal > 0) {

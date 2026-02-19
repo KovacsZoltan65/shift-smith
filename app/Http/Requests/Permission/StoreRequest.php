@@ -29,8 +29,6 @@ class StoreRequest extends FormRequest
                 Rule::unique('permissions', 'name')->where('guard_name', $guard),
             ],
             'guard_name' => ['required', 'string', 'max:50'],
-            'permission_ids' => ['nullable', 'array'],
-            'permission_ids.*' => ['integer', 'distinct', 'exists:permissions,id'],
         ];
     }
 }

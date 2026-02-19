@@ -24,7 +24,7 @@ class UpdateRequest extends FormRequest
 
         return [
             'name' => [
-                'required', 'string', 'max:255',
+                'required', 'string', 'max:100',
                 Rule::unique('permissions', 'name')
                     ->where('guard_name', $guard)
                     ->ignore($id, 'id'),

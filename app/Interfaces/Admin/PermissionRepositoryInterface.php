@@ -37,7 +37,7 @@ interface PermissionRepositoryInterface
     
     /**
      * @param int $id
-     * @return void
+     * @return bool
      */
     public function destroy(int $id): bool;
 

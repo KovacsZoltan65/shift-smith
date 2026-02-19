@@ -67,7 +67,11 @@ it('lehetővé teszi az adminisztrátor számára az engedélyek tárolását', 
             route('admin.permissions.store'), 
             $payload
         )
-        ->assertOk();
+        ->assertCreated()
+        ->assertJsonStructure([
+            'message',
+            'data' => ['id', 'name', 'guard_name', 'created_at', 'updated_at'],
+        ]);
     
 
     $this->assertDatabaseHas('permissions', [

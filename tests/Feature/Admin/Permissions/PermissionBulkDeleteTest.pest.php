@@ -55,7 +55,8 @@ it('lehetővé teszi az adminisztrátor számára a jogosultságok tömeges tör
     $this
         ->actingAs($user)
         ->deleteJson(route('admin.permissions.destroy_bulk'), ['ids' => $ids])
-        ->assertOk();
+        ->assertOk()
+        ->assertJsonStructure(['message', 'deleted']);
     
     foreach ($ids as $id) {
         $this->assertDatabaseMissing('permissions', ['id' => $id]);

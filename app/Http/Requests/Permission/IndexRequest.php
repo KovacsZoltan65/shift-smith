@@ -25,7 +25,7 @@ class IndexRequest extends FormRequest
     {
         return [
             'search'   => ['nullable', 'string', 'max:255'],
-            'field'    => ['nullable', 'string', 'in:id,name,email,created_at,updated_at'],
+            'field'    => ['nullable', 'string', 'in:id,name,guard_name,created_at,updated_at'],
             'order'    => ['nullable', 'string', 'in:asc,desc'],
             'page'     => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
@@ -68,8 +68,7 @@ class IndexRequest extends FormRequest
      * @return array{
      *   search?: string,
      *   name?: string,
-     *   email?: string,
-     *   phone?: string,
+     *   guard_name?: string,
      *   field?: string,
      *   order?: 'asc'|'desc',
      *   page?: int,

@@ -26,6 +26,7 @@ it('megtagadja az engedélyek indexelését, ha a felhasználónak nincs viewAny
 
 it('Az Admin/Permissions/Index ablakot jeleníti meg az adminisztrátor számára (tehetetlenség), és átadja a szűrő alapértelmezett értékeit.', function (): void {
     $user = $this->createAdminUser();
+    $this->withoutVite();
 
     $this->actingAs($user)
         ->get(route('admin.permissions.index'))

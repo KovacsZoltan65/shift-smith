@@ -97,8 +97,30 @@ const openCreate = () => {
 };
 
 const openEditModal = (row) => {
-    editPermission.value = row;
-    editOpen.value = true;
+    (async () => {
+        actionLoading.value = true;
+        try {
+            const res = await fetch(`/admin/permissions/${row.id}`, {
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                    Accept: "application/json",
+                },
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const json = await res.json();
+            editPermission.value = json?.data ?? json;
+            editOpen.value = true;
+        } catch (e) {
+            toast.add({
+                severity: "error",
+                summary: "Hiba",
+                detail: e?.message || "Nem sikerült a permission betöltése.",
+                life: 3500,
+            });
+        } finally {
+            actionLoading.value = false;
+        }
+    })();
 };
 
 const onSaved = async (msg = "Mentve.") => {
@@ -158,7 +180,11 @@ const fetchPermissions = async () => {
          *
          * Tehát a rekord tömb: json.data.data
          */
-        rows.value = json?.data?.data ?? [];
+        const items = Array.isArray(json?.data)
+            ? json.data
+            : (json?.data?.data ?? []);
+
+        rows.value = items;
         totalRecords.value = json?.meta?.total ?? 0;
     } catch (e) {
         error.value = e?.message || "Ismeretlen hiba";
@@ -337,6 +363,7 @@ onMounted(fetchPermissions);
                         icon="pi pi-plus"
                         size="small"
                         @click="openCreate"
+                        data-testid="permissions-create"
                     />
 
                     <!-- BULK DELETE -->

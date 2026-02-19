@@ -55,11 +55,13 @@ it('lehetővé teszi az adminisztrátor számára az engedélyek törlését és
     Cache::forever('v:permissions.fetch', 1);
     Cache::forever('v:selectors.permissions', 1);
 
-    $resp = $this
+    $this
         ->actingAs($user)
         ->deleteJson(route('admin.permissions.destroy', ['id' => $permission->id]))
         ->assertOk()
-        ->assertContent('true');
+        ->assertJson([
+            'deleted' => true,
+        ]);
     
     // Spatie Permission alapból nem softdelete-ol, hanem hard delete
     $this->assertDatabaseMissing('permissions', ['id' => $permission->id]);
