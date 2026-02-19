@@ -4,9 +4,11 @@ use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\EmployeeWorkPatternController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\WorkPatternController;
 use App\Http\Controllers\WorkScheduleController;
 use App\Http\Controllers\WorkShiftController;
 use App\Http\Controllers\DashboardController;
@@ -43,6 +45,8 @@ Route::middleware(['auth', 'verified', 'throttle:120,1'])->group(function(): voi
     Route::get('/selectors/employees', [EmployeeController::class, 'getToSelect'])->name('selectors.employees');
     // User Selector
     Route::get('/selectors/users', [UserController::class, 'getToSelect'])->name('selectors.users');
+    // WorkPattern Selector
+    Route::get('/selectors/work-patterns', [WorkPatternController::class, 'getToSelect'])->name('selectors.work_patterns');
 
     // (Admin selectorok az /admin prefix alatt vannak, lent)
 });
@@ -221,6 +225,23 @@ Route::middleware(['auth', 'verified'])
         Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy')->middleware('throttle:20,1');
         Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
     });
+
+/**
+ * ======================================
+ * EMPLOYEE WORK PATTERNS
+ * ======================================
+ */
+Route::middleware(['auth', 'verified'])
+    ->prefix('employees/{employee}/work-patterns')
+    ->whereNumber('employee')
+    ->as('employee_work_patterns.')
+    ->controller(EmployeeWorkPatternController::class)
+    ->group(function (): void {
+        Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
+        Route::post('/assign', 'assign')->name('assign')->middleware('throttle:20,1');
+        Route::put('/{id}', 'update')->whereNumber('id')->name('update')->middleware('throttle:30,1');
+        Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy')->middleware('throttle:20,1');
+    });
     
 /**
  * ======================================
@@ -267,6 +288,27 @@ Route::middleware(['auth', 'verified'])
     Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy')->middleware('throttle:20,1');
     Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
 });
+
+/**
+ * ======================================
+ * WORK_PATTERNS
+ * ======================================
+ */
+Route::middleware(['auth', 'verified'])
+    ->prefix('work-patterns')
+    ->as('work_patterns.')
+    ->controller(WorkPatternController::class)
+    ->group(function (): void {
+        Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
+        Route::get('/fetch', 'fetch')->name('fetch')->middleware('throttle:60,1');
+        Route::get('/selector', 'getToSelect')->name('selector')->middleware('throttle:120,1');
+        Route::get('/{id}', 'getWorkPattern')->whereNumber('id')->name('by_id')->middleware('throttle:60,1');
+
+        Route::post('/', 'store')->name('store')->middleware('throttle:20,1');
+        Route::put('/{id}', 'update')->whereNumber('id')->name('update')->middleware('throttle:30,1');
+        Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy')->middleware('throttle:20,1');
+        Route::delete('/destroy_bulk', 'destroyBulk')->name('destroy_bulk')->middleware('throttle:10,1');
+    });
 
 /**
  * ======================================

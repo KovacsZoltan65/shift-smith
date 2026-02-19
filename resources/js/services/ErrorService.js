@@ -24,7 +24,20 @@ class ErrorService {
             ...additionalData,
         };
 
-        return apiClient.post(route(`client-errors.store`), payload);
+        try {
+            if (typeof route !== "function") {
+                return Promise.resolve(null);
+            }
+
+            const ziggy = route();
+            if (typeof ziggy?.has === "function" && !ziggy.has("client-errors.store")) {
+                return Promise.resolve(null);
+            }
+
+            return apiClient.post(route("client-errors.store"), payload);
+        } catch (_) {
+            return Promise.resolve(null);
+        }
     }
 }
 

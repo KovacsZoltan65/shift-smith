@@ -6,7 +6,9 @@ use App\Interfaces\Admin\PermissionRepositoryInterface;
 use App\Interfaces\Admin\RoleRepositoryInterface;
 use App\Interfaces\CompanyRepositoryInterface;
 use App\Interfaces\EmployeeRepositoryInterface;
+use App\Interfaces\EmployeeWorkPatternRepositoryInterface;
 use App\Interfaces\UserRepositoryInterface;
+use App\Interfaces\WorkPatternRepositoryInterface;
 use App\Interfaces\WorkScheduleRepositoryInterface;
 use App\Interfaces\WorkShiftRepositoryInterface;
 use App\Models\Company;
@@ -17,7 +19,9 @@ use App\Repositories\Admin\PermissionRepository;
 use App\Repositories\Admin\RoleRepository;
 use App\Repositories\CompanyRepository;
 use App\Repositories\EmployeeRepository;
+use App\Repositories\EmployeeWorkPatternRepository;
 use App\Repositories\UserRepository;
+use App\Repositories\WorkPatternRepository;
 use App\Repositories\WorkScheduleRepository;
 use App\Repositories\WorkShiftRepository;
 use Illuminate\Database\Eloquent\Builder;
@@ -62,6 +66,14 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             WorkScheduleRepositoryInterface::class,
             WorkScheduleRepository::class
+        );
+        $this->app->bind(
+            WorkPatternRepositoryInterface::class,
+            WorkPatternRepository::class
+        );
+        $this->app->bind(
+            EmployeeWorkPatternRepositoryInterface::class,
+            EmployeeWorkPatternRepository::class
         );
     }
 
