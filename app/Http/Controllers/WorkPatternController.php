@@ -22,7 +22,8 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Munkarend controller osztály.
  *
- * HTTP kérések kezelése munkarendek CRUD műveleteihez.
+ * HTTP kérések kezelése munkarendek CRUD műveleteihez,
+ * selector adatokhoz és a hozzárendelt dolgozók listázásához.
  */
 class WorkPatternController extends Controller
 {

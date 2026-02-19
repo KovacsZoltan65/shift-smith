@@ -62,6 +62,7 @@ watch(
     () => [visible.value, props.workPattern?.id],
     async ([isVisible]) => {
         if (!isVisible) return;
+        // Minden megnyitáskor friss listát töltünk, hogy a modal mindig naprakész legyen.
         await load();
     }
 );

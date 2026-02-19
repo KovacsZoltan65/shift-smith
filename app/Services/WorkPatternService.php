@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
  * Munkarend szolgáltatás osztály.
  *
  * Üzleti logikai réteg a munkarendek kezeléséhez.
+ * Kezeli a CRUD műveleteket, selector adatokat és a hozzárendelt dolgozók lekérdezését.
  */
 class WorkPatternService
 {

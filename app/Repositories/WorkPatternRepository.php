@@ -78,6 +78,7 @@ class WorkPatternRepository extends BaseRepository implements WorkPatternReposit
         $queryCallback = function () use ($companyId, $term, $field, $direction, $perPage, $page, $appendQuery): LengthAwarePaginator {
             $q = WorkPattern::query()
                 ->select('work_patterns.*')
+                // Aggregalt mező a lista nézethez: hozzárendelt, nem törölt dolgozók száma.
                 ->selectSub(
                     fn ($sub) => $sub
                         ->from('employee_work_patterns')

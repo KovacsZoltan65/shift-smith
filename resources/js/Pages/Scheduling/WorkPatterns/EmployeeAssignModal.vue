@@ -55,6 +55,7 @@ const close = () => {
 };
 
 const toPayload = () => ({
+    // A backend az employee id-t URL paraméterből veszi, a pattern azonosító a body része.
     work_pattern_id: Number(props.workPattern?.id ?? 0),
     date_from: toYmd(form.value.date_from),
     date_to: toYmd(form.value.date_to),

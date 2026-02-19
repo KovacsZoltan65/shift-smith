@@ -171,4 +171,14 @@ describe("WorkPatterns CRUD (Index.vue)", () => {
             }),
         );
     });
+
+    it("employees modal megnyílik a dolgozók listája akcióra", async () => {
+        const wrapper = mount(Index, { global: { stubs } });
+        await flushPromises();
+
+        wrapper.vm.openEmployeesModal(rows[0]);
+        await flushPromises();
+
+        expect(wrapper.text()).toContain("employees-modal");
+    });
 });

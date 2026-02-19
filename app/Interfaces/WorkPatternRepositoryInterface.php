@@ -11,10 +11,19 @@ use Illuminate\Http\Request;
 interface WorkPatternRepositoryInterface
 {
     /**
+     * Munkarendek listázása lapozható formában.
+     *
+     * @param Request $request Szűrési, rendezési és lapozási paraméterek
      * @return LengthAwarePaginator<int, WorkPattern>
      */
     public function fetch(Request $request): LengthAwarePaginator;
 
+    /**
+     * Egy munkarend lekérése azonosító alapján.
+     *
+     * @param int $id Munkarend azonosító
+     * @return WorkPattern
+     */
     public function getWorkPattern(int $id): WorkPattern;
 
     /**
@@ -49,6 +58,12 @@ interface WorkPatternRepositoryInterface
      */
     public function bulkDelete(array $ids): int;
 
+    /**
+     * Egy munkarend törlése.
+     *
+     * @param int $id Munkarend azonosító
+     * @return bool
+     */
     public function destroy(int $id): bool;
 
     /**

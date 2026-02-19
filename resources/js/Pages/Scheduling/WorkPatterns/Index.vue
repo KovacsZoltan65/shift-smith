@@ -422,6 +422,7 @@ onMounted(fetchWorkPatterns);
                 <Column field="weekly_minutes" header="Heti perc" sortable />
                 <Column field="employees_count" header="Dolgozók száma" style="width: 150px">
                     <template #body="{ data }">
+                        <!-- A darabszám kattintható: részletes dolgozólista modal megnyitása. -->
                         <Button
                             :label="String(data.employees_count ?? 0)"
                             text

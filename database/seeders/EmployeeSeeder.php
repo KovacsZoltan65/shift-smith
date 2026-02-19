@@ -7,8 +7,19 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
+/**
+ * Dolgozó adatok seedelése cégenként.
+ *
+ * Minden céghez fix számú (jelenleg 50) dolgozót hoz létre
+ * gyors tömeges INSERT használatával.
+ */
 class EmployeeSeeder extends Seeder
 {
+    /**
+     * Seeder futtatása.
+     *
+     * @return void
+     */
     public function run(): void
     {
         activity()->disableLogging();
