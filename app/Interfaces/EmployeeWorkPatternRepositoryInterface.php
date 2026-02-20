@@ -22,8 +22,6 @@ interface EmployeeWorkPatternRepositoryInterface
      *   work_pattern_id:int,
      *   date_from:string,
      *   date_to?:string|null,
-     *   is_primary?:bool,
-     *   meta?:array<string,mixed>|null
      * } $data
      */
     public function assign(array $data): EmployeeWorkPattern;
@@ -31,15 +29,22 @@ interface EmployeeWorkPatternRepositoryInterface
     /**
      * @param int $id
      * @param int $employeeId
+     * @param int $companyId
      * @param array{
      *   work_pattern_id:int,
      *   date_from:string,
-     *   date_to?:string|null,
-     *   is_primary?:bool,
-     *   meta?:array<string,mixed>|null
+     *   date_to?:string|null
      * } $data
      */
-    public function updateAssignment(int $id, int $employeeId, array $data): EmployeeWorkPattern;
+    public function updateAssignment(int $id, int $employeeId, int $companyId, array $data): EmployeeWorkPattern;
 
-    public function unassign(int $id, int $employeeId): bool;
+    public function unassign(int $id, int $employeeId, int $companyId): bool;
+
+    public function hasOverlap(
+        int $companyId,
+        int $employeeId,
+        string $dateFrom,
+        ?string $dateTo,
+        ?int $ignoreId = null
+    ): bool;
 }

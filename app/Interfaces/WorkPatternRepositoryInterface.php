@@ -19,22 +19,14 @@ interface WorkPatternRepositoryInterface
     public function fetch(Request $request): LengthAwarePaginator;
 
     /**
-     * Egy munkarend lekérése azonosító alapján.
-     *
-     * @param int $id Munkarend azonosító
-     * @return WorkPattern
-     */
-    public function getWorkPattern(int $id): WorkPattern;
-
-    /**
      * @param array{
      *   company_id:int,
      *   name:string,
-     *   type:string,
-     *   cycle_length_days?:int|null,
-     *   weekly_minutes?:int|null,
-     *   active?:bool,
-     *   meta?:array<string,mixed>|null
+     *   daily_work_minutes:int,
+     *   break_minutes:int,
+     *   core_start_time?:string|null,
+     *   core_end_time?:string|null,
+     *   active?:bool
      * } $data
      */
     public function store(array $data): WorkPattern;
@@ -43,11 +35,11 @@ interface WorkPatternRepositoryInterface
      * @param array{
      *   company_id:int,
      *   name:string,
-     *   type:string,
-     *   cycle_length_days?:int|null,
-     *   weekly_minutes?:int|null,
-     *   active?:bool,
-     *   meta?:array<string,mixed>|null
+     *   daily_work_minutes:int,
+     *   break_minutes:int,
+     *   core_start_time?:string|null,
+     *   core_end_time?:string|null,
+     *   active?:bool
      * } $data
      */
     public function update(array $data, mixed $id): WorkPattern;
@@ -56,7 +48,7 @@ interface WorkPatternRepositoryInterface
      * @param list<int> $ids
      * @return int
      */
-    public function bulkDelete(array $ids): int;
+    public function bulkDelete(array $ids, int $companyId): int;
 
     /**
      * Egy munkarend törlése.
@@ -64,12 +56,12 @@ interface WorkPatternRepositoryInterface
      * @param int $id Munkarend azonosító
      * @return bool
      */
-    public function destroy(int $id): bool;
+    public function destroy(int $id, int $companyId): bool;
 
     /**
      * @param int $companyId
      * @param bool $onlyActive
-     * @return array<int, array{id:int, name:string, type:string}>
+     * @return array<int, array{id:int, name:string}>
      */
     public function getToSelect(int $companyId, bool $onlyActive = true): array;
 
@@ -83,8 +75,9 @@ interface WorkPatternRepositoryInterface
      *   phone:?string,
      *   date_from:string,
      *   date_to:?string,
-     *   is_primary:bool
      * }>
      */
-    public function getAssignedEmployees(int $workPatternId): array;
+    public function getAssignedEmployees(int $workPatternId, int $companyId): array;
+
+    public function getWorkPattern(int $id, int $companyId): WorkPattern;
 }

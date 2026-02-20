@@ -71,12 +71,19 @@ const allow = new Set([
     "work_patterns.create",
     "work_patterns.update",
     "work_patterns.delete",
-    "work_patterns.bulkDelete",
+    "work_patterns.deleteAny",
 
     // EmployeeWorkPatterns
     "employee_work_patterns.view",
     "employee_work_patterns.assign",
     "employee_work_patterns.unassign",
+
+    // WorkScheduleAssignments
+    "work_schedule_assignments.view",
+    "work_schedule_assignments.viewAny",
+    "work_schedule_assignments.create",
+    "work_schedule_assignments.update",
+    "work_schedule_assignments.delete",
 ]);
 
 vi.mock("@/composables/usePermissions", () => ({

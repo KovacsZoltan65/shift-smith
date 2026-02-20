@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\WorkShiftAssignment;
 
-use App\Models\WorkShift;
-use App\Policies\WorkShiftPolicy;
+use App\Models\WorkShiftAssignment;
+use App\Policies\WorkShiftAssigmentPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -18,7 +18,7 @@ class ListRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->can(WorkShiftPolicy::PERM_VIEW_ANY, WorkShift::class) ?? false;
+        return $this->user()?->can(WorkShiftAssigmentPolicy::PERM_VIEW_ANY, WorkShiftAssignment::class) ?? false;
     }
 
     /**

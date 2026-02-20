@@ -16,7 +16,11 @@ class UpdateRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->can(WorkPatternPolicy::PERM_UPDATE, WorkPattern::class) ?? false;
+        $id = (int) $this->route('id');
+        $workPattern = WorkPattern::query()->find($id);
+
+        return $workPattern !== null
+            && ($this->user()?->can(WorkPatternPolicy::PERM_UPDATE, $workPattern) ?? false);
     }
 
     /**
@@ -39,11 +43,11 @@ class UpdateRequest extends FormRequest
                     ->ignore($id, 'id')
                     ->where(fn ($q) => $q->where('company_id', $companyId)->whereNull('deleted_at')),
             ],
-            'type' => ['required', 'string', 'in:fixed_weekly,rotating_shifts,custom'],
-            'cycle_length_days' => ['nullable', 'integer', 'min:1', 'max:365'],
-            'weekly_minutes' => ['nullable', 'integer', 'min:1', 'max:10080'],
+            'daily_work_minutes' => ['required', 'integer', 'min:1', 'max:1440'],
+            'break_minutes' => ['required', 'integer', 'min:0', 'max:1440'],
+            'core_start_time' => ['nullable', 'date_format:H:i:s', 'required_with:core_end_time'],
+            'core_end_time' => ['nullable', 'date_format:H:i:s', 'required_with:core_start_time'],
             'active' => ['nullable', 'boolean'],
-            'meta' => ['nullable', 'array'],
         ];
     }
 
@@ -56,8 +60,23 @@ class UpdateRequest extends FormRequest
     {
         $this->merge([
             'name' => is_string($this->input('name')) ? trim($this->input('name')) : $this->input('name'),
-            'type' => is_string($this->input('type')) ? trim($this->input('type')) : $this->input('type'),
             'active' => $this->has('active') ? $this->boolean('active') : $this->input('active'),
+            'core_start_time' => $this->normalizeTime($this->input('core_start_time')),
+            'core_end_time' => $this->normalizeTime($this->input('core_end_time')),
         ]);
+    }
+
+    private function normalizeTime(mixed $value): ?string
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        return strlen($trimmed) === 5 ? "{$trimmed}:00" : $trimmed;
     }
 }

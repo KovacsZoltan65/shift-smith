@@ -39,7 +39,7 @@ it('megtagadja a hozzárendelés törlést jogosultság nélkül', function (): 
         ->assertForbidden();
 });
 
-it('soft delete-olja a hozzárendelést és bumpolja a cache verziót', function (): void {
+it('törli a hozzárendelést és bumpolja a cache verziót', function (): void {
     $user = $this->createAdminUser();
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -55,7 +55,7 @@ it('soft delete-olja a hozzárendelést és bumpolja a cache verziót', function
     ]);
 
     $versioner = app(CacheVersionService::class);
-    Cache::forever("v:employee_work_patterns.list.company_{$company->id}", 1);
+    Cache::forever("v:company:{$company->id}:employee_work_patterns", 1);
 
     $this->actingAs($user)
         ->deleteJson(route('employee_work_patterns.destroy', [
@@ -64,6 +64,6 @@ it('soft delete-olja a hozzárendelést és bumpolja a cache verziót', function
         ]))
         ->assertOk();
 
-    $this->assertSoftDeleted('employee_work_patterns', ['id' => $assignment->id]);
-    expect($versioner->get("employee_work_patterns.list.company_{$company->id}"))->toBe(2);
+    $this->assertDatabaseMissing('employee_work_patterns', ['id' => $assignment->id]);
+    expect($versioner->get("company:{$company->id}:employee_work_patterns"))->toBe(2);
 });

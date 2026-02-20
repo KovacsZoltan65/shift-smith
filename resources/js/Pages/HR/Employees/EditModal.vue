@@ -30,7 +30,7 @@ const form = ref({
     last_name: "",
     email: "",
     phone: "",
-    position: "",
+    position_id: null,
     hired_at: null,
     active: true,
 });
@@ -44,7 +44,7 @@ const reset = () => {
         last_name: "",
         email: "",
         phone: "",
-        position: "",
+        position_id: null,
         hired_at: null,
         active: true,
     };
@@ -70,7 +70,7 @@ const fillFromEmployee = (emp) => {
         last_name: emp.last_name ?? "",
         email: emp.email ?? "",
         phone: emp.phone ?? "",
-        position: emp.position ?? "",
+        position_id: emp.position_id ?? null,
         hired_at: parseDate(emp.hired_at),
         active: emp.active ?? true,
     };
@@ -110,7 +110,7 @@ const toPayload = () => {
         last_name: form.value.last_name?.trim() || "",
         email: form.value.email?.trim() || null,
         phone: form.value.phone?.trim() || null,
-        position: form.value.position?.trim() || null,
+        position_id: form.value.position_id ? Number(form.value.position_id) : null,
         hired_at: hiredAt,
         active: !!form.value.active,
     };

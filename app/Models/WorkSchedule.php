@@ -23,8 +23,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
  * @property string $name Munkabeosztás neve
  * @property string $date_from Kezdő dátum (Y-m-d)
  * @property string $date_to Befejező dátum (Y-m-d)
- * @property string $status Státusz (draft, published, archived)
- * @property string|null $notes Megjegyzések
+ * @property string $status Státusz (draft, published)
  * @property \Illuminate\Support\Carbon|null $deleted_at Törlés időpontja (soft delete)
  * @property \Illuminate\Support\Carbon $created_at Létrehozás időpontja
  * @property \Illuminate\Support\Carbon $updated_at Módosítás időpontja
@@ -43,7 +42,6 @@ class WorkSchedule extends Model
         'date_from',
         'date_to',
         'status',
-        'notes',
     ];
 
     /** @var array<string,string> */
@@ -52,7 +50,6 @@ class WorkSchedule extends Model
         'date_from'  => 'date:Y-m-d',
         'date_to'    => 'date:Y-m-d',
         'status'     => 'string',
-        'notes'      => 'string',
     ];
 
     /** @var array<int,string> */

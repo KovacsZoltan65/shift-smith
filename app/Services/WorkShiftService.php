@@ -59,8 +59,11 @@ class WorkShiftService
      * @param array{
      *    company_id: int,
      *    name: string,
-     *    start_time: string,
-     *    end_time: string,
+     *    start_time?: string|null,
+     *    end_time?: string|null,
+     *    break_minutes?: int|null,
+     *    work_time_minutes?: int|null,
+     *    is_flexible?: bool,
      *    active: boolean
      * } $data Műszak adatok
      * @return WorkShift Létrehozott műszak
@@ -76,8 +79,11 @@ class WorkShiftService
      * @param array{
      *    company_id: int,
      *    name: string,
-     *    start_time: string,
-     *    end_time: string,
+     *    start_time?: string|null,
+     *    end_time?: string|null,
+     *    break_minutes?: int|null,
+     *    work_time_minutes?: int|null,
+     *    is_flexible?: bool,
      *    active: boolean
      * } $data Frissítendő adatok
      * @param int $id Műszak azonosító

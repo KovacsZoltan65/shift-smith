@@ -19,7 +19,7 @@ final class WorkPatternPolicy extends BasePolicy
     public const PERM_CREATE = 'work_patterns.create';
     public const PERM_UPDATE = 'work_patterns.update';
     public const PERM_DELETE = 'work_patterns.delete';
-    public const PERM_DELETE_ANY = 'work_patterns.bulkDelete';
+    public const PERM_DELETE_ANY = 'work_patterns.deleteAny';
 
     /**
      * Entity név lekérése.

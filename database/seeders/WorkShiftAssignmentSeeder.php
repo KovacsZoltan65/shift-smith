@@ -8,6 +8,7 @@ use Carbon\Carbon;
 
 use App\Models\Company;
 use App\Models\Employee;
+use App\Models\WorkSchedule;
 use App\Models\WorkShift;
 use App\Models\WorkShiftAssignment;
 
@@ -18,6 +19,7 @@ class WorkShiftAssignmentSeeder extends Seeder
         // Csak azok a company-k, ahol van legalább 1 employee és 1 work_shift
         $companyIds = Company::query()
             ->whereIn('id', Employee::query()->select('company_id')->distinct())
+            ->whereIn('id', WorkSchedule::query()->select('company_id')->distinct())
             ->whereIn('id', WorkShift::query()->select('company_id')->distinct())
             ->pluck('id');
 
@@ -37,9 +39,14 @@ class WorkShiftAssignmentSeeder extends Seeder
                 ->pluck('id')
                 ->values();
 
-            if ($employeeIds->isEmpty() || $shiftIds->isEmpty()) {
+            $schedules = WorkSchedule::query()
+                ->where('company_id', $companyId)
+                ->get(['id', 'date_from', 'date_to'])
+                ->values();
+
+            if ($employeeIds->isEmpty() || $shiftIds->isEmpty() || $schedules->isEmpty()) {
                 // elvileg ide már nem jutunk, de maradjon biztos
-                $this->command->warn("⚠️ Company #{$companyId}: nincs elég Employee/WorkShift, kihagyva.");
+                $this->command->warn("⚠️ Company #{$companyId}: nincs elég Employee/WorkSchedule/WorkShift, kihagyva.");
                 continue;
             }
 
@@ -56,12 +63,22 @@ class WorkShiftAssignmentSeeder extends Seeder
 
             $pairs = $this->uniqueEmployeeDayPairs($employeeIds, $days, $target);
 
-            $rows = $pairs->map(function (array $pair) use ($companyId, $shiftIds) {
+            $rows = $pairs->map(function (array $pair) use ($companyId, $shiftIds, $schedules) {
+                $schedule = $schedules->first(function ($schedule) use ($pair): bool {
+                    $d = $pair['date'];
+                    return $d >= (string) $schedule->date_from && $d <= (string) $schedule->date_to;
+                });
+
+                if ($schedule === null) {
+                    $schedule = $schedules->random();
+                }
+
                 return [
                     'company_id' => (int) $companyId,
+                    'work_schedule_id' => (int) $schedule->id,
                     'employee_id' => (int) $pair['employee_id'],
                     'work_shift_id' => (int) $shiftIds->random(),
-                    'day' => $pair['day'],
+                    'date' => $pair['date'],
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
@@ -95,7 +112,7 @@ class WorkShiftAssignmentSeeder extends Seeder
     /**
      * @param Collection<int, int> $employeeIds
      * @param Collection<int, string> $days
-     * @return Collection<int, array{employee_id:int, day:string}>
+     * @return Collection<int, array{employee_id:int, date:string}>
      */
     private function uniqueEmployeeDayPairs(Collection $employeeIds, Collection $days, int $target): Collection
     {
@@ -106,7 +123,7 @@ class WorkShiftAssignmentSeeder extends Seeder
         $eCount = $employees->count();
         $i = 0;
 
-        foreach ($dayList as $day) {
+        foreach ($dayList as $date) {
             for ($k = 0; $k < $eCount; $k++) {
                 if ($pairs->count() >= $target) {
                     return $pairs->values();
@@ -114,7 +131,7 @@ class WorkShiftAssignmentSeeder extends Seeder
 
                 $pairs->push([
                     'employee_id' => (int) $employees[$i % $eCount],
-                    'day' => $day,
+                    'date' => $date,
                 ]);
 
                 $i++;

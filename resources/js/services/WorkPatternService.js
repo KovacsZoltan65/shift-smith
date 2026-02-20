@@ -18,12 +18,16 @@ class WorkPatternService extends BaseService {
         return this.put(route("work_patterns.update", id), params);
     }
 
-    deleteWorkPattern(id) {
-        return this.delete(route("work_patterns.destroy", id));
+    deleteWorkPattern(id, companyId) {
+        return this.delete(route("work_patterns.destroy", id), {
+            data: { company_id: companyId },
+        });
     }
 
-    deleteWorkPatterns(ids) {
-        return this.delete(route("work_patterns.destroy_bulk"), { data: { ids } });
+    deleteWorkPatterns(ids, companyId) {
+        return this.delete(route("work_patterns.destroy_bulk"), {
+            data: { ids, company_id: companyId },
+        });
     }
 
     getToSelect(params = {}) {

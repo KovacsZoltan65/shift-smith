@@ -23,9 +23,13 @@ const errors = reactive({});
 
 // ⚠️ igazítsd a WorkShift mezőkhöz
 const form = ref({
+    company_id: null,
     name: "",
-    start_date: null,
-    end_date: null,
+    start_time: null,
+    end_time: null,
+    work_time_minutes: null,
+    break_minutes: null,
+    is_flexible: false,
     active: true,
 });
 
@@ -33,9 +37,13 @@ const hasWorkShift = computed(() => !!props.workShift?.id);
 
 const fill = () => {
     form.value = {
+        company_id: props.workShift?.company_id ?? null,
         name: props.workShift?.name ?? "",
-        start_date: props.workShift?.start_date ?? null,
-        end_date: props.workShift?.end_date ?? null,
+        start_time: props.workShift?.start_time ? String(props.workShift.start_time).slice(0, 5) : null,
+        end_time: props.workShift?.end_time ? String(props.workShift.end_time).slice(0, 5) : null,
+        work_time_minutes: props.workShift?.work_time_minutes ?? null,
+        break_minutes: props.workShift?.break_minutes ?? null,
+        is_flexible: !!props.workShift?.is_flexible,
         active: Boolean(props.workShift?.active ?? true),
     };
 
@@ -54,6 +62,13 @@ watch(
 
 const close = () => emit("update:modelValue", false);
 
+const normalizeTime = (t) => {
+    if (!t) return null;
+    const s = String(t).trim();
+    if (!s) return null;
+    return s.length === 5 ? `${s}:00` : s;
+};
+
 const submit = async () => {
     if (!hasWorkShift.value) return;
     if (!props.canUpdate) return;
@@ -62,10 +77,14 @@ const submit = async () => {
     Object.keys(errors).forEach((k) => delete errors[k]);
 
     try {
-        const res = await csrfFetch(`/work-shifts/${props.workShift.id}`, {
+        const res = await csrfFetch(`/work_shifts/${props.workShift.id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json", Accept: "application/json" },
-            body: JSON.stringify(form.value),
+            body: JSON.stringify({
+                ...form.value,
+                start_time: normalizeTime(form.value.start_time),
+                end_time: normalizeTime(form.value.end_time),
+            }),
         });
 
         if (res.status === 422) {

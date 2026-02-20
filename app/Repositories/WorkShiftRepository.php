@@ -33,8 +33,6 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
     
     private readonly CacheVersionService $cacheVersionService;
     
-    /** Cache namespace a műszakok listázásához */
-    private const NS_WORK_SHIFT_FETCH = 'work_shifts.fetch';
     /** Cache namespace a műszak selector listához */
     private const NS_SELECTORS_WORK_SHIFT = 'selectors.work_shifts';
     
@@ -55,7 +53,7 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
      * Műszakok listázása lapozással, szűréssel és rendezéssel
      * 
      * Cache-elhető lekérdezés verziókezeléssel.
-     * Támogatja a keresést (név, email), rendezést és lapozást.
+     * Támogatja a keresést, rendezést és lapozást.
      * 
      * @param Request $request HTTP kérés (search, field, order, per_page, page paraméterekkel)
      * @return LengthAwarePaginator<int, WorkShift> Lapozott műszak lista
@@ -70,6 +68,8 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
         $perPage = (int) $request->integer('per_page', 10);
         $perPage = ($perPage > 0) ? min($perPage, 100) : 10;
         
+        $companyId = (int) $request->integer('company_id', 0);
+
         $rawTerm = \trim((string) $request->input('search', ''));
         $term = $rawTerm === '' ? null : \mb_strtolower($rawTerm, 'UTF-8');
         
@@ -84,14 +84,16 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
         $direction = strtolower($orderRaw) === 'asc' ? 'asc' : 'desc';
 
         // a paginátor query-stringje (URL szinkronhoz hasznos)
-        $appendQuery = $request->only(['search', 'field', 'order', 'per_page']);
+        $appendQuery = $request->only(['search', 'field', 'order', 'per_page', 'company_id']);
         
-        $queryCallback = function() use($term, $field, $direction, $perPage, $page, $appendQuery): LengthAwarePaginator {
+        $queryCallback = function() use($companyId, $term, $field, $direction, $perPage, $page, $appendQuery): LengthAwarePaginator {
             $q = WorkShift::query()
+                ->when($companyId > 0, fn ($qq) => $qq->where('company_id', $companyId))
                 ->when($term, function ($qq) use ($term) {
                     $qq->where(function ($q) use ($term) {
                         $q->where('name', 'like', "%{$term}%")
-                            ->orWhere('email', 'like', "%{$term}%");
+                            ->orWhere('start_time', 'like', "%{$term}%")
+                            ->orWhere('end_time', 'like', "%{$term}%");
                     });
                 })
                 ->when($field, fn ($qq) => $qq->orderBy($field, $direction))
@@ -113,13 +115,14 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
         $paramsForKey = [
             'page' => $page,
             'per_page' => $perPage,
+            'company_id' => $companyId,
             'search' => $term,      // lowercased/null
             'field' => $field,      // whitelistelt/null
             'order' => $direction,  // asc/desc
         ];
         ksort($paramsForKey);
 
-        $version = $this->cacheVersionService->get(self::NS_WORK_SHIFT_FETCH);
+        $version = $this->cacheVersionService->get("company:{$companyId}:work_shifts");
         $hash = hash('sha256', json_encode($paramsForKey, JSON_THROW_ON_ERROR));
         $key = "v{$version}:{$hash}";
 
@@ -192,7 +195,7 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
             $this->createDefaultSettings($work_shift);
             
             // Cache ürítése
-            $this->invalidateAfterWorkShiftWrite();
+            $this->invalidateAfterWorkShiftWrite((int) $work_shift->company_id);
             
             return $work_shift;
         });
@@ -228,7 +231,7 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
             $this->updateDefaultSettings($work_shift);
 
             // Cache ürítése
-            $this->invalidateAfterWorkShiftWrite();
+            $this->invalidateAfterWorkShiftWrite((int) $work_shift->company_id);
             
             return $work_shift;
         });
@@ -246,9 +249,18 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
     public function bulkDelete(array $ids): int
     {
         return DB::transaction(function() use($ids): int {
+            $companyIds = WorkShift::query()
+                ->whereIn('id', $ids)
+                ->distinct()
+                ->pluck('company_id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+
             $deleted = WorkShift::query()->whereIn('id', $ids)->delete();
-            
-            $this->invalidateAfterWorkShiftWrite();
+
+            foreach ($companyIds as $companyId) {
+                $this->invalidateAfterWorkShiftWrite($companyId);
+            }
             
             return $deleted;
         });
@@ -276,7 +288,7 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
             $this->deleteDefaultSettings($work_shift);
             
             // Cache ürítése
-            $this->invalidateAfterWorkShiftWrite();
+            $this->invalidateAfterWorkShiftWrite((int) $work_shift->company_id);
 
             return $deleted;
         });
@@ -304,9 +316,11 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
 
         $onlyWithEmployees = (bool) $params['only_with_employees'];
 
-        $queryCallback = function (): array {
+        $queryCallback = function () use ($params): array {
+            $companyId = (int) ($params['company_id'] ?? 0);
             /** @var array<int, array{id: int, name: string}> $out */
             $out = WorkShift::active()
+                ->when($companyId > 0, fn ($q) => $q->where('company_id', $companyId))
                 // Note: WorkShift modellnek nincs employees kapcsolata
                 // ->when($onlyWithEmployees, fn ($q) => $q->whereHas('employees'))
                 ->select(['id', 'name'])
@@ -343,11 +357,11 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
      * 
      * @return void
      */
-    private function invalidateAfterWorkShiftWrite(): void
+    private function invalidateAfterWorkShiftWrite(int $companyId): void
     {
-        DB::afterCommit(function():void {
+        DB::afterCommit(function() use ($companyId): void {
             // WorkShift lista oldal cache
-            $this->cacheVersionService->bump(self::NS_WORK_SHIFT_FETCH);
+            $this->cacheVersionService->bump("company:{$companyId}:work_shifts");
 
             // WorkShiftSelector cache (mert a selector aktív cégeket listáz)
             $this->cacheVersionService->bump(self::NS_SELECTORS_WORK_SHIFT);

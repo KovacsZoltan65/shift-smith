@@ -31,7 +31,6 @@ it('denies work schedule update if user lacks permission', function (): void {
             'date_from' => '2026-02-01',
             'date_to' => '2026-02-10',
             'status' => 'draft',
-            'notes' => null,
         ])
         ->assertForbidden();
 });
@@ -78,14 +77,12 @@ it('allows admin to update and bumps cache versions', function (): void {
             'date_from' => $ws->date_from->format('Y-m-d'),
             'date_to' => $ws->date_to->format('Y-m-d'),
             'status' => 'draft',
-            'notes' => 'Note',
         ])
         ->assertOk();
 
     $this->assertDatabaseHas('work_schedules', [
         'id' => $ws->id,
         'name' => 'New Name',
-        'notes' => 'Note',
     ]);
 
     expect($versioner->get('work_schedules.fetch'))->toBe(2);

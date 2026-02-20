@@ -62,7 +62,7 @@ it('allows admin to store a work schedule and bumps cache versions', function ()
     $payload = WorkSchedule::factory()->make([
         'company_id' => $company->id,
         'status' => 'draft',
-    ])->only(['company_id', 'name', 'date_from', 'date_to', 'status', 'notes']);
+    ])->only(['company_id', 'name', 'date_from', 'date_to', 'status']);
 
     $payload['date_from'] = \Illuminate\Support\Carbon::parse((string) $payload['date_from'])->format('Y-m-d');
     $payload['date_to'] = \Illuminate\Support\Carbon::parse((string) $payload['date_to'])->format('Y-m-d');

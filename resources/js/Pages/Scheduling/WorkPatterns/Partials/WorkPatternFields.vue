@@ -1,8 +1,6 @@
 <script setup>
 import Checkbox from "primevue/checkbox";
 import InputText from "primevue/inputtext";
-import Select from "primevue/select";
-import Textarea from "primevue/textarea";
 
 const props = defineProps({
     modelValue: { type: Object, required: true },
@@ -16,12 +14,6 @@ const emit = defineEmits(["update:modelValue"]);
 const form = props.modelValue;
 
 const set = (key, value) => emit("update:modelValue", { ...form, [key]: value });
-
-const typeOptions = [
-    { label: "Fix heti", value: "fixed_weekly" },
-    { label: "Rotációs", value: "rotating_shifts" },
-    { label: "Egyedi", value: "custom" },
-];
 
 const toIntOrNull = (v) => {
     if (v === null || v === undefined || v === "") return null;
@@ -44,58 +36,63 @@ const toIntOrNull = (v) => {
         </div>
 
         <div>
-            <label class="mb-1 block text-sm">Típus</label>
-            <Select
-                class="w-full"
-                :options="typeOptions"
-                optionLabel="label"
-                optionValue="value"
-                :modelValue="form.type"
-                :disabled="disabled"
-                @update:modelValue="(v) => set('type', v)"
-            />
-            <div v-if="errors?.type" class="mt-1 text-sm text-red-600">{{ errors.type }}</div>
-        </div>
-
-        <div>
-            <label class="mb-1 block text-sm">Ciklus (nap)</label>
+            <label class="mb-1 block text-sm">Napi munkaidő (perc)</label>
             <InputText
                 class="w-full"
                 type="number"
-                :modelValue="form.cycle_length_days"
+                :modelValue="form.daily_work_minutes"
                 :disabled="disabled"
-                @update:modelValue="(v) => set('cycle_length_days', toIntOrNull(v))"
+                @update:modelValue="(v) => set('daily_work_minutes', toIntOrNull(v))"
             />
-            <div v-if="errors?.cycle_length_days" class="mt-1 text-sm text-red-600">
-                {{ errors.cycle_length_days }}
+            <div v-if="errors?.daily_work_minutes" class="mt-1 text-sm text-red-600">
+                {{ errors.daily_work_minutes }}
             </div>
         </div>
 
         <div>
-            <label class="mb-1 block text-sm">Heti perc</label>
+            <label class="mb-1 block text-sm">Szünet (perc)</label>
             <InputText
                 class="w-full"
                 type="number"
-                :modelValue="form.weekly_minutes"
+                :modelValue="form.break_minutes"
                 :disabled="disabled"
-                @update:modelValue="(v) => set('weekly_minutes', toIntOrNull(v))"
+                @update:modelValue="(v) => set('break_minutes', toIntOrNull(v))"
             />
-            <div v-if="errors?.weekly_minutes" class="mt-1 text-sm text-red-600">
-                {{ errors.weekly_minutes }}
+            <div v-if="errors?.break_minutes" class="mt-1 text-sm text-red-600">
+                {{ errors.break_minutes }}
             </div>
         </div>
-    </div>
 
-    <div class="mt-4">
-        <label class="mb-1 block text-sm">Meta (JSON szöveg)</label>
-        <Textarea
-            class="w-full"
-            rows="4"
-            :modelValue="form.metaText"
-            :disabled="disabled"
-            @update:modelValue="(v) => set('metaText', String(v ?? ''))"
-        />
-        <div v-if="errors?.meta" class="mt-1 text-sm text-red-600">{{ errors.meta }}</div>
+        <div>
+            <label class="mb-1 block text-sm">Core kezdés (HH:mm)</label>
+            <InputText
+                class="w-full"
+                placeholder="10:00"
+                :modelValue="form.core_start_time"
+                :disabled="disabled"
+                @update:modelValue="(v) => set('core_start_time', String(v ?? '').trim())"
+            />
+            <div v-if="errors?.core_start_time" class="mt-1 text-sm text-red-600">
+                {{ errors.core_start_time }}
+            </div>
+            <div class="mt-1 text-xs text-gray-500">
+                Ha üres, a munkarend nem rugalmas.
+            </div>
+        </div>
+
+        <div>
+            <label class="mb-1 block text-sm">Core zárás (HH:mm)</label>
+            <InputText
+                class="w-full"
+                placeholder="15:00"
+                :modelValue="form.core_end_time"
+                :disabled="disabled"
+                @update:modelValue="(v) => set('core_end_time', String(v ?? '').trim())"
+            />
+            <div v-if="errors?.core_end_time" class="mt-1 text-sm text-red-600">
+                {{ errors.core_end_time }}
+            </div>
+        </div>
     </div>
 
     <div class="mt-4 flex items-center gap-2">

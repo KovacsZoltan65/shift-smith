@@ -22,7 +22,6 @@ const form = ref({
     date_from: null,
     date_to: null,
     status: "draft",
-    notes: "",
 });
 
 watch(
@@ -36,7 +35,6 @@ watch(
             date_from: null,
             date_to: null,
             status: "draft",
-            notes: "",
         };
 
         Object.keys(errors).forEach((k) => delete errors[k]);
@@ -63,7 +61,6 @@ const submit = async () => {
             ...form.value,
             date_from: toYmd(form.value.date_from),
             date_to: toYmd(form.value.date_to),
-            notes: form.value.notes || null,
         };
 
         const res = await csrfFetch("/work_schedules", {

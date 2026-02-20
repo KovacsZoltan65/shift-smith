@@ -492,8 +492,8 @@ onMounted(fetchEmployees);
                                 `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim()
                             }}
                         </div>
-                        <div v-if="data.position" class="text-xs text-gray-500">
-                            {{ data.position }}
+                        <div v-if="data.position_name" class="text-xs text-gray-500">
+                            {{ data.position_name }}
                         </div>
                     </template>
                 </Column>

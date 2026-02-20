@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
 
             CompanySeeder::class,
+            PositionSeeder::class,
             EmployeeSeeder::class,
             
             WorkShiftSeeder::class,

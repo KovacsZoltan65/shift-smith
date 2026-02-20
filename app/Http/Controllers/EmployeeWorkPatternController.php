@@ -65,7 +65,6 @@ class EmployeeWorkPatternController extends Controller
         $payload = $request->validated();
         $payload['employee_id'] = (int) $employeeModel->id;
         $payload['company_id'] = (int) $employeeModel->company_id;
-        $payload['is_primary'] = (bool) ($payload['is_primary'] ?? true);
 
         $created = $this->service->assign(EmployeeWorkPatternData::from($payload));
 
@@ -91,9 +90,13 @@ class EmployeeWorkPatternController extends Controller
         $payload = $request->validated();
         $payload['employee_id'] = (int) $employeeModel->id;
         $payload['company_id'] = (int) $employeeModel->company_id;
-        $payload['is_primary'] = (bool) ($payload['is_primary'] ?? true);
 
-        $updated = $this->service->updateAssignment($id, (int) $employeeModel->id, EmployeeWorkPatternData::from($payload));
+        $updated = $this->service->updateAssignment(
+            $id,
+            (int) $employeeModel->id,
+            (int) $employeeModel->company_id,
+            EmployeeWorkPatternData::from($payload)
+        );
 
         return response()->json([
             'message' => 'Hozzárendelés sikeresen frissítve.',
@@ -114,7 +117,7 @@ class EmployeeWorkPatternController extends Controller
         $this->authorize(EmployeeWorkPatternPolicy::PERM_UNASSIGN, EmployeeWorkPattern::class);
 
         $employeeModel = Employee::query()->findOrFail($employee);
-        $deleted = $this->service->unassign($id, (int) $employeeModel->id);
+        $deleted = $this->service->unassign($id, (int) $employeeModel->id, (int) $employeeModel->company_id);
 
         return response()->json([
             'message' => $deleted ? 'Hozzárendelés törlése sikeres.' : 'Hozzárendelés törlése sikertelen.',

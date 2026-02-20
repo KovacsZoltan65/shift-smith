@@ -17,14 +17,11 @@ class WorkShiftAssignmentFactory extends Factory
         return [
             // FK-ket a seeder felülírja state()-tel:
             'company_id' => 1,
+            'work_schedule_id' => 1,
             'work_shift_id' => 1,
             'employee_id' => 1,
 
-            // opcionális mezők – igazítsd a tábládhoz:
-            'day' => $day,
-            // 'start_time' => $this->faker->time('H:i'),
-            // 'end_time' => $this->faker->time('H:i'),
-            // 'meta' => [],
+            'date' => $day,
         ];
     }
 }

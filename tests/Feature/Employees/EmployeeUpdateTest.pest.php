@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Company;
 use App\Models\Employee;
+use App\Models\Position;
 use App\Services\Cache\CacheVersionService;
 use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\PermissionRegistrar;
@@ -42,6 +43,14 @@ it('updates employee and bumps caches; company selector bumps only when company_
 
     $c1 = Company::factory()->create();
     $c2 = Company::factory()->create();
+    $positionA = Position::factory()->create([
+        'company_id' => $c1->id,
+        'name' => 'Operátor',
+    ]);
+    $positionB = Position::factory()->create([
+        'company_id' => $c2->id,
+        'name' => 'Műszakvezető',
+    ]);
 
     $employee = Employee::factory()->create([
         'company_id' => $c1->id,
@@ -62,7 +71,7 @@ it('updates employee and bumps caches; company selector bumps only when company_
             'last_name'  => $employee->last_name,
             'email'      => 'emp@test.hu',
             'address'    => 'Frissített cím 1.',
-            'position'   => 'Operátor',
+            'position_id'=> $positionA->id,
             'active'     => true,
         ])
         ->assertOk();
@@ -79,7 +88,7 @@ it('updates employee and bumps caches; company selector bumps only when company_
             'last_name'  => $employee->last_name,
             'email'      => 'emp@test.hu',
             'address'    => 'Frissített cím 2.',
-            'position'   => 'Műszakvezető',
+            'position_id'=> $positionB->id,
             'active'     => true,
         ])
         ->assertOk();

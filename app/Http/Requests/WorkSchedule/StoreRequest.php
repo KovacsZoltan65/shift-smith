@@ -26,7 +26,6 @@ class StoreRequest extends FormRequest
             'date_from' => ['required', 'date'],
             'date_to' => ['required', 'date', 'after_or_equal:date_from'],
             'status' => ['required', 'string', Rule::in(['draft', 'published'])],
-            'notes' => ['nullable', 'string'],
         ];
     }
 }

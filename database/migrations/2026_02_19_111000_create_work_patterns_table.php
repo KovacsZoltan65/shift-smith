@@ -21,7 +21,6 @@ return new class extends Migration
             $table->unsignedInteger('cycle_length_days')->nullable();
             $table->unsignedInteger('weekly_minutes')->nullable();
             $table->boolean('active')->default(true);
-            $table->json('meta')->nullable();
             $table->timestamps();
             $table->softDeletes();
 

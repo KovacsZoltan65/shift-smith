@@ -5,6 +5,7 @@ namespace App\Http\Requests\Employee;
 use App\Models\Employee;
 use App\Policies\EmployeePolicy;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreRequest extends FormRequest
 {
@@ -26,7 +27,13 @@ class StoreRequest extends FormRequest
 
             'email'       => ['required', 'email', 'max:120'],
             'phone'       => ['nullable', 'string', 'max:50'],
-            'position'    => ['nullable', 'string', 'max:120'],
+            'position_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('positions', 'id')->where(
+                    fn ($q) => $q->where('company_id', (int) $this->input('company_id'))->whereNull('deleted_at')
+                ),
+            ],
 
             'hired_at'    => ['nullable', 'date'],
             'active'      => ['nullable', 'boolean'],

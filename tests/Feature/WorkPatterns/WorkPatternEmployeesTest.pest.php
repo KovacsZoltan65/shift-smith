@@ -15,7 +15,7 @@ beforeEach(function (): void {
 it('átirányítja a vendéget a munkarend dolgozólista végpontról', function (): void {
     $pattern = WorkPattern::factory()->create();
 
-    $this->get(route('work_patterns.employees', ['id' => $pattern->id]))
+    $this->get(route('work_patterns.employees', ['id' => $pattern->id, 'company_id' => $pattern->company_id]))
         ->assertRedirect();
 });
 
@@ -30,11 +30,11 @@ it('megtagadja a munkarend dolgozólista lekérését jogosultság nélkül', fu
     $pattern = WorkPattern::factory()->create();
 
     $this->actingAs($user)
-        ->getJson(route('work_patterns.employees', ['id' => $pattern->id]))
+        ->getJson(route('work_patterns.employees', ['id' => $pattern->id, 'company_id' => $pattern->company_id]))
         ->assertForbidden();
 });
 
-it('visszaadja a kiválasztott munkarendhez tartozó dolgozókat, soft delete szűréssel', function (): void {
+it('visszaadja a kiválasztott munkarendhez tartozó dolgozókat', function (): void {
     $user = $this->createAdminUser();
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -54,7 +54,6 @@ it('visszaadja a kiválasztott munkarendhez tartozó dolgozókat, soft delete sz
         'work_pattern_id' => $pattern->id,
         'date_from' => '2026-01-01',
         'date_to' => null,
-        'is_primary' => true,
     ]);
 
     $softDeleted = EmployeeWorkPattern::factory()->create([
@@ -63,7 +62,6 @@ it('visszaadja a kiválasztott munkarendhez tartozó dolgozókat, soft delete sz
         'work_pattern_id' => $pattern->id,
         'date_from' => '2026-02-01',
         'date_to' => null,
-        'is_primary' => false,
     ]);
     $softDeleted->delete();
 
@@ -73,11 +71,10 @@ it('visszaadja a kiválasztott munkarendhez tartozó dolgozókat, soft delete sz
         'work_pattern_id' => $otherPattern->id,
         'date_from' => '2026-01-01',
         'date_to' => null,
-        'is_primary' => true,
     ]);
 
     $resp = $this->actingAs($user)
-        ->getJson(route('work_patterns.employees', ['id' => $pattern->id]));
+        ->getJson(route('work_patterns.employees', ['id' => $pattern->id, 'company_id' => $company->id]));
 
     $resp->assertOk()->assertJsonStructure([
         'message',
@@ -89,7 +86,6 @@ it('visszaadja a kiválasztott munkarendhez tartozó dolgozókat, soft delete sz
             'phone',
             'date_from',
             'date_to',
-            'is_primary',
         ]],
     ]);
 

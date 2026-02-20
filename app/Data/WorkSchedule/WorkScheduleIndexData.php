@@ -19,7 +19,6 @@ class WorkScheduleIndexData extends Data
      * @param string $date_from Kezdő dátum (Y-m-d)
      * @param string $date_to Záró dátum (Y-m-d)
      * @param string $status Státusz
-     * @param ?string $notes Megjegyzés
      * @param ?string $created_at Létrehozás ideje
      */
     public function __construct(
@@ -29,7 +28,6 @@ class WorkScheduleIndexData extends Data
         public string $date_from,
         public string $date_to,
         public string $status,
-        public ?string $notes,
         public ?string $created_at,
     ) {}
 
@@ -48,7 +46,6 @@ class WorkScheduleIndexData extends Data
             date_from: (string) optional($workSchedule->date_from)?->format('Y-m-d'),
             date_to: (string) optional($workSchedule->date_to)?->format('Y-m-d'),
             status: (string) $workSchedule->status,
-            notes: $workSchedule->notes,
             created_at: optional($workSchedule->created_at)?->toDateTimeString(),
         );
     }

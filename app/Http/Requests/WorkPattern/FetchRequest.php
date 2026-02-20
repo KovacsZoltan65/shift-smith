@@ -27,11 +27,11 @@ class FetchRequest extends FormRequest
     {
         return [
             'search' => ['nullable', 'string', 'max:255'],
-            'field' => ['nullable', 'string', 'in:id,name,type,weekly_minutes,active,created_at'],
+            'field' => ['nullable', 'string', 'in:id,name,daily_work_minutes,break_minutes,active,created_at'],
             'order' => ['nullable', 'string', 'in:asc,desc'],
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'company_id' => ['nullable', 'integer', 'exists:companies,id'],
+            'company_id' => ['required', 'integer', 'exists:companies,id'],
         ];
     }
 
@@ -42,7 +42,7 @@ class FetchRequest extends FormRequest
      *   order?: 'asc'|'desc',
      *   page?: int,
      *   per_page?: int,
-     *   company_id?: int|null
+     *   company_id: int
      * }
      */
     public function validatedFilters(): array
@@ -55,7 +55,7 @@ class FetchRequest extends FormRequest
             'order' => (string) ($data['order'] ?? 'desc'),
             'page' => (int) ($data['page'] ?? 1),
             'per_page' => (int) ($data['per_page'] ?? 10),
-            'company_id' => isset($data['company_id']) ? (int) $data['company_id'] : null,
+            'company_id' => (int) $data['company_id'],
         ];
     }
 }

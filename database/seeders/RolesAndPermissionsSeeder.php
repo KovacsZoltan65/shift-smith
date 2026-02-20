@@ -7,6 +7,7 @@ use App\Models\Admin\Role;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\EmployeeWorkPattern;
+use App\Models\Position;
 use App\Models\User;
 use App\Models\WorkPattern;
 use App\Models\WorkSchedule;
@@ -57,19 +58,19 @@ class RolesAndPermissionsSeeder extends Seeder
         $entities = [
             'users'       => User::class,
             'employees'   => Employee::class,
+            'positions'   => Position::class,
             'companies'   => Company::class,
             'roles'       => Role::class,
             'permissions' => Permission::class,
             'work_shifts' => WorkShift::class,
             'work_schedules' => WorkSchedule::class,
-            'work_shifts_assignments' => \App\Models\WorkShiftAssignment::class,
+            'work_schedule_assignments' => \App\Models\WorkShiftAssignment::class,
             'work_patterns' => WorkPattern::class,
             'employee_work_patterns' => EmployeeWorkPattern::class,
         ];
 
         /** @var list<string> $customPermissions */
         $customPermissions = [
-            'work_patterns.bulkDelete',
             'employee_work_patterns.assign',
             'employee_work_patterns.unassign',
             'employee_work_patterns.view',

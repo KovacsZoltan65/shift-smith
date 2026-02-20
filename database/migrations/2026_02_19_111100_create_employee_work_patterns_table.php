@@ -20,14 +20,12 @@ return new class extends Migration
             $table->foreignId('work_pattern_id')->constrained('work_patterns');
             $table->date('date_from');
             $table->date('date_to')->nullable();
-            $table->boolean('is_primary')->default(true);
-            $table->json('meta')->nullable();
             $table->timestamps();
-            $table->softDeletes();
 
-            $table->index(['company_id', 'employee_id']);
-            $table->index(['company_id', 'work_pattern_id']);
-            $table->index(['company_id', 'employee_id', 'date_from']);
+            $table->index('company_id');
+            $table->index('employee_id');
+            $table->index('work_pattern_id');
+            $table->index(['employee_id', 'date_from']);
         });
     }
 

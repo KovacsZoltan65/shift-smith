@@ -23,22 +23,22 @@ const errors = ref({});
 
 const form = ref({
     name: "",
-    type: "fixed_weekly",
-    cycle_length_days: null,
-    weekly_minutes: null,
+    daily_work_minutes: 480,
+    break_minutes: 30,
+    core_start_time: "",
+    core_end_time: "",
     active: true,
-    metaText: "",
 });
 
 const reset = () => {
     errors.value = {};
     form.value = {
         name: "",
-        type: "fixed_weekly",
-        cycle_length_days: null,
-        weekly_minutes: null,
+        daily_work_minutes: 480,
+        break_minutes: 30,
+        core_start_time: "",
+        core_end_time: "",
         active: true,
-        metaText: "",
     };
 };
 
@@ -53,20 +53,6 @@ const close = () => {
     open.value = false;
 };
 
-const parseMeta = () => {
-    const raw = String(form.value.metaText ?? "").trim();
-    if (!raw) return null;
-    try {
-        const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
-        errors.value.meta = "A meta csak objektum JSON lehet.";
-        return undefined;
-    } catch (_) {
-        errors.value.meta = "Hibás JSON formátum.";
-        return undefined;
-    }
-};
-
 const submit = async () => {
     saving.value = true;
     errors.value = {};
@@ -78,9 +64,6 @@ const submit = async () => {
             return;
         }
 
-        const meta = parseMeta();
-        if (meta === undefined) return;
-
         const res = await csrfFetch("/work-patterns", {
             method: "POST",
             headers: {
@@ -91,11 +74,11 @@ const submit = async () => {
             body: JSON.stringify({
                 company_id: companyId,
                 name: String(form.value.name ?? "").trim(),
-                type: form.value.type,
-                cycle_length_days: form.value.cycle_length_days,
-                weekly_minutes: form.value.weekly_minutes,
+                daily_work_minutes: form.value.daily_work_minutes,
+                break_minutes: form.value.break_minutes,
+                core_start_time: String(form.value.core_start_time ?? "").trim() || null,
+                core_end_time: String(form.value.core_end_time ?? "").trim() || null,
                 active: !!form.value.active,
-                meta,
             }),
         });
 

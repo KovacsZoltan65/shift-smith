@@ -6,7 +6,6 @@ namespace App\Data\EmployeeWorkPattern;
 
 use App\Models\EmployeeWorkPattern;
 use Spatie\LaravelData\Attributes\MapName;
-use Spatie\LaravelData\Attributes\Validation\BooleanType;
 use Spatie\LaravelData\Attributes\Validation\Date;
 use Spatie\LaravelData\Attributes\Validation\IntegerType;
 use Spatie\LaravelData\Attributes\Validation\Nullable;
@@ -25,8 +24,6 @@ class EmployeeWorkPatternData extends Data
      * @param int $work_pattern_id Munkarend azonosító
      * @param string $date_from Érvényesség kezdete
      * @param ?string $date_to Érvényesség vége
-     * @param bool $is_primary Elsődleges hozzárendelés
-     * @param array<string,mixed>|null $meta Meta adatok
      * @param ?string $work_pattern_name Munkarend megnevezés
      * @param ?string $createdAt Létrehozás ideje
      * @param ?string $updatedAt Frissítés ideje
@@ -48,11 +45,6 @@ class EmployeeWorkPatternData extends Data
 
         #[Nullable, Date]
         public ?string $date_to = null,
-
-        #[BooleanType]
-        public bool $is_primary = true,
-
-        public ?array $meta = null,
 
         public ?string $work_pattern_name = null,
 
@@ -80,8 +72,6 @@ class EmployeeWorkPatternData extends Data
             work_pattern_id: (int) $employeeWorkPattern->work_pattern_id,
             date_from: (string) optional($employeeWorkPattern->date_from)?->format('Y-m-d'),
             date_to: optional($employeeWorkPattern->date_to)?->format('Y-m-d'),
-            is_primary: (bool) $employeeWorkPattern->is_primary,
-            meta: $employeeWorkPattern->meta,
             work_pattern_name: $employeeWorkPattern->workPattern?->name,
             createdAt: optional($employeeWorkPattern->created_at)?->toDateTimeString(),
             updatedAt: optional($employeeWorkPattern->updated_at)?->toDateTimeString(),

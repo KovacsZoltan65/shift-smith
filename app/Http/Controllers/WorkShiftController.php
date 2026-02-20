@@ -184,6 +184,7 @@ class WorkShiftController extends Controller
 
             return response()->json($updated, Response::HTTP_OK);
         } catch(Throwable $th) {
+            report($th);
             return response()->json(
                 ['message' => 'Váratlan hiba történt'],
                 Response::HTTP_INTERNAL_SERVER_ERROR
@@ -252,8 +253,12 @@ class WorkShiftController extends Controller
     public function getToSelect(Request $request): array
     {
         $params = [];
+        $companyId = (int) $request->integer('company_id', 0);
         
         $onlyWithEmployees = $request->boolean('only_with_employees');
+        if ($companyId > 0) {
+            $params['company_id'] = $companyId;
+        }
         
         if ($onlyWithEmployees) {
             $params['only_with_employees'] = true;

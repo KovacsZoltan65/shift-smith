@@ -49,7 +49,7 @@ it('visszaadja az aktív munkarendeket selector formában', function (): void {
 
     $first = $resp->json()[0] ?? null;
     expect($first)->toBeArray();
-    expect($first)->toHaveKeys(['id', 'name', 'type']);
+    expect($first)->toHaveKeys(['id', 'name']);
     expect(collect($resp->json())->pluck('name')->all())->toContain('Aktív');
     expect(collect($resp->json())->pluck('name')->all())->not->toContain('Inaktív');
 });
