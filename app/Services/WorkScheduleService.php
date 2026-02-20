@@ -71,7 +71,6 @@ class WorkScheduleService
             'date_from' => $data->date_from,
             'date_to' => $data->date_to,
             'status' => $data->status,
-            'notes' => $data->notes,
         ]);
 
         return WorkScheduleData::fromModel($workSchedule);
@@ -92,7 +91,6 @@ class WorkScheduleService
             'date_from' => $data->date_from,
             'date_to' => $data->date_to,
             'status' => $data->status,
-            'notes' => $data->notes,
         ], $id);
 
         return WorkScheduleData::fromModel($workSchedule);

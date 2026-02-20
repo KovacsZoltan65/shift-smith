@@ -7,7 +7,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Override;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -29,7 +28,6 @@ class EmployeeWorkPattern extends Model
     /** @use HasFactory<\Database\Factories\EmployeeWorkPatternFactory> */
     use HasFactory;
     use LogsActivity;
-    use SoftDeletes;
 
     protected $table = 'employee_work_patterns';
 

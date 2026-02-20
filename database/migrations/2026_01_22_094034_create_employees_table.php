@@ -26,7 +26,7 @@ return new class extends Migration
             $table->string('last_name')->comment('Vezetéknév');
             $table->string('email')->unique()->comment('E-mail cím');
             $table->string('address')->nullable()->comment('Lakcím');
-            $table->string('position')->nullable()->comment('Beosztás');
+            $table->foreignId('position_id')->nullable()->comment('Pozíció azonosító');
             $table->string('phone')->nullable()->comment('Telefonszám');
             $table->date('hired_at')->nullable()->comment('Felvétel dátuma');
             $table->boolean('active')->default(1)->index()->comment('Aktív');

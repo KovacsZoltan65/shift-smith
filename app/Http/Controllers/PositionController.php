@@ -30,7 +30,7 @@ class PositionController extends Controller
     {
         $this->authorize(PositionPolicy::PERM_VIEW_ANY, Position::class);
 
-        return Inertia::render('Positions/Index', [
+        return Inertia::render('HR/Positions/Index', [
             'title' => 'Pozíciók',
             'filter' => [
                 'search' => $request->string('search')->toString() ?: null,

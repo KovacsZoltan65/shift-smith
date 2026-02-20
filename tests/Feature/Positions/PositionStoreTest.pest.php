@@ -29,7 +29,7 @@ it('létrehozza a pozíciót és bumpolja a cache verziókat', function (): void
     $company = Company::factory()->create();
 
     $versioner = app(CacheVersionService::class);
-    Cache::forever('v:positions.fetch', 1);
+    Cache::forever("v:company:{$company->id}:positions", 1);
     Cache::forever("v:selectors.positions.company_{$company->id}", 1);
 
     $this->actingAs($user)
@@ -43,6 +43,6 @@ it('létrehozza a pozíciót és bumpolja a cache verziókat', function (): void
         ->assertJsonPath('data.name', 'Teszt pozíció');
 
     $this->assertDatabaseHas('positions', ['company_id' => $company->id, 'name' => 'Teszt pozíció']);
-    expect($versioner->get('positions.fetch'))->toBe(2);
+    expect($versioner->get("company:{$company->id}:positions"))->toBe(2);
     expect($versioner->get("selectors.positions.company_{$company->id}"))->toBe(2);
 });

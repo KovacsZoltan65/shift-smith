@@ -39,7 +39,7 @@ it('soft delete-olja a munkarendet és bumpolja a cache verziókat', function ()
     $workPattern = WorkPattern::factory()->create(['company_id' => $company->id]);
     $versioner = app(CacheVersionService::class);
 
-    Cache::forever("v:work_patterns.fetch.company_{$company->id}", 1);
+    Cache::forever("v:company:{$company->id}:work_patterns", 1);
     Cache::forever("v:selectors.work_patterns.company_{$company->id}", 1);
 
     $this->actingAs($user)
@@ -49,6 +49,6 @@ it('soft delete-olja a munkarendet és bumpolja a cache verziókat', function ()
         ->assertOk();
 
     $this->assertSoftDeleted('work_patterns', ['id' => $workPattern->id]);
-    expect($versioner->get("work_patterns.fetch.company_{$company->id}"))->toBe(2);
+    expect($versioner->get("company:{$company->id}:work_patterns"))->toBe(2);
     expect($versioner->get("selectors.work_patterns.company_{$company->id}"))->toBe(2);
 });

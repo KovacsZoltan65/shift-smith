@@ -18,7 +18,6 @@ use Prettus\Repository\Eloquent\BaseRepository;
 
 class WorkPatternRepository extends BaseRepository implements WorkPatternRepositoryInterface
 {
-    private const NS_WORK_PATTERNS_FETCH = 'work_patterns.fetch';
     private const NS_SELECTORS_WORK_PATTERNS = 'selectors.work_patterns';
 
     public function __construct(
@@ -60,8 +59,7 @@ class WorkPatternRepository extends BaseRepository implements WorkPatternReposit
                     fn ($sub) => $sub
                         ->from('employee_work_patterns')
                         ->selectRaw('COUNT(DISTINCT employee_id)')
-                        ->whereColumn('employee_work_patterns.work_pattern_id', 'work_patterns.id')
-                        ->whereNull('employee_work_patterns.deleted_at'),
+                        ->whereColumn('employee_work_patterns.work_pattern_id', 'work_patterns.id'),
                     'employees_count'
                 )
                 ->where('work_patterns.company_id', $companyId)
@@ -78,7 +76,7 @@ class WorkPatternRepository extends BaseRepository implements WorkPatternReposit
             return $queryCallback();
         }
 
-        $version = $this->cacheVersionService->get(self::NS_WORK_PATTERNS_FETCH . ".company_{$companyId}");
+        $version = $this->cacheVersionService->get("company:{$companyId}:work_patterns");
         $hash = hash('sha256', json_encode([
             'page' => $page,
             'per_page' => $perPage,
@@ -212,7 +210,6 @@ class WorkPatternRepository extends BaseRepository implements WorkPatternReposit
             ->join('employees as e', 'e.id', '=', 'ewp.employee_id')
             ->where('ewp.company_id', $companyId)
             ->where('ewp.work_pattern_id', $workPatternId)
-            ->whereNull('ewp.deleted_at')
             ->whereNull('e.deleted_at')
             ->select([
                 'ewp.id',
@@ -242,7 +239,7 @@ class WorkPatternRepository extends BaseRepository implements WorkPatternReposit
     private function invalidateAfterWrite(int $companyId): void
     {
         DB::afterCommit(function () use ($companyId): void {
-            $this->cacheVersionService->bump(self::NS_WORK_PATTERNS_FETCH . ".company_{$companyId}");
+            $this->cacheVersionService->bump("company:{$companyId}:work_patterns");
             $this->cacheVersionService->bump(self::NS_SELECTORS_WORK_PATTERNS . ".company_{$companyId}");
         });
     }

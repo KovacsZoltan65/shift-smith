@@ -18,9 +18,13 @@ const errors = reactive({});
 // ⚠️ form mezők: igazítsd a WorkShift migration / request mezőihez
 // Tipikus: name, start_date, end_date, active
 const form = ref({
+    company_id: null,
     name: "",
-    start_date: null, // pl. "08:00" (string) vagy null
-    end_date: null, // pl. "16:00"
+    start_time: null,
+    end_time: null,
+    work_time_minutes: null,
+    break_minutes: null,
+    is_flexible: false,
     active: true,
 });
 
@@ -31,9 +35,13 @@ watch(
 
         // reset
         form.value = {
+            company_id: null,
             name: "",
-            start_date: null,
-            end_date: null,
+            start_time: null,
+            end_time: null,
+            work_time_minutes: null,
+            break_minutes: null,
+            is_flexible: false,
             active: true,
         };
 
@@ -43,10 +51,11 @@ watch(
 
 const close = () => emit("update:modelValue", false);
 
-const formatDate = (d) => {
-    if (!d) return null;
-
-    return new Date(d).toISOString().slice(0, 10);
+const normalizeTime = (t) => {
+    if (!t) return null;
+    const s = String(t).trim();
+    if (!s) return null;
+    return s.length === 5 ? `${s}:00` : s;
 };
 
 const submit = async () => {
@@ -56,13 +65,13 @@ const submit = async () => {
     Object.keys(errors).forEach((k) => delete errors[k]);
 
     try {
-        const res = await csrfFetch("/work-shifts", {
+        const res = await csrfFetch("/work_shifts", {
             method: "POST",
             headers: { "Content-Type": "application/json", Accept: "application/json" },
             body: JSON.stringify({
                 ...form.value,
-                start_date: formatDate(form.value.start_date),
-                end_date: formatDate(form.value.end_date),
+                start_time: normalizeTime(form.value.start_time),
+                end_time: normalizeTime(form.value.end_time),
             }),
         });
 

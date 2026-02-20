@@ -33,9 +33,6 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
 
     private readonly CacheVersionService $cacheVersionService;
 
-    /** Cache namespace a munkabeosztások listázásához */
-    private const NS_WORK_SCHEDULES_FETCH = 'work_schedules.fetch';
-
     public function __construct(
         AppContainer $app,
         CacheService $cacheService,
@@ -134,7 +131,7 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
         ];
         ksort($paramsForKey);
 
-        $version = $this->cacheVersionService->get(self::NS_WORK_SCHEDULES_FETCH);
+        $version = $this->cacheVersionService->get('company:'.(int) ($companyId ?? 0).':work_schedules');
         $hash = hash('sha256', json_encode($paramsForKey, JSON_THROW_ON_ERROR));
         $key = "v{$version}:{$hash}";
 
@@ -175,8 +172,7 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
      *   name: string,
      *   date_from: string,
      *   date_to: string,
-     *   status: string,
-     *   notes?: string|null
+     *   status: string
      * } $data Munkabeosztás adatok
      * @return WorkSchedule Létrehozott munkabeosztás
      */
@@ -187,7 +183,7 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
             /** @var WorkSchedule $workSchedule */
             $workSchedule = WorkSchedule::query()->create($data);
 
-            $this->invalidateAfterWrite();
+            $this->invalidateAfterWrite((int) $workSchedule->company_id);
 
             return $workSchedule;
         });
@@ -204,8 +200,7 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
      *   name: string,
      *   date_from: string,
      *   date_to: string,
-     *   status: string,
-     *   notes?: string|null
+     *   status: string
      * } $data Frissítendő adatok
      * @param int $id Munkabeosztás azonosító
      * @return WorkSchedule Frissített munkabeosztás
@@ -221,7 +216,7 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
             $workSchedule->save();
             $workSchedule->refresh();
 
-            $this->invalidateAfterWrite();
+            $this->invalidateAfterWrite((int) $workSchedule->company_id);
 
             return $workSchedule;
         });
@@ -241,6 +236,13 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
     public function bulkDelete(array $ids): int
     {
         return DB::transaction(function () use ($ids): int {
+            $companyIds = WorkSchedule::query()
+                ->whereIn('id', $ids)
+                ->distinct()
+                ->pluck('company_id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+
             $publishedExists = WorkSchedule::query()
                 ->whereIn('id', $ids)
                 ->where('status', 'published')
@@ -252,7 +254,9 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
 
             $deleted = WorkSchedule::query()->whereIn('id', $ids)->delete();
 
-            $this->invalidateAfterWrite();
+            foreach ($companyIds as $companyId) {
+                $this->invalidateAfterWrite($companyId);
+            }
 
             return (int) $deleted;
         });
@@ -281,7 +285,7 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
 
             $deleted = (bool) $workSchedule->delete();
 
-            $this->invalidateAfterWrite();
+            $this->invalidateAfterWrite((int) $workSchedule->company_id);
 
             return $deleted;
         });
@@ -295,10 +299,10 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
      * 
      * @return void
      */
-    private function invalidateAfterWrite(): void
+    private function invalidateAfterWrite(int $companyId): void
     {
-        DB::afterCommit(function (): void {
-            $this->cacheVersionService->bump(self::NS_WORK_SCHEDULES_FETCH);
+        DB::afterCommit(function () use ($companyId): void {
+            $this->cacheVersionService->bump("company:{$companyId}:work_schedules");
         });
     }
 

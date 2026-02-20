@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use App\Models\WorkShift;
 use App\Models\User;
 use App\Policies\BasePolicy;
 
@@ -58,7 +59,7 @@ final class WorkShiftPolicy extends BasePolicy
      * @param User $user Bejelentkezett felhasználó
      * @return bool Van-e jogosultság
      */
-    public function view(User $user): bool
+    public function view(User $user, ?WorkShift $workShift = null): bool
     {
         return $user->can(self::perm(self::PERM_VIEW));
     }
@@ -80,7 +81,7 @@ final class WorkShiftPolicy extends BasePolicy
      * @param User $user Bejelentkezett felhasználó
      * @return bool Van-e jogosultság
      */
-    public function update(User $user): bool
+    public function update(User $user, ?WorkShift $workShift = null): bool
     {
         return $user->can(self::perm(self::PERM_UPDATE));
     }
@@ -113,7 +114,7 @@ final class WorkShiftPolicy extends BasePolicy
      * @param User $user Bejelentkezett felhasználó
      * @return bool Van-e jogosultság
      */
-    public function delete(User $user): bool
+    public function delete(User $user, ?WorkShift $workShift = null): bool
     {
         return $user->can(self::perm(self::PERM_DELETE));
     }

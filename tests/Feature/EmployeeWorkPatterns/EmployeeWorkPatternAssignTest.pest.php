@@ -93,7 +93,7 @@ it('létrehozza a hozzárendelést és bumpolja a cache verziót', function (): 
     $pattern = WorkPattern::factory()->create(['company_id' => $company->id]);
 
     $versioner = app(CacheVersionService::class);
-    Cache::forever("v:employee_work_patterns.list.company_{$company->id}", 1);
+    Cache::forever("v:company:{$company->id}:employee_work_patterns", 1);
 
     $this->actingAs($user)
         ->postJson(route('employee_work_patterns.assign', ['employee' => $employee->id]), [
@@ -109,5 +109,5 @@ it('létrehozza a hozzárendelést és bumpolja a cache verziót', function (): 
         'work_pattern_id' => $pattern->id,
     ]);
 
-    expect($versioner->get("employee_work_patterns.list.company_{$company->id}"))->toBe(2);
+    expect($versioner->get("company:{$company->id}:employee_work_patterns"))->toBe(2);
 });

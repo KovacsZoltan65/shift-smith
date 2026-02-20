@@ -18,14 +18,8 @@ class PositionSeeder extends Seeder
         }
 
         $items = [
-            ['name' => 'Operátor', 'description' => 'Termelési operátor', 'active' => true],
-            ['name' => 'Műszakvezető', 'description' => 'Műszak csapatvezető', 'active' => true],
-            ['name' => 'Raktáros', 'description' => 'Raktári munkakör', 'active' => true],
-            ['name' => 'HR generalista', 'description' => 'HR támogató szerep', 'active' => true],
-            ['name' => 'Karbantartó', 'description' => 'Műszaki karbantartás', 'active' => true],
-            ['name' => 'Minőségellenőr', 'description' => 'QA ellenőrzés', 'active' => true],
-            ['name' => 'Irodai ügyintéző', 'description' => 'Adminisztráció', 'active' => true],
-            ['name' => 'Termelési koordinátor', 'description' => 'Termelés koordinálása', 'active' => true],
+            ['name' => 'Gépkezelő', 'description' => null, 'active' => true],
+            ['name' => 'Osztályvezető', 'description' => null, 'active' => true],
         ];
 
         Company::query()->each(function (Company $company) use ($items): void {

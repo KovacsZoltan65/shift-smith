@@ -25,7 +25,7 @@ const { has } = usePermissions();
 const canCreate = has("work_patterns.create");
 const canUpdate = has("work_patterns.update");
 const canDelete = has("work_patterns.delete");
-const canBulkDelete = has("work_patterns.bulkDelete");
+const canBulkDelete = has("work_patterns.deleteAny");
 const canAssignEmployee = has("employee_work_patterns.assign");
 
 const props = defineProps({

@@ -16,7 +16,6 @@ use Prettus\Repository\Eloquent\BaseRepository;
 
 class EmployeeWorkPatternRepository extends BaseRepository implements EmployeeWorkPatternRepositoryInterface
 {
-    private const NS_EMPLOYEE_WORK_PATTERNS_LIST = 'employee_work_patterns.list';
 
     public function __construct(
         AppContainer $app,
@@ -49,7 +48,7 @@ class EmployeeWorkPatternRepository extends BaseRepository implements EmployeeWo
             return $queryCallback();
         }
 
-        $version = $this->cacheVersionService->get(self::NS_EMPLOYEE_WORK_PATTERNS_LIST . ".company_{$companyId}");
+        $version = $this->cacheVersionService->get("company:{$companyId}:employee_work_patterns");
         $key = "v{$version}:employee_{$employeeId}";
 
         return $this->cacheService->remember(
@@ -107,10 +106,33 @@ class EmployeeWorkPatternRepository extends BaseRepository implements EmployeeWo
         });
     }
 
+    public function hasOverlap(
+        int $companyId,
+        int $employeeId,
+        string $dateFrom,
+        ?string $dateTo,
+        ?int $ignoreId = null
+    ): bool {
+        $query = EmployeeWorkPattern::query()
+            ->where('company_id', $companyId)
+            ->where('employee_id', $employeeId)
+            ->when($ignoreId !== null, fn ($q) => $q->where('id', '!=', $ignoreId))
+            ->where(function ($q) use ($dateFrom): void {
+                $q->whereNull('date_to')
+                    ->orWhereDate('date_to', '>=', $dateFrom);
+            });
+
+        if ($dateTo !== null) {
+            $query->whereDate('date_from', '<=', $dateTo);
+        }
+
+        return $query->exists();
+    }
+
     private function invalidateAfterWrite(int $companyId): void
     {
         DB::afterCommit(function () use ($companyId): void {
-            $this->cacheVersionService->bump(self::NS_EMPLOYEE_WORK_PATTERNS_LIST . ".company_{$companyId}");
+            $this->cacheVersionService->bump("company:{$companyId}:employee_work_patterns");
         });
     }
 

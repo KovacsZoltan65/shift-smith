@@ -21,8 +21,7 @@ interface WorkScheduleRepositoryInterface
      *   name: string,
      *   date_from: string,
      *   date_to: string,
-     *   status: string,
-     *   notes?: string|null
+     *   status: string
      * } $data
      * @return WorkSchedule
      */
@@ -34,8 +33,7 @@ interface WorkScheduleRepositoryInterface
      *   name: string,
      *   date_from: string,
      *   date_to: string,
-     *   status: string,
-     *   notes?: string|null
+     *   status: string
      * } $data
      * @param int $id
      * @return WorkSchedule

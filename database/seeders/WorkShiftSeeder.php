@@ -6,7 +6,6 @@ use Illuminate\Database\Seeder;
 
 use App\Models\Company;
 use App\Models\WorkShift;
-use Carbon\Carbon;
 
 class WorkShiftSeeder extends Seeder
 {
@@ -15,20 +14,57 @@ class WorkShiftSeeder extends Seeder
      */
     public function run(): void
     {
-        // Biztonsági ellenőrzés
         if (!Company::exists()) {
             $this->command->warn('⚠️ Nincs Company rekord, WorkShift seeding kihagyva.');
             return;
         }
-        
-        // Cégenként generálunk műszakokat
-        Company::query()->each(function (Company $company) {
-            WorkShift::factory()
-                ->count(rand(3, 10)) // cégenként 3–10 műszak
-                ->state([
-                    'company_id' => $company->id,
-                ])
-                ->create();
+
+        $items = [
+            [
+                'name' => 'Délelőttös',
+                'start_time' => '06:00:00',
+                'end_time' => '14:30:00',
+                'is_flexible' => false,
+                'active' => true,
+            ],
+            [
+                'name' => 'Délutános',
+                'start_time' => '14:00:00',
+                'end_time' => '22:30:00',
+                'is_flexible' => false,
+                'active' => true,
+            ],
+            [
+                'name' => 'Nappalos',
+                'start_time' => '08:00:00',
+                'end_time' => '16:30:00',
+                'is_flexible' => false,
+                'active' => true,
+            ],
+            [
+                'name' => 'Rugalmas',
+                'start_time' => null,
+                'end_time' => null,
+                'is_flexible' => true,
+                'active' => true,
+            ],
+        ];
+
+        Company::query()->each(function (Company $company) use ($items): void {
+            foreach ($items as $item) {
+                WorkShift::query()->updateOrCreate(
+                    [
+                        'company_id' => $company->id,
+                        'name' => $item['name'],
+                    ],
+                    [
+                        'start_time' => $item['start_time'],
+                        'end_time' => $item['end_time'],
+                        'is_flexible' => $item['is_flexible'],
+                        'active' => $item['active'],
+                    ]
+                );
+            }
         });
     }
 }

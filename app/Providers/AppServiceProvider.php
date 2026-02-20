@@ -11,6 +11,7 @@ use App\Interfaces\PositionRepositoryInterface;
 use App\Interfaces\UserRepositoryInterface;
 use App\Interfaces\WorkPatternRepositoryInterface;
 use App\Interfaces\WorkScheduleRepositoryInterface;
+use App\Interfaces\WorkShiftAssignmentRepositoryInterface;
 use App\Interfaces\WorkShiftRepositoryInterface;
 use App\Models\Company;
 use App\Models\Employee;
@@ -25,6 +26,7 @@ use App\Repositories\PositionRepository;
 use App\Repositories\UserRepository;
 use App\Repositories\WorkPatternRepository;
 use App\Repositories\WorkScheduleRepository;
+use App\Repositories\WorkShiftAssignmentRepository;
 use App\Repositories\WorkShiftRepository;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Grammars\PostgresGrammar;
@@ -68,6 +70,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             WorkShiftRepositoryInterface::class, 
             WorkShiftRepository::class
+        );
+        $this->app->bind(
+            WorkShiftAssignmentRepositoryInterface::class,
+            WorkShiftAssignmentRepository::class
         );
         $this->app->bind(
             WorkScheduleRepositoryInterface::class,

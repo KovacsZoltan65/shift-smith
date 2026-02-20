@@ -34,7 +34,7 @@ it('megtagadja a munkarend dolgozólista lekérését jogosultság nélkül', fu
         ->assertForbidden();
 });
 
-it('visszaadja a kiválasztott munkarendhez tartozó dolgozókat, soft delete szűréssel', function (): void {
+it('visszaadja a kiválasztott munkarendhez tartozó dolgozókat', function (): void {
     $user = $this->createAdminUser();
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();

@@ -32,7 +32,7 @@ class WorkShiftFactory extends Factory
             : $totalMinutes;
 
         return [
-            'company_id' => Company::query()->inRandomOrder()->value('id'),
+            'company_id' => Company::query()->inRandomOrder()->value('id') ?? Company::factory(),
 
             'name' => $this->faker->randomElement([
                 'Reggeli műszak',
@@ -46,6 +46,7 @@ class WorkShiftFactory extends Factory
             'end_time' => $end->format('H:i:s'),
 
             'work_time_minutes' => $workMinutes,
+            'is_flexible' => $this->faker->boolean(20),
             'break_minutes' => $breakMinutes,
 
             'active' => $this->faker->boolean(85),

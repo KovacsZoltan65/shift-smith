@@ -27,7 +27,6 @@ return new class extends Migration
             $table->date('date_to');
 
             $table->string('status', 30)->default('draft');
-            $table->text('notes')->nullable();
 
             $table->timestamps();
             $table->softDeletes();
@@ -35,8 +34,6 @@ return new class extends Migration
             $table->index(['company_id'], 'wsched_company_id_idx');
             $table->index(['company_id', 'date_from'], 'wsched_company_date_from_idx');
             $table->index(['company_id', 'status'], 'wsched_company_status_idx');
-            $table->index(['date_from'], 'wsched_date_from_idx');
-            $table->index(['date_to'], 'wsched_date_to_idx');
         });
     }
 

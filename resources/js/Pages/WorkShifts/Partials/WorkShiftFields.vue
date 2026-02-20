@@ -1,7 +1,8 @@
 <script setup>
+import { computed } from "vue";
 import InputText from "primevue/inputtext";
 import Checkbox from "primevue/checkbox";
-import DatePicker from "primevue/datepicker";
+import CompanySelector from "@/Components/Selectors/CompanySelector.vue";
 
 const props = defineProps({
     modelValue: { type: Object, required: true },
@@ -14,6 +15,8 @@ const emit = defineEmits(["update:modelValue"]);
 const update = (patch) => {
     emit("update:modelValue", { ...(props.modelValue ?? {}), ...patch });
 };
+
+const isFlexible = computed(() => !!props.modelValue?.is_flexible);
 </script>
 
 <template>
@@ -33,46 +36,94 @@ const update = (patch) => {
             </div>
         </div>
 
-        <!-- START DATE -->
         <div>
-            <label class="block text-sm font-medium mb-1">Kezdő dátum</label>
-
-            <DatePicker
-                class="w-full"
-                inputClass="w-full"
+            <label class="block text-sm font-medium mb-1">Cég</label>
+            <CompanySelector
+                :modelValue="modelValue.company_id"
                 :disabled="disabled"
-                :modelValue="modelValue.start_date"
-                @update:modelValue="(v) => update({ start_date: v })"
-                dateFormat="yy-mm-dd"
-                showIcon
+                @update:modelValue="(v) => update({ company_id: v ? Number(v) : null })"
             />
-
-            <div v-if="errors.start_date" class="text-sm text-red-600 mt-1">
-                {{ errors.start_date }}
+            <div v-if="errors.company_id" class="text-sm text-red-600 mt-1">
+                {{ errors.company_id }}
             </div>
         </div>
 
-        <!-- END DATE -->
+        <!-- START TIME -->
         <div>
-            <label class="block text-sm font-medium mb-1">Záró dátum</label>
-
-            <DatePicker
+            <label class="block text-sm font-medium mb-1">Kezdés (HH:mm)</label>
+            <InputText
                 class="w-full"
-                inputClass="w-full"
-                :disabled="disabled"
-                :modelValue="modelValue.end_date"
-                @update:modelValue="(v) => update({ end_date: v })"
-                dateFormat="yy-mm-dd"
-                showIcon
+                type="time"
+                :disabled="disabled || isFlexible"
+                :modelValue="modelValue.start_time"
+                @update:modelValue="(v) => update({ start_time: v || null })"
             />
+            <div v-if="errors.start_time" class="text-sm text-red-600 mt-1">
+                {{ errors.start_time }}
+            </div>
+        </div>
 
-            <div v-if="errors.end_date" class="text-sm text-red-600 mt-1">
-                {{ errors.end_date }}
+        <!-- END TIME -->
+        <div>
+            <label class="block text-sm font-medium mb-1">Vége (HH:mm)</label>
+            <InputText
+                class="w-full"
+                type="time"
+                :disabled="disabled || isFlexible"
+                :modelValue="modelValue.end_time"
+                @update:modelValue="(v) => update({ end_time: v || null })"
+            />
+            <div v-if="errors.end_time" class="text-sm text-red-600 mt-1">
+                {{ errors.end_time }}
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-1">Munkaidő (perc)</label>
+            <InputText
+                class="w-full"
+                type="number"
+                :disabled="disabled"
+                :modelValue="modelValue.work_time_minutes"
+                @update:modelValue="(v) => update({ work_time_minutes: v === '' || v == null ? null : Number(v) })"
+            />
+            <div v-if="errors.work_time_minutes" class="text-sm text-red-600 mt-1">
+                {{ errors.work_time_minutes }}
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-1">Szünet (perc)</label>
+            <InputText
+                class="w-full"
+                type="number"
+                :disabled="disabled"
+                :modelValue="modelValue.break_minutes"
+                @update:modelValue="(v) => update({ break_minutes: v === '' || v == null ? null : Number(v) })"
+            />
+            <div v-if="errors.break_minutes" class="text-sm text-red-600 mt-1">
+                {{ errors.break_minutes }}
             </div>
         </div>
 
         <!-- ACTIVE -->
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
+            <Checkbox
+                inputId="work_shift_flexible"
+                :binary="true"
+                :disabled="disabled"
+                :modelValue="!!modelValue.is_flexible"
+                @update:modelValue="
+                    (v) =>
+                        update({
+                            is_flexible: !!v,
+                            start_time: v ? null : modelValue.start_time,
+                            end_time: v ? null : modelValue.end_time,
+                        })
+                "
+            />
+            <label for="work_shift_flexible" class="text-sm text-gray-700"> Rugalmas </label>
+
             <Checkbox
                 inputId="work_shift_active"
                 :binary="true"

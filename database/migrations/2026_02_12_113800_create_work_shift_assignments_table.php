@@ -22,6 +22,10 @@ return new class extends Migration
                 ->constrained('companies', 'id', 'company_work_shift_assignment')
                 ->cascadeOnDelete();
 
+            $table->foreignId('work_schedule_id')
+                ->constrained('work_schedules', 'id', 'work_schedule_work_shift_assignment')
+                ->cascadeOnDelete();
+
             $table->foreignId('employee_id')
                 ->constrained('employees','id', 'employee_work_shift_assignment')
                 ->cascadeOnDelete();
@@ -30,22 +34,19 @@ return new class extends Migration
                 ->constrained('work_shifts', 'id', 'work_shift_work_shift_assignment')
                 ->cascadeOnDelete();
 
-            $table->date('day')->index();
-
-            $table->boolean('active')->default(true);
+            $table->date('date');
 
             $table->timestamps();
-            $table->softDeletes();
 
             $table->index(['company_id'], 'ws_ass_company_id_idx');
+            $table->index(['work_schedule_id'], 'ws_ass_work_schedule_id_idx');
             $table->index(['employee_id'], 'ws_ass_employee_id_idx');
             $table->index(['work_shift_id'], 'ws_ass_work_shift_id_idx');
-            $table->index(['company_id', 'employee_id'], 'ws_ass_company_employee_idx');
-            $table->index(['active'], 'ws_ass_active_idx');
+            $table->index(['date'], 'ws_ass_date_idx');
 
             $table->unique(
-                ['company_id', 'employee_id', 'day'],
-                'wsa_company_employee_day_unique'
+                ['company_id', 'employee_id', 'date'],
+                'wsa_company_employee_date_unique'
             );
         });
     }

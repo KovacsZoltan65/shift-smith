@@ -2,7 +2,6 @@
 import { computed } from "vue";
 
 import InputText from "primevue/inputtext";
-import Textarea from "primevue/textarea";
 import DatePicker from "primevue/datepicker";
 import Select from "primevue/select";
 
@@ -43,11 +42,6 @@ const dateTo = computed({
 const status = computed({
     get: () => props.modelValue.status ?? "draft",
     set: (v) => set("status", v),
-});
-
-const notes = computed({
-    get: () => props.modelValue.notes ?? "",
-    set: (v) => set("notes", v),
 });
 
 const statusOptions = [
@@ -127,19 +121,6 @@ const err = (key) => props.errors?.[key];
                 :disabled="disabled"
             />
             <small v-if="err('status')" class="text-red-600">{{ err("status") }}</small>
-        </div>
-
-        <div>
-            <label class="mb-1 block text-xs text-gray-600">Megjegyzés</label>
-            <Textarea
-                v-model="notes"
-                class="w-full"
-                :disabled="disabled"
-                rows="3"
-                autoResize
-                placeholder="Opcionális..."
-            />
-            <small v-if="err('notes')" class="text-red-600">{{ err("notes") }}</small>
         </div>
     </div>
 </template>

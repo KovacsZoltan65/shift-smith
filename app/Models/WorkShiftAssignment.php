@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Műszak hozzárendelés model osztály
@@ -15,9 +14,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * 
  * @property int $id
  * @property int $company_id
+ * @property int $work_schedule_id
  * @property int $work_shift_id
  * @property int $employee_id
- * @property string $day Nap (Y-m-d)
+ * @property string $date Nap (Y-m-d)
  * @property \Illuminate\Support\Carbon $created_at
  * @property \Illuminate\Support\Carbon $updated_at
  */
@@ -25,7 +25,6 @@ class WorkShiftAssignment extends Model
 {
     /** @use HasFactory<\Database\Factories\WorkShiftAssignmentFactory> */
     use HasFactory;
-    use SoftDeletes;
 
     /**
      * Tömegesen tölthető mezők
@@ -34,12 +33,10 @@ class WorkShiftAssignment extends Model
      */
     protected $fillable = [
         'company_id',
+        'work_schedule_id',
         'work_shift_id',
         'employee_id',
-        'day',
-        // 'start_time',
-        // 'end_time',
-        // 'meta',
+        'date',
     ];
 
     /**
@@ -48,9 +45,7 @@ class WorkShiftAssignment extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'day' => 'date:Y-m-d',
-        'active' => 'bool',
-        // 'meta' => 'array',
+        'date' => 'date:Y-m-d',
     ];
 
     /**
@@ -71,6 +66,16 @@ class WorkShiftAssignment extends Model
     public function workShift(): BelongsTo
     {
         return $this->belongsTo(WorkShift::class);
+    }
+
+    /**
+     * Beosztás kapcsolat
+     *
+     * @return BelongsTo<WorkSchedule, $this>
+     */
+    public function workSchedule(): BelongsTo
+    {
+        return $this->belongsTo(WorkSchedule::class);
     }
 
     /**

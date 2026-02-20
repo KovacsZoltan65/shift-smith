@@ -33,8 +33,7 @@ const rows = ref([]);
 
 const form = ref({
     employee_id: null,
-    day: new Date(),
-    active: true,
+    date: new Date(),
 });
 
 const workShiftId = computed(() => Number(props.workShift?.id ?? 0));
@@ -87,13 +86,11 @@ const submit = async () => {
     try {
         await WorkShiftAssignmentService.assign(workShiftId.value, {
             employee_id: Number(form.value.employee_id ?? 0),
-            day: toYmd(form.value.day),
-            active: !!form.value.active,
+            date: toYmd(form.value.date),
         });
 
         form.value.employee_id = null;
-        form.value.day = new Date();
-        form.value.active = true;
+        form.value.date = new Date();
 
         await load();
         toast.add({
@@ -118,7 +115,7 @@ const submit = async () => {
 
 const remove = async (row) => {
     if (!props.canDelete) return;
-    if (!window.confirm(`Biztos törlöd a hozzárendelést: ${row.employee_name} (${row.day})?`)) return;
+    if (!window.confirm(`Biztos törlöd a hozzárendelést: ${row.employee_name} (${row.date})?`)) return;
 
     try {
         await WorkShiftAssignmentService.unassign(workShiftId.value, row.id);
@@ -162,8 +159,8 @@ const remove = async (row) => {
 
             <div>
                 <label class="mb-1 block text-sm">Nap</label>
-                <DatePicker v-model="form.day" dateFormat="yy-mm-dd" showIcon class="w-full" />
-                <div v-if="errors?.day" class="mt-1 text-sm text-red-600">{{ errors.day }}</div>
+                <DatePicker v-model="form.date" dateFormat="yy-mm-dd" showIcon class="w-full" />
+                <div v-if="errors?.date" class="mt-1 text-sm text-red-600">{{ errors.date }}</div>
             </div>
 
             <div class="flex items-end">
@@ -185,10 +182,8 @@ const remove = async (row) => {
             <template #empty>Nincs hozzárendelés.</template>
 
             <Column field="employee_name" header="Dolgozó" />
-            <Column field="day" header="Nap" />
-            <Column field="active" header="Aktív">
-                <template #body="{ data }">{{ data.active ? "Igen" : "Nem" }}</template>
-            </Column>
+            <Column field="work_schedule_name" header="Beosztás" />
+            <Column field="date" header="Nap" />
             <Column header="Művelet" style="width: 120px">
                 <template #body="{ data }">
                     <Button

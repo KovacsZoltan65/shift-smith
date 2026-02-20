@@ -18,7 +18,6 @@ use Prettus\Repository\Eloquent\BaseRepository;
 
 class PositionRepository extends BaseRepository implements PositionRepositoryInterface
 {
-    private const NS_POSITIONS_FETCH = 'positions.fetch';
     private const NS_SELECTORS_POSITIONS = 'selectors.positions';
 
     public function __construct(
@@ -57,7 +56,7 @@ class PositionRepository extends BaseRepository implements PositionRepositoryInt
             return $queryCallback();
         }
 
-        $version = $this->cacheVersionService->get(self::NS_POSITIONS_FETCH);
+        $version = $this->cacheVersionService->get("company:{$companyId}:positions");
         $hash = hash('sha256', json_encode([
             'page' => $page,
             'per_page' => $perPage,
@@ -179,7 +178,7 @@ class PositionRepository extends BaseRepository implements PositionRepositoryInt
     private function invalidateAfterWrite(int $companyId): void
     {
         DB::afterCommit(function () use ($companyId): void {
-            $this->cacheVersionService->bump(self::NS_POSITIONS_FETCH);
+            $this->cacheVersionService->bump("company:{$companyId}:positions");
             $this->cacheVersionService->bump(self::NS_SELECTORS_POSITIONS . ".company_{$companyId}");
         });
     }

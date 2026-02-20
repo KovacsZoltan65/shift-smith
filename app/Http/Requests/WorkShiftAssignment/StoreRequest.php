@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Requests\WorkShiftAssignment;
 
 use App\Models\Employee;
+use App\Models\WorkShiftAssignment;
+use App\Models\WorkSchedule;
 use App\Models\WorkShift;
-use App\Policies\WorkShiftPolicy;
+use App\Policies\WorkShiftAssigmentPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -20,7 +22,7 @@ class StoreRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->can(WorkShiftPolicy::PERM_UPDATE, WorkShift::class) ?? false;
+        return $this->user()?->can(WorkShiftAssigmentPolicy::PERM_CREATE, WorkShiftAssignment::class) ?? false;
     }
 
     /**
@@ -32,8 +34,8 @@ class StoreRequest extends FormRequest
     {
         return [
             'employee_id' => ['required', 'integer', 'exists:employees,id'],
-            'day' => ['required', 'date'],
-            'active' => ['nullable', 'boolean'],
+            'work_schedule_id' => ['nullable', 'integer', 'exists:work_schedules,id'],
+            'date' => ['required', 'date'],
         ];
     }
 
@@ -45,6 +47,8 @@ class StoreRequest extends FormRequest
         $validator->after(function (Validator $validator): void {
             $workShiftId = (int) $this->route('work_shift');
             $employeeId = (int) $this->input('employee_id');
+            $workScheduleId = (int) $this->input('work_schedule_id');
+            $date = (string) $this->input('date');
 
             $workShift = WorkShift::query()->find($workShiftId);
             $employee = Employee::query()->find($employeeId);
@@ -57,16 +61,22 @@ class StoreRequest extends FormRequest
             if ((int) $workShift->company_id !== (int) $employee->company_id) {
                 $validator->errors()->add('employee_id', 'A dolgozó és a műszak cége nem egyezik.');
             }
-        });
-    }
 
-    /**
-     * Validáció előtti normalizálás.
-     */
-    protected function prepareForValidation(): void
-    {
-        $this->merge([
-            'active' => $this->has('active') ? $this->boolean('active') : true,
-        ]);
+            if ($workScheduleId > 0) {
+                $workSchedule = WorkSchedule::query()->find($workScheduleId);
+                if (!$workSchedule) {
+                    $validator->errors()->add('work_schedule_id', 'Érvénytelen beosztás.');
+                    return;
+                }
+
+                if ((int) $workSchedule->company_id !== (int) $workShift->company_id) {
+                    $validator->errors()->add('work_schedule_id', 'A beosztás és a műszak cége nem egyezik.');
+                }
+
+                if ($date < (string) $workSchedule->date_from->format('Y-m-d') || $date > (string) $workSchedule->date_to->format('Y-m-d')) {
+                    $validator->errors()->add('date', 'A dátum nem esik a kiválasztott beosztás intervallumába.');
+                }
+            }
+        });
     }
 }

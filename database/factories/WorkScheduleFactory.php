@@ -27,7 +27,6 @@ class WorkScheduleFactory extends Factory
             'date_from' => $start->format('Y-m-d'),
             'date_to' => $end->format('Y-m-d'),
             'status' => $this->faker->randomElement(['draft', 'published']),
-            'notes' => $this->faker->optional(0.4)->sentence(10),
         ];
     }
 }

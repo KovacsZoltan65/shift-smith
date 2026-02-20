@@ -20,6 +20,7 @@ import Select from "primevue/select";
 import CreateModal from "@/Pages/WorkSchedules/CreateModal.vue";
 import EditModal from "@/Pages/WorkSchedules/EditModal.vue";
 import DeleteModal from "@/Pages/WorkSchedules/DeleteModal.vue";
+import AssignmentModal from "@/Pages/WorkSchedules/AssignmentModal.vue";
 
 import CompanySelector from "@/Components/Selectors/CompanySelector.vue";
 import { csrfFetch } from "@/lib/csrfFetch";
@@ -33,6 +34,7 @@ const canCreate = has("work_schedules.create");
 const canUpdate = has("work_schedules.update");
 const canDelete = has("work_schedules.delete");
 const canDeleteAny = has("work_schedules.deleteAny");
+const canAssign = has("work_schedule_assignments.create");
 
 const props = defineProps({
     title: String,
@@ -45,9 +47,11 @@ const confirm = useConfirm();
 const createOpen = ref(false);
 const editOpen = ref(false);
 const deleteOpen = ref(false);
+const assignmentOpen = ref(false);
 
 const editWorkSchedule = ref(null);
 const deleteWorkSchedule = ref(null);
+const assignmentWorkSchedule = ref(null);
 
 const loading = ref(false);
 const actionLoading = ref(false);
@@ -73,6 +77,12 @@ const openRowMenu = (event, row) => {
             icon: "pi pi-pencil",
             disabled: actionLoading.value || !canUpdate,
             command: () => openEditModal(row),
+        },
+        {
+            label: "Hozzárendelés",
+            icon: "pi pi-user-plus",
+            disabled: actionLoading.value || !canAssign,
+            command: () => openAssignmentModal(row),
         },
         {
             label: "Törlés",
@@ -119,6 +129,11 @@ const openEditModal = (row) => {
 const openDeleteModal = (row) => {
     deleteWorkSchedule.value = row;
     deleteOpen.value = true;
+};
+
+const openAssignmentModal = (row) => {
+    assignmentWorkSchedule.value = row;
+    assignmentOpen.value = true;
 };
 
 const onSaved = async (msg = "Mentve.") => {
@@ -318,6 +333,13 @@ onMounted(fetchWorkSchedules);
         :workSchedule="deleteWorkSchedule"
         :canDelete="canDelete"
         @deleted="onDeleted"
+    />
+
+    <AssignmentModal
+        v-model="assignmentOpen"
+        :workSchedule="assignmentWorkSchedule"
+        :canAssign="canAssign"
+        @saved="() => onSaved('Hozzárendelés mentve.')"
     />
 
     <AuthenticatedLayout>

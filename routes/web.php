@@ -47,6 +47,8 @@ Route::middleware(['auth', 'verified', 'throttle:120,1'])->group(function(): voi
     Route::get('/selectors/employees', [EmployeeController::class, 'getToSelect'])->name('selectors.employees');
     // Position Selector
     Route::get('/selectors/positions', [PositionController::class, 'getToSelect'])->name('selectors.positions');
+    // WorkShift Selector
+    Route::get('/selectors/work_shifts', [WorkShiftController::class, 'getToSelect'])->name('selectors.work_shifts');
     // User Selector
     Route::get('/selectors/users', [UserController::class, 'getToSelect'])->name('selectors.users');
     // WorkPattern Selector

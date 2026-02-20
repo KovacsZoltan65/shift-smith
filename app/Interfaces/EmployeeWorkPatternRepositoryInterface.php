@@ -39,4 +39,12 @@ interface EmployeeWorkPatternRepositoryInterface
     public function updateAssignment(int $id, int $employeeId, int $companyId, array $data): EmployeeWorkPattern;
 
     public function unassign(int $id, int $employeeId, int $companyId): bool;
+
+    public function hasOverlap(
+        int $companyId,
+        int $employeeId,
+        string $dateFrom,
+        ?string $dateTo,
+        ?int $ignoreId = null
+    ): bool;
 }

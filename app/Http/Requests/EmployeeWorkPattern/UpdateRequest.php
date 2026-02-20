@@ -69,7 +69,6 @@ class UpdateRequest extends FormRequest
                 ->where('company_id', (int) $employee->company_id)
                 ->where('employee_id', $employeeId)
                 ->where('id', '!=', $assignmentId)
-                ->whereNull('deleted_at')
                 ->where(function ($q) use ($dateFrom): void {
                     $q->whereNull('date_to')
                         ->orWhereDate('date_to', '>=', $dateFrom);

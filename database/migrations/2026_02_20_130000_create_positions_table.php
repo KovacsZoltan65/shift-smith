@@ -24,10 +24,21 @@ return new class extends Migration
             $table->index(['company_id', 'name']);
             $table->unique(['company_id', 'name']);
         });
+
+        Schema::table('employees', function (Blueprint $table): void {
+            $table->foreign('position_id')
+                ->references('id')
+                ->on('positions')
+                ->nullOnDelete();
+        });
     }
 
     public function down(): void
     {
+        Schema::table('employees', function (Blueprint $table): void {
+            $table->dropForeign(['position_id']);
+        });
+
         Schema::dropIfExists('positions');
     }
 };

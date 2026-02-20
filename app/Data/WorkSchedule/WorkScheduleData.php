@@ -11,7 +11,6 @@ use Spatie\LaravelData\Attributes\Validation\Exists;
 use Spatie\LaravelData\Attributes\Validation\In;
 use Spatie\LaravelData\Attributes\Validation\IntegerType;
 use Spatie\LaravelData\Attributes\Validation\Max;
-use Spatie\LaravelData\Attributes\Validation\Nullable;
 use Spatie\LaravelData\Attributes\Validation\Required;
 use Spatie\LaravelData\Attributes\Validation\StringType;
 use Spatie\LaravelData\Data;
@@ -28,7 +27,6 @@ class WorkScheduleData extends Data
      * @param string $date_from Kezdő dátum (Y-m-d)
      * @param string $date_to Záró dátum (Y-m-d)
      * @param string $status Státusz (draft|published)
-     * @param ?string $notes Megjegyzés
      * @param ?string $created_at Létrehozás ideje
      */
     public function __construct(
@@ -49,9 +47,6 @@ class WorkScheduleData extends Data
         #[Required, StringType, In(['draft', 'published'])]
         public string $status,
 
-        #[Nullable, StringType]
-        public ?string $notes,
-
         public ?string $created_at,
     ) {}
 
@@ -70,7 +65,6 @@ class WorkScheduleData extends Data
             date_from: (string) optional($workSchedule->date_from)?->format('Y-m-d'),
             date_to: (string) optional($workSchedule->date_to)?->format('Y-m-d'),
             status: (string) $workSchedule->status,
-            notes: $workSchedule->notes,
             created_at: optional($workSchedule->created_at)?->toDateTimeString(),
         );
     }

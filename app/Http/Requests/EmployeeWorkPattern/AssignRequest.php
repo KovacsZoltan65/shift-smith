@@ -66,7 +66,6 @@ class AssignRequest extends FormRequest
             $hasOverlap = EmployeeWorkPattern::query()
                 ->where('company_id', (int) $employee->company_id)
                 ->where('employee_id', $employeeId)
-                ->whereNull('deleted_at')
                 ->where(function ($q) use ($dateFrom, $dateTo): void {
                     $q->whereNull('date_to')
                         ->orWhereDate('date_to', '>=', $dateFrom);
