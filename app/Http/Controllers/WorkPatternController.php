@@ -39,16 +39,23 @@ class WorkPatternController extends Controller
     /**
      * Munkarendek lista oldal megjelenítése.
      *
-     * @param FetchRequest $request Validált kérés
+     * @param Request $request HTTP kérés
      * @return InertiaResponse Inertia válasz
      */
-    public function index(FetchRequest $request): InertiaResponse
+    public function index(Request $request): InertiaResponse
     {
         $this->authorize(WorkPatternPolicy::PERM_VIEW_ANY, WorkPattern::class);
 
         return Inertia::render('Scheduling/WorkPatterns/Index', [
             'title' => 'Munkarendek',
-            'filter' => $request->validatedFilters(),
+            'filter' => [
+                'search' => $request->string('search')->toString() ?: null,
+                'field' => $request->string('field')->toString() ?: 'id',
+                'order' => $request->string('order')->toString() ?: 'desc',
+                'page' => max(1, (int) $request->integer('page', 1)),
+                'per_page' => min(max(1, (int) $request->integer('per_page', 10)), 100),
+                'company_id' => $request->filled('company_id') ? (int) $request->integer('company_id') : null,
+            ],
         ]);
     }
 
