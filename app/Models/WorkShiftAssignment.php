@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Override;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
  * Műszak hozzárendelés model osztály
@@ -26,6 +29,7 @@ class WorkShiftAssignment extends Model
     /** @use HasFactory<\Database\Factories\WorkShiftAssignmentFactory> */
     use HasFactory;
     use SoftDeletes;
+    use LogsActivity;
 
     /**
      * Tömegesen tölthető mezők
@@ -52,6 +56,15 @@ class WorkShiftAssignment extends Model
         'active' => 'bool',
         // 'meta' => 'array',
     ];
+
+    #[Override]
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('work_shift_assignments')
+            ->logFillable()
+            ->logOnlyDirty();
+    }
 
     /**
      * Cég kapcsolat

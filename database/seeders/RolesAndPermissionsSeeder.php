@@ -10,7 +10,9 @@ use App\Models\EmployeeWorkPattern;
 use App\Models\User;
 use App\Models\WorkPattern;
 use App\Models\WorkSchedule;
+use App\Models\WorkScheduleAssignment;
 use App\Models\WorkShift;
+use App\Models\WorkShiftAssignment;
 use App\Support\MenuPermissions;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Seeder;
@@ -62,7 +64,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'permissions' => Permission::class,
             'work_shifts' => WorkShift::class,
             'work_schedules' => WorkSchedule::class,
-            'work_shifts_assignments' => \App\Models\WorkShiftAssignment::class,
+            'work_shift_assignments' => WorkShiftAssignment::class,
+            'work_schedule_assignments' => WorkScheduleAssignment::class,
             'work_patterns' => WorkPattern::class,
             'employee_work_patterns' => EmployeeWorkPattern::class,
         ];
@@ -73,6 +76,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'employee_work_patterns.assign',
             'employee_work_patterns.unassign',
             'employee_work_patterns.view',
+            'work_schedule_assignments.bulkDelete',
         ];
 
         /**

@@ -9,6 +9,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkPatternController;
+use App\Http\Controllers\WorkScheduleAssignmentController;
 use App\Http\Controllers\WorkShiftAssignmentController;
 use App\Http\Controllers\WorkScheduleController;
 use App\Http\Controllers\WorkShiftController;
@@ -48,6 +49,8 @@ Route::middleware(['auth', 'verified', 'throttle:120,1'])->group(function(): voi
     Route::get('/selectors/users', [UserController::class, 'getToSelect'])->name('selectors.users');
     // WorkPattern Selector
     Route::get('/selectors/work-patterns', [WorkPatternController::class, 'getToSelect'])->name('selectors.work_patterns');
+    // WorkShift Selector
+    Route::get('/selectors/work_shifts', [WorkShiftController::class, 'getToSelect'])->name('selectors.work_shifts');
 
     // (Admin selectorok az /admin prefix alatt vannak, lent)
 });
@@ -280,6 +283,24 @@ Route::middleware(['auth', 'verified'])
     ->group(function (): void {
         Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
         Route::post('/', 'store')->name('store')->middleware('throttle:20,1');
+        Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy')->middleware('throttle:20,1');
+    });
+
+/**
+ * ======================================
+ * WORK_SCHEDULE ASSIGNMENTS (v2)
+ * ======================================
+ */
+Route::middleware(['auth', 'verified'])
+    ->prefix('work-schedules/{schedule}/assignments')
+    ->whereNumber('schedule')
+    ->as('work_schedule_assignments.')
+    ->controller(WorkScheduleAssignmentController::class)
+    ->group(function (): void {
+        Route::get('/fetch', 'fetch')->name('fetch')->middleware('throttle:60,1');
+        Route::post('/', 'store')->name('store')->middleware('throttle:20,1');
+        Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
+        Route::put('/{id}', 'update')->whereNumber('id')->name('update')->middleware('throttle:30,1');
         Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy')->middleware('throttle:20,1');
     });
 

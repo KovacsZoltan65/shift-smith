@@ -9,26 +9,29 @@ use App\Http\Requests\WorkShiftAssignment\ListRequest;
 use App\Http\Requests\WorkShiftAssignment\StoreRequest;
 use App\Models\WorkShift;
 use App\Models\WorkShiftAssignment;
+use App\Policies\WorkShiftAssigmentPolicy;
+use App\Services\WorkShiftAssignmentService;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Műszakhoz rendelt dolgozók kezelése.
+ * Legacy/v1: Műszakhoz rendelt dolgozók kezelése.
  */
 class WorkShiftAssignmentController extends Controller
 {
+    public function __construct(
+        private readonly WorkShiftAssignmentService $service
+    ) {}
+
     /**
      * Hozzárendelések listázása műszak szerint.
      */
     public function index(ListRequest $request, int $work_shift): JsonResponse
     {
-        $shift = WorkShift::query()->findOrFail($work_shift);
+        $this->authorize(WorkShiftAssigmentPolicy::PERM_VIEW_ANY, WorkShiftAssignment::class);
 
-        $items = WorkShiftAssignment::query()
-            ->with('employee:id,first_name,last_name')
-            ->where('work_shift_id', $shift->id)
-            ->orderByDesc('day')
-            ->get()
+        $shift = WorkShift::query()->findOrFail($work_shift);
+        $items = collect($this->service->listByShift((int) $shift->id, (int) $shift->company_id))
             ->map(fn (WorkShiftAssignment $a): array => [
                 'id' => (int) $a->id,
                 'employee_id' => (int) $a->employee_id,
@@ -50,29 +53,17 @@ class WorkShiftAssignmentController extends Controller
      */
     public function store(StoreRequest $request, int $work_shift): JsonResponse
     {
+        $this->authorize(WorkShiftAssigmentPolicy::PERM_CREATE, WorkShiftAssignment::class);
+
         $shift = WorkShift::query()->findOrFail($work_shift);
         $payload = $request->validated();
-
-        $assignment = WorkShiftAssignment::query()
-            ->withTrashed()
-            ->firstOrNew([
-                'company_id' => (int) $shift->company_id,
-                'employee_id' => (int) $payload['employee_id'],
-                'day' => (string) $payload['day'],
-            ]);
-
-        $assignment->fill([
+        $this->service->store([
             'company_id' => (int) $shift->company_id,
             'work_shift_id' => (int) $shift->id,
             'employee_id' => (int) $payload['employee_id'],
             'day' => (string) $payload['day'],
             'active' => (bool) ($payload['active'] ?? true),
         ]);
-        $assignment->save();
-
-        if ($assignment->trashed()) {
-            $assignment->restore();
-        }
 
         return response()->json([
             'message' => 'Dolgozó sikeresen hozzárendelve a műszakhoz.',
@@ -84,13 +75,10 @@ class WorkShiftAssignmentController extends Controller
      */
     public function destroy(DeleteRequest $request, int $work_shift, int $id): JsonResponse
     {
-        WorkShift::query()->findOrFail($work_shift);
+        $this->authorize(WorkShiftAssigmentPolicy::PERM_DELETE, WorkShiftAssignment::class);
 
-        $assignment = WorkShiftAssignment::query()
-            ->where('work_shift_id', $work_shift)
-            ->findOrFail($id);
-
-        $deleted = (bool) $assignment->delete();
+        $shift = WorkShift::query()->findOrFail($work_shift);
+        $deleted = $this->service->destroy($id, (int) $shift->id, (int) $shift->company_id);
 
         return response()->json([
             'message' => $deleted ? 'Hozzárendelés törölve.' : 'Törlés sikertelen.',

@@ -56,6 +56,12 @@ export const appMenuDefinition = [
                 can: "work_schedules.viewAny",
             },
             {
+                title: "Kiosztások",
+                route: "assignments.index",
+                key: "assignments.index",
+                can: "work_schedule_assignments.viewAny",
+            },
+            {
                 title: "Műszakok",
                 route: "work_shifts.index",
                 key: "work_shifts.index",

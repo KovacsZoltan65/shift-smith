@@ -61,7 +61,7 @@ class WorkShift extends Model
     ];
     
     /** @var array<int,string> */
-    public const SORTABLE = ['company_id', 'name', 'start_time', 'end_time', 'active',];
+    public const SORTABLE = ['id', 'company_id', 'name', 'start_time', 'end_time', 'active', 'created_at', 'updated_at'];
     
     /*
      * ========================= LOGOLÁS =========================

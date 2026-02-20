@@ -5,6 +5,7 @@ namespace App\Http\Requests\WorkShift;
 use App\Models\WorkShift;
 use App\Policies\WorkShiftPolicy;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class IndexRequest extends FormRequest
 {
@@ -22,10 +23,11 @@ class IndexRequest extends FormRequest
     {
         return [
             'search'   => ['nullable', 'string', 'max:255'],
-            'field'    => ['nullable', 'string', 'in:id,name,email,created_at,updated_at'],
+            'field'    => ['nullable', 'string', Rule::in(WorkShift::SORTABLE)],
             'order'    => ['nullable', 'string', 'in:asc,desc'],
             'page'     => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'company_id' => ['nullable', 'integer', 'exists:companies,id'],
         ];
     }
     
@@ -64,9 +66,7 @@ class IndexRequest extends FormRequest
     /**
      * @return array{
      *   search?: string,
-     *   name?: string,
-     *   email?: string,
-     *   phone?: string,
+     *   company_id?: int|null,
      *   field?: string,
      *   order?: 'asc'|'desc',
      *   page?: int,
@@ -86,6 +86,7 @@ class IndexRequest extends FormRequest
 
         return [
             'search'   => $search,
+            'company_id' => isset($data['company_id']) ? (int) $data['company_id'] : null,
             'field'    => $data['field'] ?? 'id',
             'order'    => $data['order'] ?? 'desc',
             'page'     => (int) ($data['page'] ?? 1),

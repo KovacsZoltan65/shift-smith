@@ -35,6 +35,7 @@ it('megjeleníti a WorkShifts/Index oldalt alapértelmezett szűrőkkel adminnak
             ->where('title', 'Műszakok')
             ->has('filter', fn (Assert $filter) => $filter
                 ->where('search', null)
+                ->where('company_id', null)
                 ->where('field', 'id')
                 ->where('order', 'desc')
                 ->where('page', 1)

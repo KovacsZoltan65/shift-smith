@@ -5,312 +5,238 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use App\Interfaces\WorkShiftRepositoryInterface;
-use App\Models\Company;
 use App\Models\WorkShift;
+use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
 use App\Traits\Functions;
 use Illuminate\Container\Container as AppContainer;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Override;
 use Prettus\Repository\Criteria\RequestCriteria;
 use Prettus\Repository\Eloquent\BaseRepository;
-use App\Services\Cache\CacheVersionService;
-use Override;
 
 /**
- * Műszak repository osztály
- * 
- * Adatbázis műveletek kezelése műszakokhoz.
- * Cache támogatással, verziókezeléssel és lapozással.
+ * Műszak repository.
  */
 class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryInterface
 {
     use Functions;
-    
-    protected CacheService $cacheService;
-    protected string $tag;
-    
+
     private readonly CacheVersionService $cacheVersionService;
-    
-    /** Cache namespace a műszakok listázásához */
+
+    /** Cache namespace a műszak listához. */
     private const NS_WORK_SHIFT_FETCH = 'work_shifts.fetch';
-    /** Cache namespace a műszak selector listához */
+
+    /** Cache namespace a selector listához. */
     private const NS_SELECTORS_WORK_SHIFT = 'selectors.work_shifts';
-    
+
     public function __construct(
-        AppContainer $app, 
-        CacheService $cacheService, 
+        AppContainer $app,
+        private readonly CacheService $cacheService,
         CacheVersionService $cacheVersionService
-    )
-    {
+    ) {
         parent::__construct($app);
-        
-        $this->cacheService = $cacheService;
-        $this->tag = WorkShift::getTag();
         $this->cacheVersionService = $cacheVersionService;
     }
-    
-    /**
-     * Műszakok listázása lapozással, szűréssel és rendezéssel
-     * 
-     * Cache-elhető lekérdezés verziókezeléssel.
-     * Támogatja a keresést (név, email), rendezést és lapozást.
-     * 
-     * @param Request $request HTTP kérés (search, field, order, per_page, page paraméterekkel)
-     * @return LengthAwarePaginator<int, WorkShift> Lapozott műszak lista
-     */
+
     #[Override]
     public function fetch(Request $request): LengthAwarePaginator
     {
         $needCache = (bool) config('cache.enable_work_shifts', false);
-        
+
         $page = (int) $request->integer('page', 1);
-        
         $perPage = (int) $request->integer('per_page', 10);
         $perPage = ($perPage > 0) ? min($perPage, 100) : 10;
-        
-        $rawTerm = \trim((string) $request->input('search', ''));
-        $term = $rawTerm === '' ? null : \mb_strtolower($rawTerm, 'UTF-8');
-        
-        $sortable = WorkShift::getSortable();
-        $field = \in_array($request->input('field', ''), $sortable, true)
-            ? $request->input('field')
-            : null;
-        
-        //$direction = strtolower($request->input('order', '')) === 'desc' ? 'desc' : 'asc';
-        
-        $orderRaw = (string) $request->input('order', 'desc');
-        $direction = strtolower($orderRaw) === 'asc' ? 'asc' : 'desc';
 
-        // a paginátor query-stringje (URL szinkronhoz hasznos)
-        $appendQuery = $request->only(['search', 'field', 'order', 'per_page']);
-        
-        $queryCallback = function() use($term, $field, $direction, $perPage, $page, $appendQuery): LengthAwarePaginator {
-            $q = WorkShift::query()
-                ->when($term, function ($qq) use ($term) {
-                    $qq->where(function ($q) use ($term) {
-                        $q->where('name', 'like', "%{$term}%")
-                            ->orWhere('email', 'like', "%{$term}%");
-                    });
+        $rawTerm = trim((string) $request->input('search', ''));
+        $term = $rawTerm === '' ? null : mb_strtolower($rawTerm, 'UTF-8');
+
+        $userCompanyId = $this->currentCompanyId();
+        $companyIdRaw = $request->input('company_id');
+        $companyId = $userCompanyId > 0
+            ? $userCompanyId
+            : (($companyIdRaw === null || $companyIdRaw === '') ? null : (int) $companyIdRaw);
+
+        $sortable = WorkShift::getSortable();
+        $field = in_array($request->input('field', ''), $sortable, true)
+            ? (string) $request->input('field')
+            : null;
+
+        $direction = strtolower((string) $request->input('order', 'desc')) === 'asc' ? 'asc' : 'desc';
+        $appendQuery = $request->only(['search', 'field', 'order', 'per_page', 'company_id']);
+
+        $queryCallback = function () use ($companyId, $term, $field, $direction, $perPage, $page, $appendQuery): LengthAwarePaginator {
+            $query = WorkShift::query()
+                ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
+                ->when($term, function ($q) use ($term): void {
+                    $q->whereRaw('LOWER(name) like ?', ["%{$term}%"]);
                 })
-                ->when($field, fn ($qq) => $qq->orderBy($field, $direction))
-                ->when(!$field, fn ($qq) => $qq->orderByDesc('id'));
-            
-            $paginator = $q->paginate($perPage, ['*'], 'page', $page);
+                ->when($field, fn ($q) => $q->orderBy($field, $direction))
+                ->when(!$field, fn ($q) => $q->orderByDesc('id'));
+
+            $paginator = $query->paginate($perPage, ['*'], 'page', $page);
             $paginator->appends($appendQuery);
-            
+
             return $paginator;
         };
-        
-        if(!$needCache) {
-            /** @var LengthAwarePaginator<int, WorkShift> $work_shifts */
-            $work_shifts = $queryCallback();
-            
-            return $work_shifts;
+
+        if (!$needCache) {
+            return $queryCallback();
         }
-        
+
         $paramsForKey = [
             'page' => $page,
             'per_page' => $perPage,
-            'search' => $term,      // lowercased/null
-            'field' => $field,      // whitelistelt/null
-            'order' => $direction,  // asc/desc
+            'search' => $term,
+            'field' => $field,
+            'order' => $direction,
+            'company_id' => $companyId,
         ];
         ksort($paramsForKey);
 
-        $version = $this->cacheVersionService->get(self::NS_WORK_SHIFT_FETCH);
+        $version = $this->cacheVersionService->get($this->fetchNamespace($companyId));
         $hash = hash('sha256', json_encode($paramsForKey, JSON_THROW_ON_ERROR));
         $key = "v{$version}:{$hash}";
 
-        /** @var LengthAwarePaginator<int, WorkShift> $work_shifts */
-        $work_shifts = $this->cacheService->remember(
-            tag: $this->tag,
+        /** @var LengthAwarePaginator<int, WorkShift> $rows */
+        $rows = $this->cacheService->remember(
+            tag: $this->tagForCompany($companyId),
             key: $key,
             callback: $queryCallback,
             ttl: (int) config('cache.ttl_fetch', 60)
         );
 
-        return $work_shifts;
+        return $rows;
     }
-    
-    /**
-     * Műszak lekérése azonosító alapján
-     * 
-     * @param int $id Műszak azonosító
-     * @return WorkShift Műszak model
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
-     */
+
     #[Override]
     public function getWorkShift(int $id): WorkShift
     {
-        /** @var WorkShift $work_shift */
-        $work_shift = WorkShift::findOrFail($id);
-        
-        return $work_shift;
+        $query = WorkShift::query();
+        $companyId = $this->currentCompanyId();
+        if ($companyId > 0) {
+            $query->where('company_id', $companyId);
+        }
+
+        /** @var WorkShift $workShift */
+        $workShift = $query->findOrFail($id);
+
+        return $workShift;
     }
 
-    /**
-     * Műszak lekérése név alapján
-     * 
-     * @param string $name Műszak neve
-     * @return WorkShift Műszak model
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
-     */
     #[Override]
     public function getWorkShiftByName(string $name): WorkShift
     {
-        // Get the work_shift by its name
-        /** @var WorkShift $work_shift */
-        $work_shift = WorkShift::where('name', '=', $name)->firstOrFail();
+        $query = WorkShift::query()->where('name', '=', $name);
+        $companyId = $this->currentCompanyId();
+        if ($companyId > 0) {
+            $query->where('company_id', $companyId);
+        }
 
-        return $work_shift;
+        /** @var WorkShift $workShift */
+        $workShift = $query->firstOrFail();
+
+        return $workShift;
     }
-    
-    /**
-     * Új műszak létrehozása
-     * 
-     * Tranzakcióban futtatva, alapértelmezett beállításokkal.
-     * Létrehozás után cache invalidálás.
-     * 
-     * @param array{
-     *    company_id: int,
-     *    name: string,
-     *    start_time: string,
-     *    end_time: string,
-     *    active: boolean
-     * } $data Műszak adatok
-     * @return WorkShift Létrehozott műszak
-     */
+
     #[Override]
     public function store(array $data): WorkShift
     {
-        return DB::transaction(function() use($data): WorkShift {
-            /** @var WorkShift $work_shift */
-            $work_shift = WorkShift::query()->create($data);
-            
-            $this->createDefaultSettings($work_shift);
-            
-            // Cache ürítése
-            $this->invalidateAfterWorkShiftWrite();
-            
-            return $work_shift;
+        return DB::transaction(function () use ($data): WorkShift {
+            /** @var WorkShift $workShift */
+            $workShift = WorkShift::query()->create($data);
+
+            $this->createDefaultSettings($workShift);
+            $this->invalidateAfterWorkShiftWrite((int) $workShift->company_id);
+
+            return $workShift;
         });
     }
-    
-    /**
-     * Műszak adatainak frissítése
-     * 
-     * Tranzakcióban futtatva, pesszimista zárolással.
-     * Frissítés után cache invalidálás.
-     * 
-     * @param array{
-     *    company_id: int,
-     *    name: string,
-     *    start_time: string,
-     *    end_time: string,
-     *    active: boolean
-     * } $data Frissítendő adatok
-     * @param int $id Műszak azonosító
-     * @return WorkShift Frissített műszak
-     */
+
     #[Override]
     public function update(array $data, $id): WorkShift
     {
-        return DB::transaction(function() use($data, $id) {
-            /** @var WorkShift $work_shift */
-            $work_shift = WorkShift::query()->lockForUpdate()->findOrFail($id);
-            
-            $work_shift->fill($data);
-            $work_shift->save();
-            $work_shift->refresh();
-            
-            $this->updateDefaultSettings($work_shift);
+        return DB::transaction(function () use ($data, $id): WorkShift {
+            $companyId = $this->currentCompanyId();
+            $query = WorkShift::query()->lockForUpdate();
+            if ($companyId > 0) {
+                $query->where('company_id', $companyId);
+            }
 
-            // Cache ürítése
-            $this->invalidateAfterWorkShiftWrite();
-            
-            return $work_shift;
+            /** @var WorkShift $workShift */
+            $workShift = $query->findOrFail($id);
+            $workShift->fill($data);
+            $workShift->save();
+            $workShift->refresh();
+
+            $this->updateDefaultSettings($workShift);
+            $this->invalidateAfterWorkShiftWrite((int) $workShift->company_id);
+
+            return $workShift;
         });
     }
-    
-    /**
-     * Több műszak törlése egyszerre
-     * 
-     * Tranzakcióban futtatva, cache invalidálással.
-     * 
-     * @param list<int> $ids Műszak azonosítók tömbje
-     * @return int A törölt rekordok száma
-     */
+
     #[Override]
     public function bulkDelete(array $ids): int
     {
-        return DB::transaction(function() use($ids): int {
-            $deleted = WorkShift::query()->whereIn('id', $ids)->delete();
-            
-            $this->invalidateAfterWorkShiftWrite();
-            
+        return DB::transaction(function () use ($ids): int {
+            $companyId = $this->currentCompanyId();
+            $query = WorkShift::query()->whereIn('id', $ids);
+            if ($companyId > 0) {
+                $query->where('company_id', $companyId);
+            }
+
+            $deleted = (int) $query->delete();
+            $this->invalidateAfterWorkShiftWrite($companyId > 0 ? $companyId : null);
+
             return $deleted;
         });
     }
 
-    /**
-     * Egy műszak törlése
-     * 
-     * Tranzakcióban futtatva, pesszimista zárolással.
-     * Törli a kapcsolódó beállításokat és invalidálja a cache-t.
-     * 
-     * @param int $id Műszak azonosító
-     * @return bool Sikeres törlés esetén true
-     */
     #[Override]
     public function destroy(int $id): bool
     {
-        return DB::transaction(function() use($id) {
-            /** @var WorkShift $work_shift */
-            $work_shift = WorkShift::query()->lockForUpdate()->findOrFail($id);
-            
-            $deleted = (bool) $work_shift->delete();
-            
-            // Beállítások törlése
-            $this->deleteDefaultSettings($work_shift);
-            
-            // Cache ürítése
-            $this->invalidateAfterWorkShiftWrite();
+        return DB::transaction(function () use ($id): bool {
+            $companyId = $this->currentCompanyId();
+            $query = WorkShift::query()->lockForUpdate();
+            if ($companyId > 0) {
+                $query->where('company_id', $companyId);
+            }
+
+            /** @var WorkShift $workShift */
+            $workShift = $query->findOrFail($id);
+            $deleted = (bool) $workShift->delete();
+
+            $this->deleteDefaultSettings($workShift);
+            $this->invalidateAfterWorkShiftWrite((int) $workShift->company_id);
 
             return $deleted;
         });
     }
 
-    /**
-     * Műszakok lekérése select listához
-     * 
-     * Egyszerűsített műszak lista (id, name) dropdown/select mezőkhöz.
-     * Cache-elhető, csak aktív műszakokat ad vissza.
-     * 
-     * @param array{
-     *   only_with_employees?: bool
-     * } $params Szűrési paraméterek
-     * @return array<int, array{id:int, name:string}> Műszakok tömbje
-     */
     #[Override]
     public function getToSelect(array $params): array
     {
         $needCache = (bool) config('cache.enable_work_shiftToSelect', false);
-
-        // normalize
         $params['only_with_employees'] = !empty($params['only_with_employees']);
         ksort($params);
 
-        $onlyWithEmployees = (bool) $params['only_with_employees'];
+        $companyId = $this->currentCompanyId();
 
-        $queryCallback = function (): array {
-            /** @var array<int, array{id: int, name: string}> $out */
-            $out = WorkShift::active()
-                // Note: WorkShift modellnek nincs employees kapcsolata
-                // ->when($onlyWithEmployees, fn ($q) => $q->whereHas('employees'))
+        $queryCallback = function () use ($companyId): array {
+            $query = WorkShift::active()
                 ->select(['id', 'name'])
-                ->orderBy('name')
+                ->orderBy('name');
+
+            if ($companyId > 0) {
+                $query->where('company_id', $companyId);
+            }
+
+            /** @var array<int, array{id: int, name: string}> $out */
+            $out = $query
                 ->get()
                 ->map(fn (WorkShift $ws): array => ['id' => (int) $ws->id, 'name' => (string) $ws->name])
                 ->values()
@@ -322,13 +248,13 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
         if (!$needCache) {
             return $queryCallback();
         }
-        
-        $version = $this->cacheVersionService->get(self::NS_SELECTORS_WORK_SHIFT);
+
+        $version = $this->cacheVersionService->get($this->selectorNamespace($companyId));
         $hash = hash('sha256', json_encode($params, JSON_THROW_ON_ERROR));
         $key = "v{$version}:{$hash}";
 
         return $this->cacheService->remember(
-            tag: 'work_shift_select',
+            tag: $this->tagForCompany($companyId),
             key: $key,
             callback: $queryCallback,
             ttl: (int) config('cache.ttl_fetch', 1800)
@@ -336,70 +262,73 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
     }
 
     /**
-     * Cache invalidálás műszak írási műveletek után
-     * 
-     * Növeli a verzió számokat a műszak listázás és selector cache-ekhez.
-     * DB commit után fut, így biztosítva a konzisztenciát.
-     * 
-     * @return void
+     * Cache invalidálás műszak írási műveletek után.
      */
-    private function invalidateAfterWorkShiftWrite(): void
+    private function invalidateAfterWorkShiftWrite(?int $companyId): void
     {
-        DB::afterCommit(function():void {
-            // WorkShift lista oldal cache
+        DB::afterCommit(function () use ($companyId): void {
             $this->cacheVersionService->bump(self::NS_WORK_SHIFT_FETCH);
-
-            // WorkShiftSelector cache (mert a selector aktív cégeket listáz)
             $this->cacheVersionService->bump(self::NS_SELECTORS_WORK_SHIFT);
+            $this->cacheVersionService->bump($this->fetchNamespace(null));
+            $this->cacheVersionService->bump($this->selectorNamespace(null));
+            $this->cacheVersionService->bump($this->fetchNamespace($companyId));
+            $this->cacheVersionService->bump($this->selectorNamespace($companyId));
         });
     }
-    
-    /**
-     * Alapértelmezett beállítások létrehozása új műszakhoz
-     * 
-     * @param WorkShift $work_shift Műszak model
-     * @return void
-     */
-    private function createDefaultSettings(WorkShift $work_shift): void{}
 
     /**
-     * Alapértelmezett beállítások frissítése
-     * 
-     * @param WorkShift $work_shift Műszak model
-     * @return void
+     * Aktuális tenant company azonosító.
      */
-    private function updateDefaultSettings(WorkShift $work_shift): void{}
+    private function currentCompanyId(): int
+    {
+        return (int) (Auth::user()?->company_id ?? 0);
+    }
 
     /**
-     * Alapértelmezett beállítások törlése
-     * 
-     * @param WorkShift $work_shift Műszak model
-     * @return void
+     * Tenant cache tag előállítása.
      */
-    private function deleteDefaultSettings(WorkShift $work_shift): void{}
+    private function tagForCompany(?int $companyId): string
+    {
+        if ($companyId && $companyId > 0) {
+            return WorkShift::getTag().":company_{$companyId}";
+        }
+
+        return WorkShift::getTag().':company_global';
+    }
+
+    private function fetchNamespace(?int $companyId): string
+    {
+        return self::NS_WORK_SHIFT_FETCH.'.company_'.($companyId > 0 ? $companyId : 'global');
+    }
+
+    private function selectorNamespace(?int $companyId): string
+    {
+        return self::NS_SELECTORS_WORK_SHIFT.'.company_'.($companyId > 0 ? $companyId : 'global');
+    }
 
     /**
-     * Repository model osztály megadása
-     * 
-     * @return string Model osztály neve
+     * Alapértelmezett beállítások létrehozása új műszakhoz.
      */
+    private function createDefaultSettings(WorkShift $workShift): void {}
+
+    /**
+     * Alapértelmezett beállítások frissítése.
+     */
+    private function updateDefaultSettings(WorkShift $workShift): void {}
+
+    /**
+     * Alapértelmezett beállítások törlése.
+     */
+    private function deleteDefaultSettings(WorkShift $workShift): void {}
+
     #[Override]
     public function model(): string
     {
         return WorkShift::class;
     }
 
-    /**
-     * Repository inicializálás
-     * 
-     * Criteria-k regisztrálása (pl. query string alapú szűrés).
-     * 
-     * @return void
-     */
     public function boot(): void
     {
-        // Ha később Criteria-t akarsz (pl. query stringből automatikusan),
-        // ez maradhat, de most a saját fetch úgyis felülírja a logikát.
         $this->pushCriteria(app(RequestCriteria::class));
     }
 }
