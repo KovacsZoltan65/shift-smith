@@ -38,6 +38,9 @@ const canAssign = has("work_schedule_assignments.create");
 const canAssignmentUpdate = has("work_schedule_assignments.update");
 const canAssignmentDelete = has("work_schedule_assignments.delete");
 const canAssignmentBulkDelete = has("work_schedule_assignments.bulkDelete");
+const canAssignmentViewAny = has("work_schedule_assignments.viewAny");
+const canAssignmentView = has("work_schedule_assignments.view");
+const canOpenAssignment = canAssignmentViewAny || canAssignmentView || canAssign || canAssignmentUpdate || canAssignmentDelete;
 
 const props = defineProps({
     title: String,
@@ -84,7 +87,7 @@ const openRowMenu = (event, row) => {
         {
             label: "Dolgozó kiosztás",
             icon: "pi pi-users",
-            disabled: actionLoading.value || !canAssign,
+            disabled: actionLoading.value || !canOpenAssignment,
             command: () => openAssignmentModal(row),
         },
         {
