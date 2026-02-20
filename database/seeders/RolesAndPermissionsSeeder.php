@@ -7,6 +7,7 @@ use App\Models\Admin\Role;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\EmployeeWorkPattern;
+use App\Models\Position;
 use App\Models\User;
 use App\Models\WorkPattern;
 use App\Models\WorkSchedule;
@@ -57,6 +58,7 @@ class RolesAndPermissionsSeeder extends Seeder
         $entities = [
             'users'       => User::class,
             'employees'   => Employee::class,
+            'positions'   => Position::class,
             'companies'   => Company::class,
             'roles'       => Role::class,
             'permissions' => Permission::class,

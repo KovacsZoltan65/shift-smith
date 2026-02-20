@@ -94,12 +94,14 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
 
         $queryCallback = function () use ($term, $companyId, $field, $direction, $perPage, $page, $appendQuery): LengthAwarePaginator {
             $q = Employee::query()
+                ->with('position:id,name')
                 ->when($companyId, fn ($qq) => $qq->where('company_id', $companyId))
                 ->when($term, function ($qq) use ($term) {
                     $qq->where(function ($q) use ($term) {
                         $q->whereRaw('LOWER(first_name) like ?', ["%{$term}%"])
                             ->orWhereRaw('LOWER(last_name) like ?', ["%{$term}%"])
-                            ->orWhereRaw('LOWER(email) like ?', ["%{$term}%"]);
+                            ->orWhereRaw('LOWER(email) like ?', ["%{$term}%"])
+                            ->orWhereHas('position', fn ($pos) => $pos->whereRaw('LOWER(name) like ?', ["%{$term}%"]));
                     });
                 });
 
@@ -178,7 +180,7 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
     public function getEmployee(int $id): Employee
     {
         /** @var Employee $employee */
-        $employee = Employee::findOrFail($id);
+        $employee = Employee::query()->with('position:id,name')->findOrFail($id);
         
         return $employee;
     }
@@ -207,9 +209,10 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
      * @param array{
      *   first_name: string,
      *   last_name: string,
-     *   address?: string|null,
-     *   phone?: string|null,
-     *   email?: string|null,
+      *   address?: string|null,
+      *   phone?: string|null,
+      *   email?: string|null,
+     *   position_id?: int|null,
      *   hired_at: string|null
      * } $data Munkavállaló adatok
      * @return Employee Létrehozott munkavállaló
@@ -241,6 +244,7 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
      *   email?: string|null,
      *   address?: string|null,
      *   phone?: string|null,
+     *   position_id?: int|null,
      *   hired_at?: string|null,
      *   active?: bool,
      *   company_id?: int|null

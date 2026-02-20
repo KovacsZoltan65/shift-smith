@@ -74,7 +74,8 @@ const employeesList = [
         email: "kovacs.janos@testceg.hu",
         phone: "+36 1 234 5678",
         active: true,
-        position: "Fejlesztő",
+        position_id: 1,
+        position_name: "Fejlesztő",
         hired_at: "2026-01-01",
     },
     {
@@ -85,7 +86,8 @@ const employeesList = [
         email: "nagy.anna@testceg.hu",
         phone: "+36 30 111 2222",
         active: false,
-        position: "HR",
+        position_id: 2,
+        position_name: "HR",
         hired_at: null,
     },
 ];

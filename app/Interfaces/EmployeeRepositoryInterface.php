@@ -27,6 +27,7 @@ interface EmployeeRepositoryInterface
      *   address?: string|null,
      *   phone?: string|null,
      *   email?: string|null,
+     *   position_id?: int|null,
      *   hired_at: string|null
      * } $data
      * @return Employee
@@ -41,6 +42,7 @@ interface EmployeeRepositoryInterface
      *   email?: string|null,
      *   address?: string|null,
      *   phone?: string|null,
+     *   position_id?: int|null,
      *   hired_at?: string|null,
      *   active?: bool,
      *   company_id?: int|null

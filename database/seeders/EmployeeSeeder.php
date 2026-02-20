@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Company;
+use App\Models\Position;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -36,6 +37,15 @@ class EmployeeSeeder extends Seeder
         $this->command->info("Employees létrehozása cégenként... ({$countPerCompany} fő/cég)");
 
         $companyIds->each(function (int $companyId) use ($countPerCompany): void {
+            $positionIds = Position::query()
+                ->where('company_id', $companyId)
+                ->pluck('id')
+                ->all();
+
+            if (empty($positionIds)) {
+                return;
+            }
+
             $rows = [];
             $now = now();
 
@@ -49,7 +59,7 @@ class EmployeeSeeder extends Seeder
                     'last_name' => $lastName,
                     'email' => sprintf('employee_%d_%d_%s@example.com', $companyId, $i, Str::lower(Str::random(8))),
                     'address' => fake()->address(),
-                    'position' => fake()->jobTitle(),
+                    'position_id' => fake()->randomElement($positionIds),
                     'phone' => fake()->phoneNumber(),
                     'hired_at' => fake()->date(),
                     'active' => true,

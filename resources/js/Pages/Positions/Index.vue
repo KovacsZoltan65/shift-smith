@@ -1,43 +1,34 @@
 <script setup>
+import { Head } from "@inertiajs/vue3";
 import { onMounted, ref } from "vue";
-import { Head, usePage } from "@inertiajs/vue3";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 
-import DataTable from "primevue/datatable";
-import Column from "primevue/column";
 import Button from "primevue/button";
-import InputText from "primevue/inputtext";
+import Column from "primevue/column";
 import ConfirmDialog from "primevue/confirmdialog";
-import { useConfirm } from "primevue/useconfirm";
-import Toast from "primevue/toast";
-import { useToast } from "primevue/usetoast";
+import DataTable from "primevue/datatable";
+import InputText from "primevue/inputtext";
 import Menu from "primevue/menu";
+import Toast from "primevue/toast";
+import { useConfirm } from "primevue/useconfirm";
+import { useToast } from "primevue/usetoast";
 
-import CreateModal from "@/Pages/HR/Employees/CreateModal.vue";
-import EditModal from "@/Pages/HR/Employees/EditModal.vue";
-import WorkPatternModal from "@/Pages/HR/Employees/WorkPatternModal.vue";
-
-import { csrfFetch } from "@/lib/csrfFetch";
+import CreateModal from "@/Pages/Positions/CreateModal.vue";
+import EditModal from "@/Pages/Positions/EditModal.vue";
 import CompanySelector from "@/Components/Selectors/CompanySelector.vue";
 
-import { toYmd } from "@/helpers/functions.js";
-
-const page = usePage();
+import { csrfFetch } from "@/lib/csrfFetch";
 
 import { usePermissions } from "@/composables/usePermissions";
 const { has } = usePermissions();
-const canCreate = has("employees.create");
-const canUpdate = has("employees.update");
-const canDelete = has("employees.delete");
-const canViewEmployeeWorkPatterns = has("employee_work_patterns.view");
-const canAssignEmployeeWorkPatterns = has("employee_work_patterns.assign");
-const canUnassignEmployeeWorkPatterns = has("employee_work_patterns.unassign");
+const canCreate = has("positions.create");
+const canUpdate = has("positions.update");
+const canDelete = has("positions.delete");
 
 const props = defineProps({
-    title: { type: String, default: "Dolgozók" },
-    filter: { type: Object, default: () => ({}) },
-    default_company_id: { type: [Number, String, null], default: null }, // backend index adja
+    title: String,
+    filter: Object,
 });
 
 const toast = useToast();
@@ -45,9 +36,7 @@ const confirm = useConfirm();
 
 const createOpen = ref(false);
 const editOpen = ref(false);
-const editEmployee = ref(null);
-const workPatternOpen = ref(false);
-const selectedEmployeeForWorkPattern = ref(null);
+const editPosition = ref(null);
 
 const loading = ref(false);
 const actionLoading = ref(false);
@@ -55,19 +44,13 @@ const error = ref(null);
 
 const rows = ref([]);
 const totalRecords = ref(0);
-
-// checkbox selection
 const selected = ref([]);
+const companyId = ref(props.filter?.company_id ?? null);
 
-// ------------------------
-// Row actions menu
 const rowMenu = ref();
 const rowMenuModel = ref([]);
-const rowMenuRow = ref(null);
 
 const openRowMenu = (event, row) => {
-    rowMenuRow.value = row;
-
     rowMenuModel.value = [
         {
             label: "Szerkesztés",
@@ -81,19 +64,11 @@ const openRowMenu = (event, row) => {
             disabled: actionLoading.value || !canDelete,
             command: () => confirmDeleteOne(row),
         },
-        {
-            label: "Munkarend",
-            icon: "pi pi-calendar",
-            disabled: actionLoading.value || !canViewEmployeeWorkPatterns,
-            command: () => openWorkPatternModal(row),
-        },
     ];
 
     rowMenu.value.toggle(event);
 };
-// ------------------------
 
-// lazy state (Companies/Users minta)
 const lazy = ref({
     first: 0,
     rows: 10,
@@ -103,13 +78,6 @@ const lazy = ref({
 });
 
 const search = ref(props.filter?.search ?? "");
-
-// Company filter (CompanySelector)
-const companyId = ref(
-    props.filter?.company_id ??
-        (props.default_company_id ? Number(props.default_company_id) : null)
-);
-
 let t = null;
 
 const openCreate = () => {
@@ -117,23 +85,20 @@ const openCreate = () => {
 };
 
 const openEditModal = (row) => {
-    editEmployee.value = row;
+    editPosition.value = row;
     editOpen.value = true;
 };
 
-const openWorkPatternModal = (row) => {
-    selectedEmployeeForWorkPattern.value = row;
-    workPatternOpen.value = true;
+const onSaved = async (msg = "Mentve.") => {
+    selected.value = [];
+    await fetchPositions();
+    toast.add({ severity: "success", summary: "Siker", detail: msg, life: 2000 });
 };
 
-const onSaved = async (msg = "Mentve.") => {
-    createOpen.value = false;
-    editOpen.value = false;
-    workPatternOpen.value = false;
-
-    selected.value = [];
-    await fetchEmployees();
-    toast.add({ severity: "success", summary: "Siker", detail: msg, life: 2000 });
+const onCompanyChanged = () => {
+    lazy.value.first = 0;
+    lazy.value.page = 0;
+    fetchPositions();
 };
 
 const onSearchInput = () => {
@@ -141,14 +106,8 @@ const onSearchInput = () => {
     t = setTimeout(() => {
         lazy.value.first = 0;
         lazy.value.page = 0;
-        fetchEmployees();
+        fetchPositions();
     }, 300);
-};
-
-const onCompanyChanged = () => {
-    lazy.value.first = 0;
-    lazy.value.page = 0;
-    fetchEmployees();
 };
 
 const buildQuery = () => {
@@ -171,47 +130,26 @@ const buildQuery = () => {
     return new URLSearchParams(q).toString();
 };
 
-const normalizeFetchPayload = (json) => {
-    // 1) backend csomag: { data: paginatorObject }
-    // paginatorObject: { data: [...], total: ... } (Laravel standard)
-    // 2) Companies mintád: { data: [...], meta: { total: ... } }
-    const d = json?.data;
-
-    // ha paginator object jött
-    if (d && typeof d === "object" && Array.isArray(d.data)) {
-        return {
-            rows: d.data,
-            total: Number(d.total ?? d.meta?.total ?? 0),
-        };
+const fetchPositions = async () => {
+    if (!companyId.value) {
+        rows.value = [];
+        totalRecords.value = 0;
+        return;
     }
 
-    // ha tömb jött
-    if (Array.isArray(d)) {
-        return {
-            rows: d,
-            total: Number(json?.meta?.total ?? 0),
-        };
-    }
-
-    return { rows: [], total: 0 };
-};
-
-const fetchEmployees = async () => {
     loading.value = true;
     error.value = null;
 
     try {
-        const res = await fetch(`/employees/fetch?${buildQuery()}`, {
+        const res = await fetch(`/positions/fetch?${buildQuery()}`, {
             headers: { "X-Requested-With": "XMLHttpRequest" },
         });
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const json = await res.json();
-        const out = normalizeFetchPayload(json);
-
-        rows.value = out.rows;
-        totalRecords.value = out.total;
+        rows.value = Array.isArray(json?.data) ? json.data : json?.data?.data ?? [];
+        totalRecords.value = json?.meta?.total ?? 0;
     } catch (e) {
         error.value = e?.message || "Ismeretlen hiba";
     } finally {
@@ -223,7 +161,7 @@ const onPage = (event) => {
     lazy.value.first = event.first;
     lazy.value.rows = event.rows;
     lazy.value.page = event.page;
-    fetchEmployees();
+    fetchPositions();
 };
 
 const onSort = (event) => {
@@ -231,17 +169,12 @@ const onSort = (event) => {
     lazy.value.sortOrder = event.sortOrder;
     lazy.value.first = 0;
     lazy.value.page = 0;
-    fetchEmployees();
+    fetchPositions();
 };
 
 const confirmDeleteOne = (row) => {
-    const label =
-        row?.name ||
-        `${row?.first_name ?? ""} ${row?.last_name ?? ""}`.trim() ||
-        `#${row?.id}`;
-
     confirm.require({
-        message: `Biztos törlöd: ${label}?`,
+        message: `Biztos törlöd: ${row.name}?`,
         header: "Megerősítés",
         icon: "pi pi-exclamation-triangle",
         acceptLabel: "Törlés",
@@ -255,12 +188,14 @@ const deleteOne = async (id) => {
     actionLoading.value = true;
 
     try {
-        const res = await csrfFetch(`/employees/${id}`, {
+        const res = await csrfFetch(`/positions/${id}`, {
             method: "DELETE",
             headers: {
+                "Content-Type": "application/json",
                 "X-Requested-With": "XMLHttpRequest",
                 Accept: "application/json",
             },
+            body: JSON.stringify({ company_id: Number(companyId.value) }),
         });
 
         if (!res.ok) {
@@ -275,13 +210,12 @@ const deleteOne = async (id) => {
         toast.add({
             severity: "success",
             summary: "Siker",
-            detail: "Dolgozó törölve",
+            detail: "Pozíció törölve",
             life: 2500,
         });
 
         selected.value = selected.value.filter((x) => x.id !== id);
-
-        await fetchEmployees();
+        await fetchPositions();
     } catch (e) {
         toast.add({
             severity: "error",
@@ -299,7 +233,7 @@ const confirmBulkDelete = () => {
     if (!ids.length) return;
 
     confirm.require({
-        message: `Biztos törlöd a kijelölt ${ids.length} dolgozót?`,
+        message: `Biztos törlöd a kijelölt ${ids.length} pozíciót?`,
         header: "Bulk törlés",
         icon: "pi pi-exclamation-triangle",
         acceptLabel: "Törlés",
@@ -313,13 +247,13 @@ const bulkDelete = async (ids) => {
     actionLoading.value = true;
 
     try {
-        const res = await csrfFetch(`/employees/destroy_bulk`, {
-            method: "POST",
+        const res = await csrfFetch(`/positions/destroy_bulk`, {
+            method: "DELETE",
             headers: {
                 "Content-Type": "application/json",
                 Accept: "application/json",
             },
-            body: JSON.stringify({ ids }),
+            body: JSON.stringify({ ids, company_id: Number(companyId.value) }),
         });
 
         if (!res.ok) {
@@ -339,7 +273,7 @@ const bulkDelete = async (ids) => {
         });
 
         selected.value = [];
-        await fetchEmployees();
+        await fetchPositions();
     } catch (e) {
         toast.add({
             severity: "error",
@@ -352,56 +286,44 @@ const bulkDelete = async (ids) => {
     }
 };
 
-onMounted(fetchEmployees);
+onMounted(fetchPositions);
 </script>
 
 <template>
-    <Head title="Dolgozók" />
+    <Head :title="props.title" />
 
     <Toast />
     <ConfirmDialog />
 
-    <!-- CREATE MODAL -->
     <CreateModal
         v-model="createOpen"
-        :defaultCompanyId="companyId"
-        :canCreate="canCreate"
+        :companyId="companyId"
         @saved="onSaved"
+        :canCreate="canCreate"
     />
 
-    <!-- EDIT MODAL -->
     <EditModal
         v-model="editOpen"
-        :employee="editEmployee"
+        :position="editPosition"
+        :companyId="companyId"
         :canUpdate="canUpdate"
         @saved="onSaved"
-    />
-
-    <WorkPatternModal
-        v-model="workPatternOpen"
-        :employee="selectedEmployeeForWorkPattern"
-        :canAssign="canAssignEmployeeWorkPatterns"
-        :canUnassign="canUnassignEmployeeWorkPatterns"
     />
 
     <AuthenticatedLayout>
         <div class="p-6">
             <div class="mb-4 flex items-center justify-between gap-3">
-                <div class="flex items-center gap-3 flex-wrap">
+                <div class="flex items-center gap-3">
                     <h1 class="text-2xl font-semibold">{{ title }}</h1>
 
-                    <!-- CREATE -->
                     <Button
                         v-if="canCreate"
-                        label="Új dolgozó"
+                        label="Új pozíció"
                         icon="pi pi-plus"
                         size="small"
-                        :disabled="loading"
                         @click="openCreate"
-                        data-testid="employees-create"
                     />
 
-                    <!-- FRISSÍTÉS -->
                     <Button
                         label="Frissítés"
                         icon="pi pi-refresh"
@@ -409,11 +331,9 @@ onMounted(fetchEmployees);
                         size="small"
                         :disabled="loading || actionLoading"
                         :loading="loading"
-                        @click="fetchEmployees"
-                        data-testid="employees-refresh"
+                        @click="fetchPositions"
                     />
 
-                    <!-- BULK DELETE -->
                     <Button
                         v-if="canDelete"
                         label="Kijelöltek törlése"
@@ -423,20 +343,17 @@ onMounted(fetchEmployees);
                         :disabled="!selected?.length || actionLoading || loading"
                         :loading="actionLoading"
                         @click="confirmBulkDelete"
-                        data-testid="employees-bulk-delete"
                     />
 
                     <div v-if="selected?.length" class="text-sm text-gray-600">
                         Kijelölve: <b>{{ selected.length }}</b>
                     </div>
 
-                    <!-- CompanySelector -->
                     <div class="min-w-[260px]">
                         <CompanySelector
                             v-model="companyId"
                             placeholder="Cég szűrő..."
                             @update:modelValue="onCompanyChanged"
-                            :only-with-employees="true"
                         />
                     </div>
                 </div>
@@ -477,43 +394,11 @@ onMounted(fetchEmployees);
                 @sort="onSort"
                 selectionMode="multiple"
             >
-                <template #empty> Nincs találat. </template>
+                <template #empty>Nincs találat.</template>
 
-                <!-- checkbox oszlop -->
                 <Column selectionMode="multiple" headerStyle="width: 3rem" />
-
                 <Column field="id" header="ID" sortable style="width: 90px" />
-
-                <Column field="name" header="Név" sortable>
-                    <template #body="{ data }">
-                        <div class="font-medium">
-                            {{
-                                data.name ??
-                                `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim()
-                            }}
-                        </div>
-                        <div v-if="data.position_name" class="text-xs text-gray-500">
-                            {{ data.position_name }}
-                        </div>
-                    </template>
-                </Column>
-
-                <Column field="email" header="Email" sortable />
-                <Column field="phone" header="Telefon" sortable />
-
-                <!-- BELÉPÉS -->
-                <Column 
-                    field="hired_at" 
-                    header="Belépés" sortable 
-                    style="width: 140px"
-                >
-                    <template #body="{ data }">
-                        <span class="text-sm">
-                            {{ toYmd(data.hired_at) ?? "-" }}
-                        </span>
-                    </template>
-                </Column>
-
+                <Column field="name" header="Név" sortable />
                 <Column field="active" header="Aktív" sortable style="width: 120px">
                     <template #body="{ data }">
                         <span
@@ -529,7 +414,6 @@ onMounted(fetchEmployees);
                     </template>
                 </Column>
 
-                <!-- Actions -->
                 <Column
                     header="Műveletek"
                     headerStyle="width: 3rem"
@@ -545,7 +429,6 @@ onMounted(fetchEmployees);
                                 rounded
                                 :disabled="actionLoading"
                                 @click="openRowMenu($event, data)"
-                                :title="`Műveletek: ${data.name ?? data.id}`"
                             />
                         </div>
                     </template>

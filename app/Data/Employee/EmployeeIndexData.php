@@ -17,7 +17,8 @@ class EmployeeIndexData extends Data
      * @param string $last_name Vezetéknév
      * @param string $email E-mail cím
      * @param string $address Cím
-     * @param string $position Pozíció
+     * @param ?int $position_id Pozíció azonosító
+     * @param ?string $position_name Pozíció
      * @param string $phone Telefonszám
      * @param string $hired_at Belépés dátuma
      * @param bool $active Aktív státusz
@@ -29,9 +30,10 @@ class EmployeeIndexData extends Data
         public string $last_name,
         public string $email,
         public string $address,
-        public string $position,
-        public string $phone,
-        public string $hired_at,
+        public ?int $position_id,
+        public ?string $position_name,
+        public ?string $phone,
+        public ?string $hired_at,
         public bool $active,
 
     ) {}
@@ -44,6 +46,8 @@ class EmployeeIndexData extends Data
      */
     public static function fromModel(Employee $employee): self
     {
+        $employee->loadMissing('position:id,name');
+
         return new self(
             id: (int) $employee->id,
             company_id: (int) $employee->company_id,
@@ -51,9 +55,10 @@ class EmployeeIndexData extends Data
             last_name: (string) $employee->last_name,
             email: (string) $employee->email,
             address: (string) $employee->address,
-            position: (string) $employee->position,
+            position_id: $employee->position_id ? (int) $employee->position_id : null,
+            position_name: $employee->position?->name,
             phone: $employee->phone,
-            hired_at: $employee->hired_at,
+            hired_at: optional($employee->hired_at)?->format('Y-m-d'),
             active: (bool) $employee->active,
         );
     }

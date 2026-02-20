@@ -6,6 +6,7 @@ import Checkbox from "primevue/checkbox";
 import DatePicker from "primevue/datepicker";
 
 import CompanySelector from "@/Components/Selectors/CompanySelector.vue";
+import PositionSelector from "@/Components/Selectors/PositionSelector.vue";
 
 const props = defineProps({
     modelValue: { type: Object, required: true },
@@ -82,9 +83,14 @@ const fieldError = (key) => {
 
             <div class="md:col-span-2">
                 <label class="mb-1 block text-sm font-medium">Pozíció</label>
-                <InputText v-model="form.position" class="w-full" :disabled="disabled" />
-                <div v-if="fieldError('position')" class="mt-1 text-sm text-red-600">
-                    {{ fieldError("position") }}
+                <PositionSelector
+                    v-model="form.position_id"
+                    :companyId="form.company_id"
+                    :disabled="disabled"
+                    placeholder="Válassz pozíciót..."
+                />
+                <div v-if="fieldError('position_id')" class="mt-1 text-sm text-red-600">
+                    {{ fieldError("position_id") }}
                 </div>
             </div>
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Company;
 use App\Models\Employee;
+use App\Models\Position;
 use App\Services\Cache\CacheVersionService;
 use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\PermissionRegistrar;
@@ -18,7 +19,6 @@ it('validates required fields on employee store (email required)', function (): 
     $user->refresh();
 
     $company = Company::factory()->create();
-
     $this->actingAs($user)
         ->postJson(route('employees.store'), [
             'company_id' => $company->id,
@@ -36,6 +36,10 @@ it('allows admin to store employee and bumps cache versions', function (): void 
     $user->refresh();
 
     $company = Company::factory()->create();
+    $position = Position::factory()->create([
+        'company_id' => $company->id,
+        'name' => 'Operátor',
+    ]);
 
     $versioner = app(CacheVersionService::class);
 
@@ -49,10 +53,10 @@ it('allows admin to store employee and bumps cache versions', function (): void 
         'last_name'  => 'Anna',
         'email'      => 'nagy.anna@test.hu',
         'address'    => 'Teszt utca 1.',
-        'position'   => 'Operátor',
+        'position_id'=> $position->id,
         'hired_at'   => '2026-02-01',
         'active'     => true,
-    ])->only(['company_id', 'first_name', 'last_name', 'email', 'phone', 'position', 'hired_at', 'active']);
+    ])->only(['company_id', 'first_name', 'last_name', 'email', 'phone', 'position_id', 'hired_at', 'active']);
 
     $payload['address'] = 'Teszt utca 1.';
     $payload['hired_at'] = '2026-02-01';
@@ -67,7 +71,7 @@ it('allows admin to store employee and bumps cache versions', function (): void 
         'last_name'  => 'Anna',
         'email'      => 'nagy.anna@test.hu',
         'address'    => 'Teszt utca 1.',
-        'position'   => 'Operátor',
+        'position_id'=> $position->id,
     ]);
 
     expect($versioner->get('employees.fetch'))->toBe(2);

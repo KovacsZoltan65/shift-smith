@@ -28,7 +28,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
  * @property string|null $last_name Vezetéknév
  * @property string|null $email Email cím
  * @property string|null $address Cím
- * @property string|null $position Beosztás
+ * @property int|null $position_id Pozíció azonosító
  * @property string|null $phone Telefonszám
  * @property string|null $hired_at Felvétel dátuma
  * @property int $active Aktív státusz
@@ -51,10 +51,11 @@ class Employee extends Model
 
     protected $fillable = [
         'company_id', 'first_name', 'last_name', 'email', 'address',
-        'position', 'phone', 'hired_at', 'active',
+        'position_id', 'phone', 'hired_at', 'active',
     ];
 
     protected $casts = [
+        'position_id' => 'int',
         'hired_at' => 'date',
         'active' => 'bool',
     ];
@@ -186,7 +187,7 @@ class Employee extends Model
               ->orWhere('last_name', 'like', "%{$s}%")
               ->orWhere('email', 'like', "%{$s}%")
               ->orWhere('phone', 'like', "%{$s}%")
-              ->orWhere('position', 'like', "%{$s}%");
+              ->orWhereHas('position', fn (Builder $qq) => $qq->where('name', 'like', "%{$s}%"));
         });
     }
 
@@ -204,6 +205,16 @@ class Employee extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    /**
+     * Dolgozó pozíció kapcsolata.
+     *
+     * @return BelongsTo<Position, $this>
+     */
+    public function position(): BelongsTo
+    {
+        return $this->belongsTo(Position::class);
     }
 
     /**

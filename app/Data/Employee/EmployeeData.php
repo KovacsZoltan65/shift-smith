@@ -6,6 +6,8 @@ namespace App\Data\Employee;
 
 use App\Models\Employee;
 use Spatie\LaravelData\Data;
+use Spatie\LaravelData\Attributes\Validation\Exists;
+use Spatie\LaravelData\Attributes\Validation\IntegerType;
 use Spatie\LaravelData\Attributes\Validation\DateFormat;
 use Spatie\LaravelData\Attributes\Validation\Email;
 use Spatie\LaravelData\Attributes\Validation\Max;
@@ -28,10 +30,11 @@ class EmployeeData extends Data
      * @param string $last_name Vezetéknév
      * @param string $email E-mail cím
      * @param string $address Cím
-     * @param string $position Pozíció
+     * @param ?int $position_id Pozíció azonosító
      * @param ?string $phone Telefonszám
      * @param ?string $hired_at Belépés dátuma (Y-m-d)
      * @param bool $active Aktív státusz
+     * @param ?string $position_name Pozíció név
      */
     public function __construct(
         public ?int $id,
@@ -51,8 +54,8 @@ class EmployeeData extends Data
         #[Nullable, StringType, Max(255)]
         public ?string $address = null,
 
-        #[Nullable, StringType, Max(120)]
-        public ?string $position = null,
+        #[Nullable, IntegerType, Exists('positions', 'id')]
+        public ?int $position_id = null,
 
         #[Nullable, StringType, Max(50)]
         public ?string $phone = null,
@@ -62,6 +65,8 @@ class EmployeeData extends Data
 
         #[BooleanType]
         public bool $active = true,
+
+        public ?string $position_name = null,
 
     ) {}
 
@@ -73,6 +78,8 @@ class EmployeeData extends Data
      */
     public static function fromModel(Employee $employee): self
     {
+        $employee->loadMissing('position:id,name');
+
         return new self(
             id: $employee->id,
             company_id: $employee->company_id,
@@ -80,11 +87,11 @@ class EmployeeData extends Data
             last_name: $employee->last_name,
             email: $employee->email,
             address: $employee->address,
-            position: $employee->position,
+            position_id: $employee->position_id,
             phone: $employee->phone,
             hired_at: optional($employee->hired_at)?->format('Y-m-d'),
             active: $employee->active,
+            position_name: $employee->position?->name,
         );
     }
 }
-
