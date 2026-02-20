@@ -23,11 +23,11 @@ class WorkPatternFactory extends Factory
         return [
             'company_id' => Company::query()->inRandomOrder()->value('id') ?? Company::factory(),
             'name' => 'Pattern ' . $this->faker->unique()->words(2, true),
-            'type' => $this->faker->randomElement(['fixed_weekly', 'rotating_shifts', 'custom']),
-            'cycle_length_days' => $this->faker->optional()->numberBetween(1, 28),
-            'weekly_minutes' => $this->faker->optional()->numberBetween(300, 3000),
+            'daily_work_minutes' => $this->faker->randomElement([360, 420, 480, 720]),
+            'break_minutes' => $this->faker->randomElement([20, 30, 45, 60]),
+            'core_start_time' => null,
+            'core_end_time' => null,
             'active' => true,
-            'meta' => null,
         ];
     }
 }

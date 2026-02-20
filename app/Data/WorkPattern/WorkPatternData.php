@@ -7,12 +7,13 @@ namespace App\Data\WorkPattern;
 use App\Models\WorkPattern;
 use Spatie\LaravelData\Attributes\MapName;
 use Spatie\LaravelData\Attributes\Validation\BooleanType;
-use Spatie\LaravelData\Attributes\Validation\In;
 use Spatie\LaravelData\Attributes\Validation\IntegerType;
 use Spatie\LaravelData\Attributes\Validation\Max;
+use Spatie\LaravelData\Attributes\Validation\Min;
 use Spatie\LaravelData\Attributes\Validation\Nullable;
 use Spatie\LaravelData\Attributes\Validation\Required;
 use Spatie\LaravelData\Attributes\Validation\StringType;
+use Spatie\LaravelData\Attributes\Validation\DateFormat;
 use Spatie\LaravelData\Data;
 
 /**
@@ -24,11 +25,11 @@ class WorkPatternData extends Data
      * @param ?int $id Munkarend azonosító
      * @param int $company_id Cég azonosító
      * @param string $name Munkarend név
-     * @param string $type Típus (fixed_weekly|rotating_shifts|custom)
-     * @param ?int $cycle_length_days Ciklus hossza napokban
-     * @param ?int $weekly_minutes Heti munkaidő percben
+     * @param int $daily_work_minutes Napi munkaidő percben
+     * @param int $break_minutes Szünet percben
+     * @param ?string $core_start_time Törzsidő kezdete
+     * @param ?string $core_end_time Törzsidő vége
      * @param bool $active Aktív állapot
-     * @param array<string,mixed>|null $meta Meta adatok
      * @param ?string $createdAt Létrehozás ideje
      * @param ?string $updatedAt Frissítés ideje
      */
@@ -41,19 +42,20 @@ class WorkPatternData extends Data
         #[Required, StringType, Max(120)]
         public string $name,
 
-        #[Required, StringType, In(['fixed_weekly', 'rotating_shifts', 'custom'])]
-        public string $type,
+        #[Required, IntegerType, Min(1), Max(1440)]
+        public int $daily_work_minutes,
 
-        #[Nullable, IntegerType]
-        public ?int $cycle_length_days = null,
+        #[Required, IntegerType, Min(0), Max(1440)]
+        public int $break_minutes,
 
-        #[Nullable, IntegerType]
-        public ?int $weekly_minutes = null,
+        #[Nullable, StringType, DateFormat('H:i:s')]
+        public ?string $core_start_time = null,
+
+        #[Nullable, StringType, DateFormat('H:i:s')]
+        public ?string $core_end_time = null,
 
         #[BooleanType]
         public bool $active = true,
-
-        public ?array $meta = null,
 
         #[MapName('created_at')]
         public ?string $createdAt = null,
@@ -74,11 +76,11 @@ class WorkPatternData extends Data
             id: (int) $workPattern->id,
             company_id: (int) $workPattern->company_id,
             name: (string) $workPattern->name,
-            type: (string) $workPattern->type,
-            cycle_length_days: $workPattern->cycle_length_days,
-            weekly_minutes: $workPattern->weekly_minutes,
+            daily_work_minutes: (int) $workPattern->daily_work_minutes,
+            break_minutes: (int) $workPattern->break_minutes,
+            core_start_time: $workPattern->core_start_time,
+            core_end_time: $workPattern->core_end_time,
             active: (bool) $workPattern->active,
-            meta: $workPattern->meta,
             createdAt: optional($workPattern->created_at)?->toDateTimeString(),
             updatedAt: optional($workPattern->updated_at)?->toDateTimeString(),
         );

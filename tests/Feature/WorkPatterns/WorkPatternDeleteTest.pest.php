@@ -23,7 +23,9 @@ it('megtagadja a törlést jogosultság nélkül', function (): void {
     $workPattern = WorkPattern::factory()->create();
 
     $this->actingAs($user)
-        ->deleteJson(route('work_patterns.destroy', ['id' => $workPattern->id]))
+        ->deleteJson(route('work_patterns.destroy', ['id' => $workPattern->id]), [
+            'company_id' => $workPattern->company_id,
+        ])
         ->assertForbidden();
 });
 
@@ -41,7 +43,9 @@ it('soft delete-olja a munkarendet és bumpolja a cache verziókat', function ()
     Cache::forever("v:selectors.work_patterns.company_{$company->id}", 1);
 
     $this->actingAs($user)
-        ->deleteJson(route('work_patterns.destroy', ['id' => $workPattern->id]))
+        ->deleteJson(route('work_patterns.destroy', ['id' => $workPattern->id]), [
+            'company_id' => $company->id,
+        ])
         ->assertOk();
 
     $this->assertSoftDeleted('work_patterns', ['id' => $workPattern->id]);

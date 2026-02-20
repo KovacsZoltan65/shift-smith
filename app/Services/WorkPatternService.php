@@ -42,9 +42,9 @@ class WorkPatternService
      * @param int $id Munkarend azonosító
      * @return WorkPattern Munkarend model
      */
-    public function find(int $id): WorkPattern
+    public function find(int $id, int $companyId): WorkPattern
     {
-        return $this->repo->getWorkPattern($id);
+        return $this->repo->getWorkPattern($id, $companyId);
     }
 
     /**
@@ -58,11 +58,11 @@ class WorkPatternService
         $workPattern = $this->repo->store([
             'company_id' => $data->company_id,
             'name' => $data->name,
-            'type' => $data->type,
-            'cycle_length_days' => $data->cycle_length_days,
-            'weekly_minutes' => $data->weekly_minutes,
+            'daily_work_minutes' => $data->daily_work_minutes,
+            'break_minutes' => $data->break_minutes,
+            'core_start_time' => $data->core_start_time,
+            'core_end_time' => $data->core_end_time,
             'active' => $data->active,
-            'meta' => $data->meta,
         ]);
 
         return WorkPatternData::fromModel($workPattern);
@@ -80,11 +80,11 @@ class WorkPatternService
         $workPattern = $this->repo->update([
             'company_id' => $data->company_id,
             'name' => $data->name,
-            'type' => $data->type,
-            'cycle_length_days' => $data->cycle_length_days,
-            'weekly_minutes' => $data->weekly_minutes,
+            'daily_work_minutes' => $data->daily_work_minutes,
+            'break_minutes' => $data->break_minutes,
+            'core_start_time' => $data->core_start_time,
+            'core_end_time' => $data->core_end_time,
             'active' => $data->active,
-            'meta' => $data->meta,
         ], $id);
 
         return WorkPatternData::fromModel($workPattern);
@@ -96,10 +96,10 @@ class WorkPatternService
      * @param list<int> $ids Munkarend azonosítók
      * @return int Törölt rekordok száma
      */
-    public function bulkDelete(array $ids): int
+    public function bulkDelete(array $ids, int $companyId): int
     {
         $ids = array_values(array_unique($ids));
-        return $this->repo->bulkDelete($ids);
+        return $this->repo->bulkDelete($ids, $companyId);
     }
 
     /**
@@ -108,9 +108,9 @@ class WorkPatternService
      * @param int $id Munkarend azonosító
      * @return bool Sikeres törlés esetén true
      */
-    public function destroy(int $id): bool
+    public function destroy(int $id, int $companyId): bool
     {
-        return $this->repo->destroy($id);
+        return $this->repo->destroy($id, $companyId);
     }
 
     /**
@@ -118,7 +118,7 @@ class WorkPatternService
      *
      * @param int $companyId Cég azonosító
      * @param bool $onlyActive Csak aktív minták
-     * @return array<int, array{id:int, name:string, type:string}> Selector lista
+     * @return array<int, array{id:int, name:string}> Selector lista
      */
     public function getToSelect(int $companyId, bool $onlyActive = true): array
     {
@@ -137,11 +137,10 @@ class WorkPatternService
      *   phone:?string,
      *   date_from:string,
      *   date_to:?string,
-     *   is_primary:bool
      * }>
      */
-    public function getAssignedEmployees(int $workPatternId): array
+    public function getAssignedEmployees(int $workPatternId, int $companyId): array
     {
-        return $this->repo->getAssignedEmployees($workPatternId);
+        return $this->repo->getAssignedEmployees($workPatternId, $companyId);
     }
 }

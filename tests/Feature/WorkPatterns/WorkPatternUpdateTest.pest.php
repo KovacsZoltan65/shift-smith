@@ -26,7 +26,8 @@ it('megtagadja a munkarend módosítást jogosultság nélkül', function (): vo
         ->putJson(route('work_patterns.update', ['id' => $workPattern->id]), [
             'company_id' => $workPattern->company_id,
             'name' => 'Tiltott módosítás',
-            'type' => 'fixed_weekly',
+            'daily_work_minutes' => 480,
+            'break_minutes' => 30,
         ])
         ->assertForbidden();
 });
@@ -49,7 +50,8 @@ it('validálja az egyedi nevet company scope-ban', function (): void {
         ->putJson(route('work_patterns.update', ['id' => $target->id]), [
             'company_id' => $company->id,
             'name' => 'Duplikált név',
-            'type' => 'fixed_weekly',
+            'daily_work_minutes' => 480,
+            'break_minutes' => 30,
         ])
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['name']);
@@ -65,7 +67,8 @@ it('frissíti a munkarendet és bumpolja a cache verziókat', function (): void 
     $workPattern = WorkPattern::factory()->create([
         'company_id' => $company->id,
         'name' => 'Régi név',
-        'type' => 'custom',
+        'daily_work_minutes' => 420,
+        'break_minutes' => 20,
     ]);
 
     $versioner = app(CacheVersionService::class);
@@ -76,11 +79,11 @@ it('frissíti a munkarendet és bumpolja a cache verziókat', function (): void 
         ->putJson(route('work_patterns.update', ['id' => $workPattern->id]), [
             'company_id' => $company->id,
             'name' => 'Új név',
-            'type' => 'rotating_shifts',
-            'cycle_length_days' => 14,
-            'weekly_minutes' => 2400,
+            'daily_work_minutes' => 720,
+            'break_minutes' => 60,
+            'core_start_time' => '10:00',
+            'core_end_time' => '15:00',
             'active' => true,
-            'meta' => ['key' => 'value'],
         ])
         ->assertOk()
         ->assertJsonPath('data.name', 'Új név');
@@ -88,7 +91,10 @@ it('frissíti a munkarendet és bumpolja a cache verziókat', function (): void 
     $this->assertDatabaseHas('work_patterns', [
         'id' => $workPattern->id,
         'name' => 'Új név',
-        'type' => 'rotating_shifts',
+        'daily_work_minutes' => 720,
+        'break_minutes' => 60,
+        'core_start_time' => '10:00:00',
+        'core_end_time' => '15:00:00',
     ]);
 
     expect($versioner->get("work_patterns.fetch.company_{$company->id}"))->toBe(2);

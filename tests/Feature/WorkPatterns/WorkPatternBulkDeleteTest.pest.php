@@ -23,7 +23,10 @@ it('megtagadja a bulk törlést jogosultság nélkül', function (): void {
     $ids = WorkPattern::factory()->count(2)->create()->pluck('id')->all();
 
     $this->actingAs($user)
-        ->deleteJson(route('work_patterns.destroy_bulk'), ['ids' => $ids])
+        ->deleteJson(route('work_patterns.destroy_bulk'), [
+            'ids' => $ids,
+            'company_id' => WorkPattern::query()->findOrFail($ids[0])->company_id,
+        ])
         ->assertForbidden();
 });
 
@@ -42,7 +45,10 @@ it('soft delete-olja a kiválasztott munkarendeket és bumpolja a cache verziók
     Cache::forever("v:selectors.work_patterns.company_{$company->id}", 1);
 
     $this->actingAs($user)
-        ->deleteJson(route('work_patterns.destroy_bulk'), ['ids' => $ids])
+        ->deleteJson(route('work_patterns.destroy_bulk'), [
+            'ids' => $ids,
+            'company_id' => $company->id,
+        ])
         ->assertOk()
         ->assertJsonPath('deleted', 3);
 

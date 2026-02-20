@@ -1,7 +1,6 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import Button from "primevue/button";
-import Checkbox from "primevue/checkbox";
 import Column from "primevue/column";
 import DataTable from "primevue/datatable";
 import DatePicker from "primevue/datepicker";
@@ -31,7 +30,6 @@ const form = ref({
     work_pattern_id: null,
     date_from: null,
     date_to: null,
-    is_primary: true,
 });
 
 const employeeIdInt = computed(() => Number(props.employeeId ?? 0));
@@ -43,7 +41,6 @@ const resetForm = () => {
         work_pattern_id: null,
         date_from: new Date(),
         date_to: null,
-        is_primary: true,
     };
 };
 
@@ -102,7 +99,6 @@ const openEdit = (row) => {
         work_pattern_id: row?.work_pattern_id ?? null,
         date_from: parseDate(row?.date_from),
         date_to: parseDate(row?.date_to),
-        is_primary: !!row?.is_primary,
     };
     assignOpen.value = true;
 };
@@ -111,7 +107,6 @@ const toPayload = () => ({
     work_pattern_id: Number(form.value.work_pattern_id ?? 0),
     date_from: toYmd(form.value.date_from),
     date_to: toYmd(form.value.date_to),
-    is_primary: !!form.value.is_primary,
 });
 
 const submitAssign = async () => {
@@ -212,9 +207,6 @@ const unassign = async (row) => {
             <Column field="date_to" header="Eddig">
                 <template #body="{ data }">{{ data.date_to || "jelenleg" }}</template>
             </Column>
-            <Column field="is_primary" header="Elsődleges">
-                <template #body="{ data }">{{ data.is_primary ? "Igen" : "Nem" }}</template>
-            </Column>
             <Column header="Művelet" style="width: 180px">
                 <template #body="{ data }">
                     <div class="flex items-center gap-1">
@@ -277,11 +269,6 @@ const unassign = async (row) => {
                 <div v-if="errors?.date_to" class="mt-1 text-sm text-red-600">
                     {{ errors.date_to }}
                 </div>
-            </div>
-
-            <div class="flex items-center gap-2">
-                <Checkbox v-model="form.is_primary" binary inputId="ewp-primary" />
-                <label for="ewp-primary" class="text-sm">Elsődleges</label>
             </div>
 
             <div v-if="errors?._global" class="text-sm text-red-600">

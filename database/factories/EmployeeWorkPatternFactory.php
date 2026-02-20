@@ -32,8 +32,6 @@ class EmployeeWorkPatternFactory extends Factory
                 ?? WorkPattern::factory()->state(['company_id' => $companyId]),
             'date_from' => now()->startOfMonth()->toDateString(),
             'date_to' => null,
-            'is_primary' => true,
-            'meta' => null,
         ];
     }
 }

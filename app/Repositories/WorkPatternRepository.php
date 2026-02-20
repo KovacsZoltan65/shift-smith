@@ -8,7 +8,6 @@ use App\Interfaces\WorkPatternRepositoryInterface;
 use App\Models\WorkPattern;
 use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
-use App\Traits\Functions;
 use Illuminate\Container\Container as AppContainer;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
@@ -17,68 +16,46 @@ use Override;
 use Prettus\Repository\Criteria\RequestCriteria;
 use Prettus\Repository\Eloquent\BaseRepository;
 
-/**
- * Munkarend repository osztály.
- *
- * Adatbázis műveletek kezelése munkarendekhez cache támogatással.
- */
 class WorkPatternRepository extends BaseRepository implements WorkPatternRepositoryInterface
 {
-    use Functions;
-
-    protected CacheService $cacheService;
-
-    private readonly CacheVersionService $cacheVersionService;
-
     private const NS_WORK_PATTERNS_FETCH = 'work_patterns.fetch';
     private const NS_SELECTORS_WORK_PATTERNS = 'selectors.work_patterns';
 
     public function __construct(
         AppContainer $app,
-        CacheService $cacheService,
-        CacheVersionService $cacheVersionService
+        private readonly CacheService $cacheService,
+        private readonly CacheVersionService $cacheVersionService
     ) {
         parent::__construct($app);
-        $this->cacheService = $cacheService;
-        $this->cacheVersionService = $cacheVersionService;
     }
 
-    /**
-     * Cache tag előállítása tenant scope-hoz.
-     *
-     * @param int $companyId Cég azonosító
-     * @return string Cache tag
-     */
     private function tagForCompany(int $companyId): string
     {
-        return "work_patterns:company_{$companyId}";
+        return "company:{$companyId}:work_patterns";
     }
 
-    /**
-     * @inheritDoc
-     */
+    private function selectorTagForCompany(int $companyId): string
+    {
+        return "company:{$companyId}:work_patterns:selector";
+    }
+
     public function fetch(Request $request): LengthAwarePaginator
     {
         $needCache = (bool) config('cache.enable_work_patterns', false);
 
-        $page = (int) $request->integer('page', 1);
-        $perPage = (int) $request->integer('per_page', 10);
-        $perPage = ($perPage > 0) ? min($perPage, 100) : 10;
-
-        $companyId = (int) $request->integer('company_id', 0);
+        $page = max(1, (int) $request->integer('page', 1));
+        $perPage = min(max(1, (int) $request->integer('per_page', 10)), 100);
+        $companyId = (int) $request->integer('company_id');
         $termRaw = trim((string) $request->input('search', ''));
         $term = $termRaw === '' ? null : mb_strtolower($termRaw, 'UTF-8');
-
         $field = in_array((string) $request->input('field', ''), WorkPattern::SORTABLE, true)
             ? (string) $request->input('field')
             : null;
         $direction = strtolower((string) $request->input('order', 'desc')) === 'asc' ? 'asc' : 'desc';
-        $appendQuery = $request->only(['search', 'field', 'order', 'per_page', 'company_id']);
 
-        $queryCallback = function () use ($companyId, $term, $field, $direction, $perPage, $page, $appendQuery): LengthAwarePaginator {
-            $q = WorkPattern::query()
+        $queryCallback = function () use ($companyId, $term, $field, $direction, $perPage, $page): LengthAwarePaginator {
+            $query = WorkPattern::query()
                 ->select('work_patterns.*')
-                // Aggregalt mező a lista nézethez: hozzárendelt, nem törölt dolgozók száma.
                 ->selectSub(
                     fn ($sub) => $sub
                         ->from('employee_work_patterns')
@@ -87,65 +64,48 @@ class WorkPatternRepository extends BaseRepository implements WorkPatternReposit
                         ->whereNull('employee_work_patterns.deleted_at'),
                     'employees_count'
                 )
-                ->when($companyId > 0, fn ($qq) => $qq->where('company_id', $companyId))
-                ->when($term, function ($qq) use ($term): void {
-                    $qq->where(function ($q) use ($term): void {
-                        $q->whereRaw('LOWER(name) like ?', ["%{$term}%"])
-                            ->orWhereRaw('LOWER(type) like ?', ["%{$term}%"]);
-                    });
+                ->where('work_patterns.company_id', $companyId)
+                ->when($term, function ($q) use ($term): void {
+                    $q->whereRaw('LOWER(name) like ?', ["%{$term}%"]);
                 })
-                ->when($field, fn ($qq) => $qq->orderBy($field, $direction))
-                ->when(!$field, fn ($qq) => $qq->orderByDesc('id'));
+                ->when($field, fn ($q) => $q->orderBy($field, $direction))
+                ->when(!$field, fn ($q) => $q->orderByDesc('id'));
 
-            $paginator = $q->paginate($perPage, ['*'], 'page', $page);
-            $paginator->appends($appendQuery);
-
-            return $paginator;
+            return $query->paginate($perPage, ['*'], 'page', $page);
         };
 
-        if (!$needCache || $companyId <= 0) {
-            /** @var LengthAwarePaginator<int, WorkPattern> $out */
-            $out = $queryCallback();
-            return $out;
+        if (!$needCache) {
+            return $queryCallback();
         }
 
         $version = $this->cacheVersionService->get(self::NS_WORK_PATTERNS_FETCH . ".company_{$companyId}");
-        $paramsForKey = [
+        $hash = hash('sha256', json_encode([
             'page' => $page,
             'per_page' => $perPage,
             'company_id' => $companyId,
             'search' => $term,
             'field' => $field,
             'order' => $direction,
-        ];
-        ksort($paramsForKey);
-        $hash = hash('sha256', json_encode($paramsForKey, JSON_THROW_ON_ERROR));
-        $key = "v{$version}:{$hash}";
+        ], JSON_THROW_ON_ERROR));
 
-        /** @var LengthAwarePaginator<int, WorkPattern> $out */
-        $out = $this->cacheService->remember(
+        return $this->cacheService->remember(
             tag: $this->tagForCompany($companyId),
-            key: $key,
+            key: "v{$version}:{$hash}",
             callback: $queryCallback,
             ttl: (int) config('cache.ttl_fetch', 60)
         );
-
-        return $out;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function getWorkPattern(int $id): WorkPattern
+    public function getWorkPattern(int $id, int $companyId): WorkPattern
     {
         /** @var WorkPattern $workPattern */
-        $workPattern = WorkPattern::query()->findOrFail($id);
+        $workPattern = WorkPattern::query()
+            ->where('company_id', $companyId)
+            ->findOrFail($id);
+
         return $workPattern;
     }
 
-    /**
-     * @inheritDoc
-     */
     public function store(array $data): WorkPattern
     {
         return DB::transaction(function () use ($data): WorkPattern {
@@ -156,39 +116,34 @@ class WorkPatternRepository extends BaseRepository implements WorkPatternReposit
         });
     }
 
-    /**
-     * @inheritDoc
-     */
     public function update(array $data, mixed $id): WorkPattern
     {
         return DB::transaction(function () use ($data, $id): WorkPattern {
+            $companyId = (int) $data['company_id'];
+
             /** @var WorkPattern $workPattern */
-            $workPattern = WorkPattern::query()->lockForUpdate()->findOrFail($id);
+            $workPattern = WorkPattern::query()
+                ->where('company_id', $companyId)
+                ->lockForUpdate()
+                ->findOrFail($id);
+
             $workPattern->fill($data);
             $workPattern->save();
             $workPattern->refresh();
-            $this->invalidateAfterWrite((int) $workPattern->company_id);
+            $this->invalidateAfterWrite($companyId);
             return $workPattern;
         });
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function bulkDelete(array $ids): int
+    public function bulkDelete(array $ids, int $companyId): int
     {
-        return DB::transaction(function () use ($ids): int {
-            $companyIds = WorkPattern::query()
+        return DB::transaction(function () use ($ids, $companyId): int {
+            $deleted = (int) WorkPattern::query()
+                ->where('company_id', $companyId)
                 ->whereIn('id', $ids)
-                ->pluck('company_id')
-                ->unique()
-                ->map(fn ($id): int => (int) $id)
-                ->values()
-                ->all();
+                ->delete();
 
-            $deleted = (int) WorkPattern::query()->whereIn('id', $ids)->delete();
-
-            foreach ($companyIds as $companyId) {
+            if ($deleted > 0) {
                 $this->invalidateAfterWrite($companyId);
             }
 
@@ -196,80 +151,66 @@ class WorkPatternRepository extends BaseRepository implements WorkPatternReposit
         });
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function destroy(int $id): bool
+    public function destroy(int $id, int $companyId): bool
     {
-        return DB::transaction(function () use ($id): bool {
+        return DB::transaction(function () use ($id, $companyId): bool {
             /** @var WorkPattern $workPattern */
-            $workPattern = WorkPattern::query()->lockForUpdate()->findOrFail($id);
-            $companyId = (int) $workPattern->company_id;
+            $workPattern = WorkPattern::query()
+                ->where('company_id', $companyId)
+                ->lockForUpdate()
+                ->findOrFail($id);
+
             $deleted = (bool) $workPattern->delete();
-            $this->invalidateAfterWrite($companyId);
+            if ($deleted) {
+                $this->invalidateAfterWrite($companyId);
+            }
+
             return $deleted;
         });
     }
 
-    /**
-     * @inheritDoc
-     */
     public function getToSelect(int $companyId, bool $onlyActive = true): array
     {
         $needCache = (bool) config('cache.enable_work_pattern_to_select', false);
+
         $queryCallback = function () use ($companyId, $onlyActive): array {
-            /** @var array<int, array{id:int, name:string, type:string}> $out */
-            $out = WorkPattern::query()
+            return WorkPattern::query()
                 ->where('company_id', $companyId)
                 ->when($onlyActive, fn ($q) => $q->where('active', true))
-                ->select(['id', 'name', 'type'])
+                ->select(['id', 'name'])
                 ->orderBy('name')
                 ->get()
-                ->map(fn (WorkPattern $w): array => [
-                    'id' => (int) $w->id,
-                    'name' => (string) $w->name,
-                    'type' => (string) $w->type,
+                ->map(static fn (WorkPattern $workPattern): array => [
+                    'id' => (int) $workPattern->id,
+                    'name' => (string) $workPattern->name,
                 ])
                 ->values()
                 ->all();
-            return $out;
         };
 
-        if (!$needCache || $companyId <= 0) {
+        if (!$needCache) {
             return $queryCallback();
         }
 
         $version = $this->cacheVersionService->get(self::NS_SELECTORS_WORK_PATTERNS . ".company_{$companyId}");
-        $hash = hash('sha256', json_encode(['company_id' => $companyId, 'only_active' => $onlyActive], JSON_THROW_ON_ERROR));
-        $key = "v{$version}:{$hash}";
+        $hash = hash('sha256', json_encode([
+            'company_id' => $companyId,
+            'only_active' => $onlyActive,
+        ], JSON_THROW_ON_ERROR));
 
-        /** @var array<int, array{id:int, name:string, type:string}> */
         return $this->cacheService->remember(
-            tag: $this->tagForCompany($companyId),
-            key: $key,
+            tag: $this->selectorTagForCompany($companyId),
+            key: "v{$version}:{$hash}",
             callback: $queryCallback,
             ttl: (int) config('cache.ttl_fetch', 1800)
         );
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function getAssignedEmployees(int $workPatternId): array
+    public function getAssignedEmployees(int $workPatternId, int $companyId): array
     {
-        /** @var array<int, array{
-         *   id:int,
-         *   employee_id:int,
-         *   name:string,
-         *   email:?string,
-         *   phone:?string,
-         *   date_from:string,
-         *   date_to:?string,
-         *   is_primary:bool
-         * }> $out
-         */
-        $out = DB::table('employee_work_patterns as ewp')
+        return DB::table('employee_work_patterns as ewp')
             ->join('employees as e', 'e.id', '=', 'ewp.employee_id')
+            ->where('ewp.company_id', $companyId)
             ->where('ewp.work_pattern_id', $workPatternId)
             ->whereNull('ewp.deleted_at')
             ->whereNull('e.deleted_at')
@@ -281,9 +222,7 @@ class WorkPatternRepository extends BaseRepository implements WorkPatternReposit
                 'e.phone',
                 'ewp.date_from',
                 'ewp.date_to',
-                'ewp.is_primary',
             ])
-            ->orderByDesc('ewp.is_primary')
             ->orderBy('e.last_name')
             ->orderBy('e.first_name')
             ->get()
@@ -295,20 +234,11 @@ class WorkPatternRepository extends BaseRepository implements WorkPatternReposit
                 'phone' => $row->phone ? (string) $row->phone : null,
                 'date_from' => (string) $row->date_from,
                 'date_to' => $row->date_to ? (string) $row->date_to : null,
-                'is_primary' => (bool) $row->is_primary,
             ])
             ->values()
             ->all();
-
-        return $out;
     }
 
-    /**
-     * Cache invalidálás írási műveletek után.
-     *
-     * @param int $companyId Cég azonosító
-     * @return void
-     */
     private function invalidateAfterWrite(int $companyId): void
     {
         DB::afterCommit(function () use ($companyId): void {
@@ -317,18 +247,12 @@ class WorkPatternRepository extends BaseRepository implements WorkPatternReposit
         });
     }
 
-    /**
-     * Repository model osztály megadása.
-     */
     #[Override]
     public function model(): string
     {
         return WorkPattern::class;
     }
 
-    /**
-     * Repository inicializálás.
-     */
     public function boot(): void
     {
         $this->pushCriteria(app(RequestCriteria::class));

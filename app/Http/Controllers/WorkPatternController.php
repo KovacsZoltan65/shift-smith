@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Data\WorkPattern\WorkPatternData;
 use App\Data\WorkPattern\WorkPatternIndexData;
 use App\Http\Requests\WorkPattern\BulkDeleteRequest;
+use App\Http\Requests\WorkPattern\DeleteRequest;
 use App\Http\Requests\WorkPattern\FetchRequest;
 use App\Http\Requests\WorkPattern\SelectorRequest;
 use App\Http\Requests\WorkPattern\StoreRequest;
@@ -15,6 +16,7 @@ use App\Models\WorkPattern;
 use App\Policies\WorkPatternPolicy;
 use App\Services\WorkPatternService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -82,9 +84,13 @@ class WorkPatternController extends Controller
      * @param int $id Munkarend azonosító
      * @return JsonResponse Munkarend adatok JSON-ben
      */
-    public function getWorkPattern(int $id): JsonResponse
+    public function getWorkPattern(Request $request, int $id): JsonResponse
     {
-        $workPattern = $this->service->find($id);
+        $companyId = (int) $request->validate([
+            'company_id' => ['required', 'integer', 'exists:companies,id'],
+        ])['company_id'];
+
+        $workPattern = $this->service->find($id, $companyId);
         $this->authorize(WorkPatternPolicy::PERM_VIEW, $workPattern);
 
         return response()->json([
@@ -120,7 +126,8 @@ class WorkPatternController extends Controller
      */
     public function update(int $id, UpdateRequest $request): JsonResponse
     {
-        $workPattern = $this->service->find($id);
+        $companyId = (int) $request->validated('company_id');
+        $workPattern = $this->service->find($id, $companyId);
         $this->authorize(WorkPatternPolicy::PERM_UPDATE, $workPattern);
 
         $updated = $this->service->update($id, WorkPatternData::from($request->validated()));
@@ -141,7 +148,10 @@ class WorkPatternController extends Controller
     {
         $this->authorize(WorkPatternPolicy::PERM_DELETE_ANY, WorkPattern::class);
 
-        $deleted = $this->service->bulkDelete($request->validated('ids'));
+        $deleted = $this->service->bulkDelete(
+            $request->validated('ids'),
+            (int) $request->validated('company_id')
+        );
 
         return response()->json([
             'message' => 'Sikeres törlés.',
@@ -166,11 +176,12 @@ class WorkPatternController extends Controller
      * @param int $id Munkarend azonosító
      * @return JsonResponse Törlés eredménye
      */
-    public function destroy(int $id): JsonResponse
+    public function destroy(DeleteRequest $request, int $id): JsonResponse
     {
-        $workPattern = $this->service->find($id);
+        $companyId = (int) $request->validated('company_id');
+        $workPattern = $this->service->find($id, $companyId);
         $this->authorize(WorkPatternPolicy::PERM_DELETE, $workPattern);
-        $deleted = $this->service->destroy($id);
+        $deleted = $this->service->destroy($id, $companyId);
 
         return response()->json([
             'message' => $deleted ? 'Törlés sikeres.' : 'Törlés sikertelen.',
@@ -201,14 +212,18 @@ class WorkPatternController extends Controller
      * @param int $id Munkarend azonosító
      * @return JsonResponse Dolgozó lista
      */
-    public function getEmployees(int $id): JsonResponse
+    public function getEmployees(Request $request, int $id): JsonResponse
     {
-        $workPattern = $this->service->find($id);
+        $companyId = (int) $request->validate([
+            'company_id' => ['required', 'integer', 'exists:companies,id'],
+        ])['company_id'];
+
+        $workPattern = $this->service->find($id, $companyId);
         $this->authorize(WorkPatternPolicy::PERM_VIEW, $workPattern);
 
         return response()->json([
             'message' => 'Hozzárendelt dolgozók sikeresen lekérve.',
-            'data' => $this->service->getAssignedEmployees($id),
+            'data' => $this->service->getAssignedEmployees($id, $companyId),
         ], Response::HTTP_OK);
     }
 }

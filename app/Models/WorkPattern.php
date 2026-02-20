@@ -21,11 +21,11 @@ use Spatie\Activitylog\Traits\LogsActivity;
  * @property int $id Munkarend azonosító
  * @property int $company_id Cég azonosító
  * @property string $name Munkarend neve
- * @property string $type Munkarend típus (fixed_weekly|rotating_shifts|custom)
- * @property int|null $cycle_length_days Rotációs ciklus napokban
- * @property int|null $weekly_minutes Heti munkaidő percben
+ * @property int $daily_work_minutes Napi munkaidő percben
+ * @property int $break_minutes Szünet percben
+ * @property string|null $core_start_time Törzsidő kezdete
+ * @property string|null $core_end_time Törzsidő vége
  * @property bool $active Aktív státusz
- * @property array<string,mixed>|null $meta Kiegészítő meta adatok
  */
 class WorkPattern extends Model
 {
@@ -38,25 +38,29 @@ class WorkPattern extends Model
     protected $fillable = [
         'company_id',
         'name',
-        'type',
-        'cycle_length_days',
-        'weekly_minutes',
+        'daily_work_minutes',
+        'break_minutes',
+        'core_start_time',
+        'core_end_time',
         'active',
-        'meta',
     ];
 
     /** @var array<string,string> */
     protected $casts = [
         'company_id' => 'int',
-        'cycle_length_days' => 'int',
-        'weekly_minutes' => 'int',
+        'daily_work_minutes' => 'int',
+        'break_minutes' => 'int',
         'active' => 'bool',
-        'meta' => 'array',
     ];
 
     /** @var array<int,string> */
     public const SORTABLE = [
-        'id', 'name', 'type', 'weekly_minutes', 'active', 'created_at',
+        'id',
+        'name',
+        'daily_work_minutes',
+        'break_minutes',
+        'active',
+        'created_at',
     ];
 
     /** @var array<int,string> */

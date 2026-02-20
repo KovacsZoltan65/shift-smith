@@ -51,8 +51,6 @@ class EmployeeWorkPatternService
             'work_pattern_id' => $data->work_pattern_id,
             'date_from' => $data->date_from,
             'date_to' => $data->date_to,
-            'is_primary' => $data->is_primary,
-            'meta' => $data->meta,
         ]);
 
         return EmployeeWorkPatternData::fromModel($row);
@@ -66,14 +64,12 @@ class EmployeeWorkPatternService
      * @param EmployeeWorkPatternData $data Frissítendő DTO
      * @return EmployeeWorkPatternData Frissített DTO
      */
-    public function updateAssignment(int $id, int $employeeId, EmployeeWorkPatternData $data): EmployeeWorkPatternData
+    public function updateAssignment(int $id, int $employeeId, int $companyId, EmployeeWorkPatternData $data): EmployeeWorkPatternData
     {
-        $row = $this->repo->updateAssignment($id, $employeeId, [
+        $row = $this->repo->updateAssignment($id, $employeeId, $companyId, [
             'work_pattern_id' => $data->work_pattern_id,
             'date_from' => $data->date_from,
             'date_to' => $data->date_to,
-            'is_primary' => $data->is_primary,
-            'meta' => $data->meta,
         ]);
 
         return EmployeeWorkPatternData::fromModel($row);
@@ -86,8 +82,8 @@ class EmployeeWorkPatternService
      * @param int $employeeId Dolgozó azonosító
      * @return bool Sikeres törlés esetén true
      */
-    public function unassign(int $id, int $employeeId): bool
+    public function unassign(int $id, int $employeeId, int $companyId): bool
     {
-        return $this->repo->unassign($id, $employeeId);
+        return $this->repo->unassign($id, $employeeId, $companyId);
     }
 }

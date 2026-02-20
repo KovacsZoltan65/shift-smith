@@ -4,11 +4,11 @@ import { onMounted, ref } from "vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import Button from "primevue/button";
 import Column from "primevue/column";
+import Checkbox from "primevue/checkbox";
 import ConfirmDialog from "primevue/confirmdialog";
 import DataTable from "primevue/datatable";
 import InputText from "primevue/inputtext";
 import Menu from "primevue/menu";
-import Tag from "primevue/tag";
 import Toast from "primevue/toast";
 import { useConfirm } from "primevue/useconfirm";
 import { useToast } from "primevue/usetoast";
@@ -66,18 +66,6 @@ const lazy = ref({
 
 const rowMenu = ref();
 const rowMenuModel = ref([]);
-
-const typeLabel = (type) => {
-    if (type === "fixed_weekly") return "Fix heti";
-    if (type === "rotating_shifts") return "Rotációs";
-    return "Egyedi";
-};
-
-const typeSeverity = (type) => {
-    if (type === "fixed_weekly") return "info";
-    if (type === "rotating_shifts") return "warn";
-    return "secondary";
-};
 
 const openCreate = () => {
     createOpen.value = true;
@@ -173,6 +161,12 @@ const buildQuery = () => {
 };
 
 const fetchWorkPatterns = async () => {
+    if (!companyId.value) {
+        rows.value = [];
+        totalRecords.value = 0;
+        return;
+    }
+
     loading.value = true;
     error.value = null;
 
@@ -225,7 +219,12 @@ const deleteOne = async (id) => {
     try {
         const res = await csrfFetch(`/work-patterns/${id}`, {
             method: "DELETE",
-            headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" },
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                "X-Requested-With": "XMLHttpRequest",
+            },
+            body: JSON.stringify({ company_id: Number(companyId.value) }),
         });
 
         if (!res.ok) {
@@ -264,7 +263,7 @@ const bulkDelete = async (ids) => {
         const res = await csrfFetch("/work-patterns/destroy_bulk", {
             method: "DELETE",
             headers: { "Content-Type": "application/json", Accept: "application/json" },
-            body: JSON.stringify({ ids }),
+            body: JSON.stringify({ ids, company_id: Number(companyId.value) }),
         });
 
         if (!res.ok) {
@@ -282,6 +281,47 @@ const bulkDelete = async (ids) => {
         await fetchWorkPatterns();
     } catch (e) {
         toast.add({ severity: "error", summary: "Hiba", detail: e?.message || "Ismeretlen hiba", life: 3500 });
+    } finally {
+        actionLoading.value = false;
+    }
+};
+
+const formatCore = (start, end) => {
+    if (!start) return "Nem rugalmas";
+    const from = String(start).slice(0, 5);
+    const to = end ? String(end).slice(0, 5) : "-";
+    return `${from}-${to}`;
+};
+
+const toggleActive = async (row, value) => {
+    actionLoading.value = true;
+    try {
+        const payload = {
+            company_id: Number(row.company_id),
+            name: row.name,
+            daily_work_minutes: Number(row.daily_work_minutes),
+            break_minutes: Number(row.break_minutes),
+            core_start_time: row.core_start_time,
+            core_end_time: row.core_end_time,
+            active: !!value,
+        };
+
+        const res = await csrfFetch(`/work-patterns/${row.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(body?.message || `Aktiválás sikertelen (HTTP ${res.status})`);
+        }
+
+        row.active = !!value;
+        toast.add({ severity: "success", summary: "Siker", detail: "Státusz frissítve", life: 2000 });
+    } catch (e) {
+        toast.add({ severity: "error", summary: "Hiba", detail: e?.message || "Ismeretlen hiba", life: 3500 });
+        await fetchWorkPatterns();
     } finally {
         actionLoading.value = false;
     }
@@ -413,13 +453,13 @@ onMounted(fetchWorkPatterns);
                 <Column field="id" header="ID" sortable style="width: 90px" />
                 <Column field="name" header="Név" sortable />
 
-                <Column field="type" header="Típus" sortable>
+                <Column field="daily_work_minutes" header="Napi perc" sortable />
+                <Column field="break_minutes" header="Szünet perc" sortable />
+                <Column header="Core idő">
                     <template #body="{ data }">
-                        <Tag :value="typeLabel(data.type)" :severity="typeSeverity(data.type)" />
+                        {{ formatCore(data.core_start_time, data.core_end_time) }}
                     </template>
                 </Column>
-
-                <Column field="weekly_minutes" header="Heti perc" sortable />
                 <Column field="employees_count" header="Dolgozók száma" style="width: 150px">
                     <template #body="{ data }">
                         <!-- A darabszám kattintható: részletes dolgozólista modal megnyitása. -->
@@ -435,9 +475,11 @@ onMounted(fetchWorkPatterns);
 
                 <Column field="active" header="Aktív" sortable style="width: 120px">
                     <template #body="{ data }">
-                        <Tag
-                            :value="data.active ? 'Aktív' : 'Inaktív'"
-                            :severity="data.active ? 'success' : 'secondary'"
+                        <Checkbox
+                            :modelValue="!!data.active"
+                            binary
+                            :disabled="actionLoading || !canUpdate"
+                            @update:modelValue="(v) => toggleActive(data, !!v)"
                         />
                     </template>
                 </Column>

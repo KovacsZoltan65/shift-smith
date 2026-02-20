@@ -23,7 +23,8 @@ it('megtagadja a munkarend létrehozást jogosultság nélkül', function (): vo
         ->postJson(route('work_patterns.store'), [
             'company_id' => $company->id,
             'name' => 'Nope',
-            'type' => 'fixed_weekly',
+            'daily_work_minutes' => 480,
+            'break_minutes' => 30,
         ])
         ->assertForbidden();
 });
@@ -34,7 +35,7 @@ it('validálja a kötelező mezőket létrehozáskor', function (): void {
     $this->actingAs($user)
         ->postJson(route('work_patterns.store'), [])
         ->assertUnprocessable()
-        ->assertJsonValidationErrors(['company_id', 'name', 'type']);
+        ->assertJsonValidationErrors(['company_id', 'name', 'daily_work_minutes', 'break_minutes']);
 });
 
 it('létrehozza a munkarendet és bumpolja a cache verziókat', function (): void {
@@ -52,27 +53,31 @@ it('létrehozza a munkarendet és bumpolja a cache verziókat', function (): voi
     $payload = WorkPattern::factory()->make([
         'company_id' => $company->id,
         'name' => 'Nappali fix',
-        'type' => 'fixed_weekly',
+        'daily_work_minutes' => 480,
+        'break_minutes' => 30,
+        'core_start_time' => null,
+        'core_end_time' => null,
         'active' => true,
     ])->only([
         'company_id',
         'name',
-        'type',
-        'cycle_length_days',
-        'weekly_minutes',
+        'daily_work_minutes',
+        'break_minutes',
+        'core_start_time',
+        'core_end_time',
         'active',
-        'meta',
     ]);
 
     $this->actingAs($user)
         ->postJson(route('work_patterns.store'), $payload)
         ->assertCreated()
-        ->assertJsonStructure(['message', 'data' => ['id', 'company_id', 'name', 'type']]);
+        ->assertJsonStructure(['message', 'data' => ['id', 'company_id', 'name', 'daily_work_minutes']]);
 
     $this->assertDatabaseHas('work_patterns', [
         'company_id' => $company->id,
         'name' => 'Nappali fix',
-        'type' => 'fixed_weekly',
+        'daily_work_minutes' => 480,
+        'break_minutes' => 30,
     ]);
 
     expect($versioner->get("work_patterns.fetch.company_{$company->id}"))->toBe(2);

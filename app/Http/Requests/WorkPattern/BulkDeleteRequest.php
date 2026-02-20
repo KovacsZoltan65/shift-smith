@@ -26,6 +26,7 @@ class BulkDeleteRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'company_id' => ['required', 'integer', 'exists:companies,id'],
             'ids' => ['required', 'array', 'min:1'],
             'ids.*' => ['integer', 'distinct', 'exists:work_patterns,id'],
         ];

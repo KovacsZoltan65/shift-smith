@@ -15,7 +15,11 @@ class DeleteRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->can(WorkPatternPolicy::PERM_DELETE, WorkPattern::class) ?? false;
+        $id = (int) $this->route('id');
+        $workPattern = WorkPattern::query()->find($id);
+
+        return $workPattern !== null
+            && ($this->user()?->can(WorkPatternPolicy::PERM_DELETE, $workPattern) ?? false);
     }
 
     /**
@@ -25,6 +29,8 @@ class DeleteRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [];
+        return [
+            'company_id' => ['required', 'integer', 'exists:companies,id'],
+        ];
     }
 }

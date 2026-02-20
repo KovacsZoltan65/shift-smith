@@ -1,7 +1,6 @@
 <script setup>
 import { computed, ref } from "vue";
 import Button from "primevue/button";
-import Checkbox from "primevue/checkbox";
 import DatePicker from "primevue/datepicker";
 import Dialog from "primevue/dialog";
 import EmployeeSelector from "@/Components/Selectors/EmployeeSelector.vue";
@@ -25,7 +24,6 @@ const form = ref({
     employee_id: null,
     date_from: new Date(),
     date_to: null,
-    is_primary: true,
 });
 
 const visible = computed({
@@ -44,7 +42,6 @@ const reset = () => {
         employee_id: null,
         date_from: new Date(),
         date_to: null,
-        is_primary: true,
     };
 };
 
@@ -59,7 +56,6 @@ const toPayload = () => ({
     work_pattern_id: Number(props.workPattern?.id ?? 0),
     date_from: toYmd(form.value.date_from),
     date_to: toYmd(form.value.date_to),
-    is_primary: !!form.value.is_primary,
 });
 
 const submit = async () => {
@@ -140,12 +136,6 @@ const submit = async () => {
                     {{ errors.date_to }}
                 </div>
             </div>
-
-            <div class="flex items-center gap-2">
-                <Checkbox v-model="form.is_primary" binary inputId="assign-primary" />
-                <label for="assign-primary" class="text-sm">Elsődleges</label>
-            </div>
-
             <div v-if="errors?._global" class="text-sm text-red-600">
                 {{ errors._global }}
             </div>

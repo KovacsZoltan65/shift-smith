@@ -43,7 +43,6 @@ it('validálja a dátum logikát és az átfedést', function (): void {
         'work_pattern_id' => $pattern->id,
         'date_from' => '2026-01-01',
         'date_to' => '2026-12-31',
-        'is_primary' => true,
     ]);
 
     $this->actingAs($user)
@@ -51,7 +50,6 @@ it('validálja a dátum logikát és az átfedést', function (): void {
             'work_pattern_id' => $pattern->id,
             'date_from' => '2026-05-01',
             'date_to' => '2026-04-01',
-            'is_primary' => true,
         ])
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['date_to']);
@@ -61,7 +59,6 @@ it('validálja a dátum logikát és az átfedést', function (): void {
             'work_pattern_id' => $pattern->id,
             'date_from' => '2026-06-01',
             'date_to' => '2026-10-01',
-            'is_primary' => true,
         ])
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['date_from']);
@@ -80,7 +77,6 @@ it('megakadályozza a más company-hoz tartozó munkarend hozzárendelését', f
         ->postJson(route('employee_work_patterns.assign', ['employee' => $employee->id]), [
             'work_pattern_id' => $pattern->id,
             'date_from' => '2026-01-01',
-            'is_primary' => true,
         ])
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['work_pattern_id']);
@@ -104,7 +100,6 @@ it('létrehozza a hozzárendelést és bumpolja a cache verziót', function (): 
             'work_pattern_id' => $pattern->id,
             'date_from' => '2026-01-01',
             'date_to' => null,
-            'is_primary' => true,
         ])
         ->assertCreated()
         ->assertJsonPath('data.employee_id', $employee->id);

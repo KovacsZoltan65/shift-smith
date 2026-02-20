@@ -4,7 +4,6 @@ import Button from "primevue/button";
 import Column from "primevue/column";
 import DataTable from "primevue/datatable";
 import Dialog from "primevue/dialog";
-import Tag from "primevue/tag";
 import { useToast } from "primevue/usetoast";
 
 const props = defineProps({
@@ -37,7 +36,9 @@ const load = async () => {
 
     loading.value = true;
     try {
-        const res = await fetch(`/work-patterns/${id}/employees`, {
+        const companyId = Number(props.workPattern?.company_id ?? 0);
+        const query = new URLSearchParams({ company_id: String(companyId) }).toString();
+        const res = await fetch(`/work-patterns/${id}/employees?${query}`, {
             headers: { "X-Requested-With": "XMLHttpRequest", Accept: "application/json" },
         });
 
@@ -101,14 +102,6 @@ watch(
             <Column field="date_from" header="Ettől" style="width: 130px" />
             <Column field="date_to" header="Eddig" style="width: 130px">
                 <template #body="{ data }">{{ data.date_to || "jelenleg" }}</template>
-            </Column>
-            <Column field="is_primary" header="Elsődleges" style="width: 120px">
-                <template #body="{ data }">
-                    <Tag
-                        :value="data.is_primary ? 'Igen' : 'Nem'"
-                        :severity="data.is_primary ? 'success' : 'secondary'"
-                    />
-                </template>
             </Column>
         </DataTable>
     </Dialog>

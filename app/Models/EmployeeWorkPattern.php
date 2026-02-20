@@ -23,8 +23,6 @@ use Spatie\Activitylog\Traits\LogsActivity;
  * @property int $work_pattern_id Munkarend azonosító
  * @property string $date_from Érvényesség kezdete
  * @property string|null $date_to Érvényesség vége
- * @property bool $is_primary Elsődleges hozzárendelés jelző
- * @property array<string,mixed>|null $meta Kiegészítő meta adatok
  */
 class EmployeeWorkPattern extends Model
 {
@@ -42,8 +40,6 @@ class EmployeeWorkPattern extends Model
         'work_pattern_id',
         'date_from',
         'date_to',
-        'is_primary',
-        'meta',
     ];
 
     /** @var array<string,string> */
@@ -53,8 +49,6 @@ class EmployeeWorkPattern extends Model
         'work_pattern_id' => 'int',
         'date_from' => 'date:Y-m-d',
         'date_to' => 'date:Y-m-d',
-        'is_primary' => 'bool',
-        'meta' => 'array',
     ];
 
     /** @var array<int,string> */
