@@ -31,7 +31,7 @@ class PositionService extends BaseService {
     }
 
     getToSelect(params = {}) {
-        return this.get(`selectors/${this.url}`, { params });
+        return this.get(route("selectors.positions"), { params });
     }
 }
 

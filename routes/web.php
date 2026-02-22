@@ -10,6 +10,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkPatternController;
+use App\Http\Controllers\WorkScheduleAssignmentController;
 use App\Http\Controllers\WorkShiftAssignmentController;
 use App\Http\Controllers\WorkScheduleController;
 use App\Http\Controllers\WorkShiftController;
@@ -301,6 +302,23 @@ Route::middleware(['auth', 'verified'])
         Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
         Route::post('/', 'store')->name('store')->middleware('throttle:20,1');
         Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy')->middleware('throttle:20,1');
+    });
+
+/**
+ * ======================================
+ * SCHEDULING CALENDAR + WORK SCHEDULE ASSIGNMENTS
+ * ======================================
+ */
+Route::middleware(['auth', 'verified'])
+    ->controller(WorkScheduleAssignmentController::class)
+    ->group(function (): void {
+        Route::get('/scheduling/calendar', 'calendar')->name('scheduling.calendar')->middleware('throttle:60,1');
+        Route::get('/scheduling/calendar/feed', 'feed')->name('scheduling.calendar.feed')->middleware('throttle:120,1');
+
+        Route::post('/work-schedule-assignments', 'store')->name('work_schedule_assignments.store')->middleware('throttle:20,1');
+        Route::put('/work-schedule-assignments/{id}', 'update')->whereNumber('id')->name('work_schedule_assignments.update')->middleware('throttle:30,1');
+        Route::delete('/work-schedule-assignments/{id}', 'destroy')->whereNumber('id')->name('work_schedule_assignments.destroy')->middleware('throttle:20,1');
+        Route::post('/work-schedule-assignments/bulk-upsert', 'bulkUpsert')->name('work_schedule_assignments.bulk_upsert')->middleware('throttle:10,1');
     });
 
 /**

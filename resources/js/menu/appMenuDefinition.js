@@ -79,6 +79,12 @@ export const appMenuDefinition = [
                 key: "planning.index",
                 can: "planning.view",
             },
+            {
+                title: "Naptár",
+                route: "scheduling.calendar",
+                key: "scheduling.calendar",
+                can: "work_schedule_assignments.viewAny",
+            },
         ],
     },
     {

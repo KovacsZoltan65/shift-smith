@@ -40,7 +40,7 @@ class EmployeeService extends BaseService {
     //}
 
     getToSelect(params = {}) {
-        return this.get(`selectors/${this.url}`, { params });
+        return this.get(route("selectors.employees"), { params });
     }
 }
 
