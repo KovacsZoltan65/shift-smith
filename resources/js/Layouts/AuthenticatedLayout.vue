@@ -6,7 +6,7 @@ import DropdownLink from "@/Components/DropdownLink.vue";
 import NavLink from "@/Components/NavLink.vue";
 import ResponsiveNavLink from "@/Components/ResponsiveNavLink.vue";
 
-import { Link, router } from "@inertiajs/vue3";
+import { Link, router, usePage } from "@inertiajs/vue3";
 
 import { useAppMenu } from "@/composables/useAppMenu";
 
@@ -18,6 +18,7 @@ const showingNavigationDropdown = ref(false);
 const sidebarOpen = ref(true);
 
 const { filteredMenu } = useAppMenu();
+const page = usePage();
 
 const quickLinks = computed(() => {
     const groups = filteredMenu.value ?? [];
@@ -26,12 +27,20 @@ const quickLinks = computed(() => {
 });
 
 const initials = computed(() => {
-    const name = String(window?.page?.props?.auth?.user?.name ?? "User").trim();
+    const name = String(page.props?.auth?.user?.name ?? "User").trim();
     const parts = name.split(/\s+/).filter(Boolean);
     const a = parts[0]?.[0] ?? "U";
     const b = parts[1]?.[0] ?? "";
     return (a + b).toUpperCase();
 });
+
+const currentCompanyName = computed(
+    () => page.props?.companyContext?.current_company?.name ?? null,
+);
+
+const canSwitchCompany = computed(
+    () => Number(page.props?.companyContext?.selectable_company_count ?? 0) > 1,
+);
 </script>
 
 <template>
@@ -78,6 +87,13 @@ const initials = computed(() => {
                                 tag="div"
                                 class="flex items-center gap-2"
                             >
+                                <div
+                                    v-if="currentCompanyName"
+                                    class="inline-flex items-center rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700"
+                                >
+                                    Cég: {{ currentCompanyName }}
+                                </div>
+
                                 <div
                                     v-for="qi in quickLinks"
                                     :key="qi?.key ?? qi?.route ?? qi?.title"
@@ -194,6 +210,13 @@ const initials = computed(() => {
 
                                         <DropdownLink :href="route('profile.edit')">
                                             Profile
+                                        </DropdownLink>
+
+                                        <DropdownLink
+                                            v-if="canSwitchCompany"
+                                            :href="route('company.select')"
+                                        >
+                                            Cég váltás
                                         </DropdownLink>
 
                                         <DropdownLink

@@ -11,6 +11,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Http\Request;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Permission\Traits\HasRoles;
@@ -186,5 +187,16 @@ class User extends Authenticatable implements MustVerifyEmail
 
             $q->when($request->input('email'), fn (Builder $qq): Builder => $qq->where('email', 'like', "%{$request->input('email')}%"));
         });
+    }
+
+    /**
+     * A felhasználóhoz rendelt cégek.
+     *
+     * @return BelongsToMany<Company, $this>
+     */
+    public function companies(): BelongsToMany
+    {
+        return $this->belongsToMany(Company::class)
+            ->withTimestamps();
     }
 }

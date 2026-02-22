@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\Auth\CompanySelectController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\EmployeeWorkPatternController;
 use App\Http\Controllers\PositionController;
@@ -27,9 +28,14 @@ Route::get('/', function () {
     ]);
 });
 
-Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified', 'ensure.company'])
+    ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/select-company', [CompanySelectController::class, 'index'])->name('company.select');
+    Route::post('/select-company', [CompanySelectController::class, 'store'])->name('company.select.store');
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -40,7 +46,7 @@ Route::middleware('auth')->group(function () {
  * SELECTOROK
  * ======================================
  */
-Route::middleware(['auth', 'verified', 'throttle:120,1'])->group(function(): void {
+Route::middleware(['auth', 'verified', 'ensure.company', 'throttle:120,1'])->group(function(): void {
     // Company Selector
     Route::get('/selectors/companies', [CompanyController::class, 'getToSelect'])->name('selectors.companies');
     // Employee Selector
@@ -78,7 +84,7 @@ Route::middleware(['auth', 'verified', 'throttle:120,1'])->group(function(): voi
  * MENÜPONT NAVIGÁCIÓK
  * ======================================
  */
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', 'ensure.company'])->group(function () {
 
     // Menü
     Route::get('/menu', fn () => Inertia::render('Menu/Index'))->name('menu.index');
@@ -215,7 +221,7 @@ Route::middleware(['auth', 'verified'])
  * ======================================
  * Dolgozók kezelése
  */
-Route::middleware(['auth', 'verified'])
+Route::middleware(['auth', 'verified', 'ensure.company'])
     ->prefix('positions')
     ->as('positions.')
     ->controller(PositionController::class)
@@ -230,7 +236,7 @@ Route::middleware(['auth', 'verified'])
         Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
     });
 
-Route::middleware(['auth', 'verified'])
+Route::middleware(['auth', 'verified', 'ensure.company'])
     ->prefix('employees')
     ->as('employees.')
     ->controller(EmployeeController::class)
@@ -252,7 +258,7 @@ Route::middleware(['auth', 'verified'])
  * EMPLOYEE WORK PATTERNS
  * ======================================
  */
-Route::middleware(['auth', 'verified'])
+Route::middleware(['auth', 'verified', 'ensure.company'])
     ->prefix('employees/{employee}/work-patterns')
     ->whereNumber('employee')
     ->as('employee_work_patterns.')
@@ -270,7 +276,7 @@ Route::middleware(['auth', 'verified'])
  * ======================================
  * Műszakok kezelése
  */
-Route::middleware(['auth', 'verified'])
+Route::middleware(['auth', 'verified', 'ensure.company'])
     ->prefix('work_shifts')
     ->as('work_shifts.')
     ->controller(WorkShiftController::class)
@@ -292,7 +298,7 @@ Route::middleware(['auth', 'verified'])
  * WORK_SHIFT ASSIGNMENTS
  * ======================================
  */
-Route::middleware(['auth', 'verified'])
+Route::middleware(['auth', 'verified', 'ensure.company'])
     ->prefix('work_shifts/{work_shift}/assignments')
     ->whereNumber('work_shift')
     ->as('work_shift_assignments.')
@@ -309,7 +315,7 @@ Route::middleware(['auth', 'verified'])
  * ======================================
  * Beosztások kezelése
  */
-Route::middleware(['auth', 'verified'])
+Route::middleware(['auth', 'verified', 'ensure.company'])
     ->prefix('work_schedules')
     ->as('work_schedules.')
     ->controller(WorkScheduleController::class)
@@ -331,7 +337,7 @@ Route::middleware(['auth', 'verified'])
  * WORK_PATTERNS
  * ======================================
  */
-Route::middleware(['auth', 'verified'])
+Route::middleware(['auth', 'verified', 'ensure.company'])
     ->prefix('work-patterns')
     ->as('work_patterns.')
     ->controller(WorkPatternController::class)
