@@ -9,6 +9,7 @@ use App\Http\Requests\Employee\UpdateRequest;
 use App\Models\Employee;
 use App\Policies\EmployeePolicy;
 use App\Services\EmployeeService;
+use App\Services\CurrentCompany;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -31,7 +32,8 @@ class EmployeeController extends Controller
      * @param EmployeeService $service Munkavállaló szolgáltatás
      */
     public function __construct(
-            private readonly EmployeeService $service
+            private readonly EmployeeService $service,
+            private readonly CurrentCompany $currentCompany
     ) {}
     
     /**
@@ -45,10 +47,17 @@ class EmployeeController extends Controller
     public function index(IndexRequest $request): InertiaResponse
     {
         $this->authorize(EmployeePolicy::PERM_VIEW_ANY, Employee::class);
+
+        $currentCompanyId = $this->currentCompany->currentCompanyId($request);
+        abort_if($currentCompanyId === null, 403, 'No company selected');
+
+        $filter = $request->validatedFilters();
+        $filter['company_id'] = $currentCompanyId;
         
         return Inertia::render('HR/Employees/Index', [
             'title'  => 'Dolgozók',
-            'filter' => $request->validatedFilters(),
+            'filter' => $filter,
+            'default_company_id' => $currentCompanyId,
         ]);
     }
     
@@ -63,11 +72,18 @@ class EmployeeController extends Controller
     public function fetch(IndexRequest $request): JsonResponse
     {
         $this->authorize(EmployeePolicy::PERM_VIEW_ANY, Employee::class);
+
+        $currentCompanyId = $this->currentCompany->currentCompanyId($request);
+        abort_if($currentCompanyId === null, 403, 'No company selected');
+        $request->merge(['company_id' => $currentCompanyId]);
         
         $employees = $this->service->fetch($request);
         
         $items = EmployeeIndexData::collect($employees->items());
         
+        $filter = $request->validatedFilters();
+        $filter['company_id'] = $currentCompanyId;
+
         return response()->json([
             'message' => 'Dolgozók sikeresen lekérve.',
             'data' => $items,
@@ -77,7 +93,7 @@ class EmployeeController extends Controller
                 'total' => $employees->total(),
                 'last_page' => $employees->lastPage(),
             ],
-            'filter' => $request->validatedFilters(),
+            'filter' => $filter,
         ], Response::HTTP_OK);
         
         /*

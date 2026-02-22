@@ -18,6 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
+        $middleware->alias([
+            'ensure.company' => \App\Http\Middleware\EnsureCompanySelected::class,
+        ]);
+
         // CSRF védelem explicit beállítása
         $middleware->validateCsrfTokens(except: [
             // Ha van webhook vagy API endpoint, itt lehet kizárni
