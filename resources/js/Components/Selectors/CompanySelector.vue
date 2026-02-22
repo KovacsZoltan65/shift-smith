@@ -14,6 +14,10 @@ const props = defineProps({
         default: null,
     },
     placeholder: { type: String, default: "" },
+    options: {
+        type: Array,
+        default: null,
+    },
 });
 
 const emit = defineEmits(["update:modelValue"]);
@@ -21,11 +25,18 @@ const emit = defineEmits(["update:modelValue"]);
 const selectedCompany = ref(null);
 const companies = ref([]);
 const isLoading = ref(false);
+const hasStaticOptions = computed(
+    () => Array.isArray(props.options) && props.options.length >= 0,
+);
+
+const effectiveCompanies = computed(() =>
+    hasStaticOptions.value ? props.options ?? [] : companies.value,
+);
 
 const shouldUseFilter = computed(() => {
     if (props.filter === true) return true;
     if (props.filter === false) return false;
-    return companies.value.length > 10;
+    return effectiveCompanies.value.length > 10;
 });
 
 // ⚡ Választás visszaadása parentnek
@@ -33,7 +44,40 @@ watch(selectedCompany, (val) => {
     emit("update:modelValue", val);
 });
 
+const syncFromModel = () => {
+    const modelId = props.modelValue === null ? null : Number(props.modelValue);
+
+    if (
+        modelId &&
+        effectiveCompanies.value.some((p) => Number(p.id) === modelId)
+    ) {
+        selectedCompany.value = modelId;
+    } else if (effectiveCompanies.value.length === 1) {
+        selectedCompany.value = Number(effectiveCompanies.value[0].id);
+    }
+};
+
+watch(
+    () => props.modelValue,
+    () => {
+        syncFromModel();
+    },
+);
+
+watch(
+    effectiveCompanies,
+    () => {
+        syncFromModel();
+    },
+    { immediate: true },
+);
+
 onMounted(async () => {
+    if (hasStaticOptions.value) {
+        syncFromModel();
+        return;
+    }
+
     isLoading.value = true;
 
     try {
@@ -43,12 +87,7 @@ onMounted(async () => {
 
         const response = await Service.getToSelect(params);
         companies.value = response.data;
-
-        if (props.modelValue && companies.value.some((p) => p.id === props.modelValue)) {
-            selectedCompany.value = props.modelValue;
-        } else if (companies.value.length === 1) {
-            selectedCompany.value = companies.value[0].id;
-        }
+        syncFromModel();
         /*
         const response = await Service.getToSelect();
         companies.value = response.data;
@@ -72,7 +111,7 @@ onMounted(async () => {
 <template>
     <Select
         v-model="selectedCompany"
-        :options="companies"
+        :options="effectiveCompanies"
         optionLabel="name"
         optionValue="id"
         :placeholder="props.placeholder"

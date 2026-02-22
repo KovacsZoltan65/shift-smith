@@ -19,7 +19,6 @@ import EditModal from "@/Pages/HR/Employees/EditModal.vue";
 import WorkPatternModal from "@/Pages/HR/Employees/WorkPatternModal.vue";
 
 import { csrfFetch } from "@/lib/csrfFetch";
-import CompanySelector from "@/Components/Selectors/CompanySelector.vue";
 
 import { toYmd } from "@/helpers/functions.js";
 
@@ -104,9 +103,9 @@ const lazy = ref({
 
 const search = ref(props.filter?.search ?? "");
 
-// Company filter (CompanySelector)
 const companyId = ref(
-    props.filter?.company_id ??
+    page.props?.companyContext?.current_company_id ??
+        props.filter?.company_id ??
         (props.default_company_id ? Number(props.default_company_id) : null)
 );
 
@@ -143,12 +142,6 @@ const onSearchInput = () => {
         lazy.value.page = 0;
         fetchEmployees();
     }, 300);
-};
-
-const onCompanyChanged = () => {
-    lazy.value.first = 0;
-    lazy.value.page = 0;
-    fetchEmployees();
 };
 
 const buildQuery = () => {
@@ -428,16 +421,6 @@ onMounted(fetchEmployees);
 
                     <div v-if="selected?.length" class="text-sm text-gray-600">
                         Kijelölve: <b>{{ selected.length }}</b>
-                    </div>
-
-                    <!-- CompanySelector -->
-                    <div class="min-w-[260px]">
-                        <CompanySelector
-                            v-model="companyId"
-                            placeholder="Cég szűrő..."
-                            @update:modelValue="onCompanyChanged"
-                            :only-with-employees="true"
-                        />
                     </div>
                 </div>
 
