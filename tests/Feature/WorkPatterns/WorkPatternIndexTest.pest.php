@@ -39,6 +39,7 @@ it('engedi adminnak a munkarend index oldalt', function (): void {
     $user->refresh();
 
     $this->actingAs($user)
-        ->get(route('work_patterns.index', ['company_id' => $company->id, 'search' => 'fix']))
+        ->withSession(['current_company_id' => $company->id])
+        ->get(route('work_patterns.index', ['search' => 'fix']))
         ->assertOk();
 });

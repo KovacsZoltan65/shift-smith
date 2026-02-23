@@ -28,7 +28,7 @@ it('megtagadja a fetch műveletet viewAny jogosultság nélkül', function (): v
 });
 
 it('company_id alapján szűri a munkarendeket', function (): void {
-    $user = $this->createAdminUser();
+    $user = $this->createSuperadminUser();
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
@@ -39,11 +39,12 @@ it('company_id alapján szűri a munkarendeket', function (): void {
     WorkPattern::factory()->count(3)->create(['company_id' => $c1->id, 'active' => true]);
     WorkPattern::factory()->count(2)->create(['company_id' => $c2->id, 'active' => true]);
 
-    $resp = $this->actingAs($user)->getJson(route('work_patterns.fetch', [
-        'company_id' => $c1->id,
-        'page' => 1,
-        'per_page' => 10,
-    ]));
+    $resp = $this->actingAs($user)
+        ->withSession(['current_company_id' => $c1->id])
+        ->getJson(route('work_patterns.fetch', [
+            'page' => 1,
+            'per_page' => 10,
+        ]));
 
     $resp->assertOk()->assertJsonStructure([
         'data',

@@ -14,6 +14,7 @@ use App\Http\Requests\WorkPattern\StoreRequest;
 use App\Http\Requests\WorkPattern\UpdateRequest;
 use App\Models\WorkPattern;
 use App\Policies\WorkPatternPolicy;
+use App\Services\CurrentCompany;
 use App\Services\WorkPatternService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,7 +34,8 @@ class WorkPatternController extends Controller
      * @param WorkPatternService $service Munkarend service
      */
     public function __construct(
-        private readonly WorkPatternService $service
+        private readonly WorkPatternService $service,
+        private readonly CurrentCompany $currentCompany
     ) {}
 
     /**
@@ -45,6 +47,8 @@ class WorkPatternController extends Controller
     public function index(Request $request): InertiaResponse
     {
         $this->authorize(WorkPatternPolicy::PERM_VIEW_ANY, WorkPattern::class);
+        $currentCompanyId = $this->currentCompany->currentCompanyId($request);
+        abort_if($currentCompanyId === null, 403, 'No company selected');
 
         return Inertia::render('Scheduling/WorkPatterns/Index', [
             'title' => 'Munkarendek',
@@ -54,7 +58,7 @@ class WorkPatternController extends Controller
                 'order' => $request->string('order')->toString() ?: 'desc',
                 'page' => max(1, (int) $request->integer('page', 1)),
                 'per_page' => min(max(1, (int) $request->integer('per_page', 10)), 100),
-                'company_id' => $request->filled('company_id') ? (int) $request->integer('company_id') : null,
+                'company_id' => $currentCompanyId,
             ],
         ]);
     }
@@ -68,9 +72,14 @@ class WorkPatternController extends Controller
     public function fetch(FetchRequest $request): JsonResponse
     {
         $this->authorize(WorkPatternPolicy::PERM_VIEW_ANY, WorkPattern::class);
+        $currentCompanyId = $this->currentCompany->currentCompanyId($request);
+        abort_if($currentCompanyId === null, 403, 'No company selected');
+        $request->merge(['company_id' => $currentCompanyId]);
 
         $workPatterns = $this->service->fetch($request);
         $items = WorkPatternIndexData::collect($workPatterns->items());
+        $filter = $request->validatedFilters();
+        $filter['company_id'] = $currentCompanyId;
 
         return response()->json([
             'message' => 'Munkarendek sikeresen lekérve.',
@@ -81,7 +90,7 @@ class WorkPatternController extends Controller
                 'total' => $workPatterns->total(),
                 'last_page' => $workPatterns->lastPage(),
             ],
-            'filter' => $request->validatedFilters(),
+            'filter' => $filter,
         ], Response::HTTP_OK);
     }
 

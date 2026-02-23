@@ -10,6 +10,18 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class FetchRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if ($this->filled('company_id')) {
+            return;
+        }
+
+        $companyId = $this->session()->get('current_company_id');
+        if ($companyId !== null) {
+            $this->merge(['company_id' => (int) $companyId]);
+        }
+    }
+
     /**
      * Determine if the user is authorized to make this request.
      */

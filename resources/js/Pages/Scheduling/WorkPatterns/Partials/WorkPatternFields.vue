@@ -24,7 +24,7 @@ const toIntOrNull = (v) => {
 
 <template>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
+        <div class="md:col-span-2">
             <label class="mb-1 block text-sm">Név</label>
             <InputText
                 class="w-full"
