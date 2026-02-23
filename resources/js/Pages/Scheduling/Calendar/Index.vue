@@ -4,8 +4,11 @@ import { computed, onMounted, ref, watch } from "vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import Button from "primevue/button";
 import Select from "primevue/select";
+import SelectButton from "primevue/selectbutton";
 import MultiSelect from "primevue/multiselect";
 import ToggleSwitch from "primevue/toggleswitch";
+import InputNumber from "primevue/inputnumber";
+import DatePicker from "primevue/datepicker";
 import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
 
@@ -31,9 +34,16 @@ const props = defineProps({
 
 const toast = useToast();
 
-const scheduleId = ref(Number(props.schedules?.[0]?.id ?? 0) || null);
-const viewMode = ref("month");
-const anchorDate = ref(new Date());
+const initialScheduleId = (() => {
+    const preferred = props.schedules.find((x) => String(x?.status) !== "published") ?? props.schedules?.[0];
+    return Number(preferred?.id ?? 0) || null;
+})();
+
+const scheduleId = ref(initialScheduleId);
+const viewMode = ref("week");
+const month = ref(new Date().getMonth() + 1);
+const year = ref(new Date().getFullYear());
+const dayDate = ref(new Date());
 const plannerMode = ref(false);
 const selectedEmployeeIds = ref([]);
 const selectedShiftIds = ref([]);
@@ -41,6 +51,11 @@ const selectedPositionIds = ref([]);
 const selectedDates = ref([]);
 const loading = ref(false);
 const events = ref([]);
+const feedMeta = ref({
+    range: { start: null, end: null },
+    selected_date: null,
+    editable: false,
+});
 
 const createOpen = ref(false);
 const editOpen = ref(false);
@@ -57,51 +72,133 @@ const selectedSchedule = computed(() =>
     props.schedules.find((x) => Number(x.id) === Number(scheduleId.value)) ?? null
 );
 
+const monthOptions = [
+    { label: "Január", value: 1 },
+    { label: "Február", value: 2 },
+    { label: "Március", value: 3 },
+    { label: "Április", value: 4 },
+    { label: "Május", value: 5 },
+    { label: "Június", value: 6 },
+    { label: "Július", value: 7 },
+    { label: "Augusztus", value: 8 },
+    { label: "Szeptember", value: 9 },
+    { label: "Október", value: 10 },
+    { label: "November", value: 11 },
+    { label: "December", value: 12 },
+];
+
+const viewModeOptions = [
+    { label: "Heti", value: "week" },
+    { label: "Havi", value: "month" },
+    { label: "Napi", value: "day" },
+];
+
+const yearOptions = computed(() => {
+    const currentYear = new Date().getFullYear();
+    return Array.from({ length: 11 }, (_, i) => {
+        const value = currentYear - 5 + i;
+        return { label: String(value), value };
+    });
+});
+
+const getIsoWeek = (value) => {
+    const date = new Date(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()));
+    const day = date.getUTCDay() || 7;
+    date.setUTCDate(date.getUTCDate() + 4 - day);
+    const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+    return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+};
+
+const getIsoWeeksInYear = (isoYear) => getIsoWeek(new Date(isoYear, 11, 28));
+
+const getIsoWeekStart = (isoYear, isoWeek) => {
+    const jan4 = new Date(Date.UTC(isoYear, 0, 4));
+    const jan4Day = jan4.getUTCDay() || 7;
+    const monday = new Date(jan4);
+    monday.setUTCDate(jan4.getUTCDate() - jan4Day + 1 + (isoWeek - 1) * 7);
+    return new Date(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate());
+};
+
+const currentIsoWeek = getIsoWeek(new Date());
+const weekNumber = ref(currentIsoWeek);
+const weekNumberMax = computed(() => getIsoWeeksInYear(Number(year.value)));
+
+const todayYmd = computed(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+        d.getDate(),
+    ).padStart(2, "0")}`;
+});
+
+const selectedDateYmd = computed(() => {
+    if (viewMode.value === "day") {
+        const d = dayDate.value instanceof Date ? dayDate.value : new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+            d.getDate(),
+        ).padStart(2, "0")}`;
+    }
+
+    if (viewMode.value === "month") {
+        const end = new Date(Number(year.value), Number(month.value), 0);
+        return `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, "0")}-${String(
+            end.getDate(),
+        ).padStart(2, "0")}`;
+    }
+
+    const resolvedWeek = Math.min(Math.max(1, Number(weekNumber.value || 1)), Number(weekNumberMax.value || 52));
+    const start = getIsoWeekStart(Number(year.value), resolvedWeek);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    return `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, "0")}-${String(
+        end.getDate(),
+    ).padStart(2, "0")}`;
+});
+
+const selectedPeriodEditable = computed(() => {
+    return String(selectedDateYmd.value) >= String(todayYmd.value);
+});
+
+const plannerModeEnabled = computed(() => {
+    return (
+        canPlanner.value &&
+        plannerMode.value &&
+        selectedPeriodEditable.value &&
+        selectedSchedule.value?.status !== "published"
+    );
+});
+
+const plannerDisabledReason = computed(() => {
+    if (!canPlanner.value) return "Nincs tervezési jogosultság.";
+    if (selectedSchedule.value?.status === "published") {
+        return "A kiválasztott beosztás publikált, ezért nem szerkeszthető. Válassz draft státuszú beosztást.";
+    }
+    if (!selectedPeriodEditable.value) return "Múltbeli időszak nem szerkeszthető.";
+    return "";
+});
+
 const scheduleRange = computed(() => ({
-    from: selectedSchedule.value?.date_from ?? null,
-    to: selectedSchedule.value?.date_to ?? null,
+    from: feedMeta.value?.range?.start ?? null,
+    to: feedMeta.value?.range?.end ?? null,
 }));
 
-watch(canPlanner, (ok) => {
-    if (!ok) plannerMode.value = false;
-}, { immediate: true });
-
-watch(
-    selectedSchedule,
-    (row) => {
-        if (!row) return;
-        selectedDates.value = selectedDates.value.filter((d) => d >= row.date_from && d <= row.date_to);
-        if (row.status === "published") {
-            plannerMode.value = false;
-        }
-    },
-    { immediate: true }
-);
-
-const visibleRange = computed(() => {
-    const base = new Date(anchorDate.value);
-    const toYmd = (d) => d.toISOString().slice(0, 10);
-
+const anchorDate = computed(() => {
     if (viewMode.value === "day") {
-        return { start: toYmd(base), end: toYmd(base) };
+        return dayDate.value instanceof Date ? dayDate.value : new Date();
     }
 
-    if (viewMode.value === "week") {
-        const start = new Date(base);
-        const day = (start.getDay() + 6) % 7;
-        start.setDate(start.getDate() - day);
-        const end = new Date(start);
-        end.setDate(start.getDate() + 6);
-        return { start: toYmd(start), end: toYmd(end) };
+    if (viewMode.value === "month") {
+        return new Date(Number(year.value), Number(month.value) - 1, 1);
     }
 
-    const monthStart = new Date(base.getFullYear(), base.getMonth(), 1);
-    const start = new Date(monthStart);
-    const day = (start.getDay() + 6) % 7;
-    start.setDate(start.getDate() - day);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 41);
-    return { start: toYmd(start), end: toYmd(end) };
+    const resolvedWeek = Math.min(Math.max(1, Number(weekNumber.value || 1)), Number(weekNumberMax.value || 52));
+    return getIsoWeekStart(Number(year.value), resolvedWeek);
+});
+
+const currentRangeLabel = computed(() => {
+    const start = scheduleRange.value.from;
+    const end = scheduleRange.value.to;
+    if (!start || !end) return "-";
+    return `${start} - ${end}`;
 });
 
 const loadSelectors = async () => {
@@ -119,23 +216,60 @@ const loadSelectors = async () => {
     positionOptions.value = Array.isArray(positions.data) ? positions.data : [];
 };
 
+const toYmd = (value) => {
+    if (!(value instanceof Date)) return "";
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(
+        value.getDate(),
+    ).padStart(2, "0")}`;
+};
+
+const buildFeedParams = () => {
+    const params = {
+        schedule_id: Number(scheduleId.value),
+        view_type: viewMode.value,
+        employee_ids: selectedEmployeeIds.value,
+        work_shift_ids: selectedShiftIds.value,
+        position_ids: selectedPositionIds.value,
+    };
+
+    if (viewMode.value === "week") {
+        const resolvedWeek = Math.min(Math.max(1, Number(weekNumber.value || 1)), Number(weekNumberMax.value || 52));
+        params.week_number = resolvedWeek;
+        params.week_year = Number(year.value);
+    } else if (viewMode.value === "month") {
+        params.month = Number(month.value);
+        params.year = Number(year.value);
+    } else {
+        params.date = toYmd(dayDate.value);
+    }
+
+    return params;
+};
+
 const loadEvents = async () => {
     if (!scheduleId.value) {
         events.value = [];
+        feedMeta.value = {
+            range: { start: null, end: null },
+            selected_date: null,
+            editable: false,
+        };
         return;
     }
 
     loading.value = true;
     try {
-        const { data } = await WorkScheduleAssignmentService.getCalendarFeed({
-            schedule_id: Number(scheduleId.value),
-            start: visibleRange.value.start,
-            end: visibleRange.value.end,
-            employee_ids: selectedEmployeeIds.value,
-            work_shift_ids: selectedShiftIds.value,
-            position_ids: selectedPositionIds.value,
-        });
+        const { data } = await WorkScheduleAssignmentService.getCalendarFeed(buildFeedParams());
         events.value = Array.isArray(data?.data) ? data.data : [];
+        feedMeta.value = {
+            range: data?.meta?.range ?? { start: null, end: null },
+            selected_date: data?.meta?.selected_date ?? null,
+            editable: !!data?.meta?.editable,
+        };
+
+        if (!selectedPeriodEditable.value || selectedSchedule.value?.status === "published") {
+            plannerMode.value = false;
+        }
     } catch (e) {
         toast.add({
             severity: "error",
@@ -153,15 +287,30 @@ const refresh = async () => {
     await loadEvents();
 };
 
+const resetViewFilters = () => {
+    const now = new Date();
+    if (viewMode.value === "week") {
+        year.value = now.getFullYear();
+        weekNumber.value = getIsoWeek(now);
+    } else if (viewMode.value === "month") {
+        month.value = now.getMonth() + 1;
+        year.value = now.getFullYear();
+    } else {
+        dayDate.value = now;
+    }
+};
+
 const onDateClick = ({ date }) => {
-    if (!plannerMode.value) return;
+    if (!plannerModeEnabled.value) return;
+    if (String(date) < String(todayYmd.value)) return;
+
     createDate.value = date;
     createOpen.value = true;
 };
 
 const onEventClick = (event) => {
     selectedEvent.value = event;
-    if (plannerMode.value) {
+    if (plannerModeEnabled.value && !!event?.editable) {
         editOpen.value = true;
         return;
     }
@@ -224,7 +373,7 @@ const handleDelete = async (id) => {
 
 const onEventDrop = async ({ id, date }) => {
     const row = events.value.find((x) => Number(x.id) === Number(id));
-    if (!row) return;
+    if (!row || !row.editable) return;
 
     await handleUpdate({
         id,
@@ -238,6 +387,9 @@ const onEventDrop = async ({ id, date }) => {
 };
 
 const toggleSelectedDate = (ymd) => {
+    if (!plannerModeEnabled.value) return;
+    if (String(ymd) < String(todayYmd.value)) return;
+
     if (scheduleRange.value.from && ymd < scheduleRange.value.from) return;
     if (scheduleRange.value.to && ymd > scheduleRange.value.to) return;
 
@@ -292,8 +444,41 @@ const handleBulk = async (payload) => {
     }
 };
 
-watch([scheduleId, viewMode, anchorDate], loadEvents);
+watch(
+    viewMode,
+    async () => {
+        resetViewFilters();
+        selectedDates.value = [];
+        await loadEvents();
+    },
+    { immediate: false },
+);
+
+watch([scheduleId, weekNumber, month, year, dayDate], loadEvents);
 watch([selectedEmployeeIds, selectedShiftIds, selectedPositionIds], loadEvents);
+
+watch(
+    [year, viewMode],
+    () => {
+        if (viewMode.value !== "week") return;
+        const maxWeek = Number(weekNumberMax.value || 52);
+        if (Number(weekNumber.value) > maxWeek) {
+            weekNumber.value = maxWeek;
+        }
+    },
+    { immediate: true },
+);
+
+watch(
+    selectedSchedule,
+    (row) => {
+        if (!row) return;
+        if (row.status === "published") {
+            plannerMode.value = false;
+        }
+    },
+    { immediate: true },
+);
 
 onMounted(async () => {
     await loadSelectors();
@@ -350,16 +535,65 @@ onMounted(async () => {
 
                 <div>
                     <label class="mb-1 block text-xs text-slate-600">Nézet</label>
-                    <Select
+                    <SelectButton
                         v-model="viewMode"
-                        :options="[
-                            { label: 'Havi', value: 'month' },
-                            { label: 'Heti', value: 'week' },
-                            { label: 'Napi', value: 'day' },
-                        ]"
+                        :options="viewModeOptions"
                         optionLabel="label"
                         optionValue="value"
-                        class="w-32"
+                    />
+                </div>
+
+                <div v-if="viewMode === 'week'" class="min-w-40">
+                    <label class="mb-1 block text-xs text-slate-600">Hét száma (ISO)</label>
+                    <InputNumber
+                        v-model="weekNumber"
+                        :min="1"
+                        :max="weekNumberMax"
+                        showButtons
+                        class="w-full"
+                    />
+                </div>
+
+                <div v-if="viewMode === 'week'" class="min-w-32">
+                    <label class="mb-1 block text-xs text-slate-600">Év</label>
+                    <Select
+                        v-model="year"
+                        :options="yearOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        class="w-full"
+                    />
+                </div>
+
+                <div v-if="viewMode === 'month'" class="min-w-52">
+                    <label class="mb-1 block text-xs text-slate-600">Hónap</label>
+                    <Select
+                        v-model="month"
+                        :options="monthOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        class="w-full"
+                    />
+                </div>
+
+                <div v-if="viewMode === 'month'" class="min-w-32">
+                    <label class="mb-1 block text-xs text-slate-600">Év</label>
+                    <Select
+                        v-model="year"
+                        :options="yearOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        class="w-full"
+                    />
+                </div>
+
+                <div v-if="viewMode === 'day'" class="min-w-56">
+                    <label class="mb-1 block text-xs text-slate-600">Dátum</label>
+                    <DatePicker
+                        v-model="dayDate"
+                        dateFormat="yy-mm-dd"
+                        showIcon
+                        class="w-full"
                     />
                 </div>
 
@@ -404,13 +638,27 @@ onMounted(async () => {
 
                 <Button icon="pi pi-refresh" severity="secondary" :loading="loading" @click="refresh" />
 
+                <div class="text-xs text-slate-600">
+                    Intervallum: <b>{{ currentRangeLabel }}</b>
+                </div>
+
                 <div v-if="canPlanner" class="ml-auto flex items-center gap-2">
                     <span class="text-sm">Planner mód</span>
-                    <ToggleSwitch v-model="plannerMode" :disabled="selectedSchedule?.status === 'published'" />
+                    <ToggleSwitch
+                        v-model="plannerMode"
+                        :disabled="!selectedPeriodEditable || selectedSchedule?.status === 'published'"
+                    />
+                </div>
+
+                <div
+                    v-if="canPlanner && plannerDisabledReason && (!selectedPeriodEditable || selectedSchedule?.status === 'published')"
+                    class="text-xs text-amber-700"
+                >
+                    {{ plannerDisabledReason }}
                 </div>
 
                 <Button
-                    v-if="plannerMode"
+                    v-if="plannerModeEnabled"
                     label="Bulk kijelöltek"
                     icon="pi pi-list-check"
                     :disabled="selectedDates.length === 0"
@@ -422,9 +670,10 @@ onMounted(async () => {
                 :events="events"
                 :viewMode="viewMode"
                 :anchorDate="anchorDate"
-                :plannerMode="plannerMode"
+                :plannerMode="plannerModeEnabled"
                 :selectedDates="selectedDates"
                 :scheduleRange="scheduleRange"
+                :todayYmd="todayYmd"
                 @event-click="onEventClick"
                 @date-click="onDateClick"
                 @toggle-date="toggleSelectedDate"

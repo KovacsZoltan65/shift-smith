@@ -1,6 +1,6 @@
 <script setup>
 import GuestLayout from "@/Layouts/GuestLayout.vue";
-import { Head, Link, useForm } from "@inertiajs/vue3";
+import { Head, Link, useForm, usePage } from "@inertiajs/vue3";
 
 // PrimeVue
 import Card from "primevue/card";
@@ -22,8 +22,16 @@ const form = useForm({
     remember: false,
 });
 
+const page = usePage();
+const csrf =
+    page.props?.csrf_token ??
+    document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ??
+    "";
+
 const submit = () => {
     form.post(route("login"), {
+        data: { _token: csrf },
+        headers: { "X-CSRF-TOKEN": csrf },
         onFinish: () => form.reset("password"),
     });
 };

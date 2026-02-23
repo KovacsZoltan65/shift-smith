@@ -12,6 +12,7 @@ const props = defineProps({
         type: Object,
         default: () => ({ from: null, to: null }),
     },
+    todayYmd: { type: String, default: "" },
 });
 
 const emit = defineEmits([
@@ -102,7 +103,7 @@ const onDragStart = (event, row) => {
 
 const onDrop = (event, day) => {
     if (!props.plannerMode) return;
-    if (!isInRange(day)) return;
+    if (!isInRange(day) || !isEditableDay(day)) return;
     const id = Number(event.dataTransfer?.getData("text/plain") ?? 0);
     if (!id) return;
     emit("event-drop", { id, date: toYmd(day) });
@@ -116,6 +117,11 @@ const isInRange = (d) => {
     const to = props.scheduleRange?.to;
     if (!from || !to) return true;
     return day >= from && day <= to;
+};
+
+const isEditableDay = (d) => {
+    if (!props.todayYmd) return true;
+    return toYmd(d) >= props.todayYmd;
 };
 </script>
 
@@ -139,9 +145,13 @@ const isInRange = (d) => {
                 <div class="mb-2 flex items-center justify-between">
                     <button
                         class="text-xs font-semibold"
-                        :class="isInRange(day) ? 'text-slate-700 hover:text-slate-900' : 'text-slate-400 cursor-not-allowed'"
+                        :class="
+                            isInRange(day) && isEditableDay(day)
+                                ? 'text-slate-700 hover:text-slate-900'
+                                : 'text-slate-400 cursor-not-allowed'
+                        "
                         type="button"
-                        :disabled="!isInRange(day)"
+                        :disabled="!isInRange(day) || !isEditableDay(day)"
                         @click="emit('date-click', { date: toYmd(day) })"
                     >
                         {{ label(day) }}
@@ -150,7 +160,7 @@ const isInRange = (d) => {
                         v-if="plannerMode"
                         type="checkbox"
                         class="h-4 w-4"
-                        :disabled="!isInRange(day)"
+                        :disabled="!isInRange(day) || !isEditableDay(day)"
                         :checked="isSelected(day)"
                         @change="emit('toggle-date', toYmd(day))"
                     />
@@ -163,7 +173,8 @@ const isInRange = (d) => {
                         class="w-full rounded border px-2 py-1 text-left text-xs transition hover:bg-sky-50"
                         :class="row.className || []"
                         type="button"
-                        :draggable="plannerMode"
+                        :draggable="plannerMode && !!row.editable"
+                        :disabled="plannerMode && !row.editable"
                         @dragstart="onDragStart($event, row)"
                         @click="emit('event-click', row)"
                     >

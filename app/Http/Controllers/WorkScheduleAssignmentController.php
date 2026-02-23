@@ -66,12 +66,17 @@ class WorkScheduleAssignmentController extends Controller
         $companyId = $this->companyContext->resolve($request);
         $data = $request->validated();
 
-        $events = $this->service->feed(
+        $result = $this->service->feed(
             companyId: $companyId,
             scheduleId: (int) $data['schedule_id'],
             filters: [
-                'start' => $data['start'] ?? null,
-                'end' => $data['end'] ?? null,
+                'view_type' => (string) ($data['view_type'] ?? 'week'),
+                'week_count' => isset($data['week_count']) ? (int) $data['week_count'] : null,
+                'week_number' => isset($data['week_number']) ? (int) $data['week_number'] : null,
+                'week_year' => isset($data['week_year']) ? (int) $data['week_year'] : null,
+                'month' => isset($data['month']) ? (int) $data['month'] : null,
+                'year' => isset($data['year']) ? (int) $data['year'] : null,
+                'date' => isset($data['date']) ? (string) $data['date'] : null,
                 'employee_ids' => array_values(array_map('intval', $data['employee_ids'] ?? [])),
                 'work_shift_ids' => array_values(array_map('intval', $data['work_shift_ids'] ?? [])),
                 'position_ids' => array_values(array_map('intval', $data['position_ids'] ?? [])),
@@ -80,7 +85,12 @@ class WorkScheduleAssignmentController extends Controller
 
         return response()->json([
             'message' => 'Naptár események sikeresen lekérve.',
-            'data' => $events,
+            'data' => $result['events'],
+            'meta' => [
+                'range' => $result['range'],
+                'selected_date' => $result['selected_date'],
+                'editable' => $result['editable'],
+            ],
         ], Response::HTTP_OK);
     }
 
@@ -99,9 +109,9 @@ class WorkScheduleAssignmentController extends Controller
 
     public function update(UpdateRequest $request, int $id): JsonResponse
     {
-        $this->authorize(WorkScheduleAssignmentPolicy::PERM_UPDATE, WorkShiftAssignment::class);
-
         $companyId = $this->companyContext->resolve($request);
+        $assignment = $this->service->findAssignmentForCompany($companyId, $id);
+        $this->authorize(WorkScheduleAssignmentPolicy::PERM_UPDATE, $assignment);
         $updated = $this->service->update($companyId, $id, $request->validated());
 
         return response()->json([
@@ -112,9 +122,9 @@ class WorkScheduleAssignmentController extends Controller
 
     public function destroy(DeleteRequest $request, int $id): JsonResponse
     {
-        $this->authorize(WorkScheduleAssignmentPolicy::PERM_DELETE, WorkShiftAssignment::class);
-
         $companyId = $this->companyContext->resolve($request);
+        $assignment = $this->service->findAssignmentForCompany($companyId, $id);
+        $this->authorize(WorkScheduleAssignmentPolicy::PERM_DELETE, $assignment);
         $deleted = $this->service->delete($companyId, $id);
 
         return response()->json([

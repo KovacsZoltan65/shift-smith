@@ -41,6 +41,23 @@ const currentCompanyName = computed(
 const canSwitchCompany = computed(
     () => Number(page.props?.companyContext?.selectable_company_count ?? 0) > 1,
 );
+
+const logout = () => {
+    const csrf =
+        page.props?.csrf_token ??
+        document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ??
+        "";
+
+    router.post(
+        route("logout"),
+        { _token: csrf },
+        {
+            headers: {
+                "X-CSRF-TOKEN": csrf,
+            },
+        },
+    );
+};
 </script>
 
 <template>
@@ -219,13 +236,13 @@ const canSwitchCompany = computed(
                                             Cég váltás
                                         </DropdownLink>
 
-                                        <DropdownLink
-                                            :href="route('logout')"
-                                            method="post"
-                                            as="button"
+                                        <button
+                                            type="button"
+                                            class="block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 transition duration-150 ease-in-out hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                                            @click="logout"
                                         >
                                             Log Out
-                                        </DropdownLink>
+                                        </button>
                                     </template>
                                 </Dropdown>
                             </div>
@@ -303,13 +320,13 @@ const canSwitchCompany = computed(
                             <ResponsiveNavLink :href="route('profile.edit')">
                                 Profile
                             </ResponsiveNavLink>
-                            <ResponsiveNavLink
-                                :href="route('logout')"
-                                method="post"
-                                as="button"
+                            <button
+                                type="button"
+                                class="block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 transition duration-150 ease-in-out hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                                @click="logout"
                             >
                                 Log Out
-                            </ResponsiveNavLink>
+                            </button>
                         </div>
                     </div>
                 </div>

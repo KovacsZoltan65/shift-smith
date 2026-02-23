@@ -6,6 +6,7 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Models\WorkShiftAssignment;
+use Carbon\CarbonImmutable;
 
 final class WorkScheduleAssignmentPolicy extends BasePolicy
 {
@@ -19,6 +20,15 @@ final class WorkScheduleAssignmentPolicy extends BasePolicy
     protected static function entity(): string
     {
         return 'work_schedule_assignments';
+    }
+
+    public function before(User $user, string $ability): ?bool
+    {
+        if (\in_array($ability, ['update', 'delete'], true)) {
+            return null;
+        }
+
+        return parent::before($user, $ability);
     }
 
     public function viewAny(User $user): bool
@@ -38,16 +48,24 @@ final class WorkScheduleAssignmentPolicy extends BasePolicy
 
     public function update(User $user, WorkShiftAssignment $assignment): bool
     {
-        return $user->can(self::perm(self::PERM_UPDATE));
+        return $user->can(self::perm(self::PERM_UPDATE))
+            && $this->isDateEditable((string) $assignment->date->format('Y-m-d'));
     }
 
     public function delete(User $user, WorkShiftAssignment $assignment): bool
     {
-        return $user->can(self::perm(self::PERM_DELETE));
+        return $user->can(self::perm(self::PERM_DELETE))
+            && $this->isDateEditable((string) $assignment->date->format('Y-m-d'));
     }
 
     public function deleteAny(User $user): bool
     {
         return $user->can(self::perm(self::PERM_DELETE_ANY));
+    }
+
+    private function isDateEditable(string $date): bool
+    {
+        return CarbonImmutable::parse($date)->startOfDay()
+            ->greaterThanOrEqualTo(CarbonImmutable::today());
     }
 }

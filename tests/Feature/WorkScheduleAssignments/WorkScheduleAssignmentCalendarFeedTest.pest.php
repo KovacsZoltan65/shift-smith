@@ -57,11 +57,16 @@ it('engedélyezi a feed végpontot és visszaadja az eseményeket', function ():
         ->withSession(['current_company_id' => $company->id])
         ->getJson(route('scheduling.calendar.feed', [
             'schedule_id' => $schedule->id,
-            'start' => '2026-06-01',
-            'end' => '2026-06-30',
+            'view_type' => 'day',
+            'date' => '2026-06-10',
         ]))
         ->assertOk()
-        ->assertJsonStructure(['data' => [['id', 'title', 'start', 'end', 'allDay', 'extendedProps']]]);
+        ->assertJsonStructure([
+            'data' => [[
+                'id', 'title', 'start', 'end', 'allDay', 'editable', 'extendedProps',
+            ]],
+            'meta' => ['range' => ['start', 'end'], 'selected_date', 'editable'],
+        ]);
 });
 
 it('tenant izolált feed: másik cég schedule-je nem kérhető le', function (): void {
@@ -78,4 +83,3 @@ it('tenant izolált feed: másik cég schedule-je nem kérhető le', function ()
         ->getJson(route('scheduling.calendar.feed', ['schedule_id' => $scheduleB->id]))
         ->assertNotFound();
 });
-

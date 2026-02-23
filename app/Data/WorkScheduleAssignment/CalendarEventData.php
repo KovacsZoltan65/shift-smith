@@ -16,6 +16,7 @@ class CalendarEventData extends Data
         public string $start,
         public string $end,
         public bool $allDay,
+        public bool $editable,
         /** @var list<string> */
         public array $className,
         /** @var array{
@@ -23,7 +24,8 @@ class CalendarEventData extends Data
          *   employee_name:string,
          *   shift_id:int,
          *   shift_name:string,
-         *   schedule_id:int
+         *   schedule_id:int,
+         *   editable:bool
          * } */
         public array $extendedProps
     ) {}
@@ -37,6 +39,7 @@ class CalendarEventData extends Data
         $startTime = (string) ($row->workShift?->start_time ?? '');
         $endTime = (string) ($row->workShift?->end_time ?? '');
         $date = CarbonImmutable::parse((string) $row->date)->startOfDay();
+        $editable = $date->greaterThanOrEqualTo(CarbonImmutable::today());
 
         $timeLabel = ($startTime !== '' || $endTime !== '')
             ? sprintf(' %s-%s', $startTime !== '' ? substr($startTime, 0, 5) : '--:--', $endTime !== '' ? substr($endTime, 0, 5) : '--:--')
@@ -48,6 +51,7 @@ class CalendarEventData extends Data
             start: $date->toDateString(),
             end: $date->addDay()->toDateString(),
             allDay: true,
+            editable: $editable,
             className: ['shift-' . (int) $row->work_shift_id],
             extendedProps: [
                 'employee_id' => (int) $row->employee_id,
@@ -55,6 +59,7 @@ class CalendarEventData extends Data
                 'shift_id' => (int) $row->work_shift_id,
                 'shift_name' => $shiftName,
                 'schedule_id' => (int) $row->work_schedule_id,
+                'editable' => $editable,
             ]
         );
     }

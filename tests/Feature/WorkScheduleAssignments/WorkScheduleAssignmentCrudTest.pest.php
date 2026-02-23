@@ -42,7 +42,7 @@ it('create/update/delete jogosultság nélkül tiltott', function (): void {
         ->assertForbidden();
 });
 
-it('tiltja a schedule intervallumon kívüli dátumot', function (): void {
+it('engedi a schedule intervallumon kívüli dátumot', function (): void {
     $user = $this->createAdminUser();
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
@@ -57,7 +57,7 @@ it('tiltja a schedule intervallumon kívüli dátumot', function (): void {
     $employee = Employee::factory()->create(['company_id' => $company->id]);
     $shift = WorkShift::factory()->create(['company_id' => $company->id]);
 
-    $this->actingAs($user)
+    $response = $this->actingAs($user)
         ->withSession(['current_company_id' => $company->id])
         ->postJson(route('work_schedule_assignments.store'), [
             'work_schedule_id' => $schedule->id,
@@ -65,8 +65,17 @@ it('tiltja a schedule intervallumon kívüli dátumot', function (): void {
             'work_shift_id' => $shift->id,
             'date' => '2026-09-01',
         ])
-        ->assertUnprocessable()
-        ->assertJsonValidationErrors(['date']);
+        ->assertCreated();
+
+    $id = (int) $response->json('data.id');
+    $this->assertDatabaseHas('work_shift_assignments', [
+        'id' => $id,
+        'company_id' => $company->id,
+        'work_schedule_id' => $schedule->id,
+        'employee_id' => $employee->id,
+        'work_shift_id' => $shift->id,
+        'date' => '2026-09-01',
+    ]);
 });
 
 it('published schedule lock: planner műveletek tiltva', function (): void {
@@ -185,4 +194,3 @@ it('cache bump store/update/delete után', function (): void {
 
     expect($versioner->get("company:{$company->id}:work_schedule_assignments"))->toBe(4);
 });
-

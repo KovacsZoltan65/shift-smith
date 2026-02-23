@@ -324,7 +324,7 @@ Route::middleware(['auth', 'verified'])
         Route::post('/work-schedule-assignments', 'store')->name('work_schedule_assignments.store')->middleware('throttle:20,1');
         Route::put('/work-schedule-assignments/{id}', 'update')->whereNumber('id')->name('work_schedule_assignments.update')->middleware('throttle:30,1');
         Route::delete('/work-schedule-assignments/{id}', 'destroy')->whereNumber('id')->name('work_schedule_assignments.destroy')->middleware('throttle:20,1');
-        Route::post('/work-schedule-assignments/bulk-upsert', 'bulkUpsert')->name('work_schedule_assignments.bulk_upsert')->middleware('throttle:10,1');
+        Route::post('/work-schedule-assignments/bulk-upsert', 'bulkUpsert')->name('work_schedule_assignments.bulk_upsert')->middleware('throttle:30,1');
     });
 
 /**
