@@ -13,6 +13,7 @@ const props = defineProps({
 });
 const emit = defineEmits(["update:modelValue", "saved"]);
 
+// Modal lokális állapot: beküldés közbeni tiltás + validációs hibák.
 const loading = ref(false);
 const errors = reactive({});
 const form = ref({
@@ -27,6 +28,7 @@ watch(
     (open) => {
         if (!open) return;
 
+        // Minden nyitáskor tiszta űrlap és hibák.
         form.value = {
             company_id: props.companyId ? Number(props.companyId) : null,
             name: "",
@@ -40,6 +42,7 @@ watch(
 watch(
     () => props.companyId,
     (value) => {
+        // Nyitott modalnál lekövetjük a felső company váltást.
         if (!props.modelValue) return;
         form.value.company_id = value ? Number(value) : null;
     }
@@ -59,6 +62,7 @@ const submit = async () => {
         });
 
         if (res.status === 422) {
+            // Backend field hibák kivetítése a form mezőire.
             const body = await res.json();
             const bag = body?.errors ?? {};
             for (const k of Object.keys(bag)) errors[k] = bag[k]?.[0] ?? "Hiba";
@@ -71,8 +75,8 @@ const submit = async () => {
         }
 
         const body = await res.json().catch(() => null);
-        const position = body?.data ?? body;
-        emit("saved", position);
+        // Sikeres mentésnél a parent csak visszajelző üzenetet kap.
+        emit("saved", body?.message ?? "Pozíció sikeresen létrehozva.");
         close();
     } catch (e) {
         errors._global = e?.message ?? "Ismeretlen hiba";

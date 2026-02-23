@@ -77,13 +77,8 @@ const submit = async () => {
             throw new Error(body?.message ?? `HTTP ${res.status}`);
         }
 
-        // Backend adapter:
-        // - régi: response lehetett { id, ... }
-        // - új: { message, data: { ... } }
         const body = await res.json().catch(() => null);
-        const company = body?.data ?? body;
-
-        emit("saved", company);
+        emit("saved", body?.message ?? "Cég sikeresen frissítve.");
         close();
     } catch (e) {
         errors._global = e?.message ?? "Ismeretlen hiba";

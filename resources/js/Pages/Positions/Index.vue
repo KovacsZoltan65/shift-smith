@@ -34,17 +34,21 @@ const props = defineProps({
 const toast = useToast();
 const confirm = useConfirm();
 
+// Modal állapotok és szerkesztendő rekord.
 const createOpen = ref(false);
 const editOpen = ref(false);
 const editPosition = ref(null);
 
+// Táblázat betöltési / művelet állapotok.
 const loading = ref(false);
 const actionLoading = ref(false);
 const error = ref(null);
 
+// Lista és kijelölés állapot.
 const rows = ref([]);
 const totalRecords = ref(0);
 const selected = ref([]);
+// A tenant scope kulcsa: fetch/delete hívások mindig ehhez a céghez mennek.
 const companyId = ref(props.filter?.company_id ?? null);
 
 const rowMenu = ref();
@@ -77,6 +81,7 @@ const lazy = ref({
     sortOrder: -1,
 });
 
+// Kliens oldali debounce-os kereső.
 const search = ref(props.filter?.search ?? "");
 let t = null;
 
@@ -90,6 +95,7 @@ const openEditModal = (row) => {
 };
 
 const onSaved = async (msg = "Mentve.") => {
+    // Mentés után a lista forrásigazsága a backend, ezért újratöltjük.
     selected.value = [];
     await fetchPositions();
     toast.add({ severity: "success", summary: "Siker", detail: msg, life: 2000 });
@@ -102,6 +108,7 @@ const onCompanyChanged = () => {
 };
 
 const onSearchInput = () => {
+    // Rövid debounce, hogy gépelés közben ne fusson túl sok kérés.
     if (t) clearTimeout(t);
     t = setTimeout(() => {
         lazy.value.first = 0;
@@ -123,6 +130,7 @@ const buildQuery = () => {
         company_id: companyId.value || "",
     };
 
+    // Csak értelmes paramétereket küldünk a query-ben.
     Object.keys(q).forEach((k) => {
         if (q[k] === null || q[k] === undefined || q[k] === "") delete q[k];
     });
@@ -131,6 +139,7 @@ const buildQuery = () => {
 };
 
 const fetchPositions = async () => {
+    // Cég nélkül nem kérdezünk le adatot.
     if (!companyId.value) {
         rows.value = [];
         totalRecords.value = 0;
@@ -199,6 +208,7 @@ const deleteOne = async (id) => {
         });
 
         if (!res.ok) {
+            // Backend hibaüzenetet preferáljuk, ha érkezik.
             let msg = `Törlés sikertelen (HTTP ${res.status})`;
             try {
                 const body = await res.json();
@@ -257,6 +267,7 @@ const bulkDelete = async (ids) => {
         });
 
         if (!res.ok) {
+            // Backend hibaüzenetet preferáljuk, ha érkezik.
             let msg = `Bulk törlés sikertelen (HTTP ${res.status})`;
             try {
                 const body = await res.json();
@@ -286,6 +297,7 @@ const bulkDelete = async (ids) => {
     }
 };
 
+// Első renderkor betöltjük az aktuális company scope adatait.
 onMounted(fetchPositions);
 </script>
 

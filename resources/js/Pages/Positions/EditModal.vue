@@ -14,6 +14,7 @@ const props = defineProps({
 });
 const emit = defineEmits(["update:modelValue", "saved"]);
 
+// Modal lokális állapot: beküldés és mezőszintű hibák.
 const loading = ref(false);
 const errors = reactive({});
 const form = ref({
@@ -26,6 +27,7 @@ const form = ref({
 const hasPosition = computed(() => !!props.position?.id);
 
 const fill = () => {
+    // A kiválasztott sorból töltjük a formot; fallback a globális company.
     form.value = {
         company_id: props.position?.company_id ?? (props.companyId ? Number(props.companyId) : null),
         name: props.position?.name ?? "",
@@ -38,17 +40,20 @@ const fill = () => {
 
 watch(
     () => props.modelValue,
+    // Nyitáskor mindig friss adatokkal induljon a modal.
     (open) => open && fill()
 );
 
 watch(
     () => props.position,
+    // Ha nyitott modalnál másik sorra váltunk, azonnal újratöltjük az űrlapot.
     () => props.modelValue && fill()
 );
 
 const close = () => emit("update:modelValue", false);
 
 const submit = async () => {
+    // Guard: PUT csak létező rekordra.
     if (!hasPosition.value) return;
 
     loading.value = true;
@@ -62,6 +67,7 @@ const submit = async () => {
         });
 
         if (res.status === 422) {
+            // Backend field hibák kivetítése a form mezőire.
             const body = await res.json();
             const bag = body?.errors ?? {};
             for (const k of Object.keys(bag)) errors[k] = bag[k]?.[0] ?? "Hiba";
@@ -74,8 +80,8 @@ const submit = async () => {
         }
 
         const body = await res.json().catch(() => null);
-        const position = body?.data ?? body;
-        emit("saved", position);
+        // Sikeres mentésnél a parent csak visszajelző üzenetet kap.
+        emit("saved", body?.message ?? "Pozíció sikeresen frissítve.");
         close();
     } catch (e) {
         errors._global = e?.message ?? "Ismeretlen hiba";

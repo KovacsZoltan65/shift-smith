@@ -13,6 +13,7 @@ const props = defineProps({
 const emit = defineEmits(["update:modelValue"]);
 
 const update = (patch) => {
+    // Részleges mezőfrissítés: a parent form objektumot nem írjuk felül teljesen.
     emit("update:modelValue", { ...(props.modelValue ?? {}), ...patch });
 };
 </script>
