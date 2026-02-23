@@ -31,7 +31,7 @@ class WorkPatternService extends BaseService {
     }
 
     getToSelect(params = {}) {
-        return this.get("selectors/work-patterns", { params });
+        return this.get(route("selectors.work_patterns"), { params });
     }
 }
 

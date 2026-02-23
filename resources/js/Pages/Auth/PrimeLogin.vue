@@ -1,5 +1,5 @@
 <script setup>
-import { Head, Link, useForm } from "@inertiajs/vue3";
+import { Head, Link, useForm, usePage } from "@inertiajs/vue3";
 import Card from "primevue/card";
 import InputText from "primevue/inputtext";
 import Password from "primevue/password";
@@ -19,10 +19,18 @@ const form = useForm({
   remember: false,
 });
 
+const page = usePage();
+const csrf =
+  page.props?.csrf_token ??
+  document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ??
+  "";
+
 const toast = ref(null);
 
 const submit = () => {
   form.post(route("login"), {
+    data: { _token: csrf },
+    headers: { "X-CSRF-TOKEN": csrf },
     onSuccess: () => {
       // optionally show a toast on success (Inertia will redirect)
     },

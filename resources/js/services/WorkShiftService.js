@@ -29,8 +29,7 @@ class WorkShiftService extends BaseService {
     }
 
     getToSelect(params = {}) {
-        //return this.get(`${this.url}/to_select`, { params });
-        return this.get(`selectors/${this.url}`, { params });
+        return this.get(route("selectors.work_shifts"), { params });
     }
 }
 
