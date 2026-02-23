@@ -82,8 +82,23 @@ const grouped = computed(() => {
         map.get(key).push(e);
     }
 
+    const normalizeTime = (value) => {
+        const time = String(value ?? "").slice(0, 5);
+        return /^\d{2}:\d{2}$/.test(time) ? time : "99:99";
+    };
+
     for (const [k, arr] of map.entries()) {
-        arr.sort((a, b) => String(a.title ?? "").localeCompare(String(b.title ?? ""), "hu"));
+        arr.sort((a, b) => {
+            const aStart = normalizeTime(a?.extendedProps?.shift_start_time);
+            const bStart = normalizeTime(b?.extendedProps?.shift_start_time);
+            if (aStart !== bStart) return aStart.localeCompare(bStart);
+
+            const aEnd = normalizeTime(a?.extendedProps?.shift_end_time);
+            const bEnd = normalizeTime(b?.extendedProps?.shift_end_time);
+            if (aEnd !== bEnd) return aEnd.localeCompare(bEnd);
+
+            return String(a?.title ?? "").localeCompare(String(b?.title ?? ""), "hu");
+        });
         map.set(k, arr);
     }
 
@@ -110,6 +125,11 @@ const onDrop = (event, day) => {
 };
 
 const isSelected = (d) => props.selectedDates.includes(toYmd(d));
+const shiftColorClass = (row) => {
+    const shiftId = Number(row?.extendedProps?.shift_id ?? 0);
+    if (!shiftId) return "";
+    return `shift-color-${Math.abs(shiftId) % 8}`;
+};
 
 const isInRange = (d) => {
     const day = toYmd(d);
@@ -138,7 +158,10 @@ const isEditableDay = (d) => {
                 v-for="day in visibleDates"
                 :key="toYmd(day)"
                 class="min-h-36 rounded-md border border-slate-200 p-2"
-                :class="isInRange(day) ? 'bg-slate-50' : 'bg-slate-100/60 opacity-70'"
+                :class="[
+                    isInRange(day) ? 'bg-slate-50' : 'bg-slate-100/60 opacity-70',
+                    isSelected(day) ? 'ring-2 ring-sky-300 bg-sky-50/70' : '',
+                ]"
                 @dragover.prevent
                 @drop="onDrop($event, day)"
             >
@@ -171,7 +194,7 @@ const isEditableDay = (d) => {
                         v-for="row in grouped.get(toYmd(day)) || []"
                         :key="row.id"
                         class="w-full rounded border px-2 py-1 text-left text-xs transition hover:bg-sky-50"
-                        :class="row.className || []"
+                        :class="[row.className || [], shiftColorClass(row)]"
                         type="button"
                         :draggable="plannerMode && !!row.editable"
                         :disabled="plannerMode && !row.editable"
@@ -201,3 +224,14 @@ const isEditableDay = (d) => {
         </div>
     </div>
 </template>
+
+<style scoped>
+.shift-color-0 { border-color: #14b8a6; background: #f0fdfa; }
+.shift-color-1 { border-color: #3b82f6; background: #eff6ff; }
+.shift-color-2 { border-color: #f97316; background: #fff7ed; }
+.shift-color-3 { border-color: #22c55e; background: #f0fdf4; }
+.shift-color-4 { border-color: #eab308; background: #fefce8; }
+.shift-color-5 { border-color: #ef4444; background: #fef2f2; }
+.shift-color-6 { border-color: #6366f1; background: #eef2ff; }
+.shift-color-7 { border-color: #06b6d4; background: #ecfeff; }
+</style>
