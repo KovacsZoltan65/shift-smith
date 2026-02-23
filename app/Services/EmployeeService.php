@@ -145,4 +145,35 @@ class EmployeeService
     {
         return $this->repo->getToSelect($params);
     }
+
+    /**
+     * AutoPlan-re jogosult dolgozók lekérése tenanton belül.
+     *
+     * A repository intervallum-átfedés és napi perc alapú szűrést alkalmaz.
+     *
+     * @param array{
+     *   required_daily_minutes?: int|null,
+     *   month?: string|null,
+     *   date_from?: string|null,
+     *   date_to?: string|null,
+     *   search?: string|null,
+     *   shift_ids?: list<int>,
+     *   eligible_for_autoplan?: bool
+     * } $params
+     * @return array{
+     *   data: array<int, array{id:int, full_name:string, name:string, work_pattern_summary:string}>,
+     *   meta: array{
+     *     total_employees:int,
+     *     eligible_count:int,
+     *     excluded_count:int,
+     *     excluded_reasons: array{missing_pattern:int, not_matching_minutes:int, inactive:int},
+     *     required_daily_minutes:int,
+     *     month:string|null
+     *   }
+     * }
+     */
+    public function getEligibleForAutoPlan(int $companyId, array $params): array
+    {
+        return $this->repo->getEligibleForAutoPlan($companyId, $params);
+    }
 }

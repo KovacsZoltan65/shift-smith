@@ -20,7 +20,8 @@ interface EmployeeRepositoryInterface
     public function getEmployeeByName(string $name): Employee;
 
     /**
-     * Summary of store
+     * Új dolgozó létrehozása.
+     *
      * @param array{
      *   first_name: string,
      *   last_name: string,
@@ -35,7 +36,8 @@ interface EmployeeRepositoryInterface
     public function store(array $data): Employee;
     
     /**
-     * Summary of update
+     * Dolgozó frissítése azonosító alapján.
+     *
      * @param array{
      *   first_name: string,
      *   last_name: string,
@@ -68,4 +70,29 @@ interface EmployeeRepositoryInterface
      * @return array<int, array{id:int, name:string}>
      */
     public function getToSelect(array $params): array;
+
+    /**
+     * @param array{
+     *   required_daily_minutes?: int|null,
+     *   month?: string|null,
+     *   date_from?: string|null,
+     *   date_to?: string|null,
+     *   search?: string|null,
+     *   shift_ids?: list<int>,
+     *   eligible_for_autoplan?: bool
+     * } $params
+     *
+     * @return array{
+     *   data: array<int, array{id:int, full_name:string, name:string, work_pattern_summary:string}>,
+     *   meta: array{
+     *     total_employees:int,
+     *     eligible_count:int,
+     *     excluded_count:int,
+     *     excluded_reasons: array{missing_pattern:int, not_matching_minutes:int, inactive:int},
+     *     required_daily_minutes:int,
+     *     month:string|null
+     *   }
+     * }
+     */
+    public function getEligibleForAutoPlan(int $companyId, array $params): array;
 }

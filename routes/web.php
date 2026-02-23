@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\CompanySelectController;
+use App\Http\Controllers\Scheduling\AutoPlanController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\EmployeeWorkPatternController;
 use App\Http\Controllers\PositionController;
@@ -52,6 +53,8 @@ Route::middleware(['auth', 'verified', 'ensure.company', 'throttle:120,1'])->gro
     Route::get('/selectors/companies', [CompanyController::class, 'getToSelect'])->name('selectors.companies');
     // Employee Selector
     Route::get('/selectors/employees', [EmployeeController::class, 'getToSelect'])->name('selectors.employees');
+    Route::get('/selectors/employees/eligible-autoplan', [EmployeeController::class, 'getEligibleForAutoPlan'])
+        ->name('selectors.employees.eligible_autoplan');
     // Position Selector
     Route::get('/selectors/positions', [PositionController::class, 'getToSelect'])->name('selectors.positions');
     // WorkShift Selector
@@ -245,6 +248,7 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
         // Olvasási műveletek
         Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
         Route::get('/fetch', 'fetch')->name('fetch')->middleware('throttle:60,1');
+        Route::get('/selector', 'selector')->name('selector')->middleware('throttle:120,1');
         Route::get('/{id}', 'getEmployee')->whereNumber('id')->name('by_id')->middleware('throttle:60,1');
         
         // Írási műveletek
@@ -325,6 +329,17 @@ Route::middleware(['auth', 'verified'])
         Route::put('/work-schedule-assignments/{id}', 'update')->whereNumber('id')->name('work_schedule_assignments.update')->middleware('throttle:30,1');
         Route::delete('/work-schedule-assignments/{id}', 'destroy')->whereNumber('id')->name('work_schedule_assignments.destroy')->middleware('throttle:20,1');
         Route::post('/work-schedule-assignments/bulk-upsert', 'bulkUpsert')->name('work_schedule_assignments.bulk_upsert')->middleware('throttle:30,1');
+    });
+
+Route::middleware(['auth', 'verified'])
+    ->controller(AutoPlanController::class)
+    ->group(function (): void {
+        Route::get('/scheduling/work-schedules/autoplan/defaults', 'defaults')
+            ->name('scheduling.work_schedules.autoplan.defaults')
+            ->middleware('throttle:60,1');
+        Route::post('/scheduling/work-schedules/autoplan', 'generate')
+            ->name('scheduling.work_schedules.autoplan.generate')
+            ->middleware('throttle:10,1');
     });
 
 /**

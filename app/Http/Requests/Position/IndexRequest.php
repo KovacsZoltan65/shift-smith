@@ -10,6 +10,18 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class IndexRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if ($this->filled('company_id')) {
+            return;
+        }
+
+        $companyId = $this->session()->get('current_company_id');
+        if ($companyId !== null) {
+            $this->merge(['company_id' => (int) $companyId]);
+        }
+    }
+
     public function authorize(): bool
     {
         return $this->user()?->can(PositionPolicy::PERM_VIEW_ANY, Position::class) ?? false;

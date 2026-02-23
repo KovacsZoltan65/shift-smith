@@ -12,6 +12,7 @@ use App\Services\CacheService;
 use App\Traits\Functions;
 use App\Data\Employee\EmployeeData;
 use App\Data\Employee\EmployeeIndexData;
+use Carbon\CarbonImmutable;
 use Illuminate\Container\Container as AppContainer;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
@@ -393,6 +394,196 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
             callback: $queryCallback,
             ttl: (int) config('cache.ttl_fetch', 1800)
         );
+    }
+
+    /**
+     * @param array{
+     *   required_daily_minutes?: int|null,
+     *   month?: string|null,
+     *   date_from?: string|null,
+     *   date_to?: string|null,
+     *   search?: string|null,
+     *   shift_ids?: list<int>,
+     *   eligible_for_autoplan?: bool
+     * } $params
+     * @return array{
+     *   data: array<int, array{id:int, full_name:string, name:string, work_pattern_summary:string}>,
+     *   meta: array{
+     *     total_employees:int,
+     *     eligible_count:int,
+     *     excluded_count:int,
+     *     excluded_reasons: array{missing_pattern:int, not_matching_minutes:int, inactive:int},
+     *     required_daily_minutes:int,
+     *     month:string|null,
+     *     date_from:string,
+     *     date_to:string
+     *   }
+     * }
+     */
+    #[Override]
+    public function getEligibleForAutoPlan(int $companyId, array $params): array
+    {
+        $needCache = (bool) config('cache.enable_employeeToSelect', false);
+
+        $requiredDailyMinutes = (int) ($params['required_daily_minutes'] ?? 480);
+        $month = \is_string($params['month'] ?? null) ? (string) $params['month'] : null;
+        $dateFrom = \is_string($params['date_from'] ?? null) ? (string) $params['date_from'] : null;
+        $dateTo = \is_string($params['date_to'] ?? null) ? (string) $params['date_to'] : null;
+        $search = \is_string($params['search'] ?? null) ? trim((string) $params['search']) : null;
+        $shiftIds = array_values(array_map('intval', (array) ($params['shift_ids'] ?? [])));
+        $eligibleForAutoplan = (bool) ($params['eligible_for_autoplan'] ?? true);
+        sort($shiftIds);
+
+        if ($dateFrom !== null && $dateTo !== null) {
+            $rangeStart = CarbonImmutable::parse($dateFrom)->toDateString();
+            $rangeEnd = CarbonImmutable::parse($dateTo)->toDateString();
+        } elseif ($month !== null && preg_match('/^\d{4}\-(0[1-9]|1[0-2])$/', $month) === 1) {
+            // Ha nincs explicit range, a hónap teljes intervallumával dolgozunk.
+            $monthStart = CarbonImmutable::createFromFormat('Y-m', $month)->startOfMonth();
+            $rangeStart = $monthStart->toDateString();
+            $rangeEnd = $monthStart->endOfMonth()->toDateString();
+        } else {
+            // Végső fallback: mai nap.
+            $today = CarbonImmutable::today()->toDateString();
+            $rangeStart = $today;
+            $rangeEnd = $today;
+        }
+
+        $keyParams = [
+            'company_id' => $companyId,
+            'required_daily_minutes' => $requiredDailyMinutes,
+            'month' => $month,
+            'date_from' => $rangeStart,
+            'date_to' => $rangeEnd,
+            'search' => $search,
+            'shift_ids' => $shiftIds,
+            'eligible_for_autoplan' => $eligibleForAutoplan,
+        ];
+        ksort($keyParams);
+
+        $queryCallback = function () use ($companyId, $requiredDailyMinutes, $month, $rangeStart, $rangeEnd, $search): array {
+            $applySearch = static function ($query) use ($search): void {
+                if ($search === null || $search === '') {
+                    return;
+                }
+
+                $term = mb_strtolower($search, 'UTF-8');
+                $query->where(function ($q) use ($term): void {
+                    $q->whereRaw('LOWER(first_name) like ?', ["%{$term}%"])
+                        ->orWhereRaw('LOWER(last_name) like ?', ["%{$term}%"])
+                        ->orWhereRaw("LOWER(CONCAT(last_name, ' ', first_name)) like ?", ["%{$term}%"]);
+                });
+            };
+
+            // Intervallum-átfedés: [date_from, date_to] metszi a kiválasztott range-et.
+            $overlap = static function ($query) use ($companyId, $rangeStart, $rangeEnd): void {
+                $query->where('company_id', $companyId)
+                    ->whereDate('date_from', '<=', $rangeEnd)
+                    ->where(function ($qq) use ($rangeStart): void {
+                        $qq->whereNull('date_to')->orWhereDate('date_to', '>=', $rangeStart);
+                    });
+            };
+
+            $eligibleQuery = Employee::query()
+                ->where('company_id', $companyId)
+                ->where('active', true)
+                ->whereHas('workPatterns', function ($q) use ($overlap, $companyId, $requiredDailyMinutes): void {
+                    $overlap($q);
+                    // Az átfedő hozzárendeléshez tartozó munkarend napi perce egyezzen.
+                    $q
+                        ->whereHas('workPattern', function ($wq) use ($companyId, $requiredDailyMinutes): void {
+                            $wq->where('company_id', $companyId)
+                                ->where('active', true)
+                                ->where('daily_work_minutes', $requiredDailyMinutes);
+                        });
+                });
+            $applySearch($eligibleQuery);
+
+            /** @var array<int, array{id:int, full_name:string, name:string, work_pattern_summary:string}> $eligible */
+            $eligible = (clone $eligibleQuery)
+                ->select(['id', 'first_name', 'last_name'])
+                ->orderBy('last_name')
+                ->orderBy('first_name')
+                ->get()
+                ->map(fn (Employee $e): array => [
+                    'id' => (int) $e->id,
+                    'full_name' => trim((string) $e->last_name . ' ' . (string) $e->first_name),
+                    'name' => trim((string) $e->last_name . ' ' . (string) $e->first_name),
+                    'work_pattern_summary' => '8h/day',
+                ])
+                ->values()
+                ->all();
+
+            $baseQuery = Employee::query()->where('company_id', $companyId);
+            $applySearch($baseQuery);
+            $totalEmployees = (int) (clone $baseQuery)->count();
+            $inactiveCount = (int) (clone $baseQuery)->where('active', false)->count();
+            $activeWithAnyOverlap = (int) (clone $baseQuery)
+                ->where('active', true)
+                ->whereHas('workPatterns', fn ($q) => $overlap($q))
+                ->count();
+            $eligibleCount = count($eligible);
+            $excludedCount = max(0, $totalEmployees - $eligibleCount);
+            $activeCount = max(0, $totalEmployees - $inactiveCount);
+            $missingPatternCount = max(0, $activeCount - $activeWithAnyOverlap);
+            $notMatchingMinutesCount = max(0, $activeWithAnyOverlap - $eligibleCount);
+
+            return [
+                'data' => $eligible,
+                'meta' => [
+                    'total_employees' => $totalEmployees,
+                    'eligible_count' => $eligibleCount,
+                    'excluded_count' => $excludedCount,
+                    'excluded_reasons' => [
+                        'missing_pattern' => $missingPatternCount,
+                        'not_matching_minutes' => $notMatchingMinutesCount,
+                        'inactive' => $inactiveCount,
+                    ],
+                    'required_daily_minutes' => $requiredDailyMinutes,
+                    'month' => $month,
+                    'date_from' => $rangeStart,
+                    'date_to' => $rangeEnd,
+                    // backward compatibility
+                    'total_count' => $totalEmployees,
+                    'breakdown' => [
+                        'inactive' => $inactiveCount,
+                        'not_target_daily_minutes' => $notMatchingMinutesCount,
+                    ],
+                    'target_daily_minutes' => $requiredDailyMinutes,
+                ],
+            ];
+        };
+
+        if (!$needCache) {
+            return $queryCallback();
+        }
+
+        $version = $this->cacheVersionService->get(self::NS_SELECTORS_EMPLOYEES);
+        $hash = hash('sha256', json_encode($keyParams, JSON_THROW_ON_ERROR));
+        $key = "v{$version}:eligible_autoplan:{$hash}";
+
+        /** @var array{
+         *   data: array<int, array{id:int, full_name:string, name:string, work_pattern_summary:string}>,
+         *   meta: array{
+         *     total_employees:int,
+         *     eligible_count:int,
+         *     excluded_count:int,
+         *     excluded_reasons: array{missing_pattern:int, not_matching_minutes:int, inactive:int},
+         *     required_daily_minutes:int,
+         *     month:string|null,
+         *     date_from:string,
+         *     date_to:string
+         *   }
+         * } $out
+         */
+        $out = $this->cacheService->remember(
+            tag: self::NS_SELECTORS_EMPLOYEES,
+            key: $key,
+            callback: $queryCallback,
+            ttl: (int) config('cache.ttl_fetch', 1800)
+        );
+
+        return $out;
     }
 
     /**

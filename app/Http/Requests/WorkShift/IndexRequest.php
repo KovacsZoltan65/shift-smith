@@ -68,6 +68,7 @@ class IndexRequest extends FormRequest
      *   name?: string,
      *   email?: string,
      *   phone?: string,
+     *   company_id?: int|null,
      *   field?: string,
      *   order?: 'asc'|'desc',
      *   page?: int,
@@ -87,6 +88,7 @@ class IndexRequest extends FormRequest
 
         return [
             'search'   => $search,
+            'company_id' => isset($data['company_id']) ? (int) $data['company_id'] : null,
             'field'    => $data['field'] ?? 'id',
             'order'    => $data['order'] ?? 'desc',
             'page'     => (int) ($data['page'] ?? 1),

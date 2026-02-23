@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\User;
+use App\Models\Company;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function (): void {
@@ -25,9 +26,11 @@ it('megtagadja a műszakok indexelését, ha nincs viewAny jogosultság', functi
 });
 
 it('megjeleníti a WorkShifts/Index oldalt alapértelmezett szűrőkkel adminnak', function (): void {
-    $user = $this->createAdminUser();
+    $user = $this->createSuperadminUser();
+    $company = Company::factory()->create();
 
     $this->actingAs($user)
+        ->withSession(['current_company_id' => $company->id])
         ->get(route('work_shifts.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
@@ -35,6 +38,7 @@ it('megjeleníti a WorkShifts/Index oldalt alapértelmezett szűrőkkel adminnak
             ->where('title', 'Műszakok')
             ->has('filter', fn (Assert $filter) => $filter
                 ->where('search', null)
+                ->where('company_id', $company->id)
                 ->where('field', 'id')
                 ->where('order', 'desc')
                 ->where('page', 1)

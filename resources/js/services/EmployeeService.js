@@ -42,6 +42,16 @@ class EmployeeService extends BaseService {
     getToSelect(params = {}) {
         return this.get(route("selectors.employees"), { params });
     }
+
+    getEligibleForAutoPlan(params = {}) {
+        return this.get(route("employees.selector"), {
+            params: {
+                eligible_for_autoplan: 1,
+                required_daily_minutes: 480,
+                ...params,
+            },
+        });
+    }
 }
 
 export default new EmployeeService();

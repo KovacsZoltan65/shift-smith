@@ -27,11 +27,12 @@ it('denies positions index if user lacks permission', function (): void {
 
 it('allows admin to open positions index', function (): void {
     $company = Company::factory()->create();
-    $user = $this->createAdminUser();
+    $user = $this->createSuperadminUser();
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
     $this->actingAs($user)
-        ->get(route('positions.index', ['company_id' => $company->id]))
+        ->withSession(['current_company_id' => $company->id])
+        ->get(route('positions.index'))
         ->assertOk();
 });

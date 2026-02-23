@@ -204,7 +204,10 @@ class UserController extends Controller
         try {
             $user = $this->service->update($request, $id);
 
-            return response()->json($user, Response::HTTP_OK);
+            return response()->json([
+                'message' => 'A felhasználó sikeresen frissítve.',
+                'data' => $user,
+            ], Response::HTTP_OK);
         } catch(Throwable $th) {
             return response()->json(
                 ['message' => 'Váratlan hiba történt'],

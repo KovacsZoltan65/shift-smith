@@ -13,6 +13,7 @@ use App\Http\Requests\Position\StoreRequest;
 use App\Http\Requests\Position\UpdateRequest;
 use App\Models\Position;
 use App\Policies\PositionPolicy;
+use App\Services\CurrentCompany;
 use App\Services\PositionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,12 +24,16 @@ use Symfony\Component\HttpFoundation\Response;
 class PositionController extends Controller
 {
     public function __construct(
-        private readonly PositionService $service
+        private readonly PositionService $service,
+        private readonly CurrentCompany $currentCompany
     ) {}
 
     public function index(Request $request): InertiaResponse
     {
         $this->authorize(PositionPolicy::PERM_VIEW_ANY, Position::class);
+
+        $currentCompanyId = $this->currentCompany->currentCompanyId($request);
+        abort_if($currentCompanyId === null, 403, 'No company selected');
 
         return Inertia::render('HR/Positions/Index', [
             'title' => 'Pozíciók',
@@ -38,7 +43,7 @@ class PositionController extends Controller
                 'order' => $request->string('order')->toString() ?: 'desc',
                 'page' => max(1, (int) $request->integer('page', 1)),
                 'per_page' => min(max(1, (int) $request->integer('per_page', 10)), 100),
-                'company_id' => $request->filled('company_id') ? (int) $request->integer('company_id') : null,
+                'company_id' => $currentCompanyId,
             ],
         ]);
     }
@@ -47,8 +52,15 @@ class PositionController extends Controller
     {
         $this->authorize(PositionPolicy::PERM_VIEW_ANY, Position::class);
 
+        $currentCompanyId = $this->currentCompany->currentCompanyId($request);
+        abort_if($currentCompanyId === null, 403, 'No company selected');
+        $request->merge(['company_id' => $currentCompanyId]);
+
         $positions = $this->service->fetch($request);
         $items = PositionIndexData::collect($positions->items());
+
+        $filter = $request->validatedFilters();
+        $filter['company_id'] = $currentCompanyId;
 
         return response()->json([
             'message' => 'Pozíciók sikeresen lekérve.',
@@ -59,7 +71,7 @@ class PositionController extends Controller
                 'total' => $positions->total(),
                 'last_page' => $positions->lastPage(),
             ],
-            'filter' => $request->validatedFilters(),
+            'filter' => $filter,
         ], Response::HTTP_OK);
     }
 

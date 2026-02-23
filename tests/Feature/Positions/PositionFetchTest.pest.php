@@ -30,7 +30,7 @@ it('megtagadja a fetch műveletet viewAny jogosultság nélkül', function (): v
 });
 
 it('lapozott pozíció listát ad vissza', function (): void {
-    $user = $this->createAdminUser();
+    $user = $this->createSuperadminUser();
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
@@ -39,7 +39,8 @@ it('lapozott pozíció listát ad vissza', function (): void {
     Position::factory()->count(3)->create(['company_id' => $company->id]);
 
     $this->actingAs($user)
-        ->getJson(route('positions.fetch', ['company_id' => $company->id, 'page' => 1, 'per_page' => 10]))
+        ->withSession(['current_company_id' => $company->id])
+        ->getJson(route('positions.fetch', ['page' => 1, 'per_page' => 10]))
         ->assertOk()
         ->assertJsonStructure([
             'data',

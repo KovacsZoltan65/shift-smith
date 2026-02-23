@@ -30,6 +30,7 @@ final class WorkSchedulePolicy extends BasePolicy
     public const PERM_UPDATE_SELF = 'work_schedules.updateSelf';
     public const PERM_DELETE = 'work_schedules.delete';
     public const PERM_DELETE_ANY = 'work_schedules.deleteAny';
+    public const PERM_AUTOPLAN = 'work_schedules.autoplan';
 
     /**
      * Entity név lekérése
@@ -102,5 +103,10 @@ final class WorkSchedulePolicy extends BasePolicy
     public function deleteAny(User $user): bool
     {
         return $user->can(self::perm('deleteAny'));
+    }
+
+    public function autoplan(User $user): bool
+    {
+        return $user->can(self::perm(self::PERM_AUTOPLAN));
     }
 }

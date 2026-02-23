@@ -28,7 +28,7 @@ it('megtagadja a műszakok lekérését, ha nincs viewAny jogosultság', functio
 });
 
 it('visszaadja a műszakokat meta + filter adatokkal', function (): void {
-    $user = $this->createAdminUser();
+    $user = $this->createSuperadminUser();
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
@@ -38,6 +38,7 @@ it('visszaadja a műszakokat meta + filter adatokkal', function (): void {
 
     $resp = $this
         ->actingAs($user)
+        ->withSession(['current_company_id' => $company->id])
         ->getJson(route('work_shifts.fetch', [
             'page' => 1,
             'per_page' => 10,
@@ -54,4 +55,5 @@ it('visszaadja a műszakokat meta + filter adatokkal', function (): void {
 
     expect($resp->json('data'))->toHaveCount(10);
     expect($resp->json('meta.total'))->toBe(15);
+    expect($resp->json('filter.company_id'))->toBe($company->id);
 });
