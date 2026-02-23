@@ -178,7 +178,7 @@ class WorkShiftController extends Controller
      * @return JsonResponse Frissített műszak JSON-ben
      * @throws \Throwable
      */
-    public function update(UpdateRequest $request, $id): JsonResponse
+    public function update(UpdateRequest $request, int $id): JsonResponse
     {
         /**
          * @var array{
@@ -197,7 +197,10 @@ class WorkShiftController extends Controller
         
             $updated = $this->service->update($data, $id);
 
-            return response()->json($updated, Response::HTTP_OK);
+            return response()->json([
+                'message' => 'A műszak sikeresen frissítve.',
+                'data' => $updated,
+            ], Response::HTTP_OK);
         } catch(Throwable $th) {
             report($th);
             return response()->json(
