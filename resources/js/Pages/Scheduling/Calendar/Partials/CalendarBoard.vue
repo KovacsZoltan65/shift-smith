@@ -138,7 +138,10 @@ const isEditableDay = (d) => {
                 v-for="day in visibleDates"
                 :key="toYmd(day)"
                 class="min-h-36 rounded-md border border-slate-200 p-2"
-                :class="isInRange(day) ? 'bg-slate-50' : 'bg-slate-100/60 opacity-70'"
+                :class="[
+                    isInRange(day) ? 'bg-slate-50' : 'bg-slate-100/60 opacity-70',
+                    isSelected(day) ? 'ring-2 ring-sky-300 bg-sky-50/70' : '',
+                ]"
                 @dragover.prevent
                 @drop="onDrop($event, day)"
             >

@@ -62,6 +62,7 @@ const editOpen = ref(false);
 const bulkOpen = ref(false);
 const createDate = ref(null);
 const selectedEvent = ref(null);
+const activeQuickSelect = ref(null);
 
 const employeeOptions = ref([]);
 const shiftOptions = ref([]);
@@ -91,6 +92,14 @@ const viewModeOptions = [
     { label: "Heti", value: "week" },
     { label: "Havi", value: "month" },
     { label: "Napi", value: "day" },
+];
+
+const quickSelectOptions = [
+    { label: "H-P", value: "workdays" },
+    { label: "Szo-V", value: "weekends" },
+    { label: "Osszes", value: "all" },
+    { label: "Paratlan", value: "odd" },
+    { label: "Paros", value: "even" },
 ];
 
 const yearOptions = computed(() => {
@@ -223,6 +232,116 @@ const toYmd = (value) => {
     ).padStart(2, "0")}`;
 };
 
+const toDateKey = (value) => {
+    if (!value) return "";
+    if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+
+    const dt = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(dt.getTime())) return "";
+
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(
+        dt.getDate(),
+    ).padStart(2, "0")}`;
+};
+
+const dayOfMonth = (value) => {
+    const dt = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(dt.getTime())) return null;
+    return dt.getDate();
+};
+
+const startOfWeekDate = (value) => {
+    const base = value instanceof Date ? new Date(value) : new Date();
+    const day = (base.getDay() + 6) % 7;
+    base.setDate(base.getDate() - day);
+    base.setHours(0, 0, 0, 0);
+    return base;
+};
+
+const isDateSelectable = (ymd) => {
+    if (!ymd) return false;
+    if (String(ymd) < String(todayYmd.value)) return false;
+    if (scheduleRange.value.from && ymd < scheduleRange.value.from) return false;
+    if (scheduleRange.value.to && ymd > scheduleRange.value.to) return false;
+    return true;
+};
+
+const getWeekDays = () => {
+    if (viewMode.value !== "week") return [];
+
+    const start = startOfWeekDate(anchorDate.value);
+    return Array.from({ length: 7 }, (_, index) => {
+        const date = new Date(start);
+        date.setDate(start.getDate() + index);
+        return {
+            date,
+            dateKey: toDateKey(date),
+            dayOfWeek: date.getDay(),
+        };
+    }).filter((day) => !!day.dateKey);
+};
+
+const applyQuickSelect = (type, modifiers = { additive: false, subtractive: false }) => {
+    const weekDays = getWeekDays().filter((day) => isDateSelectable(day.dateKey));
+    if (!weekDays.length) {
+        selectedDates.value = [];
+        activeQuickSelect.value = null;
+        return;
+    }
+
+    const matched = weekDays.filter((day) => {
+        if (type === "workdays") return day.dayOfWeek >= 1 && day.dayOfWeek <= 5;
+        if (type === "weekends") return day.dayOfWeek === 6 || day.dayOfWeek === 0;
+        if (type === "odd") {
+            const dom = dayOfMonth(day.date);
+            return dom !== null && dom % 2 === 1;
+        }
+        if (type === "even") {
+            const dom = dayOfMonth(day.date);
+            return dom !== null && dom % 2 === 0;
+        }
+        return true;
+    });
+
+    const matchedKeys = matched.map((day) => day.dateKey);
+
+    if (modifiers.subtractive) {
+        const removeSet = new Set(matchedKeys);
+        selectedDates.value = selectedDates.value.filter((key) => !removeSet.has(key));
+    } else if (modifiers.additive) {
+        selectedDates.value = Array.from(new Set([...selectedDates.value, ...matchedKeys])).sort();
+    } else {
+        selectedDates.value = [...matchedKeys].sort();
+    }
+
+    activeQuickSelect.value = type;
+};
+
+const onQuickSelectClick = (type, event) => {
+    const additive = !!(event?.ctrlKey || event?.metaKey);
+    const subtractive = !!event?.altKey;
+
+    if (!additive && !subtractive && activeQuickSelect.value === type) {
+        selectedDates.value = [];
+        activeQuickSelect.value = null;
+        return;
+    }
+
+    applyQuickSelect(type, { additive, subtractive });
+};
+
+const syncSelectionWithVisibleWeek = () => {
+    if (viewMode.value !== "week") return;
+
+    const visibleKeys = new Set(getWeekDays().map((day) => day.dateKey));
+    const next = selectedDates.value.filter((key) => visibleKeys.has(key));
+
+    if (next.length !== selectedDates.value.length) {
+        selectedDates.value = next;
+        activeQuickSelect.value = null;
+    }
+};
+
 const buildFeedParams = () => {
     const params = {
         schedule_id: Number(scheduleId.value),
@@ -284,6 +403,7 @@ const loadEvents = async () => {
 
 const refresh = async () => {
     selectedDates.value = [];
+    activeQuickSelect.value = null;
     await loadEvents();
 };
 
@@ -388,16 +508,15 @@ const onEventDrop = async ({ id, date }) => {
 
 const toggleSelectedDate = (ymd) => {
     if (!plannerModeEnabled.value) return;
-    if (String(ymd) < String(todayYmd.value)) return;
-
-    if (scheduleRange.value.from && ymd < scheduleRange.value.from) return;
-    if (scheduleRange.value.to && ymd > scheduleRange.value.to) return;
+    if (!isDateSelectable(ymd)) return;
 
     if (selectedDates.value.includes(ymd)) {
         selectedDates.value = selectedDates.value.filter((x) => x !== ymd);
     } else {
         selectedDates.value = [...selectedDates.value, ymd].sort();
     }
+
+    activeQuickSelect.value = null;
 };
 
 const handleBulk = async (payload) => {
@@ -449,6 +568,7 @@ watch(
     async () => {
         resetViewFilters();
         selectedDates.value = [];
+        activeQuickSelect.value = null;
         await loadEvents();
     },
     { immediate: false },
@@ -456,6 +576,7 @@ watch(
 
 watch([scheduleId, weekNumber, month, year, dayDate], loadEvents);
 watch([selectedEmployeeIds, selectedShiftIds, selectedPositionIds], loadEvents);
+watch([weekNumber, year, viewMode], syncSelectionWithVisibleWeek);
 
 watch(
     [year, viewMode],
@@ -640,6 +761,20 @@ onMounted(async () => {
 
                 <div class="text-xs text-slate-600">
                     Intervallum: <b>{{ currentRangeLabel }}</b>
+                </div>
+
+                <div v-if="plannerModeEnabled && viewMode === 'week'" class="flex flex-wrap items-center gap-2">
+                    <span class="text-xs font-medium text-slate-600">Gyors kijeloles:</span>
+                    <Button
+                        v-for="opt in quickSelectOptions"
+                        :key="opt.value"
+                        :label="opt.label"
+                        size="small"
+                        :severity="activeQuickSelect === opt.value ? 'primary' : 'secondary'"
+                        :outlined="activeQuickSelect !== opt.value"
+                        @click="onQuickSelectClick(opt.value, $event)"
+                    />
+                    <span class="text-xs text-slate-600">{{ selectedDates.length }} nap kijelolve</span>
                 </div>
 
                 <div v-if="canPlanner" class="ml-auto flex items-center gap-2">
