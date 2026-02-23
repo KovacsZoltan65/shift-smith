@@ -94,13 +94,35 @@ const viewModeOptions = [
     { label: "Napi", value: "day" },
 ];
 
-const quickSelectOptions = [
+const weeklyQuickSelectOptions = [
     { label: "H-P", value: "workdays" },
     { label: "Szo-V", value: "weekends" },
     { label: "Osszes", value: "all" },
     { label: "Paratlan", value: "odd" },
     { label: "Paros", value: "even" },
 ];
+
+const monthlyQuickSelectOptions = [
+    { label: "H-P", value: "workdays" },
+    { label: "Szo-V", value: "weekends" },
+    { label: "Osszes", value: "all" },
+    { label: "Paratlan", value: "odd" },
+    { label: "Paros", value: "even" },
+    { label: "Aktualis het", value: "current_week" },
+    { label: "Paros het", value: "even_week" },
+    { label: "Paratlan het", value: "odd_week" },
+    { label: "Mai nap", value: "today" },
+    { label: "Kovetkezo het", value: "next_week" },
+    { label: "Honap hatralevo", value: "month_remaining" },
+    { label: "Clear", value: "clear" },
+    { label: "Invert", value: "invert" },
+];
+
+const quickSelectOptions = computed(() => {
+    if (viewMode.value === "month") return monthlyQuickSelectOptions;
+    if (viewMode.value === "week") return weeklyQuickSelectOptions;
+    return [];
+});
 
 const yearOptions = computed(() => {
     const currentYear = new Date().getFullYear();
@@ -244,10 +266,40 @@ const toDateKey = (value) => {
     ).padStart(2, "0")}`;
 };
 
-const dayOfMonth = (value) => {
+const getDayOfWeek = (value) => {
+    const dt = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(dt.getTime())) return null;
+    return dt.getDay();
+};
+
+const getDayOfMonth = (value) => {
     const dt = value instanceof Date ? value : new Date(value);
     if (Number.isNaN(dt.getTime())) return null;
     return dt.getDate();
+};
+
+const getIsoWeekMeta = (value) => {
+    const dt = value instanceof Date ? new Date(value) : new Date(value);
+    if (Number.isNaN(dt.getTime())) return null;
+
+    const utc = new Date(Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate()));
+    const day = utc.getUTCDay() || 7;
+    utc.setUTCDate(utc.getUTCDate() + 4 - day);
+
+    const isoYear = utc.getUTCFullYear();
+    const yearStart = new Date(Date.UTC(isoYear, 0, 1));
+    const isoWeek = Math.ceil((((utc - yearStart) / 86400000) + 1) / 7);
+
+    return { isoWeek, isoYear };
+};
+
+const getIsoWeekNumber = (value) => getIsoWeekMeta(value)?.isoWeek ?? null;
+
+const isSameIsoWeek = (a, b) => {
+    const aw = getIsoWeekMeta(a);
+    const bw = getIsoWeekMeta(b);
+    if (!aw || !bw) return false;
+    return aw.isoWeek === bw.isoWeek && aw.isoYear === bw.isoYear;
 };
 
 const startOfWeekDate = (value) => {
@@ -266,60 +318,112 @@ const isDateSelectable = (ymd) => {
     return true;
 };
 
-const getWeekDays = () => {
-    if (viewMode.value !== "week") return [];
+const getVisibleGridDays = () => {
+    if (viewMode.value === "day") {
+        const key = toDateKey(anchorDate.value);
+        if (!key) return [];
+        return [new Date(anchorDate.value)];
+    }
 
-    const start = startOfWeekDate(anchorDate.value);
-    return Array.from({ length: 7 }, (_, index) => {
-        const date = new Date(start);
-        date.setDate(start.getDate() + index);
-        return {
-            date,
-            dateKey: toDateKey(date),
-            dayOfWeek: date.getDay(),
-        };
-    }).filter((day) => !!day.dateKey);
+    if (viewMode.value === "week") {
+        const start = startOfWeekDate(anchorDate.value);
+        return Array.from({ length: 7 }, (_, index) => {
+            const date = new Date(start);
+            date.setDate(start.getDate() + index);
+            return date;
+        });
+    }
+
+    if (viewMode.value === "month") {
+        const first = new Date(Number(year.value), Number(month.value) - 1, 1);
+        const start = startOfWeekDate(first);
+        return Array.from({ length: 42 }, (_, index) => {
+            const date = new Date(start);
+            date.setDate(start.getDate() + index);
+            return date;
+        });
+    }
+
+    return [];
 };
 
-const applyQuickSelect = (type, modifiers = { additive: false, subtractive: false }) => {
-    const weekDays = getWeekDays().filter((day) => isDateSelectable(day.dateKey));
-    if (!weekDays.length) {
+const buildQuickSelectTargetKeys = (type) => {
+    const visible = getVisibleGridDays()
+        .map((date) => ({ date, dateKey: toDateKey(date) }))
+        .filter((day) => !!day.dateKey && isDateSelectable(day.dateKey));
+
+    if (!visible.length) return [];
+
+    const today = new Date();
+    const todayPlusSeven = new Date(today);
+    todayPlusSeven.setDate(todayPlusSeven.getDate() + 7);
+
+    const currentMonthIndex = Number(month.value) - 1;
+    const currentMonthYear = Number(year.value);
+
+    const matched = visible.filter((day) => {
+        const dayOfWeek = getDayOfWeek(day.date);
+        const dayOfMonth = getDayOfMonth(day.date);
+        const isoWeek = getIsoWeekNumber(day.date);
+
+        if (type === "workdays") return dayOfWeek !== null && dayOfWeek >= 1 && dayOfWeek <= 5;
+        if (type === "weekends") return dayOfWeek === 0 || dayOfWeek === 6;
+        if (type === "all") return true;
+        if (type === "odd") return dayOfMonth !== null && dayOfMonth % 2 === 1;
+        if (type === "even") return dayOfMonth !== null && dayOfMonth % 2 === 0;
+        if (type === "current_week") return isSameIsoWeek(day.date, today);
+        if (type === "even_week") return isoWeek !== null && isoWeek % 2 === 0;
+        if (type === "odd_week") return isoWeek !== null && isoWeek % 2 === 1;
+        if (type === "today") return day.dateKey === todayYmd.value;
+        if (type === "next_week") return isSameIsoWeek(day.date, todayPlusSeven);
+        if (type === "month_remaining") {
+            return (
+                day.dateKey >= todayYmd.value &&
+                day.date.getFullYear() === currentMonthYear &&
+                day.date.getMonth() === currentMonthIndex
+            );
+        }
+
+        return false;
+    });
+
+    return matched.map((day) => day.dateKey);
+};
+
+const applyQuickSelect = (type, mouseEvent) => {
+    const additive = !!(mouseEvent?.ctrlKey || mouseEvent?.metaKey);
+    const subtractive = !!mouseEvent?.altKey;
+
+    const visibleSelectableKeys = new Set(
+        getVisibleGridDays()
+            .map((date) => toDateKey(date))
+            .filter((key) => !!key && isDateSelectable(key)),
+    );
+
+    if (!visibleSelectableKeys.size) {
         selectedDates.value = [];
         activeQuickSelect.value = null;
         return;
     }
 
-    const matched = weekDays.filter((day) => {
-        if (type === "workdays") return day.dayOfWeek >= 1 && day.dayOfWeek <= 5;
-        if (type === "weekends") return day.dayOfWeek === 6 || day.dayOfWeek === 0;
-        if (type === "odd") {
-            const dom = dayOfMonth(day.date);
-            return dom !== null && dom % 2 === 1;
-        }
-        if (type === "even") {
-            const dom = dayOfMonth(day.date);
-            return dom !== null && dom % 2 === 0;
-        }
-        return true;
-    });
-
-    const matchedKeys = matched.map((day) => day.dateKey);
-
-    if (modifiers.subtractive) {
-        const removeSet = new Set(matchedKeys);
-        selectedDates.value = selectedDates.value.filter((key) => !removeSet.has(key));
-    } else if (modifiers.additive) {
-        selectedDates.value = Array.from(new Set([...selectedDates.value, ...matchedKeys])).sort();
-    } else {
-        selectedDates.value = [...matchedKeys].sort();
+    if (type === "clear") {
+        selectedDates.value = [];
+        activeQuickSelect.value = "clear";
+        return;
     }
 
-    activeQuickSelect.value = type;
-};
+    if (type === "invert") {
+        const current = new Set(selectedDates.value);
+        const inverted = [];
 
-const onQuickSelectClick = (type, event) => {
-    const additive = !!(event?.ctrlKey || event?.metaKey);
-    const subtractive = !!event?.altKey;
+        for (const key of visibleSelectableKeys) {
+            if (!current.has(key)) inverted.push(key);
+        }
+
+        selectedDates.value = inverted.sort();
+        activeQuickSelect.value = "invert";
+        return;
+    }
 
     if (!additive && !subtractive && activeQuickSelect.value === type) {
         selectedDates.value = [];
@@ -327,13 +431,24 @@ const onQuickSelectClick = (type, event) => {
         return;
     }
 
-    applyQuickSelect(type, { additive, subtractive });
+    const targetKeys = buildQuickSelectTargetKeys(type);
+    const targetSet = new Set(targetKeys);
+
+    if (subtractive) {
+        selectedDates.value = selectedDates.value.filter((key) => !targetSet.has(key));
+    } else if (additive) {
+        selectedDates.value = Array.from(new Set([...selectedDates.value, ...targetKeys])).sort();
+    } else {
+        selectedDates.value = [...targetKeys].sort();
+    }
+
+    activeQuickSelect.value = type;
 };
 
-const syncSelectionWithVisibleWeek = () => {
-    if (viewMode.value !== "week") return;
+const syncSelectionWithVisibleRange = () => {
+    if (viewMode.value !== "week" && viewMode.value !== "month") return;
 
-    const visibleKeys = new Set(getWeekDays().map((day) => day.dateKey));
+    const visibleKeys = new Set(getVisibleGridDays().map((date) => toDateKey(date)).filter(Boolean));
     const next = selectedDates.value.filter((key) => visibleKeys.has(key));
 
     if (next.length !== selectedDates.value.length) {
@@ -576,7 +691,7 @@ watch(
 
 watch([scheduleId, weekNumber, month, year, dayDate], loadEvents);
 watch([selectedEmployeeIds, selectedShiftIds, selectedPositionIds], loadEvents);
-watch([weekNumber, year, viewMode], syncSelectionWithVisibleWeek);
+watch([weekNumber, month, year, viewMode], syncSelectionWithVisibleRange);
 
 watch(
     [year, viewMode],
@@ -763,18 +878,26 @@ onMounted(async () => {
                     Intervallum: <b>{{ currentRangeLabel }}</b>
                 </div>
 
-                <div v-if="plannerModeEnabled && viewMode === 'week'" class="flex flex-wrap items-center gap-2">
-                    <span class="text-xs font-medium text-slate-600">Gyors kijeloles:</span>
-                    <Button
-                        v-for="opt in quickSelectOptions"
-                        :key="opt.value"
-                        :label="opt.label"
-                        size="small"
-                        :severity="activeQuickSelect === opt.value ? 'primary' : 'secondary'"
-                        :outlined="activeQuickSelect !== opt.value"
-                        @click="onQuickSelectClick(opt.value, $event)"
-                    />
-                    <span class="text-xs text-slate-600">{{ selectedDates.length }} nap kijelolve</span>
+                <div
+                    v-if="plannerModeEnabled && (viewMode === 'week' || viewMode === 'month')"
+                    class="flex flex-col gap-1"
+                >
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-xs font-medium text-slate-600">Gyors kijeloles:</span>
+                        <Button
+                            v-for="opt in quickSelectOptions"
+                            :key="opt.value"
+                            :label="opt.label"
+                            size="small"
+                            :severity="activeQuickSelect === opt.value ? 'primary' : 'secondary'"
+                            :outlined="activeQuickSelect !== opt.value"
+                            @click="applyQuickSelect(opt.value, $event)"
+                        />
+                        <span class="text-xs text-slate-600">{{ selectedDates.length }} nap kijelolve</span>
+                    </div>
+                    <div class="text-[11px] text-slate-500">
+                        Modok: kattintas = feluliras, ugyanaz ujra = torles, Ctrl/Cmd + kattintas = hozzaadas, Alt + kattintas = kivonas.
+                    </div>
                 </div>
 
                 <div v-if="canPlanner" class="ml-auto flex items-center gap-2">
