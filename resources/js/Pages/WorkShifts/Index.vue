@@ -93,8 +93,8 @@ const lazy = ref({
     first: 0,
     rows: 10,
     page: 0,
-    sortField: "id",
-    sortOrder: -1,
+    sortField: "name",
+    sortOrder: 1,
 });
 
 const search = ref(props.filter?.search ?? "");
