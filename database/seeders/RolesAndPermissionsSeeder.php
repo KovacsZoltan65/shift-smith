@@ -56,16 +56,17 @@ class RolesAndPermissionsSeeder extends Seeder
          * ezekkel a prefixekkel kell kezdődniük.
          */
         $entities = [
-            'users'       => User::class,
-            'employees'   => Employee::class,
-            'positions'   => Position::class,
-            'companies'   => Company::class,
-            'roles'       => Role::class,
-            'permissions' => Permission::class,
-            'work_shifts' => WorkShift::class,
+            //'app_settings' => AppSettings::class,
+            'users'          => User::class,
+            'employees'      => Employee::class,
+            'positions'      => Position::class,
+            'companies'      => Company::class,
+            'roles'          => Role::class,
+            'permissions'    => Permission::class,
+            'work_shifts'    => WorkShift::class,
             'work_schedules' => WorkSchedule::class,
             'work_schedule_assignments' => \App\Models\WorkShiftAssignment::class,
-            'work_patterns' => WorkPattern::class,
+            'work_patterns'  => WorkPattern::class,
             'employee_work_patterns' => EmployeeWorkPattern::class,
         ];
 
@@ -74,6 +75,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'employee_work_patterns.assign',
             'employee_work_patterns.unassign',
             'employee_work_patterns.view',
+            'work_schedules.autoplan',
         ];
 
         /**

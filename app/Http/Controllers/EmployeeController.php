@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Employee\BulkDeleteRequest;
+use App\Http\Requests\Employee\EligibleSelectorRequest;
 use App\Http\Requests\Employee\IndexRequest;
 use App\Http\Requests\Employee\StoreRequest;
 use App\Http\Requests\Employee\UpdateRequest;
@@ -273,5 +274,24 @@ class EmployeeController extends Controller
             'company_id' => ($companyId === null || $companyId === '') ? null : (int) $companyId,
             'only_active' => $onlyActive,
         ]);
+    }
+
+    public function getEligibleForAutoPlan(EligibleSelectorRequest $request): JsonResponse
+    {
+        $companyId = $this->currentCompany->currentCompanyId($request);
+        abort_if($companyId === null, 403, 'No company selected');
+
+        $validated = $request->validated();
+        $result = $this->service->getEligibleForAutoPlan($companyId, [
+            'target_daily_minutes' => isset($validated['target_daily_minutes']) ? (int) $validated['target_daily_minutes'] : 480,
+            'month' => isset($validated['month']) ? (string) $validated['month'] : null,
+            'shift_ids' => array_map('intval', (array) ($validated['shift_ids'] ?? [])),
+        ]);
+
+        return response()->json([
+            'message' => 'AutoPlan-re jogosult dolgozók sikeresen lekérve.',
+            'data' => $result['data'],
+            'meta' => $result['meta'],
+        ], Response::HTTP_OK);
     }
 }

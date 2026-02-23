@@ -12,6 +12,7 @@ use App\Services\CacheService;
 use App\Traits\Functions;
 use App\Data\Employee\EmployeeData;
 use App\Data\Employee\EmployeeIndexData;
+use Carbon\CarbonImmutable;
 use Illuminate\Container\Container as AppContainer;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
@@ -393,6 +394,130 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
             callback: $queryCallback,
             ttl: (int) config('cache.ttl_fetch', 1800)
         );
+    }
+
+    /**
+     * @param array{
+     *   target_daily_minutes?: int|null,
+     *   month?: string|null,
+     *   shift_ids?: list<int>
+     * } $params
+     * @return array{
+     *   data: array<int, array{id:int, name:string}>,
+     *   meta: array{
+     *     total_count:int,
+     *     eligible_count:int,
+     *     excluded_count:int,
+     *     breakdown: array{inactive:int, not_target_daily_minutes:int},
+     *     target_daily_minutes:int,
+     *     month:string|null
+     *   }
+     * }
+     */
+    #[Override]
+    public function getEligibleForAutoPlan(int $companyId, array $params): array
+    {
+        $needCache = (bool) config('cache.enable_employeeToSelect', false);
+
+        $targetDailyMinutes = (int) ($params['target_daily_minutes'] ?? 480);
+        $month = \is_string($params['month'] ?? null) ? (string) $params['month'] : null;
+        $shiftIds = array_values(array_map('intval', (array) ($params['shift_ids'] ?? [])));
+        sort($shiftIds);
+
+        $anchorDate = $month !== null && preg_match('/^\d{4}\-(0[1-9]|1[0-2])$/', $month) === 1
+            ? CarbonImmutable::createFromFormat('Y-m', $month)->startOfMonth()->toDateString()
+            : CarbonImmutable::today()->toDateString();
+
+        $keyParams = [
+            'company_id' => $companyId,
+            'target_daily_minutes' => $targetDailyMinutes,
+            'month' => $month,
+            'shift_ids' => $shiftIds,
+            'anchor_date' => $anchorDate,
+        ];
+        ksort($keyParams);
+
+        $queryCallback = function () use ($companyId, $targetDailyMinutes, $month, $anchorDate): array {
+            $eligibleQuery = Employee::query()
+                ->where('company_id', $companyId)
+                ->where('active', true)
+                ->whereHas('workPatterns', function ($q) use ($companyId, $targetDailyMinutes, $anchorDate): void {
+                    $q->where('company_id', $companyId)
+                        ->whereDate('date_from', '<=', $anchorDate)
+                        ->where(function ($qq) use ($anchorDate): void {
+                            $qq->whereNull('date_to')->orWhereDate('date_to', '>=', $anchorDate);
+                        })
+                        ->whereHas('workPattern', function ($wq) use ($companyId, $targetDailyMinutes): void {
+                            $wq->where('company_id', $companyId)
+                                ->where('active', true)
+                                ->where('daily_work_minutes', $targetDailyMinutes);
+                        });
+                });
+
+            /** @var array<int, array{id:int, name:string}> $eligible */
+            $eligible = (clone $eligibleQuery)
+                ->select(['id', 'first_name', 'last_name'])
+                ->orderBy('last_name')
+                ->orderBy('first_name')
+                ->get()
+                ->map(fn (Employee $e): array => [
+                    'id' => (int) $e->id,
+                    'name' => trim((string) $e->last_name . ' ' . (string) $e->first_name),
+                ])
+                ->values()
+                ->all();
+
+            $totalCount = (int) Employee::query()->where('company_id', $companyId)->count();
+            $inactiveCount = (int) Employee::query()->where('company_id', $companyId)->where('active', false)->count();
+            $eligibleCount = count($eligible);
+            $excludedCount = max(0, $totalCount - $eligibleCount);
+            $activeCount = max(0, $totalCount - $inactiveCount);
+            $notTargetCount = max(0, $activeCount - $eligibleCount);
+
+            return [
+                'data' => $eligible,
+                'meta' => [
+                    'total_count' => $totalCount,
+                    'eligible_count' => $eligibleCount,
+                    'excluded_count' => $excludedCount,
+                    'breakdown' => [
+                        'inactive' => $inactiveCount,
+                        'not_target_daily_minutes' => $notTargetCount,
+                    ],
+                    'target_daily_minutes' => $targetDailyMinutes,
+                    'month' => $month,
+                ],
+            ];
+        };
+
+        if (!$needCache) {
+            return $queryCallback();
+        }
+
+        $version = $this->cacheVersionService->get(self::NS_SELECTORS_EMPLOYEES);
+        $hash = hash('sha256', json_encode($keyParams, JSON_THROW_ON_ERROR));
+        $key = "v{$version}:eligible_autoplan:{$hash}";
+
+        /** @var array{
+         *   data: array<int, array{id:int, name:string}>,
+         *   meta: array{
+         *     total_count:int,
+         *     eligible_count:int,
+         *     excluded_count:int,
+         *     breakdown: array{inactive:int, not_target_daily_minutes:int},
+         *     target_daily_minutes:int,
+         *     month:string|null
+         *   }
+         * } $out
+         */
+        $out = $this->cacheService->remember(
+            tag: self::NS_SELECTORS_EMPLOYEES,
+            key: $key,
+            callback: $queryCallback,
+            ttl: (int) config('cache.ttl_fetch', 1800)
+        );
+
+        return $out;
     }
 
     /**

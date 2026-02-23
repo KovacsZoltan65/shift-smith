@@ -145,4 +145,27 @@ class EmployeeService
     {
         return $this->repo->getToSelect($params);
     }
+
+    /**
+     * @param array{
+     *   target_daily_minutes?: int|null,
+     *   month?: string|null,
+     *   shift_ids?: list<int>
+     * } $params
+     * @return array{
+     *   data: array<int, array{id:int, name:string}>,
+     *   meta: array{
+     *     total_count:int,
+     *     eligible_count:int,
+     *     excluded_count:int,
+     *     breakdown: array{inactive:int, not_target_daily_minutes:int},
+     *     target_daily_minutes:int,
+     *     month:string|null
+     *   }
+     * }
+     */
+    public function getEligibleForAutoPlan(int $companyId, array $params): array
+    {
+        return $this->repo->getEligibleForAutoPlan($companyId, $params);
+    }
 }

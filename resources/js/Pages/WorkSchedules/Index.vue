@@ -21,6 +21,7 @@ import CreateModal from "@/Pages/WorkSchedules/CreateModal.vue";
 import EditModal from "@/Pages/WorkSchedules/EditModal.vue";
 import DeleteModal from "@/Pages/WorkSchedules/DeleteModal.vue";
 import AssignmentModal from "@/Pages/WorkSchedules/AssignmentModal.vue";
+import AutoPlanWizardDialog from "@/Pages/WorkSchedules/AutoPlanWizardDialog.vue";
 
 import CompanySelector from "@/Components/Selectors/CompanySelector.vue";
 import { csrfFetch } from "@/lib/csrfFetch";
@@ -35,6 +36,7 @@ const canUpdate = has("work_schedules.update");
 const canDelete = has("work_schedules.delete");
 const canDeleteAny = has("work_schedules.deleteAny");
 const canAssign = has("work_schedule_assignments.create");
+const canAutoPlan = has("work_schedules.autoplan");
 
 const props = defineProps({
     title: String,
@@ -48,6 +50,7 @@ const createOpen = ref(false);
 const editOpen = ref(false);
 const deleteOpen = ref(false);
 const assignmentOpen = ref(false);
+const autoPlanOpen = ref(false);
 
 const editWorkSchedule = ref(null);
 const deleteWorkSchedule = ref(null);
@@ -152,6 +155,10 @@ const onDeleted = async (msg = "Törölve.") => {
     deleteWorkSchedule.value = null;
     await fetchWorkSchedules();
     toast.add({ severity: "success", summary: "Siker", detail: msg, life: 2000 });
+};
+
+const onAutoPlanGenerated = async () => {
+    await fetchWorkSchedules();
 };
 
 const onSearchInput = () => {
@@ -342,6 +349,11 @@ onMounted(fetchWorkSchedules);
         @saved="() => onSaved('Hozzárendelés mentve.')"
     />
 
+    <AutoPlanWizardDialog
+        v-model="autoPlanOpen"
+        @generated="onAutoPlanGenerated"
+    />
+
     <AuthenticatedLayout>
         <div class="p-6">
             <div class="mb-4 flex flex-col gap-3">
@@ -357,6 +369,15 @@ onMounted(fetchWorkSchedules);
                             size="small"
                             @click="openCreate"
                             data-testid="work_schedules-create"
+                        />
+
+                        <Button
+                            v-if="canAutoPlan"
+                            label="AutoPlan"
+                            icon="pi pi-cog"
+                            severity="contrast"
+                            size="small"
+                            @click="autoPlanOpen = true"
                         />
 
                         <Button

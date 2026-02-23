@@ -34,7 +34,13 @@ const props = defineProps({
 
 const toast = useToast();
 
+const queryScheduleId = Number(new URLSearchParams(window.location.search).get("schedule_id") || 0);
+
 const initialScheduleId = (() => {
+    if (queryScheduleId > 0 && props.schedules.some((x) => Number(x?.id) === queryScheduleId)) {
+        return queryScheduleId;
+    }
+
     const preferred = props.schedules.find((x) => String(x?.status) !== "published") ?? props.schedules?.[0];
     return Number(preferred?.id ?? 0) || null;
 })();
