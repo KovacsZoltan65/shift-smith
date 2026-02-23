@@ -276,22 +276,79 @@ class EmployeeController extends Controller
         ]);
     }
 
-    public function getEligibleForAutoPlan(EligibleSelectorRequest $request): JsonResponse
+    /**
+     * Egységes dolgozó selector endpoint.
+     *
+     * - `eligible_for_autoplan=1` esetén AutoPlan szűrt listát ad vissza.
+     * - egyébként a hagyományos aktív dolgozó listát adja vissza.
+     */
+    public function selector(EligibleSelectorRequest $request): JsonResponse
     {
         $companyId = $this->currentCompany->currentCompanyId($request);
         abort_if($companyId === null, 403, 'No company selected');
 
-        $validated = $request->validated();
-        $result = $this->service->getEligibleForAutoPlan($companyId, [
-            'target_daily_minutes' => isset($validated['target_daily_minutes']) ? (int) $validated['target_daily_minutes'] : 480,
-            'month' => isset($validated['month']) ? (string) $validated['month'] : null,
-            'shift_ids' => array_map('intval', (array) ($validated['shift_ids'] ?? [])),
-        ]);
+        if (!$request->boolean('eligible_for_autoplan')) {
+            $rows = $this->service->getToSelect([
+                'company_id' => $companyId,
+                'only_active' => true,
+            ]);
+
+            return response()->json([
+                'message' => 'Dolgozó selector sikeresen lekérve.',
+                'data' => $rows,
+            ], Response::HTTP_OK);
+        }
+
+        $result = $this->service->getEligibleForAutoPlan($companyId, $this->eligibleParams($request));
 
         return response()->json([
             'message' => 'AutoPlan-re jogosult dolgozók sikeresen lekérve.',
             'data' => $result['data'],
             'meta' => $result['meta'],
         ], Response::HTTP_OK);
+    }
+
+    /**
+     * Visszafelé kompatibilis külön végpont az AutoPlan selectorhoz.
+     */
+    public function getEligibleForAutoPlan(EligibleSelectorRequest $request): JsonResponse
+    {
+        $companyId = $this->currentCompany->currentCompanyId($request);
+        abort_if($companyId === null, 403, 'No company selected');
+
+        $result = $this->service->getEligibleForAutoPlan($companyId, $this->eligibleParams($request));
+
+        return response()->json([
+            'message' => 'AutoPlan-re jogosult dolgozók sikeresen lekérve.',
+            'data' => $result['data'],
+            'meta' => $result['meta'],
+        ], Response::HTTP_OK);
+    }
+
+    /**
+     * @return array{
+     *   required_daily_minutes:int,
+     *   month:string|null,
+     *   date_from:string|null,
+     *   date_to:string|null,
+     *   search:string|null,
+     *   shift_ids:list<int>,
+     *   eligible_for_autoplan:bool
+     * }
+     */
+    private function eligibleParams(EligibleSelectorRequest $request): array
+    {
+        $validated = $request->validated();
+
+        // A request réteg már normalizálja a legacy kulcsokat.
+        return [
+            'required_daily_minutes' => isset($validated['required_daily_minutes']) ? (int) $validated['required_daily_minutes'] : 480,
+            'month' => isset($validated['month']) ? (string) $validated['month'] : null,
+            'date_from' => isset($validated['date_from']) ? (string) $validated['date_from'] : null,
+            'date_to' => isset($validated['date_to']) ? (string) $validated['date_to'] : null,
+            'search' => isset($validated['search']) ? trim((string) $validated['search']) : null,
+            'shift_ids' => array_map('intval', (array) ($validated['shift_ids'] ?? [])),
+            'eligible_for_autoplan' => $request->boolean('eligible_for_autoplan'),
+        ];
     }
 }

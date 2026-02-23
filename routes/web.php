@@ -248,6 +248,7 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
         // Olvasási műveletek
         Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
         Route::get('/fetch', 'fetch')->name('fetch')->middleware('throttle:60,1');
+        Route::get('/selector', 'selector')->name('selector')->middleware('throttle:120,1');
         Route::get('/{id}', 'getEmployee')->whereNumber('id')->name('by_id')->middleware('throttle:60,1');
         
         // Írási műveletek

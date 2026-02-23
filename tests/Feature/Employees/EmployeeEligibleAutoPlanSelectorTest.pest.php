@@ -13,7 +13,7 @@ beforeEach(function (): void {
 });
 
 it('átirányítja a vendéget az eligible autoplan selector végpontról', function (): void {
-    $this->get(route('selectors.employees.eligible_autoplan'))->assertRedirect();
+    $this->get(route('employees.selector', ['eligible_for_autoplan' => 1]))->assertRedirect();
 });
 
 it('megtagadja az eligible autoplan selector lekérést jogosultság nélkül', function (): void {
@@ -28,7 +28,7 @@ it('megtagadja az eligible autoplan selector lekérést jogosultság nélkül', 
 
     $this->actingAs($user)
         ->withSession(['current_company_id' => $company->id])
-        ->getJson(route('selectors.employees.eligible_autoplan', ['eligible_for_autoplan' => 1]))
+        ->getJson(route('employees.selector', ['eligible_for_autoplan' => 1]))
         ->assertForbidden();
 });
 
@@ -100,6 +100,30 @@ it('csak tenanton belüli aktív és 8 órás munkarenddel rendelkező dolgozók
         'active' => true,
     ]);
 
+    $outsideRange = Employee::factory()->create([
+        'company_id' => $companyA->id,
+        'active' => true,
+    ]);
+    EmployeeWorkPattern::factory()->create([
+        'company_id' => $companyA->id,
+        'employee_id' => $outsideRange->id,
+        'work_pattern_id' => $pattern480A->id,
+        'date_from' => '2026-01-01',
+        'date_to' => '2026-01-31',
+    ]);
+
+    $boundaryOverlap = Employee::factory()->create([
+        'company_id' => $companyA->id,
+        'active' => true,
+    ]);
+    EmployeeWorkPattern::factory()->create([
+        'company_id' => $companyA->id,
+        'employee_id' => $boundaryOverlap->id,
+        'work_pattern_id' => $pattern480A->id,
+        'date_from' => '2026-03-31',
+        'date_to' => null,
+    ]);
+
     $foreignEligible = Employee::factory()->create([
         'company_id' => $companyB->id,
         'active' => true,
@@ -114,22 +138,26 @@ it('csak tenanton belüli aktív és 8 órás munkarenddel rendelkező dolgozók
 
     $response = $this->actingAs($user)
         ->withSession(['current_company_id' => $companyA->id])
-        ->getJson(route('selectors.employees.eligible_autoplan', [
+        ->getJson(route('employees.selector', [
             'eligible_for_autoplan' => 1,
-            'target_daily_minutes' => 480,
-            'month' => '2026-03',
+            'required_daily_minutes' => 480,
+            'date_from' => '2026-03-01',
+            'date_to' => '2026-03-31',
         ]));
 
     $response->assertOk();
-    $response->assertJsonPath('meta.eligible_count', 1);
-    $response->assertJsonPath('meta.excluded_count', 3);
-    $response->assertJsonPath('meta.breakdown.inactive', 1);
-    $response->assertJsonPath('meta.breakdown.not_target_daily_minutes', 2);
+    $response->assertJsonPath('meta.eligible_count', 2);
+    $response->assertJsonPath('meta.excluded_count', 4);
+    $response->assertJsonPath('meta.excluded_reasons.inactive', 1);
+    $response->assertJsonPath('meta.excluded_reasons.not_matching_minutes', 1);
+    $response->assertJsonPath('meta.excluded_reasons.missing_pattern', 2);
 
     $ids = collect($response->json('data'))->pluck('id')->map(fn ($x): int => (int) $x)->all();
 
     expect($ids)->toContain($eligible->id);
+    expect($ids)->toContain($boundaryOverlap->id);
     expect($ids)->not->toContain($inactive->id);
     expect($ids)->not->toContain($not480->id);
+    expect($ids)->not->toContain($outsideRange->id);
     expect($ids)->not->toContain($foreignEligible->id);
 });

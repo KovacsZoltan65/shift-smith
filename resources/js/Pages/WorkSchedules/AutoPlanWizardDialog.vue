@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 import { usePage } from "@inertiajs/vue3";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
@@ -28,6 +28,8 @@ const currentCompanyId = computed(() => {
 
 const demandVisible = ref(false);
 const scopeVisible = ref(false);
+// Belső modal-váltásnál ne fusson le a teljes wizard bezárás.
+const suppressHideClose = ref(false);
 
 const loading = ref(false);
 const loadingEligible = ref(false);
@@ -35,20 +37,26 @@ const errorText = ref("");
 const generated = ref(null);
 
 const month = ref(props.defaultMonth || new Date().toISOString().slice(0, 7));
+const dateFrom = ref("");
+const dateTo = ref("");
+const requiredDailyMinutes = ref(480);
 const selectedEmployeeIds = ref([]);
 
 const shiftOptions = ref([]);
 const eligibleEmployeeOptions = ref([]);
 const eligibleMeta = ref({
-    total_count: 0,
+    total_employees: 0,
     eligible_count: 0,
     excluded_count: 0,
-    breakdown: {
+    excluded_reasons: {
         inactive: 0,
-        not_target_daily_minutes: 0,
+        missing_pattern: 0,
+        not_matching_minutes: 0,
     },
-    target_daily_minutes: 480,
+    required_daily_minutes: 480,
     month: null,
+    date_from: null,
+    date_to: null,
 });
 
 const weekdayDemand = ref([{ shift_id: null, required_count: 1 }]);
@@ -86,9 +94,10 @@ const eligibleSummaryText = computed(() => {
 });
 
 const excludedBreakdownTitle = computed(() => {
-    const inactive = Number(eligibleMeta.value?.breakdown?.inactive ?? 0);
-    const notTarget = Number(eligibleMeta.value?.breakdown?.not_target_daily_minutes ?? 0);
-    return `Kizárás okai: inaktív: ${inactive}, nem 8 órás munkarend: ${notTarget}`;
+    const inactive = Number(eligibleMeta.value?.excluded_reasons?.inactive ?? 0);
+    const missing = Number(eligibleMeta.value?.excluded_reasons?.missing_pattern ?? 0);
+    const notMatching = Number(eligibleMeta.value?.excluded_reasons?.not_matching_minutes ?? 0);
+    return `Kizárás okai: inaktív: ${inactive}, nincs átfedő munkarend: ${missing}, nem megfelelő percek: ${notMatching}`;
 });
 
 const addDemandRow = (bucket) => {
@@ -131,24 +140,47 @@ const buildPayload = () => ({
     },
 });
 
+const syncDateRangeFromMonth = () => {
+    if (!monthRegex.test(month.value)) {
+        return;
+    }
+
+    const [yearRaw, monthRaw] = month.value.split("-");
+    const year = Number(yearRaw);
+    const mon = Number(monthRaw);
+    if (!Number.isInteger(year) || !Number.isInteger(mon)) {
+        return;
+    }
+
+    const start = new Date(Date.UTC(year, mon - 1, 1));
+    const end = new Date(Date.UTC(year, mon, 0));
+    dateFrom.value = start.toISOString().slice(0, 10);
+    dateTo.value = end.toISOString().slice(0, 10);
+};
+
 const resetState = () => {
     errorText.value = "";
     generated.value = null;
     month.value = props.defaultMonth || new Date().toISOString().slice(0, 7);
+    syncDateRangeFromMonth();
+    requiredDailyMinutes.value = 480;
     selectedEmployeeIds.value = [];
     weekdayDemand.value = [{ shift_id: null, required_count: 1 }];
     weekendDemand.value = [{ shift_id: null, required_count: 1 }];
     eligibleEmployeeOptions.value = [];
     eligibleMeta.value = {
-        total_count: 0,
+        total_employees: 0,
         eligible_count: 0,
         excluded_count: 0,
-        breakdown: {
+        excluded_reasons: {
             inactive: 0,
-            not_target_daily_minutes: 0,
+            missing_pattern: 0,
+            not_matching_minutes: 0,
         },
-        target_daily_minutes: 480,
+        required_daily_minutes: 480,
         month: null,
+        date_from: null,
+        date_to: null,
     };
 };
 
@@ -159,15 +191,32 @@ const closeAll = () => {
 };
 
 const openDemandModal = () => {
+    suppressHideClose.value = true;
     demandVisible.value = true;
     scopeVisible.value = false;
     emit("update:modelValue", true);
+    nextTick(() => {
+        suppressHideClose.value = false;
+    });
 };
 
 const openScopeModal = () => {
+    suppressHideClose.value = true;
     scopeVisible.value = true;
     demandVisible.value = false;
     emit("update:modelValue", true);
+    nextTick(() => {
+        suppressHideClose.value = false;
+    });
+};
+
+const onDialogHide = () => {
+    // Ha csak lépést váltunk (1/2 -> 2/2), ne zárjuk az egész flow-t.
+    if (suppressHideClose.value) {
+        return;
+    }
+
+    closeAll();
 };
 
 const loadShiftSelector = async () => {
@@ -213,8 +262,10 @@ const fetchEligibleEmployees = async () => {
         const shiftIds = collectDemandShiftIds();
         const { data } = await EmployeeService.getEligibleForAutoPlan({
             month: month.value,
+            date_from: dateFrom.value,
+            date_to: dateTo.value,
             shift_ids: shiftIds,
-            target_daily_minutes: 480,
+            required_daily_minutes: Number(requiredDailyMinutes.value || 480),
         });
 
         const list = Array.isArray(data?.data) ? data.data : [];
@@ -223,18 +274,22 @@ const fetchEligibleEmployees = async () => {
         eligibleEmployeeOptions.value = list;
         if (meta) {
             eligibleMeta.value = {
-                total_count: Number(meta.total_count ?? 0),
+                total_employees: Number(meta.total_employees ?? meta.total_count ?? 0),
                 eligible_count: Number(meta.eligible_count ?? 0),
                 excluded_count: Number(meta.excluded_count ?? 0),
-                breakdown: {
-                    inactive: Number(meta?.breakdown?.inactive ?? 0),
-                    not_target_daily_minutes: Number(meta?.breakdown?.not_target_daily_minutes ?? 0),
+                excluded_reasons: {
+                    inactive: Number(meta?.excluded_reasons?.inactive ?? meta?.breakdown?.inactive ?? 0),
+                    missing_pattern: Number(meta?.excluded_reasons?.missing_pattern ?? 0),
+                    not_matching_minutes: Number(meta?.excluded_reasons?.not_matching_minutes ?? meta?.breakdown?.not_target_daily_minutes ?? 0),
                 },
-                target_daily_minutes: Number(meta.target_daily_minutes ?? 480),
+                required_daily_minutes: Number(meta.required_daily_minutes ?? meta.target_daily_minutes ?? 480),
                 month: meta.month ?? null,
+                date_from: meta.date_from ?? dateFrom.value,
+                date_to: meta.date_to ?? dateTo.value,
             };
         }
 
+        // Ha a filter változik, maradjanak csak még mindig jogosult kiválasztások.
         const eligibleIds = new Set(list.map((x) => Number(x.id)));
         selectedEmployeeIds.value = selectedEmployeeIds.value.filter((id) => eligibleIds.has(Number(id)));
     } catch (e) {
@@ -313,6 +368,13 @@ watch(
 watch(
     () => month.value,
     () => {
+        syncDateRangeFromMonth();
+    },
+);
+
+watch(
+    () => [month.value, dateFrom.value, dateTo.value, requiredDailyMinutes.value],
+    () => {
         if (!scopeVisible.value) return;
         if (!monthRegex.test(month.value)) return;
         fetchEligibleEmployees();
@@ -331,7 +393,7 @@ onMounted(async () => {
         header="AutoPlan - 1/2: Létszámigény"
         :style="{ width: 'min(980px, 95vw)' }"
         :draggable="false"
-        @hide="closeAll"
+        @hide="onDialogHide"
     >
         <div class="space-y-4">
             <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
@@ -341,10 +403,23 @@ onMounted(async () => {
 
             <div class="rounded-lg border border-slate-200 p-3">
                 <div class="mb-2 text-sm font-medium">Tervezési szabályok (alkalmazás beállítások)</div>
-                <div class="grid grid-cols-1 gap-3 text-sm md:grid-cols-3">
+                <div class="grid grid-cols-1 gap-3 text-sm md:grid-cols-2 xl:grid-cols-4">
                     <div>Minimum pihenőidő: <b>{{ defaults.min_rest_hours }} óra</b></div>
                     <div>Max egymást követő nap: <b>{{ defaults.max_consecutive_days }} nap</b></div>
                     <div>Hétvégi arányosság: <b>{{ defaults.weekend_fairness ? "Bekapcsolva" : "Kikapcsolva" }}</b></div>
+                    <div class="min-w-0 rounded border border-slate-200 p-2">
+                        <label class="mb-1 block text-xs text-slate-600">Elvárt napi munkaidő</label>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <InputNumber
+                                v-model="requiredDailyMinutes"
+                                :min="1"
+                                :max="1440"
+                                class="w-full sm:w-40"
+                                inputClass="w-full"
+                            />
+                            <span class="text-xs text-slate-500">perc/nap</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -421,7 +496,7 @@ onMounted(async () => {
         header="AutoPlan - 2/2: Időszak és dolgozók"
         :style="{ width: 'min(980px, 95vw)' }"
         :draggable="false"
-        @hide="closeAll"
+        @hide="onDialogHide"
     >
         <div class="space-y-4">
             <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -430,6 +505,13 @@ onMounted(async () => {
                     <InputText v-model="month" class="w-full" placeholder="2026-03" />
                 </div>
                 <div>
+                    <label class="mb-1 block text-xs text-slate-600">Időszak</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <InputText v-model="dateFrom" class="w-full" placeholder="2026-03-01" />
+                        <InputText v-model="dateTo" class="w-full" placeholder="2026-03-31" />
+                    </div>
+                </div>
+                <div class="md:col-span-2">
                     <label class="mb-1 block text-xs text-slate-600">Dolgozók</label>
                     <MultiSelect
                         v-model="selectedEmployeeIds"
