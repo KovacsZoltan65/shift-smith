@@ -24,6 +24,8 @@ class CalendarEventData extends Data
          *   employee_name:string,
          *   shift_id:int,
          *   shift_name:string,
+         *   shift_start_time:string,
+         *   shift_end_time:string,
          *   schedule_id:int,
          *   editable:bool
          * } */
@@ -58,6 +60,8 @@ class CalendarEventData extends Data
                 'employee_name' => $employeeName,
                 'shift_id' => (int) $row->work_shift_id,
                 'shift_name' => $shiftName,
+                'shift_start_time' => $startTime,
+                'shift_end_time' => $endTime,
                 'schedule_id' => (int) $row->work_schedule_id,
                 'editable' => $editable,
             ]
