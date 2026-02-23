@@ -8,6 +8,7 @@ use App\Http\Requests\WorkShift\StoreRequest;
 use App\Http\Requests\WorkShift\UpdateRequest;
 use App\Models\WorkShift;
 use App\Policies\WorkShiftPolicy;
+use App\Services\CurrentCompany;
 use App\Services\WorkShiftService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,7 +32,8 @@ class WorkShiftController extends Controller
      * @param WorkShiftService $service Műszak service
      */
     public function __construct(
-        private readonly WorkShiftService $service
+        private readonly WorkShiftService $service,
+        private readonly CurrentCompany $currentCompany
     ) {}
     
     /**
@@ -43,10 +45,16 @@ class WorkShiftController extends Controller
     public function index(IndexRequest $request): InertiaResponse
     {
         $this->authorize(WorkShiftPolicy::PERM_VIEW_ANY, WorkShift::class);
+
+        $currentCompanyId = $this->currentCompany->currentCompanyId($request);
+        abort_if($currentCompanyId === null, 403, 'No company selected');
+
+        $filter = $request->validatedFilters();
+        $filter['company_id'] = $currentCompanyId;
         
         return Inertia::render('WorkShifts/Index', [
             'title'  => 'Műszakok',
-            'filter' => $request->validatedFilters(),
+            'filter' => $filter,
         ]);
     }
     
@@ -59,8 +67,15 @@ class WorkShiftController extends Controller
     public function fetch(IndexRequest $request): JsonResponse
     {
         $this->authorize(WorkShiftPolicy::PERM_VIEW_ANY, WorkShift::class);
+
+        $currentCompanyId = $this->currentCompany->currentCompanyId($request);
+        abort_if($currentCompanyId === null, 403, 'No company selected');
+        $request->merge(['company_id' => $currentCompanyId]);
         
         $work_shifts = $this->service->fetch($request);
+
+        $filter = $request->validatedFilters();
+        $filter['company_id'] = $currentCompanyId;
 
         return response()->json([
             'data' => $work_shifts->items(),
@@ -70,7 +85,7 @@ class WorkShiftController extends Controller
                 'total'        => $work_shifts->total(),
                 'last_page'    => $work_shifts->lastPage(),
             ],
-            'filter' => $request->validatedFilters(),
+            'filter' => $filter,
         ], Response::HTTP_OK);
     }
     
@@ -252,13 +267,13 @@ class WorkShiftController extends Controller
      */
     public function getToSelect(Request $request): array
     {
+        $currentCompanyId = $this->currentCompany->currentCompanyId($request);
+        abort_if($currentCompanyId === null, 403, 'No company selected');
+
         $params = [];
-        $companyId = (int) $request->integer('company_id', 0);
         
         $onlyWithEmployees = $request->boolean('only_with_employees');
-        if ($companyId > 0) {
-            $params['company_id'] = $companyId;
-        }
+        $params['company_id'] = $currentCompanyId;
         
         if ($onlyWithEmployees) {
             $params['only_with_employees'] = true;
