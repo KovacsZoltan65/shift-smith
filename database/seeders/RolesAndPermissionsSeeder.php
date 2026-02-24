@@ -76,6 +76,12 @@ class RolesAndPermissionsSeeder extends Seeder
             'employee_work_patterns.unassign',
             'employee_work_patterns.view',
             'work_schedules.autoplan',
+            'settings.viewApp',
+            'settings.updateApp',
+            'settings.viewCompany',
+            'settings.updateCompany',
+            'settings.viewUser',
+            'settings.updateUser',
         ];
 
         /**

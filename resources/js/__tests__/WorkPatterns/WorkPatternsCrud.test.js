@@ -119,7 +119,7 @@ describe("WorkPatterns CRUD (Index.vue)", () => {
     });
 
     it("onMounted lefut és betölti a listát", async () => {
-        const wrapper = mount(Index, { props: { title: "Munkarendek", filter: {} }, global: { stubs } });
+        const wrapper = mount(Index, { props: { title: "Munkarendek", filter: { company_id: 1 } }, global: { stubs } });
         await flushPromises();
 
         expect(globalThis.fetch).toHaveBeenCalled();
@@ -128,7 +128,7 @@ describe("WorkPatterns CRUD (Index.vue)", () => {
     });
 
     it("create flow: modal save után toast és refresh", async () => {
-        const wrapper = mount(Index, { global: { stubs } });
+        const wrapper = mount(Index, { props: { filter: { company_id: 1 } }, global: { stubs } });
         await flushPromises();
 
         await wrapper.vm.openCreate();
@@ -140,7 +140,7 @@ describe("WorkPatterns CRUD (Index.vue)", () => {
     });
 
     it("single delete: confirm accept -> DELETE", async () => {
-        const wrapper = mount(Index, { global: { stubs } });
+        const wrapper = mount(Index, { props: { filter: { company_id: 1 } }, global: { stubs } });
         await flushPromises();
 
         wrapper.vm.confirmDeleteOne(rows[0]);
@@ -157,7 +157,7 @@ describe("WorkPatterns CRUD (Index.vue)", () => {
     });
 
     it("bulk delete: DELETE destroy_bulk hívás", async () => {
-        const wrapper = mount(Index, { global: { stubs } });
+        const wrapper = mount(Index, { props: { filter: { company_id: 1 } }, global: { stubs } });
         await flushPromises();
 
         await wrapper.vm.bulkDelete([1, 2]);
@@ -167,18 +167,30 @@ describe("WorkPatterns CRUD (Index.vue)", () => {
             "/work-patterns/destroy_bulk",
             expect.objectContaining({
                 method: "DELETE",
-                body: JSON.stringify({ ids: [1, 2] }),
+                body: JSON.stringify({ ids: [1, 2], company_id: 1 }),
             }),
         );
     });
 
     it("employees modal megnyílik a dolgozók listája akcióra", async () => {
-        const wrapper = mount(Index, { global: { stubs } });
+        const wrapper = mount(Index, { props: { filter: { company_id: 1 } }, global: { stubs } });
         await flushPromises();
 
         wrapper.vm.openEmployeesModal(rows[0]);
         await flushPromises();
 
         expect(wrapper.text()).toContain("employees-modal");
+    });
+
+    it("nincs kezdeti company esetén onMounted nem hív fetch-et, majd selector váltásra igen", async () => {
+        const wrapper = mount(Index, { props: { filter: {} }, global: { stubs } });
+        await flushPromises();
+
+        expect(globalThis.fetch).not.toHaveBeenCalled();
+
+        await wrapper.find('[data-testid="company-set-1"]').trigger("click");
+        await flushPromises();
+
+        expect(globalThis.fetch).toHaveBeenCalled();
     });
 });
