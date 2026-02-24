@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\CompanySelectController;
 use App\Http\Controllers\Scheduling\AutoPlanController;
@@ -111,9 +112,11 @@ Route::middleware(['auth', 'verified', 'ensure.company'])->group(function () {
     Route::get('/planning', fn () => Inertia::render('HR/Planning/Index'))->name('planning.index');
 
     // Beállítások
-    Route::get('/settings/app', fn () => Inertia::render('Settings/App/Index'))->name('settings.app');
-    Route::get('/settings/company', fn () => Inertia::render('Settings/Company/Index'))->name('settings.company');
-    Route::get('/settings/user', fn () => Inertia::render('Settings/User/Index'))->name('settings.user');
+    Route::get('/settings/app', [SettingsController::class, 'app'])->name('settings.app');
+    Route::get('/settings/company', [SettingsController::class, 'company'])->name('settings.company');
+    Route::get('/settings/user', [SettingsController::class, 'user'])->name('settings.user');
+    Route::get('/settings/fetch', [SettingsController::class, 'fetch'])->name('settings.fetch')->middleware('throttle:60,1');
+    Route::post('/settings/save', [SettingsController::class, 'save'])->name('settings.save')->middleware('throttle:20,1');
 });
 
 /**
