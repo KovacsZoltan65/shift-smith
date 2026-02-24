@@ -10,7 +10,7 @@ class BulkDeleteRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can(WorkShiftPolicy::PERM_DELETE_ANY, WorkShift::class);
+        return $this->user()?->can(WorkShiftPolicy::PERM_DELETE_ANY, WorkShift::class) ?? false;
     }
     
     /**

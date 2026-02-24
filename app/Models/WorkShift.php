@@ -66,6 +66,7 @@ class WorkShift extends Model
     
     /** @var array<int,string> */
     public const SORTABLE = [
+        'id',
         'company_id',
         'name',
         'start_time',

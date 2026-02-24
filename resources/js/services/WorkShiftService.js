@@ -3,7 +3,7 @@ import BaseService from "@/services/BaseService.js";
 class WorkShiftService extends BaseService {
     constructor() {
         super();
-        this.url = "work_shifts";
+        this.url = "work-shifts";
     }
 
     getWorkShifts(params = {}) {
@@ -11,21 +11,21 @@ class WorkShiftService extends BaseService {
     }
 
     storeWorkShift(params) {
-        return this.post(route(`${this.url}.store`), params);
+        return this.post(route("work_shifts.store"), params);
     }
 
     updateWorkShift(id, params) {
-        return this.put(route(`${this.url}.update`, id), params);
+        return this.put(route("work_shifts.update", id), params);
     }
 
     deleteWorkShifts(ids) {
-        return this.delete(route(`${this.url}.destroy_bulk`), {
+        return this.delete(route("work_shifts.destroy_bulk"), {
             data: { ids },
         });
     }
 
     deleteWorkShift(id) {
-        return this.delete(route(`${this.url}.destroy`, id));
+        return this.delete(route("work_shifts.destroy", id));
     }
 
     getToSelect(params = {}) {

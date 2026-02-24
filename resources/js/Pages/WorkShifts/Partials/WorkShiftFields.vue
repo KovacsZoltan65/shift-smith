@@ -2,7 +2,6 @@
 import { computed } from "vue";
 import InputText from "primevue/inputtext";
 import Checkbox from "primevue/checkbox";
-import CompanySelector from "@/Components/Selectors/CompanySelector.vue";
 
 const props = defineProps({
     modelValue: { type: Object, required: true },
@@ -15,8 +14,7 @@ const emit = defineEmits(["update:modelValue"]);
 const update = (patch) => {
     emit("update:modelValue", { ...(props.modelValue ?? {}), ...patch });
 };
-
-const isFlexible = computed(() => !!props.modelValue?.is_flexible);
+const active = computed(() => !!props.modelValue?.active);
 </script>
 
 <template>
@@ -36,25 +34,13 @@ const isFlexible = computed(() => !!props.modelValue?.is_flexible);
             </div>
         </div>
 
-        <div>
-            <label class="block text-sm font-medium mb-1">Cég</label>
-            <CompanySelector
-                :modelValue="modelValue.company_id"
-                :disabled="disabled"
-                @update:modelValue="(v) => update({ company_id: v ? Number(v) : null })"
-            />
-            <div v-if="errors.company_id" class="text-sm text-red-600 mt-1">
-                {{ errors.company_id }}
-            </div>
-        </div>
-
         <!-- START TIME -->
         <div>
             <label class="block text-sm font-medium mb-1">Kezdés (HH:mm)</label>
             <InputText
                 class="w-full"
                 type="time"
-                :disabled="disabled || isFlexible"
+                :disabled="disabled"
                 :modelValue="modelValue.start_time"
                 @update:modelValue="(v) => update({ start_time: v || null })"
             />
@@ -69,7 +55,7 @@ const isFlexible = computed(() => !!props.modelValue?.is_flexible);
             <InputText
                 class="w-full"
                 type="time"
-                :disabled="disabled || isFlexible"
+                :disabled="disabled"
                 :modelValue="modelValue.end_time"
                 @update:modelValue="(v) => update({ end_time: v || null })"
             />
@@ -106,29 +92,12 @@ const isFlexible = computed(() => !!props.modelValue?.is_flexible);
             </div>
         </div>
 
-        <!-- ACTIVE -->
         <div class="flex items-center gap-2 flex-wrap">
-            <Checkbox
-                inputId="work_shift_flexible"
-                :binary="true"
-                :disabled="disabled"
-                :modelValue="!!modelValue.is_flexible"
-                @update:modelValue="
-                    (v) =>
-                        update({
-                            is_flexible: !!v,
-                            start_time: v ? null : modelValue.start_time,
-                            end_time: v ? null : modelValue.end_time,
-                        })
-                "
-            />
-            <label for="work_shift_flexible" class="text-sm text-gray-700"> Rugalmas </label>
-
             <Checkbox
                 inputId="work_shift_active"
                 :binary="true"
                 :disabled="disabled"
-                :modelValue="!!modelValue.active"
+                :modelValue="active"
                 @update:modelValue="(v) => update({ active: !!v })"
             />
             <label for="work_shift_active" class="text-sm text-gray-700"> Aktív </label>

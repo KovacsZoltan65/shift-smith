@@ -11,6 +11,7 @@ use App\Services\CompanyContextService;
 use App\Services\CurrentCompany;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 use App\Services\CurrentTenantGroup;
@@ -44,14 +45,7 @@ final class CompanySelectController extends Controller
         if ($companyCount === 1) {
             $companyId = (int) $companies[0]['id'];
 
-            $this->currentCompany->setCurrentCompanyId($request, $companyId);
-
-            $tenantGroupId = $this->tenantGroupIdForCompany($companyId);
-            if ($tenantGroupId !== null) {
-                $this->currentTenantGroup->setCurrentTenantGroupId($request, $tenantGroupId);
-            } else {
-                $this->currentTenantGroup->clearCurrentTenantGroup($request);
-            }
+            $this->applyCompanyContext($request, $companyId);
 
             return redirect()->intended(route('dashboard', absolute: false));
         }
@@ -77,16 +71,26 @@ final class CompanySelectController extends Controller
             abort(403, 'The selected company is not assigned to the current user.');
         }
 
+        $this->applyCompanyContext($request, $companyId);
+
+        return redirect()->intended(route('dashboard', absolute: false));
+    }
+
+    private function applyCompanyContext(Request $request, int $companyId): void
+    {
         $this->currentCompany->setCurrentCompanyId($request, $companyId);
 
         $tenantGroupId = $this->tenantGroupIdForCompany($companyId);
-        if ($tenantGroupId !== null) {
-            $this->currentTenantGroup->setCurrentTenantGroupId($request, $tenantGroupId);
-        } else {
+        if ($tenantGroupId === null) {
+            Log::error('company.missing_tenant_group_id', [
+                'company_id' => $companyId,
+            ]);
+
             $this->currentTenantGroup->clearCurrentTenantGroup($request);
+            abort(500, 'Company tenant group is missing');
         }
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        $this->currentTenantGroup->setCurrentTenantGroupId($request, $tenantGroupId);
     }
 
     private function tenantGroupIdForCompany(int $companyId): ?int

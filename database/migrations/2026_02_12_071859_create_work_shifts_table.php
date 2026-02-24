@@ -22,9 +22,10 @@ return new class extends Migration
                 ->constrained('companies', 'id', 'company_work_shift')
                 ->cascadeOnDelete();
 
-            $table->string('name');
-            $table->time('start_time')->nullable();
-            $table->time('end_time')->nullable();
+            $table->string('name', 100);
+            $table->string('name_lc', 100)->storedAs('lower(`name`)');
+            $table->time('start_time');
+            $table->time('end_time');
             $table->integer('work_time_minutes')->nullable();
             $table->boolean('is_flexible')->default(false);
             $table->integer('break_minutes')->nullable();
@@ -36,7 +37,9 @@ return new class extends Migration
 
             $table->index(['company_id'], 'ws_company_id_idx');
             $table->index(['company_id', 'active'], 'ws_company_active_idx');
-            $table->index(['company_id', 'name'], 'ws_company_name_idx');
+            $table->index(['company_id', 'name_lc'], 'ws_company_name_lc_idx');
+            $table->index(['start_time'], 'ws_start_time_idx');
+            $table->index(['end_time'], 'ws_end_time_idx');
         });
     }
 

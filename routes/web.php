@@ -285,14 +285,14 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
  * Műszakok kezelése
  */
 Route::middleware(['auth', 'verified', 'ensure.company'])
-    ->prefix('work_shifts')
+    ->prefix('work-shifts')
     ->as('work_shifts.')
     ->controller(WorkShiftController::class)
     ->group(function() {
     // Olvasási műveletek
     Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
     Route::get('/fetch', 'fetch')->name('fetch')->middleware('throttle:60,1');
-    Route::get('/{id}', 'getWorkShift')->name('by_id')->middleware('throttle:60,1');
+    Route::get('/{id}', 'getWorkShift')->whereNumber('id')->name('by_id')->middleware('throttle:60,1');
     
     // Írási műveletek
     Route::post('/', 'store')->name('store')->middleware('throttle:20,1');

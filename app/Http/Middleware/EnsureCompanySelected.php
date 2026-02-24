@@ -11,7 +11,9 @@ use App\Services\CompanyContextService;
 use App\Services\CurrentCompany;
 use App\Services\CurrentTenantGroup;
 use Closure;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 final class EnsureCompanySelected
@@ -35,16 +37,12 @@ final class EnsureCompanySelected
         }
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        $currentTenantId = TenantGroup::current()?->id;
         $sessionTenantId = $this->currentTenantGroup->currentTenantGroupId($request);
-        $tenantIdForValidation = $currentTenantId ?? $sessionTenantId;
 
         if ($currentCompanyId !== null) {
-            if ($tenantIdForValidation !== null) {
-                if (! $this->isCurrentCompanyValidForTenant($user, $currentCompanyId, $tenantIdForValidation)) {
-                    $this->currentCompany->clearCurrentCompany($request);
-                    $this->currentTenantGroup->clearCurrentTenantGroup($request);
-                    return redirect()->route('company.select');
+            if ($sessionTenantId !== null) {
+                if (! $this->isCurrentCompanyValidForTenant($user, $currentCompanyId, $sessionTenantId)) {
+                    return $this->resetAndRedirect($request);
                 }
 
                 return $next($request);
@@ -57,18 +55,18 @@ final class EnsureCompanySelected
                 if ($tenantGroupId !== null) {
                     $this->currentTenantGroup->setCurrentTenantGroupId($request, $tenantGroupId);
                 } else {
-                    // ha valamiért nincs tenant_group_id a céghez, inkább töröljük, hogy ne legyen fals state
-                    $this->currentCompany->clearCurrentCompany($request);
-                    $this->currentTenantGroup->clearCurrentTenantGroup($request);
-                    return redirect()->route('company.select');
+                    Log::error('company.missing_tenant_group_id', [
+                        'company_id' => $currentCompanyId,
+                        'user_id' => $user->id,
+                    ]);
+
+                    return $this->resetAndRedirect($request);
                 }
 
                 return $next($request);
             }
 
-            $this->currentCompany->clearCurrentCompany($request);
-            $this->currentTenantGroup->clearCurrentTenantGroup($request);
-            return redirect()->route('company.select');
+            return $this->resetAndRedirect($request);
         }
 
         $companyCount = $this->companyContext->countSelectableCompanies($user);
@@ -82,6 +80,13 @@ final class EnsureCompanySelected
                 $tenantGroupId = $this->companyContext->tenantGroupIdForCompany($user, $companyId);
                 if ($tenantGroupId !== null) {
                     $this->currentTenantGroup->setCurrentTenantGroupId($request, $tenantGroupId);
+                } else {
+                    Log::error('company.missing_tenant_group_id', [
+                        'company_id' => $companyId,
+                        'user_id' => $user->id,
+                    ]);
+
+                    return $this->resetAndRedirect($request);
                 }
 
                 return $next($request);
@@ -118,5 +123,13 @@ final class EnsureCompanySelected
         $routeName = $request->route()?->getName();
 
         return is_string($routeName) && str_starts_with($routeName, 'hq.');
+    }
+
+    private function resetAndRedirect(Request $request): RedirectResponse
+    {
+        $this->currentCompany->clearCurrentCompany($request);
+        $this->currentTenantGroup->clearCurrentTenantGroup($request);
+
+        return redirect()->route('company.select');
     }
 }

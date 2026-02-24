@@ -129,4 +129,9 @@ final class WorkShiftPolicy extends BasePolicy
     {
         return $user->can(self::perm(self::PERM_DELETE_ANY));
     }
+
+    public function bulkDelete(User $user): bool
+    {
+        return $this->deleteAny($user);
+    }
 }

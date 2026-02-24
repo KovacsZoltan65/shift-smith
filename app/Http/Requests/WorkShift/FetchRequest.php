@@ -1,57 +1,64 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\WorkShift;
 
 use App\Models\WorkShift;
 use App\Policies\WorkShiftPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 
-class IndexRequest extends FormRequest
+class FetchRequest extends FormRequest
 {
     public function authorize(): bool
     {
         return $this->user()?->can(WorkShiftPolicy::PERM_VIEW_ANY, WorkShift::class) ?? false;
     }
-    
+
     /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, array<int, mixed>>
      */
     public function rules(): array
     {
         return [
-            'search'   => ['nullable', 'string', 'max:255'],
-            'field'    => ['nullable', 'string', 'in:id,name,start_time,end_time,work_time_minutes,break_minutes,active,created_at,updated_at'],
-            'order'    => ['nullable', 'string', 'in:asc,desc'],
-            'page'     => ['nullable', 'integer', 'min:1'],
+            'search' => ['nullable', 'string', 'max:255'],
+            'field' => ['nullable', 'string', 'in:id,name,start_time,end_time,work_time_minutes,break_minutes,active,created_at,updated_at'],
+            'order' => ['nullable', 'string', 'in:asc,desc'],
+            'active' => ['nullable', 'boolean'],
+            'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }
-    
+
     protected function prepareForValidation(): void
     {
         $field = $this->input('field');
         $order = $this->input('order');
 
-        // üres string -> null (különben az "in:" elhasal)
-        if ($field === '') $field = null;
-        if ($order === '') $order = null;
+        if ($field === '') {
+            $field = null;
+        }
+        if ($order === '') {
+            $order = null;
+        }
 
-        // (opcionális) PrimeVue támogatás:
         $sortField = $this->input('sortField');
         $sortOrder = $this->input('sortOrder');
 
-        if ($field === null && $sortField) {
+        if ($field === null && is_string($sortField) && $sortField !== '') {
             $field = $sortField;
         }
 
         if ($order === null && $sortOrder !== null) {
-            if ($sortOrder === 1 || $sortOrder === '1') $order = 'asc';
-            if ($sortOrder === -1 || $sortOrder === '-1') $order = 'desc';
+            if ($sortOrder === 1 || $sortOrder === '1') {
+                $order = 'asc';
+            }
+            if ($sortOrder === -1 || $sortOrder === '-1') {
+                $order = 'desc';
+            }
         }
 
-        if (\is_string($order)) {
+        if (is_string($order)) {
             $order = strtolower($order);
         }
 
@@ -63,9 +70,10 @@ class IndexRequest extends FormRequest
 
     /**
      * @return array{
-     *   search?: string,
+     *   search?: ?string,
      *   field?: string,
      *   order?: 'asc'|'desc',
+     *   active?: ?bool,
      *   page?: int,
      *   per_page?: int
      * }
@@ -73,19 +81,18 @@ class IndexRequest extends FormRequest
     public function validatedFilters(): array
     {
         $data = $this->validated();
-
-        $search = $data['search'] ?? null;
-        $search = \is_string($search) ? trim($search) : null;
+        $search = isset($data['search']) ? trim((string) $data['search']) : null;
 
         if ($search === '' || $search === 'null' || $search === 'undefined') {
             $search = null;
         }
 
         return [
-            'search'   => $search,
-            'field'    => $data['field'] ?? 'id',
-            'order'    => $data['order'] ?? 'desc',
-            'page'     => (int) ($data['page'] ?? 1),
+            'search' => $search,
+            'field' => (string) ($data['field'] ?? 'id'),
+            'order' => (string) ($data['order'] ?? 'desc'),
+            'active' => array_key_exists('active', $data) ? (bool) $data['active'] : null,
+            'page' => (int) ($data['page'] ?? 1),
             'per_page' => (int) ($data['per_page'] ?? 10),
         ];
     }

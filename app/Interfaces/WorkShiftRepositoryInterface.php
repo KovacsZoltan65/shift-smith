@@ -15,9 +15,7 @@ interface WorkShiftRepositoryInterface
      */
     public function fetch(Request $request): LengthAwarePaginator;
     
-    public function getWorkShift(int $id): WorkShift;
-
-    public function getWorkShiftByName(string $name): WorkShift;
+    public function getWorkShift(int $id, int $companyId): WorkShift;
     
     /**
      * Summary of store
@@ -56,13 +54,16 @@ interface WorkShiftRepositoryInterface
      * @param list<int> $ids
      * @return int
      */
-    public function bulkDelete(array $ids): int;
-    
-    public function destroy(int $id): bool;
+    public function bulkDelete(array $ids, int $companyId): int;
+
+    public function destroy(int $id, int $companyId): bool;
     
     /**
      * @param array{
-     *   only_with_employees?: bool
+     *   company_id: int,
+     *   search?: ?string,
+     *   only_active?: bool,
+     *   limit?: int
      * } $params
      *
      * @return array<int, array{id:int, name:string}>

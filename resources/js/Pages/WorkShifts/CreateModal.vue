@@ -18,13 +18,11 @@ const errors = reactive({});
 // ⚠️ form mezők: igazítsd a WorkShift migration / request mezőihez
 // Tipikus: name, start_date, end_date, active
 const form = ref({
-    company_id: null,
     name: "",
     start_time: null,
     end_time: null,
     work_time_minutes: null,
     break_minutes: null,
-    is_flexible: false,
     active: true,
 });
 
@@ -35,13 +33,11 @@ watch(
 
         // reset
         form.value = {
-            company_id: null,
             name: "",
             start_time: null,
             end_time: null,
             work_time_minutes: null,
             break_minutes: null,
-            is_flexible: false,
             active: true,
         };
 
@@ -65,7 +61,7 @@ const submit = async () => {
     Object.keys(errors).forEach((k) => delete errors[k]);
 
     try {
-        const res = await csrfFetch("/work_shifts", {
+        const res = await csrfFetch("/work-shifts", {
             method: "POST",
             headers: { "Content-Type": "application/json", Accept: "application/json" },
             body: JSON.stringify({

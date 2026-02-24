@@ -153,7 +153,7 @@ const fetchWorkShifts = async () => {
     error.value = null;
 
     try {
-        const res = await fetch(`/work_shifts/fetch?${buildQuery()}`, {
+        const res = await fetch(`/work-shifts/fetch?${buildQuery()}`, {
             headers: { "X-Requested-With": "XMLHttpRequest" },
         });
 
@@ -203,7 +203,7 @@ const deleteOne = async (id) => {
     actionLoading.value = true;
 
     try {
-        const res = await csrfFetch(`/work_shifts/${id}`, {
+        const res = await csrfFetch(`/work-shifts/${id}`, {
             method: "DELETE",
             headers: {
                 "X-Requested-With": "XMLHttpRequest",
@@ -261,7 +261,7 @@ const bulkDelete = async (ids) => {
     actionLoading.value = true;
 
     try {
-        const res = await csrfFetch(`/work_shifts/destroy_bulk`, {
+        const res = await csrfFetch(`/work-shifts/destroy_bulk`, {
             method: "DELETE",
             headers: {
                 "Content-Type": "application/json",
