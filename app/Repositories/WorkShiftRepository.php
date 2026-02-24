@@ -342,7 +342,7 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
         $key = "v{$version}:{$hash}";
 
         return $this->cacheService->remember(
-            tag: 'work_shift_select',
+            tag: self::NS_SELECTORS_WORK_SHIFT,
             key: $key,
             callback: $queryCallback,
             ttl: (int) config('cache.ttl_fetch', 1800)
@@ -362,6 +362,7 @@ class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryI
         DB::afterCommit(function() use ($companyId): void {
             // WorkShift lista oldal cache
             $this->cacheVersionService->bump("company:{$companyId}:work_shifts");
+            $this->cacheVersionService->bump('work_shifts.fetch');
 
             // WorkShiftSelector cache (mert a selector aktív cégeket listáz)
             $this->cacheVersionService->bump(self::NS_SELECTORS_WORK_SHIFT);

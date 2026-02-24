@@ -30,6 +30,9 @@ final class CurrentCompany
 
     public function clearCurrentCompany(Request $request): void
     {
-        $request->session()->forget(self::SESSION_KEY);
+        $request->session()->forget([
+            self::SESSION_KEY,
+            CurrentTenantGroup::SESSION_KEY,
+        ]);
     }
 }

@@ -6,12 +6,14 @@ namespace App\Repositories;
 
 use App\Interfaces\CompanyRepositoryInterface;
 use App\Models\Company;
+use App\Models\TenantGroup;
 use App\Services\CacheService;
 use App\Traits\Functions;
 use Illuminate\Container\Container as AppContainer;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Prettus\Repository\Criteria\RequestCriteria;
 use Prettus\Repository\Eloquent\BaseRepository;
 use App\Services\Cache\CacheVersionService;
@@ -62,6 +64,9 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     public function fetch(Request $request): LengthAwarePaginator
     {
         $needCache = (bool) config('cache.enable_companies', false);
+        $currentTenantId = TenantGroup::current()?->id;
+        $user = $request->user();
+        $isSuperadmin = $user !== null && method_exists($user, 'hasRole') && $user->hasRole('superadmin');
         
         $page = (int) $request->integer('page', 1);
         
@@ -84,8 +89,17 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
         // a paginátor query-stringje (URL szinkronhoz hasznos)
         $appendQuery = $request->only(['search', 'field', 'order', 'per_page']);
         
-        $queryCallback = function() use($term, $field, $direction, $perPage, $page, $appendQuery): LengthAwarePaginator {
+        $queryCallback = function() use($term, $field, $direction, $perPage, $page, $appendQuery, $currentTenantId, $isSuperadmin): LengthAwarePaginator {
             $q = Company::query()
+                ->when(
+                    $currentTenantId !== null,
+                    fn ($qq) => $qq->where('tenant_group_id', $currentTenantId)
+                )
+                // Landlord módban csak superadmin láthat globális listát.
+                ->when(
+                    $currentTenantId === null && !$isSuperadmin,
+                    fn ($qq) => $qq->whereRaw('1 = 0')
+                )
                 ->when($term, function ($qq) use ($term) {
                     $qq->where(function ($q) use ($term) {
                         $q->where('name', 'like', "%{$term}%")
@@ -114,6 +128,10 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
             'search' => $term,      // lowercased/null
             'field' => $field,      // whitelistelt/null
             'order' => $direction,  // asc/desc
+            'tenant_id' => $currentTenantId,
+            'landlord_scope' => $currentTenantId === null
+                ? ($isSuperadmin ? 'global_superadmin' : 'restricted_non_superadmin')
+                : 'tenant_scoped',
         ];
         ksort($paramsForKey);
 
@@ -178,6 +196,7 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     public function getToSelect(array $params): array
     {
         $needCache = (bool) config('cache.enable_companyToSelect', false);
+        $currentTenantId = TenantGroup::current()?->id;
 
         // normalize
         $params['only_with_employees'] = !empty($params['only_with_employees']);
@@ -185,9 +204,13 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
 
         $onlyWithEmployees = (bool) $params['only_with_employees'];
 
-        $queryCallback = function () use ($onlyWithEmployees): array {
+        $queryCallback = function () use ($onlyWithEmployees, $currentTenantId): array {
             /** @var array<int, array{id: int, name: string}> $out */
             $out = Company::active()
+                ->when(
+                    $currentTenantId !== null,
+                    fn ($q) => $q->where('tenant_group_id', $currentTenantId)
+                )
                 ->when($onlyWithEmployees, fn ($q) => $q->whereHas('employees'))
                 ->select(['id', 'name'])
                 ->orderBy('name')
@@ -208,7 +231,7 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
         $key = "v{$version}:{$hash}";
 
         return $this->cacheService->remember(
-            tag: 'companies_select',
+            tag: self::NS_SELECTORS_COMPANIES,
             key: $key,
             callback: $queryCallback,
             ttl: (int) config('cache.ttl_fetch', 1800)
@@ -232,6 +255,14 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     public function store(array $data): Company
     {
         return DB::transaction(function() use($data): Company {
+            $tenantGroup = TenantGroup::query()->create([
+                'name' => (string) $data['name'],
+                'slug' => $this->makeUniqueTenantGroupSlug((string) $data['name']),
+                'active' => true,
+            ]);
+
+            $data['tenant_group_id'] = $tenantGroup->id;
+
             /** @var Company $company */
             $company = Company::query()->create($data);
             
@@ -242,6 +273,24 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
             
             return $company;
         });
+    }
+
+    private function makeUniqueTenantGroupSlug(string $name): string
+    {
+        $baseSlug = Str::slug($name);
+        if ($baseSlug === '') {
+            $baseSlug = 'company';
+        }
+
+        $slug = $baseSlug;
+        $counter = 1;
+
+        while (TenantGroup::query()->where('slug', $slug)->exists()) {
+            $slug = $baseSlug.'-'.$counter;
+            $counter++;
+        }
+
+        return $slug;
     }
 
     /**

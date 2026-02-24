@@ -18,18 +18,12 @@ trait CreatesUsers
 
     protected function createAdminUser(?Company $company = null): User
     {
-        // NOTE:
-        // This project does not have a `users.company_id` column (yet).
-        // Some older snippets / modules may have assumed it, but the tests
-        // must match the current schema.
-        //
-        // We keep the optional `$company` argument so call sites stay stable,
-        // but we don't persist any company reference on the user.
         $company ??= Company::factory()->create();
 
         /** @var User $user */
         $user = User::factory()->create();
 
+        $user->companies()->syncWithoutDetaching([$company->id]);
         $user->assignRole('admin');
 
         return $user;

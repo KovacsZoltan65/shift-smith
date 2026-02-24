@@ -33,11 +33,6 @@ class WorkPatternRepository extends BaseRepository implements WorkPatternReposit
         return "company:{$companyId}:work_patterns";
     }
 
-    private function selectorTagForCompany(int $companyId): string
-    {
-        return "company:{$companyId}:work_patterns:selector";
-    }
-
     public function fetch(Request $request): LengthAwarePaginator
     {
         $needCache = (bool) config('cache.enable_work_patterns', false);
@@ -190,14 +185,14 @@ class WorkPatternRepository extends BaseRepository implements WorkPatternReposit
             return $queryCallback();
         }
 
-        $version = $this->cacheVersionService->get(self::NS_SELECTORS_WORK_PATTERNS . ".company_{$companyId}");
+        $version = $this->cacheVersionService->get(self::NS_SELECTORS_WORK_PATTERNS);
         $hash = hash('sha256', json_encode([
             'company_id' => $companyId,
             'only_active' => $onlyActive,
         ], JSON_THROW_ON_ERROR));
 
         return $this->cacheService->remember(
-            tag: $this->selectorTagForCompany($companyId),
+            tag: self::NS_SELECTORS_WORK_PATTERNS,
             key: "v{$version}:{$hash}",
             callback: $queryCallback,
             ttl: (int) config('cache.ttl_fetch', 1800)
@@ -240,7 +235,7 @@ class WorkPatternRepository extends BaseRepository implements WorkPatternReposit
     {
         DB::afterCommit(function () use ($companyId): void {
             $this->cacheVersionService->bump("company:{$companyId}:work_patterns");
-            $this->cacheVersionService->bump(self::NS_SELECTORS_WORK_PATTERNS . ".company_{$companyId}");
+            $this->cacheVersionService->bump(self::NS_SELECTORS_WORK_PATTERNS);
         });
     }
 

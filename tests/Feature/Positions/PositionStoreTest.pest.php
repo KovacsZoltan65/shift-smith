@@ -30,7 +30,7 @@ it('létrehozza a pozíciót és bumpolja a cache verziókat', function (): void
 
     $versioner = app(CacheVersionService::class);
     Cache::forever("v:company:{$company->id}:positions", 1);
-    Cache::forever("v:selectors.positions.company_{$company->id}", 1);
+    Cache::forever('v:selectors.positions', 1);
 
     $this->actingAs($user)
         ->postJson(route('positions.store'), [
@@ -44,5 +44,5 @@ it('létrehozza a pozíciót és bumpolja a cache verziókat', function (): void
 
     $this->assertDatabaseHas('positions', ['company_id' => $company->id, 'name' => 'Teszt pozíció']);
     expect($versioner->get("company:{$company->id}:positions"))->toBe(2);
-    expect($versioner->get("selectors.positions.company_{$company->id}"))->toBe(2);
+    expect($versioner->get('selectors.positions'))->toBe(2);
 });

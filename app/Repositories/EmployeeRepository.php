@@ -7,6 +7,7 @@ namespace App\Repositories;
 use App\Interfaces\EmployeeRepositoryInterface;
 use App\Models\Company;
 use App\Models\Employee;
+use App\Models\TenantGroup;
 use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
 use App\Traits\Functions;
@@ -70,6 +71,7 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
     public function fetch(Request $request): LengthAwarePaginator
     {
         $needCache = (bool) config('cache.enable_employees', false);
+        $currentTenantId = TenantGroup::current()?->id;
 
         $page = (int) $request->integer('page', 1);
 
@@ -82,6 +84,16 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
         // ✅ company filter
         $companyIdRaw = $request->input('company_id');
         $companyId = ($companyIdRaw === null || $companyIdRaw === '') ? null : (int) $companyIdRaw;
+        if ($companyId !== null && $currentTenantId !== null) {
+            $companyBelongsToCurrentTenant = Company::query()
+                ->whereKey($companyId)
+                ->where('tenant_group_id', $currentTenantId)
+                ->exists();
+
+            if (! $companyBelongsToCurrentTenant) {
+                $companyId = null;
+            }
+        }
 
         $sortable = Employee::getSortable();
         $field = \in_array($request->input('field', ''), $sortable, true)
@@ -93,9 +105,13 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
         // a paginátor query-stringje (URL szinkronhoz hasznos)
         $appendQuery = $request->only(['search', 'field', 'order', 'per_page', 'company_id']);
 
-        $queryCallback = function () use ($term, $companyId, $field, $direction, $perPage, $page, $appendQuery): LengthAwarePaginator {
+        $queryCallback = function () use ($term, $companyId, $field, $direction, $perPage, $page, $appendQuery, $currentTenantId): LengthAwarePaginator {
             $q = Employee::query()
                 ->with('position:id,name')
+                ->when(
+                    $currentTenantId !== null,
+                    fn ($qq) => $qq->whereHas('company', fn ($cq) => $cq->where('tenant_group_id', $currentTenantId))
+                )
                 ->when($companyId, fn ($qq) => $qq->where('company_id', $companyId))
                 ->when($term, function ($qq) use ($term) {
                     $qq->where(function ($q) use ($term) {
@@ -132,6 +148,7 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
             'per_page' => $perPage,
             'search' => $term,
             'company_id' => $companyId,
+            'tenant_id' => $currentTenantId,
             'field' => $field,
             'order' => $direction,
         ];

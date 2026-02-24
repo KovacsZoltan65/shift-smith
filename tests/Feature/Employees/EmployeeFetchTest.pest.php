@@ -28,15 +28,15 @@ it('megtagadja az alkalmazottak lekérését, ha a felhasználónak nincs enged�
 });
 
 it('A fetch lapozott alkalmazottakat ad vissza, és támogatja a company_id + keresési szűrőket.', function (): void {
-    $user = $this->createAdminUser();
+    $c1 = Company::factory()->create(['name' => 'Alpha Kft.']);
+    $c2 = Company::factory()->create(['name' => 'Beta Kft.']);
+
+    $user = $this->createAdminUser($c1);
     //$user->syncRoles([]);
     //$user->syncPermissions([]);
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
-
-    $c1 = Company::factory()->create(['name' => 'Alpha Kft.']);
-    $c2 = Company::factory()->create(['name' => 'Beta Kft.']);
 
     Employee::factory()->create([
         'company_id' => $c1->id,

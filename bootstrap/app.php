@@ -10,22 +10,26 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    ->withCommands()
     ->withMiddleware(function (Middleware $middleware): void {
+        //$middleware->web(prepend: [
+        //    \App\Http\Middleware\InitializeTenantGroup::class,
+        //]);
+
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
             \App\Http\Middleware\TrackMenuUsage::class,
             \App\Http\Middleware\SecurityHeaders::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
+            \App\Http\Middleware\InitializeTenantGroup::class, // ide a végére vagy legalább session után
         ]);
 
         $middleware->alias([
             'ensure.company' => \App\Http\Middleware\EnsureCompanySelected::class,
         ]);
 
-        // CSRF védelem explicit beállítása
         $middleware->validateCsrfTokens(except: [
-            // Ha van webhook vagy API endpoint, itt lehet kizárni
-            // Például: 'webhooks/*', 'api/*'
+            //
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

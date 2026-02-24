@@ -42,7 +42,7 @@ it('törli a pozíciót és bumpolja a cache verziókat', function (): void {
     $position = Position::factory()->create(['company_id' => $company->id]);
     $versioner = app(CacheVersionService::class);
     Cache::forever("v:company:{$company->id}:positions", 1);
-    Cache::forever("v:selectors.positions.company_{$company->id}", 1);
+    Cache::forever('v:selectors.positions', 1);
 
     $this->actingAs($user)
         ->deleteJson(route('positions.destroy', $position->id), ['company_id' => $company->id])
@@ -50,5 +50,5 @@ it('törli a pozíciót és bumpolja a cache verziókat', function (): void {
 
     $this->assertSoftDeleted('positions', ['id' => $position->id]);
     expect($versioner->get("company:{$company->id}:positions"))->toBe(2);
-    expect($versioner->get("selectors.positions.company_{$company->id}"))->toBe(2);
+    expect($versioner->get('selectors.positions'))->toBe(2);
 });

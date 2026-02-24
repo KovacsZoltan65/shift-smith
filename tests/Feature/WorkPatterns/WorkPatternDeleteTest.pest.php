@@ -40,7 +40,7 @@ it('soft delete-olja a munkarendet és bumpolja a cache verziókat', function ()
     $versioner = app(CacheVersionService::class);
 
     Cache::forever("v:company:{$company->id}:work_patterns", 1);
-    Cache::forever("v:selectors.work_patterns.company_{$company->id}", 1);
+    Cache::forever('v:selectors.work_patterns', 1);
 
     $this->actingAs($user)
         ->deleteJson(route('work_patterns.destroy', ['id' => $workPattern->id]), [
@@ -50,5 +50,5 @@ it('soft delete-olja a munkarendet és bumpolja a cache verziókat', function ()
 
     $this->assertSoftDeleted('work_patterns', ['id' => $workPattern->id]);
     expect($versioner->get("company:{$company->id}:work_patterns"))->toBe(2);
-    expect($versioner->get("selectors.work_patterns.company_{$company->id}"))->toBe(2);
+    expect($versioner->get('selectors.work_patterns'))->toBe(2);
 });

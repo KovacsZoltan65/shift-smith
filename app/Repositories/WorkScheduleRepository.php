@@ -303,6 +303,7 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
     {
         DB::afterCommit(function () use ($companyId): void {
             $this->cacheVersionService->bump("company:{$companyId}:work_schedules");
+            $this->cacheVersionService->bump('work_schedules.fetch');
         });
     }
 

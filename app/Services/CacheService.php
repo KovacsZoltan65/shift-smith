@@ -12,117 +12,103 @@ use Illuminate\Cache\RedisStore;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
-/**
- * Cache szolgáltatás osztály
- * 
- * Egységes cache kezelést biztosít tag-alapú és tag nélküli cache store-okhoz.
- * Támogatja a Redis, Memcached és file-based cache driver-eket.
- */
 class CacheService
 {
     use Functions;
-    
-    /**
-     * Érték tárolása a cache-ben
-     * 
-     * Tag-alapú cache esetén (Redis, Memcached) natív tag támogatást használ.
-     * Egyéb driver-ek esetén manuális kulcs nyilvántartást végez.
-     * 
-     * @param string $tag Cache tag azonosító (pl. 'users', 'companies')
-     * @param string $key Cache kulcs azonosító
-     * @param mixed $value Tárolandó érték
-     * @param DateTimeInterface|DateInterval|int $ttl Élettartam másodpercben vagy DateTime objektum
-     * @return void
-     */
+
+    private const TENANT_CTX_KEY = 'tenantId';
+
+    private function tenantId(): ?int
+    {
+        // Spatie Multitenancy context
+        $tenantId = app()->bound('context') ? app('context')->get(self::TENANT_CTX_KEY) : null;
+
+        if (! is_numeric($tenantId)) {
+            return null;
+        }
+
+        $id = (int) $tenantId;
+
+        return $id > 0 ? $id : null;
+    }
+
+    private function qualifyTag(string $tag): string
+    {
+        $tenantId = $this->tenantId();
+
+        // Ha nincs tenant, landlord/guest mód: elkülönített namespace
+        if ($tenantId === null) {
+            return "landlord:{$tag}";
+        }
+
+        return "tenant:{$tenantId}:{$tag}";
+    }
+
+    private function qualifyKey(string $tag, string $key): string
+    {
+        // kulcs tenant- + tag-aware
+        // pl: tenant:76:companies:list?page=1
+        return $this->qualifyTag($tag).":{$key}";
+    }
+
     public function put(string $tag, string $key, mixed $value, DateTimeInterface|DateInterval|int $ttl = 3600): void
     {
-        //$cacheKey = "{$tag}:{$key}";
-        $cacheKey = $this->generateCacheKey($tag, $key);
+        $qualifiedTag = $this->qualifyTag($tag);
+        $cacheKey = $this->qualifyKey($tag, $key);
 
         if (Cache::supportsTags()) {
-            Cache::tags([$tag])->put($cacheKey, $value, $ttl);
-        } else {
-            Cache::put($cacheKey, $value, $ttl);
-            $this->storeKey($tag, $cacheKey);
+            Cache::tags([$qualifiedTag])->put($cacheKey, $value, $ttl);
+            return;
         }
+
+        Cache::put($cacheKey, $value, $ttl);
+        $this->storeKey($qualifiedTag, $cacheKey);
     }
-    
-    /**
-     * Érték lekérése cache-ből vagy callback végrehajtása
-     * 
-     * Ha az érték nincs cache-ben, végrehajtja a callback-et és eltárolja az eredményt.
-     * Generic típus támogatással biztosítja a típusbiztonságot.
-     * 
-     * @template TCacheValue
-     * 
-     * @param string $tag Cache tag azonosító
-     * @param string $key Cache kulcs azonosító
-     * @param Closure():TCacheValue $callback Callback függvény, ami előállítja az értéket
-     * @param DateTimeInterface|DateInterval|int $ttl Élettartam másodpercben vagy DateTime objektum
-     * @return TCacheValue A cache-ből vagy callback-ből származó érték
-     */
+
     public function remember(
         string $tag,
         string $key,
         Closure $callback,
         DateTimeInterface|DateInterval|int $ttl = 3600
     ): mixed {
-        $cacheKey = $this->generateCacheKey($tag, $key);
+        $qualifiedTag = $this->qualifyTag($tag);
+        $cacheKey = $this->qualifyKey($tag, $key);
 
         if (Cache::supportsTags()) {
-            /** @var TCacheValue $value */
-            $value = Cache::tags([$tag])->remember($cacheKey, $ttl, $callback);
-
-            return $value;
+            return Cache::tags([$qualifiedTag])->remember($cacheKey, $ttl, $callback);
         }
 
-        /** @var TCacheValue $value */
-        $value = Cache::remember($cacheKey, $ttl, $callback);
-
-        return $value;
+        return Cache::remember($cacheKey, $ttl, $callback);
     }
-    
-    /**
-     * Összes cache bejegyzés törlése egy tag alapján
-     * 
-     * Tag-alapú cache esetén natív flush-t használ.
-     * Egyéb driver-ek esetén a manuálisan nyilvántartott kulcsokat törli.
-     * 
-     * @param string $tag Cache tag azonosító
-     * @return void
-     */
+
     public function forgetAll(string $tag): void
     {
-        if (Cache::supportsTags()) {
-            Cache::tags([$tag])->flush();
+        $qualifiedTag = $this->qualifyTag($tag);
 
+        if (Cache::supportsTags()) {
+            Cache::tags([$qualifiedTag])->flush();
             return;
         }
 
         /** @var array<int,string> $keys */
-        $keys = Cache::get("{$tag}_keys", []);
+        $keys = Cache::get("{$qualifiedTag}_keys", []);
         foreach ($keys as $key) {
             Cache::forget($key);
         }
-        Cache::forget("{$tag}_keys");
+        Cache::forget("{$qualifiedTag}_keys");
     }
-    
-    /**
-     * Cache bejegyzések törlése minta alapján
-     * 
-     * Csak Redis cache driver esetén működik, pattern-based kulcs kereséssel.
-     * Más driver-ek esetén figyelmeztetést logol.
-     * 
-     * @param string $pattern Keresési minta (pl. 'users:*', 'companies:active:*')
-     * @return void
-     */
+
     public function forgetAllMatching(string $pattern): void
     {
         $store = Cache::getStore();
 
         if ($store instanceof RedisStore) {
             $prefix = (string) config('cache.prefix');
-            $keys   = $store->connection()->keys($prefix.":{$pattern}");
+
+            // pattern legyen tenant-aware a hívó oldalon:
+            // pl: tenant:76:companies:*
+            $keys = $store->connection()->keys($prefix.":{$pattern}");
+
             foreach ($keys as $key) {
                 Cache::forget(str_replace($prefix.':', '', (string) $key));
             }
@@ -130,27 +116,17 @@ class CacheService
             return;
         }
 
-        // Ha a store nem Redis és nincs pattern-based törlés támogatás
         Log::warning('Cache driver does not support pattern-based deletion.', [
             'store' => get_class($store),
             'pattern' => $pattern,
         ]);
     }
-    
-    /**
-     * Cache kulcs nyilvántartásba vétele tag nélküli driver-ek esetén
-     * 
-     * Manuálisan tárolja a kulcsokat egy listában, hogy később törölhetők legyenek.
-     * Csak akkor hívódik, ha a cache driver nem támogatja a tag-eket.
-     * 
-     * @param string $tag Cache tag azonosító
-     * @param string $key Cache kulcs azonosító
-     * @return void
-     */
+
     protected function storeKey(string $tag, string $key): void
     {
         /** @var array<int,string> $keys */
         $keys = Cache::get("{$tag}_keys", []);
+
         if (! in_array($key, $keys, true)) {
             $keys[] = $key;
             Cache::put("{$tag}_keys", $keys, 3600);
