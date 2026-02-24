@@ -447,19 +447,18 @@ describe("Employees CRUD (Index.vue)", () => {
     });
 
     // -------------------------------------------------------------------------
-    // Company filter
+    // default_company_id filter
     // -------------------------------------------------------------------------
-    it("CompanySelector change -> új fetch", async () => {
-        const wrapper = mount(Index, {
+    it("default_company_id bekerül az első fetch query-be", async () => {
+        mount(Index, {
+            props: { default_company_id: 5 },
             global: { stubs },
         });
 
         await flushPromises();
-        const initial = globalThis.fetch.mock.calls.length;
 
-        await wrapper.find('[data-testid="company-set-1"]').trigger("click");
-        await flushPromises();
-
-        expect(globalThis.fetch.mock.calls.length).toBeGreaterThan(initial);
+        expect(globalThis.fetch).toHaveBeenCalled();
+        const firstCallUrl = String(globalThis.fetch.mock.calls[0][0]);
+        expect(firstCallUrl).toContain("company_id=5");
     });
 });
