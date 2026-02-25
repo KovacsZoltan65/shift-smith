@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 use App\Models\Company;
 use App\Models\Employee;
+use App\Models\TenantGroup;
 use App\Models\User;
 use App\Models\WorkSchedule;
 use App\Models\WorkShift;
 use App\Models\WorkShiftAssignment;
+use App\Services\Cache\CacheNamespaces;
 use App\Services\Cache\CacheVersionService;
 use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\PermissionRegistrar;
@@ -17,11 +19,11 @@ beforeEach(function (): void {
 });
 
 it('csak a work schedule intervallumán belüli assignmentet engedi', function (): void {
-    $user = $this->createAdminUser();
+    $tenant = TenantGroup::factory()->create();
+    $company = Company::factory()->create(['tenant_group_id' => $tenant->id]);
+    $user = $this->createAdminUser($company);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
-
-    $company = Company::factory()->create();
     $shift = WorkShift::factory()->create(['company_id' => $company->id]);
     $employee = Employee::factory()->create(['company_id' => $company->id]);
     $schedule = WorkSchedule::factory()->create([
@@ -31,7 +33,7 @@ it('csak a work schedule intervallumán belüli assignmentet engedi', function (
         'status' => 'draft',
     ]);
 
-    $this->actingAs($user)
+    $this->actingAsUserInCompany($user, $company)
         ->postJson(route('work_shift_assignments.store', ['work_shift' => $shift->id]), [
             'employee_id' => $employee->id,
             'work_schedule_id' => $schedule->id,
@@ -42,11 +44,11 @@ it('csak a work schedule intervallumán belüli assignmentet engedi', function (
 });
 
 it('egy dolgozónak egy napra csak egy műszak assignmentje marad', function (): void {
-    $user = $this->createAdminUser();
+    $tenant = TenantGroup::factory()->create();
+    $company = Company::factory()->create(['tenant_group_id' => $tenant->id]);
+    $user = $this->createAdminUser($company);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
-
-    $company = Company::factory()->create();
     $shiftA = WorkShift::factory()->create(['company_id' => $company->id]);
     $shiftB = WorkShift::factory()->create(['company_id' => $company->id]);
     $employee = Employee::factory()->create(['company_id' => $company->id]);
@@ -60,6 +62,7 @@ it('egy dolgozónak egy napra csak egy műszak assignmentje marad', function ():
     $date = '2026-03-10';
 
     $first = $this->actingAs($user)
+        ->withSession(['current_company_id' => $company->id, 'current_tenant_group_id' => $tenant->id])
         ->postJson(route('work_shift_assignments.store', ['work_shift' => $shiftA->id]), [
             'employee_id' => $employee->id,
             'work_schedule_id' => $schedule->id,
@@ -69,6 +72,7 @@ it('egy dolgozónak egy napra csak egy műszak assignmentje marad', function ():
         ->json('data.id');
 
     $second = $this->actingAs($user)
+        ->withSession(['current_company_id' => $company->id, 'current_tenant_group_id' => $tenant->id])
         ->postJson(route('work_shift_assignments.store', ['work_shift' => $shiftB->id]), [
             'employee_id' => $employee->id,
             'work_schedule_id' => $schedule->id,
@@ -92,7 +96,8 @@ it('egy dolgozónak egy napra csak egy műszak assignmentje marad', function ():
 });
 
 it('megtagadja az assignment létrehozást jogosultság nélkül', function (): void {
-    $company = Company::factory()->create();
+    $tenant = TenantGroup::factory()->create();
+    $company = Company::factory()->create(['tenant_group_id' => $tenant->id]);
     $shift = WorkShift::factory()->create(['company_id' => $company->id]);
     $employee = Employee::factory()->create(['company_id' => $company->id]);
     $schedule = WorkSchedule::factory()->create([
@@ -103,13 +108,13 @@ it('megtagadja az assignment létrehozást jogosultság nélkül', function (): 
     ]);
 
     /** @var User $user */
-    $user = User::factory()->create();
+    $user = User::factory()->create(['email_verified_at' => now()]);
     $user->assignRole('user');
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
-    $this->actingAs($user)
+    $this->actingAsUserInCompany($user, $company)
         ->postJson(route('work_shift_assignments.store', ['work_shift' => $shift->id]), [
             'employee_id' => $employee->id,
             'work_schedule_id' => $schedule->id,
@@ -119,11 +124,11 @@ it('megtagadja az assignment létrehozást jogosultság nélkül', function (): 
 });
 
 it('assignment store és destroy után bumpolja a cache verziót', function (): void {
-    $user = $this->createAdminUser();
+    $tenant = TenantGroup::factory()->create();
+    $company = Company::factory()->create(['tenant_group_id' => $tenant->id]);
+    $user = $this->createAdminUser($company);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
-
-    $company = Company::factory()->create();
     $shift = WorkShift::factory()->create(['company_id' => $company->id]);
     $employee = Employee::factory()->create(['company_id' => $company->id]);
     $schedule = WorkSchedule::factory()->create([
@@ -134,9 +139,11 @@ it('assignment store és destroy után bumpolja a cache verziót', function (): 
     ]);
 
     $versioner = app(CacheVersionService::class);
-    Cache::forever("v:company:{$company->id}:work_schedule_assignments", 1);
+    $namespace = CacheNamespaces::tenantWorkScheduleAssignments($tenant->id);
+    Cache::forever("v:{$namespace}", 1);
 
     $createResponse = $this->actingAs($user)
+        ->withSession(['current_company_id' => $company->id, 'current_tenant_group_id' => $tenant->id])
         ->postJson(route('work_shift_assignments.store', ['work_shift' => $shift->id]), [
             'employee_id' => $employee->id,
             'work_schedule_id' => $schedule->id,
@@ -144,16 +151,17 @@ it('assignment store és destroy után bumpolja a cache verziót', function (): 
         ])
         ->assertCreated();
 
-    expect($versioner->get("company:{$company->id}:work_schedule_assignments"))->toBe(2);
+    expect($versioner->get($namespace))->toBe(2);
 
     $assignmentId = (int) $createResponse->json('data.id');
 
     $this->actingAs($user)
+        ->withSession(['current_company_id' => $company->id, 'current_tenant_group_id' => $tenant->id])
         ->deleteJson(route('work_shift_assignments.destroy', [
             'work_shift' => $shift->id,
             'id' => $assignmentId,
         ]))
         ->assertOk();
 
-    expect($versioner->get("company:{$company->id}:work_schedule_assignments"))->toBe(3);
+    expect($versioner->get($namespace))->toBe(3);
 });

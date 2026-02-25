@@ -1,8 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Http\Requests\WorkShift\BulkDeleteRequest;
+use App\Http\Requests\WorkShift\DeleteRequest;
+use App\Http\Requests\WorkShift\FetchRequest;
 use App\Http\Requests\WorkShift\IndexRequest;
 use App\Http\Requests\WorkShift\StoreRequest;
 use App\Http\Requests\WorkShift\UpdateRequest;
@@ -15,273 +19,153 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
-use Throwable;
 
-/**
- * Műszak controller osztály
- * 
- * HTTP kérések kezelése műszakok CRUD műveleteihez.
- * Inertia.js frontend integráció és JSON API végpontok.
- * Policy-alapú autorizációval.
- */
-class WorkShiftController extends Controller
+final class WorkShiftController extends Controller
 {
-    /**
-     * Constructor
-     * 
-     * @param WorkShiftService $service Műszak service
-     */
     public function __construct(
         private readonly WorkShiftService $service,
-        private readonly CurrentCompany $currentCompany
+        private readonly CurrentCompany $currentCompany,
     ) {}
-    
-    /**
-     * Műszakok lista oldal megjelenítése
-     * 
-     * @param IndexRequest $request Validált kérés
-     * @return InertiaResponse Inertia válasz a WorkShifts/Index komponenssel
-     */
+
     public function index(IndexRequest $request): InertiaResponse
     {
-        $this->authorize(WorkShiftPolicy::PERM_VIEW_ANY, WorkShift::class);
+        $this->authorize(WorkShiftPolicy::PERM_VIEW, WorkShift::class);
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
         abort_if($currentCompanyId === null, 403, 'No company selected');
 
         $filter = $request->validatedFilters();
         $filter['company_id'] = $currentCompanyId;
-        
+
         return Inertia::render('WorkShifts/Index', [
-            'title'  => 'Műszakok',
+            'title' => 'Műszakok',
             'filter' => $filter,
         ]);
     }
-    
-    /**
-     * Műszakok listázása JSON formátumban
-     * 
-     * @param IndexRequest $request Validált kérés
-     * @return JsonResponse Lapozott műszak lista JSON-ben
-     */
-    public function fetch(IndexRequest $request): JsonResponse
+
+    public function fetch(FetchRequest $request): JsonResponse
     {
-        $this->authorize(WorkShiftPolicy::PERM_VIEW_ANY, WorkShift::class);
+        $this->authorize(WorkShiftPolicy::PERM_VIEW, WorkShift::class);
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
         abort_if($currentCompanyId === null, 403, 'No company selected');
-        $request->merge(['company_id' => $currentCompanyId]);
-        
-        $work_shifts = $this->service->fetch($request);
 
+        $workShifts = $this->service->fetch($request, $currentCompanyId);
         $filter = $request->validatedFilters();
-        $filter['company_id'] = $currentCompanyId;
 
         return response()->json([
-            'data' => $work_shifts->items(),
+            'message' => 'Műszakok sikeresen lekérve.',
+            'data' => $workShifts->items(),
             'meta' => [
-                'current_page' => $work_shifts->currentPage(),
-                'per_page'     => $work_shifts->perPage(),
-                'total'        => $work_shifts->total(),
-                'last_page'    => $work_shifts->lastPage(),
+                'current_page' => $workShifts->currentPage(),
+                'per_page' => $workShifts->perPage(),
+                'total' => $workShifts->total(),
+                'last_page' => $workShifts->lastPage(),
             ],
             'filter' => $filter,
         ], Response::HTTP_OK);
     }
-    
-    /**
-     * Egy műszak lekérése azonosító alapján
-     * 
-     * @param int $id Műszak azonosító
-     * @return JsonResponse Műszak adatok JSON-ben
-     */
-    public function getWorkShift(int $id): JsonResponse
-    {
-        $work_shift = $this->service->getWorkShift($id);
-        $this->authorize(WorkShiftPolicy::PERM_VIEW, $work_shift);
 
-        try {
-            return response()->json(
-                $work_shift,
-                Response::HTTP_OK
-            );
-        } catch(Throwable $th) {
-            return response()->json(
-                ['message' => 'Váratlan hiba történt'],
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        }
-    }
-    
-    /**
-     * Műszak lekérése név alapján
-     * 
-     * @param string $name Műszak neve
-     * @return JsonResponse Műszak adatok JSON-ben
-     */
-    public function getWorkShiftByName(string $name): JsonResponse
+    public function getWorkShift(Request $request, int $id): JsonResponse
     {
-        $work_shift = $this->service->getWorkShiftByName($name);
-        $this->authorize(WorkShiftPolicy::PERM_VIEW, $work_shift);
-        
-        try {
-            return response()->json(
-                $work_shift,
-                Response::HTTP_OK
-            );
-        } catch(Throwable $th) {
-            return response()->json(
-                ['message' => 'Váratlan hiba történt'],
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        }
+        $this->authorize(WorkShiftPolicy::PERM_VIEW, WorkShift::class);
+
+        $currentCompanyId = $this->currentCompany->currentCompanyId($request);
+        abort_if($currentCompanyId === null, 403, 'No company selected');
+
+        $workShift = $this->service->find($id, $currentCompanyId);
+        $this->authorize(WorkShiftPolicy::PERM_VIEW, $workShift);
+
+        return response()->json([
+            'message' => 'Műszak sikeresen lekérve.',
+            'data' => $workShift,
+        ], Response::HTTP_OK);
     }
-    
-    /**
-     * Új műszak létrehozása
-     * 
-     * @param StoreRequest $request Validált kérés
-     * @return JsonResponse Létrehozott műszak JSON-ben
-     */
+
     public function store(StoreRequest $request): JsonResponse
     {
         $this->authorize(WorkShiftPolicy::PERM_CREATE, WorkShift::class);
-        
-        /**
-         * @var array{
-         *   company_id: int,
-         *   name: string, 
-         *   start_time: string,
-         *   end_time: string,
-         *   active: bool
-         * } $data
-         */
+
+        $currentCompanyId = $this->currentCompany->currentCompanyId($request);
+        abort_if($currentCompanyId === null, 403, 'No company selected');
+
+        /** @var array<string, mixed> $data */
         $data = $request->validated();
+        $created = $this->service->store($data, $currentCompanyId);
 
-        try {
-            $work_shift = $this->service->store($data);
-
-            return response()->json($work_shift, Response::HTTP_OK);
-        } catch(Throwable $th) {
-            return response()->json(
-                ['message' => 'Váratlan hiba történt'],
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        }
+        return response()->json([
+            'message' => 'A műszak sikeresen létrehozva.',
+            'data' => $created,
+        ], Response::HTTP_CREATED);
     }
-    
-    /**
-     * Műszak adatainak frissítése
-     * 
-     * @param UpdateRequest $request Validált kérés
-     * @param int $id Műszak azonosító
-     * @return JsonResponse Frissített műszak JSON-ben
-     * @throws \Throwable
-     */
+
     public function update(UpdateRequest $request, int $id): JsonResponse
-    {
-        /**
-         * @var array{
-         *   company_id: int,
-         *   name: string,
-         *   start_time: string,
-         *   end_time: string,
-         *   active: bool
-         * } $data
-         */
-        $data = $request->validated();
-
-        try {
-            $work_shift = $this->service->getWorkShift($id);
-            $this->authorize(WorkShiftPolicy::PERM_UPDATE, $work_shift);
-        
-            $updated = $this->service->update($data, $id);
-
-            return response()->json([
-                'message' => 'A műszak sikeresen frissítve.',
-                'data' => $updated,
-            ], Response::HTTP_OK);
-        } catch(Throwable $th) {
-            report($th);
-            return response()->json(
-                ['message' => 'Váratlan hiba történt'],
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        }
-    }
-    
-    /**
-     * Több műszak törlése egyszerre
-     * 
-     * @param BulkDeleteRequest $request Validált kérés
-     * @return JsonResponse Törlés eredménye JSON-ben
-     * @throws \Throwable
-     */
-    public function bulkDelete(BulkDeleteRequest $request): JsonResponse
-    {
-        $this->authorize(WorkShiftPolicy::PERM_DELETE_ANY, WorkShift::class);
-        
-        $data = $request->validated();
-
-        try {
-            $deleted = $this->service->bulkDelete($data['ids']);
-            
-            return response()->json([
-                'message' => 'Sikeres törlés.',
-                'deleted' => $deleted,
-            ], Response::HTTP_OK);
-        } catch(Throwable $th) {
-            return response()->json([
-                'message' => 'Törlés sikertelen.',
-            ], Response::HTTP_INTERNAL_SERVER_ERROR);
-        }
-    }
-    
-    /**
-     * Egy műszak törlése
-     * 
-     * @param int $id Műszak azonosító
-     * @return JsonResponse Törlés eredménye JSON-ben
-     * @throws \Throwable
-     */
-    public function destroy(int $id): JsonResponse
-    {
-        $work_shift = $this->service->getWorkShift($id);
-        $this->authorize(WorkShiftPolicy::PERM_DELETE, $work_shift);
-        
-        try {
-            $deleted = $this->service->destroy($id);
-
-            return response()->json($deleted, Response::HTTP_OK);
-        } catch(Throwable $th) {
-            return response()->json([
-                'message' => 'Törlés sikertelen.',
-            ], Response::HTTP_INTERNAL_SERVER_ERROR);
-        }
-    }
-    
-    /**
-     * Műszakok lekérése select listához
-     * 
-     * Opcionális szűrés dolgozókkal rendelkező műszakokra.
-     * 
-     * @param Request $request HTTP kérés
-     * @return array<int, array{id: int, name: string}> Műszakok listája
-     */
-    public function getToSelect(Request $request): array
     {
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
         abort_if($currentCompanyId === null, 403, 'No company selected');
 
-        $params = [];
-        
-        $onlyWithEmployees = $request->boolean('only_with_employees');
-        $params['company_id'] = $currentCompanyId;
-        
-        if ($onlyWithEmployees) {
-            $params['only_with_employees'] = true;
-        }
-        
-        return $this->service->getToSelect($params);
+        $workShift = $this->service->find($id, $currentCompanyId);
+        $this->authorize(WorkShiftPolicy::PERM_UPDATE, $workShift);
+
+        /** @var array<string, mixed> $data */
+        $data = $request->validated();
+        $updated = $this->service->update($id, $data, $currentCompanyId);
+
+        return response()->json([
+            'message' => 'A műszak sikeresen frissítve.',
+            'data' => $updated,
+        ], Response::HTTP_OK);
+    }
+
+    public function bulkDelete(BulkDeleteRequest $request): JsonResponse
+    {
+        $this->authorize(WorkShiftPolicy::PERM_DELETE_ANY, WorkShift::class);
+
+        $currentCompanyId = $this->currentCompany->currentCompanyId($request);
+        abort_if($currentCompanyId === null, 403, 'No company selected');
+
+        /** @var array{ids:list<int>} $data */
+        $data = $request->validated();
+        $deleted = $this->service->bulkDelete($data['ids'], $currentCompanyId);
+
+        return response()->json([
+            'message' => 'Sikeres törlés.',
+            'deleted' => $deleted,
+        ], Response::HTTP_OK);
+    }
+
+    public function destroy(DeleteRequest $request, int $id): JsonResponse
+    {
+        $currentCompanyId = $this->currentCompany->currentCompanyId($request);
+        abort_if($currentCompanyId === null, 403, 'No company selected');
+
+        $workShift = $this->service->find($id, $currentCompanyId);
+        $this->authorize(WorkShiftPolicy::PERM_DELETE, $workShift);
+
+        $deleted = $this->service->destroy($id, $currentCompanyId);
+
+        return response()->json([
+            'message' => $deleted ? 'Törlés sikeres.' : 'Törlés sikertelen.',
+            'deleted' => $deleted,
+        ], $deleted ? Response::HTTP_OK : Response::HTTP_INTERNAL_SERVER_ERROR);
+    }
+
+    public function getToSelect(FetchRequest $request): JsonResponse
+    {
+        $this->authorize(WorkShiftPolicy::PERM_VIEW, WorkShift::class);
+
+        $currentCompanyId = $this->currentCompany->currentCompanyId($request);
+        abort_if($currentCompanyId === null, 403, 'No company selected');
+
+        $params = [
+            'search' => $request->string('search')->toString() ?: null,
+            'only_active' => $request->boolean('only_active', true),
+            'limit' => max(1, min(100, (int) $request->integer('limit', 50))),
+        ];
+
+        return response()->json(
+            $this->service->getToSelect($params, $currentCompanyId),
+            Response::HTTP_OK
+        );
     }
 }

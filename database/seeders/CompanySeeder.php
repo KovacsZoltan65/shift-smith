@@ -3,40 +3,55 @@
 namespace Database\Seeders;
 
 use App\Models\Company;
+use App\Models\TenantGroup;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class CompanySeeder extends Seeder
 {
     public function run(): void
     {
-        // Külső kulcsok tiltása, tábla ürítése
-        //Schema::disableForeignKeyConstraints();
-        //Company::query()->truncate();
-        //Schema::enableForeignKeyConstraints();
-
-        // Logolás letiltása (Spatie Activitylog)
-        activity()->disableLogging();
-
         $count = 100;
+
+        DB::disableQueryLog();
+        activity()->disableLogging();
 
         $this->command->warn("Creating {$count} companies...");
         $this->command->getOutput()->progressStart($count);
 
         for ($i = 0; $i < $count; $i++) {
-            // Generáljunk egy adatot a factoryból, de nem mentjük el,
-            // csak értékeket kérünk
-            $attributes = Company::factory()->make()->toArray();
+            $row = Company::factory()->make()->only([
+                'name',
+                'email',
+                'address',
+                'phone',
+                'active',
+            ]);
+            $row['active'] = $row['active'] ?? true;
 
-            // A keresési feltételhez pl. az emailt használjuk,
-            // hogy ne legyen duplikáció - de lehet akár a name is
-            $company = Company::firstOrCreate(
-                ['email' => $attributes['email']],  // Keresési feltétel
-                $attributes                         // Ha nem találja,
-                // létrehozza ez alapján
-            );
+            $baseSlug = Str::slug((string) $row['name']);
+            if ($baseSlug === '') {
+                $baseSlug = 'company';
+            }
 
-            // Haladás jelzése
+            $slug = $baseSlug;
+            while (TenantGroup::query()->where('slug', $slug)->exists()) {
+                $slug = $baseSlug.'-'.Str::random(6);
+            }
+
+            $tenantGroup = TenantGroup::query()->create([
+                'name' => $row['name'],
+                'slug' => $slug,
+                'active' => true,
+            ]);
+
+            $row['tenant_group_id'] = $tenantGroup->id;
+            $row['created_at'] = now();
+            $row['updated_at'] = now();
+
+            Company::query()->insert($row);
+
             $this->command->getOutput()->progressAdvance();
         }
 

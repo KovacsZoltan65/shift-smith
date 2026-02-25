@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use App\Interfaces\WorkPatternRepositoryInterface;
+use App\Models\EmployeeWorkPattern;
 use App\Models\WorkPattern;
 use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
@@ -31,11 +32,6 @@ class WorkPatternRepository extends BaseRepository implements WorkPatternReposit
     private function tagForCompany(int $companyId): string
     {
         return "company:{$companyId}:work_patterns";
-    }
-
-    private function selectorTagForCompany(int $companyId): string
-    {
-        return "company:{$companyId}:work_patterns:selector";
     }
 
     public function fetch(Request $request): LengthAwarePaginator
@@ -190,14 +186,14 @@ class WorkPatternRepository extends BaseRepository implements WorkPatternReposit
             return $queryCallback();
         }
 
-        $version = $this->cacheVersionService->get(self::NS_SELECTORS_WORK_PATTERNS . ".company_{$companyId}");
+        $version = $this->cacheVersionService->get(self::NS_SELECTORS_WORK_PATTERNS);
         $hash = hash('sha256', json_encode([
             'company_id' => $companyId,
             'only_active' => $onlyActive,
         ], JSON_THROW_ON_ERROR));
 
         return $this->cacheService->remember(
-            tag: $this->selectorTagForCompany($companyId),
+            tag: self::NS_SELECTORS_WORK_PATTERNS,
             key: "v{$version}:{$hash}",
             callback: $queryCallback,
             ttl: (int) config('cache.ttl_fetch', 1800)
@@ -206,31 +202,25 @@ class WorkPatternRepository extends BaseRepository implements WorkPatternReposit
 
     public function getAssignedEmployees(int $workPatternId, int $companyId): array
     {
-        return DB::table('employee_work_patterns as ewp')
-            ->join('employees as e', 'e.id', '=', 'ewp.employee_id')
-            ->where('ewp.company_id', $companyId)
-            ->where('ewp.work_pattern_id', $workPatternId)
-            ->whereNull('e.deleted_at')
-            ->select([
-                'ewp.id',
-                'ewp.employee_id',
-                DB::raw("CONCAT(e.last_name, ' ', e.first_name) as name"),
-                'e.email',
-                'e.phone',
-                'ewp.date_from',
-                'ewp.date_to',
+        return EmployeeWorkPattern::query()
+            ->with([
+                'employee:id,company_id,first_name,last_name,email,phone',
+                'workPattern:id,company_id',
             ])
-            ->orderBy('e.last_name')
-            ->orderBy('e.first_name')
+            ->where('company_id', $companyId)
+            ->where('work_pattern_id', $workPatternId)
+            ->whereHas('workPattern', fn ($q) => $q->where('company_id', $companyId))
+            ->whereHas('employee', fn ($q) => $q->where('company_id', $companyId))
+            ->orderBy('employee_id')
             ->get()
-            ->map(static fn ($row): array => [
-                'id' => (int) $row->id,
-                'employee_id' => (int) $row->employee_id,
-                'name' => (string) $row->name,
-                'email' => $row->email ? (string) $row->email : null,
-                'phone' => $row->phone ? (string) $row->phone : null,
-                'date_from' => (string) $row->date_from,
-                'date_to' => $row->date_to ? (string) $row->date_to : null,
+            ->map(static fn (EmployeeWorkPattern $assignment): array => [
+                'id' => (int) $assignment->id,
+                'employee_id' => (int) $assignment->employee_id,
+                'name' => trim((string) ($assignment->employee?->last_name ?? '').' '.(string) ($assignment->employee?->first_name ?? '')),
+                'email' => $assignment->employee?->email ? (string) $assignment->employee->email : null,
+                'phone' => $assignment->employee?->phone ? (string) $assignment->employee->phone : null,
+                'date_from' => (string) $assignment->date_from->format('Y-m-d'),
+                'date_to' => $assignment->date_to?->format('Y-m-d'),
             ])
             ->values()
             ->all();
@@ -240,7 +230,7 @@ class WorkPatternRepository extends BaseRepository implements WorkPatternReposit
     {
         DB::afterCommit(function () use ($companyId): void {
             $this->cacheVersionService->bump("company:{$companyId}:work_patterns");
-            $this->cacheVersionService->bump(self::NS_SELECTORS_WORK_PATTERNS . ".company_{$companyId}");
+            $this->cacheVersionService->bump(self::NS_SELECTORS_WORK_PATTERNS);
         });
     }
 

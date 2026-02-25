@@ -15,28 +15,28 @@ beforeEach(function (): void {
 });
 
 it('megtagadja a feed végpontot jogosultság nélkül', function (): void {
-    $company = Company::factory()->create();
+    [, $company] = $this->createTenantWithCompany();
     $schedule = WorkSchedule::factory()->create(['company_id' => $company->id]);
 
     /** @var User $user */
     $user = User::factory()->create();
     $user->assignRole('user');
+    $user->companies()->syncWithoutDetaching([$company->id]);
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+    $this->actingAsUserInCompany($user, $company)
         ->getJson(route('scheduling.calendar.feed', ['schedule_id' => $schedule->id]))
         ->assertForbidden();
 });
 
 it('engedélyezi a feed végpontot és visszaadja az eseményeket', function (): void {
-    $user = $this->createAdminUser();
+    [, $company] = $this->createTenantWithCompany();
+    $user = $this->createAdminUser($company);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
-    $company = Company::factory()->create();
     $schedule = WorkSchedule::factory()->create([
         'company_id' => $company->id,
         'date_from' => '2026-06-01',
@@ -53,8 +53,7 @@ it('engedélyezi a feed végpontot és visszaadja az eseményeket', function ():
         'date' => '2026-06-10',
     ]);
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+    $this->actingAsUserInCompany($user, $company)
         ->getJson(route('scheduling.calendar.feed', [
             'schedule_id' => $schedule->id,
             'view_type' => 'day',
@@ -70,16 +69,15 @@ it('engedélyezi a feed végpontot és visszaadja az eseményeket', function ():
 });
 
 it('tenant izolált feed: másik cég schedule-je nem kérhető le', function (): void {
-    $user = $this->createAdminUser();
+    [, $companyA] = $this->createTenantWithCompany();
+    [, $companyB] = $this->createTenantWithCompany();
+    $user = $this->createAdminUser($companyA);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
-    $companyA = Company::factory()->create();
-    $companyB = Company::factory()->create();
     $scheduleB = WorkSchedule::factory()->create(['company_id' => $companyB->id]);
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $companyA->id])
+    $this->actingAsUserInCompany($user, $companyA)
         ->getJson(route('scheduling.calendar.feed', ['schedule_id' => $scheduleB->id]))
         ->assertNotFound();
 });

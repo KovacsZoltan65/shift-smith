@@ -7,6 +7,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -41,13 +42,16 @@ class Company extends Model
     use SoftDeletes;
 
     /** @var list<string> */
-    protected $fillable = ['name', 'email', 'address', 'phone', 'active'];
+    protected $fillable = ['tenant_group_id', 'name', 'email', 'address', 'phone', 'active'];
     
     /** @var list<string> */
     protected $guarded = ['name_lc'];
 
     /** @var array<string,string> */
-    protected $casts = [ 'active' => 'boolean', ];
+    protected $casts = [
+        'tenant_group_id' => 'int',
+        'active' => 'boolean',
+    ];
 
     /** @var array<int,string> */
     public const SORTABLE = [
@@ -185,6 +189,16 @@ class Company extends Model
     {
         return $this->belongsToMany(User::class)
             ->withTimestamps();
+    }
+
+    /**
+     * Cég tenant csoport kapcsolata.
+     *
+     * @return BelongsTo<TenantGroup, $this>
+     */
+    public function tenantGroup(): BelongsTo
+    {
+        return $this->belongsTo(TenantGroup::class);
     }
 
     /**

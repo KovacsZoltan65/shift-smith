@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 use App\Models\Company;
 use App\Models\Employee;
+use App\Models\TenantGroup;
 use App\Models\User;
 use App\Models\WorkSchedule;
 use App\Models\WorkShift;
 use App\Models\WorkShiftAssignment;
+use App\Services\Cache\CacheNamespaces;
 use App\Services\Cache\CacheVersionService;
 use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\PermissionRegistrar;
@@ -17,7 +19,8 @@ beforeEach(function (): void {
 });
 
 it('create/update/delete jogosultság nélkül tiltott', function (): void {
-    $company = Company::factory()->create();
+    $tenant = TenantGroup::factory()->create();
+    $company = Company::factory()->create(['tenant_group_id' => $tenant->id]);
     $schedule = WorkSchedule::factory()->create(['company_id' => $company->id, 'status' => 'draft']);
     $employee = Employee::factory()->create(['company_id' => $company->id]);
     $shift = WorkShift::factory()->create(['company_id' => $company->id]);
@@ -36,18 +39,17 @@ it('create/update/delete jogosultság nélkül tiltott', function (): void {
         'date' => '2026-07-10',
     ];
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+    $this->actingAsUserInCompany($user, $company)
         ->postJson(route('work_schedule_assignments.store'), $payload)
         ->assertForbidden();
 });
 
 it('engedi a schedule intervallumon kívüli dátumot', function (): void {
-    $user = $this->createAdminUser();
+    $tenant = TenantGroup::factory()->create();
+    $company = Company::factory()->create(['tenant_group_id' => $tenant->id]);
+    $user = $this->createAdminUser($company);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
-
-    $company = Company::factory()->create();
     $schedule = WorkSchedule::factory()->create([
         'company_id' => $company->id,
         'date_from' => '2026-08-01',
@@ -57,8 +59,7 @@ it('engedi a schedule intervallumon kívüli dátumot', function (): void {
     $employee = Employee::factory()->create(['company_id' => $company->id]);
     $shift = WorkShift::factory()->create(['company_id' => $company->id]);
 
-    $response = $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+    $response = $this->actingAsUserInCompany($user, $company)
         ->postJson(route('work_schedule_assignments.store'), [
             'work_schedule_id' => $schedule->id,
             'employee_id' => $employee->id,
@@ -79,11 +80,11 @@ it('engedi a schedule intervallumon kívüli dátumot', function (): void {
 });
 
 it('published schedule lock: planner műveletek tiltva', function (): void {
-    $user = $this->createAdminUser();
+    $tenant = TenantGroup::factory()->create();
+    $company = Company::factory()->create(['tenant_group_id' => $tenant->id]);
+    $user = $this->createAdminUser($company);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
-
-    $company = Company::factory()->create();
     $schedule = WorkSchedule::factory()->create([
         'company_id' => $company->id,
         'date_from' => '2026-09-01',
@@ -93,8 +94,7 @@ it('published schedule lock: planner műveletek tiltva', function (): void {
     $employee = Employee::factory()->create(['company_id' => $company->id]);
     $shift = WorkShift::factory()->create(['company_id' => $company->id]);
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+    $this->actingAsUserInCompany($user, $company)
         ->postJson(route('work_schedule_assignments.store'), [
             'work_schedule_id' => $schedule->id,
             'employee_id' => $employee->id,
@@ -105,11 +105,11 @@ it('published schedule lock: planner műveletek tiltva', function (): void {
 });
 
 it('egy dolgozónak egy napra csak egy műszak lehet (unique)', function (): void {
-    $user = $this->createAdminUser();
+    $tenant = TenantGroup::factory()->create();
+    $company = Company::factory()->create(['tenant_group_id' => $tenant->id]);
+    $user = $this->createAdminUser($company);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
-
-    $company = Company::factory()->create();
     $schedule = WorkSchedule::factory()->create([
         'company_id' => $company->id,
         'date_from' => '2026-10-01',
@@ -120,8 +120,7 @@ it('egy dolgozónak egy napra csak egy műszak lehet (unique)', function (): voi
     $shiftA = WorkShift::factory()->create(['company_id' => $company->id]);
     $shiftB = WorkShift::factory()->create(['company_id' => $company->id]);
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+    $this->actingAsUserInCompany($user, $company)
         ->postJson(route('work_schedule_assignments.store'), [
             'work_schedule_id' => $schedule->id,
             'employee_id' => $employee->id,
@@ -130,8 +129,7 @@ it('egy dolgozónak egy napra csak egy műszak lehet (unique)', function (): voi
         ])
         ->assertCreated();
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+    $this->actingAsUserInCompany($user, $company)
         ->postJson(route('work_schedule_assignments.store'), [
             'work_schedule_id' => $schedule->id,
             'employee_id' => $employee->id,
@@ -143,11 +141,11 @@ it('egy dolgozónak egy napra csak egy műszak lehet (unique)', function (): voi
 });
 
 it('cache bump store/update/delete után', function (): void {
-    $user = $this->createAdminUser();
+    $tenant = TenantGroup::factory()->create();
+    $company = Company::factory()->create(['tenant_group_id' => $tenant->id]);
+    $user = $this->createAdminUser($company);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
-
-    $company = Company::factory()->create();
     $schedule = WorkSchedule::factory()->create([
         'company_id' => $company->id,
         'date_from' => '2026-11-01',
@@ -159,10 +157,10 @@ it('cache bump store/update/delete után', function (): void {
     $shiftB = WorkShift::factory()->create(['company_id' => $company->id]);
 
     $versioner = app(CacheVersionService::class);
-    Cache::forever("v:company:{$company->id}:work_schedule_assignments", 1);
+    $namespace = CacheNamespaces::tenantWorkScheduleAssignments($tenant->id);
+    Cache::forever("v:{$namespace}", 1);
 
-    $createResponse = $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+    $createResponse = $this->actingAsUserInCompany($user, $company)
         ->postJson(route('work_schedule_assignments.store'), [
             'work_schedule_id' => $schedule->id,
             'employee_id' => $employee->id,
@@ -171,12 +169,11 @@ it('cache bump store/update/delete után', function (): void {
         ])
         ->assertCreated();
 
-    expect($versioner->get("company:{$company->id}:work_schedule_assignments"))->toBe(2);
+    expect($versioner->get($namespace))->toBe(2);
 
     $id = (int) $createResponse->json('data.id');
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+    $this->actingAsUserInCompany($user, $company)
         ->putJson(route('work_schedule_assignments.update', ['id' => $id]), [
             'work_schedule_id' => $schedule->id,
             'employee_id' => $employee->id,
@@ -185,12 +182,11 @@ it('cache bump store/update/delete után', function (): void {
         ])
         ->assertOk();
 
-    expect($versioner->get("company:{$company->id}:work_schedule_assignments"))->toBe(3);
+    expect($versioner->get($namespace))->toBe(3);
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+    $this->actingAsUserInCompany($user, $company)
         ->deleteJson(route('work_schedule_assignments.destroy', ['id' => $id]))
         ->assertOk();
 
-    expect($versioner->get("company:{$company->id}:work_schedule_assignments"))->toBe(4);
+    expect($versioner->get($namespace))->toBe(4);
 });

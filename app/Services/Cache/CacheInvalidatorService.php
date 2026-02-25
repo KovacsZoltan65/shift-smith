@@ -2,24 +2,22 @@
 
 namespace App\Services\Cache;
 
-use Illuminate\Support\Facades\Cache;
-
 final class CacheInvalidatorService
 {
-    private const KEY_COMPANIES_SELECT_VERSION = 'v:companies_select';
+    private const NS_SELECTORS_COMPANIES = 'selectors.companies';
+
+    public function __construct(
+        private readonly CacheVersionService $versions
+    ) {
+    }
 
     public function companiesSelectVersion(): int
     {
-        return (int) Cache::get(self::KEY_COMPANIES_SELECT_VERSION, 1);
+        return $this->versions->get(self::NS_SELECTORS_COMPANIES);
     }
 
     public function bumpCompaniesSelect(): int
     {
-        // database cache store-on is működik
-        if (! Cache::has(self::KEY_COMPANIES_SELECT_VERSION)) {
-            Cache::forever(self::KEY_COMPANIES_SELECT_VERSION, 1);
-        }
-
-        return (int) Cache::increment(self::KEY_COMPANIES_SELECT_VERSION);
+        return $this->versions->bump(self::NS_SELECTORS_COMPANIES);
     }
 }

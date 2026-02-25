@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Models\User;
 use App\Models\Company;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -10,24 +9,25 @@ beforeEach(function (): void {
     $this->seedRolesAndPermissions();
 });
 
-it('átirányítja a vendégeket a bejelentkezéshez a műszakok indexén', function (): void {
-    $this->get(route('work_shifts.index'))
-        ->assertRedirect();
+it('redirects guests to login on work shifts index', function (): void {
+    $this->get(route('work_shifts.index'))->assertRedirect();
 });
 
-it('megtagadja a műszakok indexelését, ha nincs viewAny jogosultság', function (): void {
-    /** @var User $user */
-    $user = User::factory()->create();
-    $user->assignRole('user');
+it('forbids index when user lacks view permission', function (): void {
+    $company = Company::factory()->create();
+    $user = $this->createAdminUser($company);
+    $user->syncRoles([]);
+    $user->syncPermissions([]);
 
     $this->actingAs($user)
+        ->withSession(['current_company_id' => $company->id])
         ->get(route('work_shifts.index'))
         ->assertForbidden();
 });
 
-it('megjeleníti a WorkShifts/Index oldalt alapértelmezett szűrőkkel adminnak', function (): void {
-    $user = $this->createSuperadminUser();
+it('renders WorkShifts index with scoped filter', function (): void {
     $company = Company::factory()->create();
+    $user = $this->createAdminUser($company);
 
     $this->actingAs($user)
         ->withSession(['current_company_id' => $company->id])

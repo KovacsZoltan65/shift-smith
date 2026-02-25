@@ -21,6 +21,12 @@ export const appMenuDefinition = [
                 key: "companies.index",
                 can: "companies.viewAny",
             },
+            {
+                title: "HQ Cégek",
+                route: "hq.companies.index",
+                key: "hq.companies.index",
+                can: "hq.companies.view",
+            },
         ],
     },
     {
@@ -65,7 +71,7 @@ export const appMenuDefinition = [
                 title: "Műszakok",
                 route: "work_shifts.index",
                 key: "work_shifts.index",
-                can: "work_shifts.viewAny",
+                can: "work_shifts.view",
             },
             {
                 title: "Munkarendek",

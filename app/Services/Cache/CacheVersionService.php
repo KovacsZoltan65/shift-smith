@@ -2,6 +2,7 @@
 
 namespace App\Services\Cache;
 
+use App\Models\TenantGroup;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\Cache;
 final class CacheVersionService
 {
     private const PREFIX = 'v:'; // v:<namespace>
+    private const TENANT_CTX_KEY = 'tenantId';
 
     /**
      * Verzió szám lekérése egy namespace-hez
@@ -25,7 +27,8 @@ final class CacheVersionService
      */
     public function get(string $namespace, int $default = 1): int
     {
-        $key = self::PREFIX.$namespace;
+        $qualifiedNamespace = $this->qualifyNamespace($namespace);
+        $key = self::PREFIX.$qualifiedNamespace;
 
         return (int) Cache::get($key, $default);
     }
@@ -41,12 +44,44 @@ final class CacheVersionService
      */
     public function bump(string $namespace): int
     {
-        $key = self::PREFIX.$namespace;
+        $qualifiedNamespace = $this->qualifyNamespace($namespace);
+        $key = self::PREFIX.$qualifiedNamespace;
 
         if (! Cache::has($key)) {
             Cache::forever($key, 1);
         }
 
         return (int) Cache::increment($key);
+    }
+
+    private function tenantId(): ?int
+    {
+        $tenantId = app()->bound('context') ? app('context')->get(self::TENANT_CTX_KEY) : null;
+        if (! is_numeric($tenantId)) {
+            $tenantId = TenantGroup::current()?->id;
+        }
+
+        if (! is_numeric($tenantId)) {
+            return null;
+        }
+
+        $id = (int) $tenantId;
+
+        return $id > 0 ? $id : null;
+    }
+
+    private function qualifyNamespace(string $namespace): string
+    {
+        if (str_starts_with($namespace, 'tenant:') || str_starts_with($namespace, 'landlord:')) {
+            return $namespace;
+        }
+
+        $tenantId = $this->tenantId();
+
+        if ($tenantId === null) {
+            return "landlord:{$namespace}";
+        }
+
+        return "tenant:{$tenantId}:{$namespace}";
     }
 }

@@ -17,7 +17,7 @@ final class CompanyContextService
     {
         /** @var array<int, array{id:int, name:string}> $items */
         $items = $this->companiesQueryFor($user)
-            ->select('id', 'name')
+            ->select('companies.id', 'companies.name')
             ->orderBy('companies.name')
             ->get()
             ->map(static fn ($company): array => [
@@ -39,7 +39,7 @@ final class CompanyContextService
     {
         $id = $this->companiesQueryFor($user)
             ->orderBy('companies.id')
-            ->value('id');
+            ->value('companies.id');
 
         if (!is_numeric($id)) {
             return null;
@@ -82,5 +82,20 @@ final class CompanyContextService
         }
 
         return $user->companies()->getQuery();
+    }
+
+    public function tenantGroupIdForCompany(User $user, int $companyId): ?int
+    {
+        $tenantGroupId = $this->companiesQueryFor($user)
+            ->where('companies.id', $companyId)
+            ->value('tenant_group_id');
+
+        if (! is_numeric($tenantGroupId)) {
+            return null;
+        }
+
+        $id = (int) $tenantGroupId;
+
+        return $id > 0 ? $id : null;
     }
 }

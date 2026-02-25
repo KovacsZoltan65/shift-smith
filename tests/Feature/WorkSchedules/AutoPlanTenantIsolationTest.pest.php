@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Company;
 use App\Models\Employee;
+use App\Models\TenantGroup;
 use App\Models\WorkShift;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -12,13 +13,14 @@ beforeEach(function (): void {
 });
 
 it('autoplan elutasítja a cégidegen employee_ids payloadot', function (): void {
-    $user = $this->createAdminUser();
+    $tenantA = TenantGroup::factory()->create();
+    $tenantB = TenantGroup::factory()->create();
+    $companyA = Company::factory()->create(['tenant_group_id' => $tenantA->id]);
+    $companyB = Company::factory()->create(['tenant_group_id' => $tenantB->id]);
+    $user = $this->createAdminUser($companyA);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
     $user->givePermissionTo('work_schedules.autoplan');
-
-    $companyA = Company::factory()->create();
-    $companyB = Company::factory()->create();
 
     $employeeA = Employee::factory()->create(['company_id' => $companyA->id]);
     $employeeB = Employee::factory()->create(['company_id' => $companyB->id]);
@@ -48,8 +50,7 @@ it('autoplan elutasítja a cégidegen employee_ids payloadot', function (): void
         ],
     ];
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $companyA->id])
+    $this->actingAsUserInCompany($user, $companyA)
         ->postJson(route('scheduling.work_schedules.autoplan.generate'), $payload)
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['employee_ids']);

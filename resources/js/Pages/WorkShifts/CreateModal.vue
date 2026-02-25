@@ -4,7 +4,7 @@ import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 
 import WorkShiftFields from "./Partials/WorkShiftFields.vue";
-import { csrfFetch } from "@/lib/csrfFetch";
+import WorkShiftService from "@/services/WorkShiftService.js";
 
 const props = defineProps({
     modelValue: Boolean,
@@ -14,17 +14,12 @@ const emit = defineEmits(["update:modelValue", "saved"]);
 
 const loading = ref(false);
 const errors = reactive({});
-
-// ⚠️ form mezők: igazítsd a WorkShift migration / request mezőihez
-// Tipikus: name, start_date, end_date, active
 const form = ref({
-    company_id: null,
     name: "",
     start_time: null,
     end_time: null,
     work_time_minutes: null,
     break_minutes: null,
-    is_flexible: false,
     active: true,
 });
 
@@ -33,15 +28,12 @@ watch(
     (open) => {
         if (!open) return;
 
-        // reset
         form.value = {
-            company_id: null,
             name: "",
             start_time: null,
             end_time: null,
             work_time_minutes: null,
             break_minutes: null,
-            is_flexible: false,
             active: true,
         };
 
@@ -51,13 +43,6 @@ watch(
 
 const close = () => emit("update:modelValue", false);
 
-const normalizeTime = (t) => {
-    if (!t) return null;
-    const s = String(t).trim();
-    if (!s) return null;
-    return s.length === 5 ? `${s}:00` : s;
-};
-
 const submit = async () => {
     if (!props.canCreate) return;
 
@@ -65,32 +50,19 @@ const submit = async () => {
     Object.keys(errors).forEach((k) => delete errors[k]);
 
     try {
-        const res = await csrfFetch("/work_shifts", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Accept: "application/json" },
-            body: JSON.stringify({
-                ...form.value,
-                start_time: normalizeTime(form.value.start_time),
-                end_time: normalizeTime(form.value.end_time),
-            }),
-        });
-
-        if (res.status === 422) {
-            const body = await res.json();
-            const bag = body?.errors ?? {};
-            for (const k of Object.keys(bag)) errors[k] = bag[k]?.[0] ?? "Hiba";
+        const { data } = await WorkShiftService.storeWorkShift(form.value);
+        emit("saved", data?.message ?? "Műszak sikeresen létrehozva.");
+        close();
+    } catch (e) {
+        const bag = WorkShiftService.extractErrors(e);
+        if (bag) {
+            Object.keys(bag).forEach((k) => {
+                errors[k] = bag[k]?.[0] ?? "Hiba";
+            });
             return;
         }
 
-        if (!res.ok) {
-            const body = await res.json().catch(() => null);
-            throw new Error(body?.message ?? `HTTP ${res.status}`);
-        }
-
-        emit("saved", "Műszak létrehozva.");
-        close();
-    } catch (e) {
-        errors._global = e?.message ?? "Ismeretlen hiba";
+        errors._global = e?.response?.data?.message || e?.message || "Ismeretlen hiba";
     } finally {
         loading.value = false;
     }
@@ -115,7 +87,6 @@ const submit = async () => {
         </div>
 
         <template #footer>
-            <!-- CANCEL -->
             <Button
                 label="Mégse"
                 severity="secondary"
@@ -123,7 +94,6 @@ const submit = async () => {
                 @click="close"
             />
 
-            <!-- SAVE -->
             <Button
                 label="Mentés"
                 icon="pi pi-check"

@@ -163,12 +163,12 @@ class PositionRepository extends BaseRepository implements PositionRepositoryInt
             return $queryCallback();
         }
 
-        $version = $this->cacheVersionService->get(self::NS_SELECTORS_POSITIONS . ".company_{$companyId}");
+        $version = $this->cacheVersionService->get(self::NS_SELECTORS_POSITIONS);
         $hash = hash('sha256', json_encode(['company_id' => $companyId, 'only_active' => $onlyActive], JSON_THROW_ON_ERROR));
         $key = "v{$version}:{$hash}";
 
         return $this->cacheService->remember(
-            tag: "company:{$companyId}:positions:selector",
+            tag: self::NS_SELECTORS_POSITIONS,
             key: $key,
             callback: $queryCallback,
             ttl: (int) config('cache.ttl_fetch', 1800)
@@ -179,7 +179,7 @@ class PositionRepository extends BaseRepository implements PositionRepositoryInt
     {
         DB::afterCommit(function () use ($companyId): void {
             $this->cacheVersionService->bump("company:{$companyId}:positions");
-            $this->cacheVersionService->bump(self::NS_SELECTORS_POSITIONS . ".company_{$companyId}");
+            $this->cacheVersionService->bump(self::NS_SELECTORS_POSITIONS);
         });
     }
 

@@ -26,11 +26,11 @@ use App\Policies\BasePolicy;
  */
 final class WorkShiftPolicy extends BasePolicy
 {
-    public const PERM_VIEW_ANY = 'work_shifts.viewAny';
+    public const PERM_VIEW_ANY = 'work_shifts.view';
     public const PERM_VIEW = 'work_shifts.view';
     public const PERM_CREATE = 'work_shifts.create';
     public const PERM_UPDATE = 'work_shifts.update';
-    public const PERM_UPDATE_ANY = 'work_shifts.updateAny';
+    public const PERM_UPDATE_ANY = 'work_shifts.update';
     public const PERM_UPDATE_SELF = 'work_shifts.updateSelf';
     public const PERM_DELETE = 'work_shifts.delete';
     public const PERM_DELETE_ANY = 'work_shifts.deleteAny';
@@ -127,6 +127,12 @@ final class WorkShiftPolicy extends BasePolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can(self::perm(self::PERM_DELETE_ANY));
+        return $user->can(self::perm(self::PERM_DELETE_ANY))
+            || $user->can(self::perm(self::PERM_DELETE));
+    }
+
+    public function bulkDelete(User $user): bool
+    {
+        return $this->deleteAny($user);
     }
 }

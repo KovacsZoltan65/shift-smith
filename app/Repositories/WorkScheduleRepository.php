@@ -6,16 +6,15 @@ namespace App\Repositories;
 
 use App\Interfaces\WorkScheduleRepositoryInterface;
 use App\Models\WorkSchedule;
+use App\Services\Cache\CacheNamespaces;
 use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
+use App\Services\TenantContext;
 use App\Traits\Functions;
-use Illuminate\Container\Container as AppContainer;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Override;
-use Prettus\Repository\Criteria\RequestCriteria;
-use Prettus\Repository\Eloquent\BaseRepository;
 
 /**
  * Munkabeosztás repository osztály
@@ -24,7 +23,7 @@ use Prettus\Repository\Eloquent\BaseRepository;
  * Cache támogatással, verziókezeléssel, lapozással és összetett szűrésekkel.
  * Támogatja a cég scope-ot, státusz és dátum szűrést.
  */
-class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepositoryInterface
+final class WorkScheduleRepository implements WorkScheduleRepositoryInterface
 {
     use Functions;
 
@@ -32,17 +31,17 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
     protected string $tag;
 
     private readonly CacheVersionService $cacheVersionService;
+    private readonly TenantContext $tenantContext;
 
     public function __construct(
-        AppContainer $app,
         CacheService $cacheService,
-        CacheVersionService $cacheVersionService
+        CacheVersionService $cacheVersionService,
+        TenantContext $tenantContext
     ) {
-        parent::__construct($app);
-
         $this->cacheService = $cacheService;
         $this->tag = WorkSchedule::getTag();
         $this->cacheVersionService = $cacheVersionService;
+        $this->tenantContext = $tenantContext;
     }
 
     /**
@@ -56,9 +55,10 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
      * @return LengthAwarePaginator<int, WorkSchedule> Lapozott munkabeosztás lista
      */
     #[Override]
-    public function fetch(Request $request): LengthAwarePaginator
+    public function fetch(Request $request, int $companyId): LengthAwarePaginator
     {
         $needCache = (bool) config('cache.enable_work_schedules', false);
+        abort_if($companyId <= 0, 403, 'No company selected');
 
         $page = (int) $request->integer('page', 1);
 
@@ -67,13 +67,6 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
 
         $rawTerm = \trim((string) $request->input('search', ''));
         $term = $rawTerm === '' ? null : \mb_strtolower($rawTerm, 'UTF-8');
-
-        // company scope: ha a userhez van company_id, az felülírja a query-t
-        $userCompanyId = (int) ($request->user()->company_id ?? 0);
-        $companyIdRaw = $request->input('company_id');
-        $companyId = $userCompanyId > 0
-            ? $userCompanyId
-            : (($companyIdRaw === null || $companyIdRaw === '') ? null : (int) $companyIdRaw);
 
         $statusRaw = \trim((string) $request->input('status', ''));
         $status = $statusRaw === '' ? null : $statusRaw;
@@ -89,11 +82,11 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
         $orderRaw = (string) $request->input('order', 'desc');
         $direction = \strtolower($orderRaw) === 'asc' ? 'asc' : 'desc';
 
-        $appendQuery = $request->only(['search', 'field', 'order', 'per_page', 'company_id', 'status', 'date_from', 'date_to']);
+        $appendQuery = $request->only(['search', 'field', 'order', 'per_page', 'status', 'date_from', 'date_to']);
 
         $queryCallback = function () use ($term, $companyId, $status, $dateFrom, $dateTo, $field, $direction, $perPage, $page, $appendQuery): LengthAwarePaginator {
             $q = WorkSchedule::query()
-                ->when($companyId, fn ($qq) => $qq->where('company_id', $companyId))
+                ->where('company_id', $companyId)
                 ->when($status, fn ($qq) => $qq->where('status', $status))
                 ->when($dateFrom, fn ($qq) => $qq->whereDate('date_from', '>=', $dateFrom))
                 ->when($dateTo, fn ($qq) => $qq->whereDate('date_to', '<=', $dateTo))
@@ -131,7 +124,9 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
         ];
         ksort($paramsForKey);
 
-        $version = $this->cacheVersionService->get('company:'.(int) ($companyId ?? 0).':work_schedules');
+        $tenantGroupId = $this->tenantContext->currentTenantGroupIdOrFail();
+        $namespace = CacheNamespaces::tenantWorkSchedules($tenantGroupId);
+        $version = $this->cacheVersionService->get($namespace);
         $hash = hash('sha256', json_encode($paramsForKey, JSON_THROW_ON_ERROR));
         $key = "v{$version}:{$hash}";
 
@@ -154,10 +149,14 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
      */
     #[Override]
-    public function getWorkSchedule(int $id): WorkSchedule
+    public function findOrFailScoped(int $id, int $companyId): WorkSchedule
     {
+        abort_if($companyId <= 0, 403, 'No company selected');
+
         /** @var WorkSchedule $workSchedule */
-        $workSchedule = WorkSchedule::findOrFail($id);
+        $workSchedule = WorkSchedule::query()
+            ->where('company_id', $companyId)
+            ->findOrFail($id);
 
         return $workSchedule;
     }
@@ -168,7 +167,6 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
      * Tranzakcióban futtatva, cache invalidálással.
      * 
      * @param array{
-     *   company_id: int,
      *   name: string,
      *   date_from: string,
      *   date_to: string,
@@ -177,13 +175,19 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
      * @return WorkSchedule Létrehozott munkabeosztás
      */
     #[Override]
-    public function store(array $data): WorkSchedule
+    public function store(array $data, int $companyId): WorkSchedule
     {
-        return DB::transaction(function () use ($data): WorkSchedule {
-            /** @var WorkSchedule $workSchedule */
-            $workSchedule = WorkSchedule::query()->create($data);
+        abort_if($companyId <= 0, 403, 'No company selected');
+        unset($data['company_id']);
 
-            $this->invalidateAfterWrite((int) $workSchedule->company_id);
+        return DB::transaction(function () use ($data, $companyId): WorkSchedule {
+            /** @var WorkSchedule $workSchedule */
+            $workSchedule = WorkSchedule::query()->create([
+                ...$data,
+                'company_id' => $companyId,
+            ]);
+
+            $this->invalidateAfterWrite($companyId);
 
             return $workSchedule;
         });
@@ -196,7 +200,6 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
      * Frissítés után cache invalidálás.
      * 
      * @param array{
-     *   company_id: int,
      *   name: string,
      *   date_from: string,
      *   date_to: string,
@@ -206,17 +209,26 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
      * @return WorkSchedule Frissített munkabeosztás
      */
     #[Override]
-    public function update(array $data, $id): WorkSchedule
+    public function update(array $data, int $id, int $companyId): WorkSchedule
     {
-        return DB::transaction(function () use ($data, $id): WorkSchedule {
-            /** @var WorkSchedule $workSchedule */
-            $workSchedule = WorkSchedule::query()->lockForUpdate()->findOrFail($id);
+        abort_if($companyId <= 0, 403, 'No company selected');
+        unset($data['company_id']);
 
-            $workSchedule->fill($data);
+        return DB::transaction(function () use ($data, $id, $companyId): WorkSchedule {
+            /** @var WorkSchedule $workSchedule */
+            $workSchedule = WorkSchedule::query()
+                ->where('company_id', $companyId)
+                ->lockForUpdate()
+                ->findOrFail($id);
+
+            $workSchedule->fill([
+                ...$data,
+                'company_id' => $companyId,
+            ]);
             $workSchedule->save();
             $workSchedule->refresh();
 
-            $this->invalidateAfterWrite((int) $workSchedule->company_id);
+            $this->invalidateAfterWrite($companyId);
 
             return $workSchedule;
         });
@@ -233,17 +245,13 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
      * @throws \RuntimeException Ha publikált beosztást próbálunk törölni
      */
     #[Override]
-    public function bulkDelete(array $ids): int
+    public function bulkDelete(array $ids, int $companyId): int
     {
-        return DB::transaction(function () use ($ids): int {
-            $companyIds = WorkSchedule::query()
-                ->whereIn('id', $ids)
-                ->distinct()
-                ->pluck('company_id')
-                ->map(static fn ($id): int => (int) $id)
-                ->all();
+        abort_if($companyId <= 0, 403, 'No company selected');
 
+        return DB::transaction(function () use ($ids, $companyId): int {
             $publishedExists = WorkSchedule::query()
+                ->where('company_id', $companyId)
                 ->whereIn('id', $ids)
                 ->where('status', 'published')
                 ->exists();
@@ -252,11 +260,12 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
                 throw new \RuntimeException('Publikált beosztás nem törölhető.');
             }
 
-            $deleted = WorkSchedule::query()->whereIn('id', $ids)->delete();
+            $deleted = WorkSchedule::query()
+                ->where('company_id', $companyId)
+                ->whereIn('id', $ids)
+                ->delete();
 
-            foreach ($companyIds as $companyId) {
-                $this->invalidateAfterWrite($companyId);
-            }
+            $this->invalidateAfterWrite($companyId);
 
             return (int) $deleted;
         });
@@ -273,11 +282,16 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
      * @throws \RuntimeException Ha publikált beosztást próbálunk törölni
      */
     #[Override]
-    public function destroy(int $id): bool
+    public function destroy(int $id, int $companyId): bool
     {
-        return DB::transaction(function () use ($id): bool {
+        abort_if($companyId <= 0, 403, 'No company selected');
+
+        return DB::transaction(function () use ($id, $companyId): bool {
             /** @var WorkSchedule $workSchedule */
-            $workSchedule = WorkSchedule::query()->lockForUpdate()->findOrFail($id);
+            $workSchedule = WorkSchedule::query()
+                ->where('company_id', $companyId)
+                ->lockForUpdate()
+                ->findOrFail($id);
 
             if ($workSchedule->status === 'published') {
                 throw new \RuntimeException('Publikált beosztás nem törölhető.');
@@ -285,7 +299,7 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
 
             $deleted = (bool) $workSchedule->delete();
 
-            $this->invalidateAfterWrite((int) $workSchedule->company_id);
+            $this->invalidateAfterWrite($companyId);
 
             return $deleted;
         });
@@ -302,30 +316,11 @@ class WorkScheduleRepository extends BaseRepository implements WorkScheduleRepos
     private function invalidateAfterWrite(int $companyId): void
     {
         DB::afterCommit(function () use ($companyId): void {
+            $tenantGroupId = $this->tenantContext->currentTenantGroupIdOrFail();
+            $namespace = CacheNamespaces::tenantWorkSchedules($tenantGroupId);
+            $this->cacheVersionService->bump($namespace);
             $this->cacheVersionService->bump("company:{$companyId}:work_schedules");
         });
     }
 
-    /**
-     * Repository model osztály megadása
-     * 
-     * @return string Model osztály neve
-     */
-    #[Override]
-    public function model(): string
-    {
-        return WorkSchedule::class;
-    }
-
-    /**
-     * Repository inicializálás
-     * 
-     * Criteria-k regisztrálása (pl. query string alapú szűrés).
-     * 
-     * @return void
-     */
-    public function boot(): void
-    {
-        $this->pushCriteria(app(RequestCriteria::class));
-    }
 }

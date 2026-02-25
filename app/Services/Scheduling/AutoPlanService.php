@@ -8,7 +8,9 @@ use App\Data\Scheduling\AutoPlan\GenerateInputData;
 use App\Data\Scheduling\AutoPlan\GenerateResultData;
 use App\Models\WorkShift;
 use App\Repositories\Scheduling\AutoPlanRepository;
+use App\Services\Cache\CacheNamespaces;
 use App\Services\Cache\CacheVersionService;
+use App\Services\TenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +20,8 @@ class AutoPlanService
 {
     public function __construct(
         private readonly AutoPlanRepository $repository,
-        private readonly CacheVersionService $cacheVersionService
+        private readonly CacheVersionService $cacheVersionService,
+        private readonly TenantContext $tenantContext
     ) {}
 
     public function generate(int $companyId, int $userId, GenerateInputData $input): GenerateResultData
@@ -183,8 +186,12 @@ class AutoPlanService
             $this->repository->persistAutoPlanRules($resolvedRules);
 
             DB::afterCommit(function () use ($companyId, $userId, $schedule, $report, $resultJson): void {
-                $this->cacheVersionService->bump("company:{$companyId}:work_schedules");
-                $this->cacheVersionService->bump("company:{$companyId}:work_schedule_assignments");
+                $tenantGroupId = $this->tenantContext->currentTenantGroupIdOrFail();
+                $workSchedulesNamespace = CacheNamespaces::tenantWorkSchedules($tenantGroupId);
+                $workScheduleAssignmentsNamespace = CacheNamespaces::tenantWorkScheduleAssignments($tenantGroupId);
+
+                $this->cacheVersionService->bump($workSchedulesNamespace);
+                $this->cacheVersionService->bump($workScheduleAssignmentsNamespace);
 
                 activity('work_schedules')
                     ->performedOn($schedule)

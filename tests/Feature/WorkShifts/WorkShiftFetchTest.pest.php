@@ -10,12 +10,13 @@ beforeEach(function (): void {
     $this->seedRolesAndPermissions();
 });
 
-it('átirányítja a vendégeket a bejelentkezéshez a műszakok lekéréséhez', function (): void {
+it('redirects guests on work shift fetch', function (): void {
     $this->get(route('work_shifts.fetch'))->assertRedirect();
 });
 
-it('megtagadja a műszakok lekérését, ha nincs viewAny jogosultság', function (): void {
-    $user = $this->createAdminUser();
+it('forbids fetch when user lacks view permission', function (): void {
+    $company = Company::factory()->create();
+    $user = $this->createAdminUser($company);
     $user->syncRoles([]);
     $user->syncPermissions([]);
 
@@ -23,37 +24,38 @@ it('megtagadja a műszakok lekérését, ha nincs viewAny jogosultság', functio
     $user->refresh();
 
     $this->actingAs($user)
+        ->withSession(['current_company_id' => $company->id])
         ->getJson(route('work_shifts.fetch', ['order' => 'desc']))
         ->assertForbidden();
 });
 
-it('visszaadja a műszakokat meta + filter adatokkal', function (): void {
-    $user = $this->createSuperadminUser();
+it('returns only current company records with meta and filter', function (): void {
+    $companyA = Company::factory()->create();
+    $companyB = Company::factory()->create();
+    $user = $this->createAdminUser($companyA);
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
-    $company = Company::factory()->create();
-    WorkShift::factory()->count(15)->create(['company_id' => $company->id]);
+    WorkShift::factory()->count(5)->create(['company_id' => $companyA->id]);
+    WorkShift::factory()->count(4)->create(['company_id' => $companyB->id]);
 
-    $resp = $this
-        ->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+    $response = $this->actingAs($user)
+        ->withSession(['current_company_id' => $companyA->id])
         ->getJson(route('work_shifts.fetch', [
             'page' => 1,
             'per_page' => 10,
             'order' => 'desc',
         ]));
 
-    $resp
-        ->assertOk()
+    $response->assertOk()
         ->assertJsonStructure([
+            'message',
             'data',
             'meta' => ['current_page', 'per_page', 'total', 'last_page'],
             'filter',
         ]);
 
-    expect($resp->json('data'))->toHaveCount(10);
-    expect($resp->json('meta.total'))->toBe(15);
-    expect($resp->json('filter.company_id'))->toBe($company->id);
+    expect($response->json('meta.total'))->toBe(5);
+    expect(collect($response->json('data'))->pluck('company_id')->unique()->all())->toBe([$companyA->id]);
 });

@@ -15,14 +15,14 @@ beforeEach(function (): void {
 });
 
 it('nem enged múltbeli szerkesztést', function (): void {
-    $user = $this->createAdminUser();
+    [, $company] = $this->createTenantWithCompany();
+    $user = $this->createAdminUser($company);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
     $today = CarbonImmutable::today();
     $pastDate = $today->subDay()->toDateString();
 
-    $company = Company::factory()->create();
     $schedule = WorkSchedule::factory()->create([
         'company_id' => $company->id,
         'date_from' => $today->subDays(7)->toDateString(),
@@ -41,8 +41,7 @@ it('nem enged múltbeli szerkesztést', function (): void {
         'date' => $pastDate,
     ]);
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+    $this->actingAsUserInCompany($user, $company)
         ->putJson(route('work_schedule_assignments.update', ['id' => $assignment->id]), [
             'work_schedule_id' => $schedule->id,
             'employee_id' => $employee->id,
@@ -53,14 +52,14 @@ it('nem enged múltbeli szerkesztést', function (): void {
 });
 
 it('engedi az aktuális vagy jövőbeni módosítást', function (): void {
-    $user = $this->createAdminUser();
+    [, $company] = $this->createTenantWithCompany();
+    $user = $this->createAdminUser($company);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
     $today = CarbonImmutable::today();
     $futureDate = $today->addDay()->toDateString();
 
-    $company = Company::factory()->create();
     $schedule = WorkSchedule::factory()->create([
         'company_id' => $company->id,
         'date_from' => $today->toDateString(),
@@ -79,8 +78,7 @@ it('engedi az aktuális vagy jövőbeni módosítást', function (): void {
         'date' => $today->toDateString(),
     ]);
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+    $this->actingAsUserInCompany($user, $company)
         ->putJson(route('work_schedule_assignments.update', ['id' => $assignment->id]), [
             'work_schedule_id' => $schedule->id,
             'employee_id' => $employee->id,

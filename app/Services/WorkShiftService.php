@@ -1,138 +1,93 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
 use App\Interfaces\WorkShiftRepositoryInterface;
 use App\Models\WorkShift;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 
-/**
- * Műszak szolgáltatás osztály
- * 
- * Üzleti logikai réteg a műszakok kezeléséhez.
- * Repository pattern-t használ az adatbázis műveletekhez.
- */
-class WorkShiftService
+final class WorkShiftService
 {
     public function __construct(
         private readonly WorkShiftRepositoryInterface $repo
     ) {}
 
     /**
-     * Műszakok listázása lapozással és szűréssel
-     * 
-     * @param Request $request HTTP kérés (search, field, order, per_page paraméterekkel)
-     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator<int, WorkShift> Lapozott műszak lista
+     * @return LengthAwarePaginator<int, WorkShift>
      */
-    public function fetch(Request $request)
+    public function index(Request $request, int $companyId): LengthAwarePaginator
     {
-        return $this->repo->fetch($request);
+        return $this->repo->paginate($request, $companyId);
     }
 
     /**
-     * Egy műszak lekérése azonosító alapján
-     * 
-     * @param int $id Műszak azonosító
-     * @return WorkShift Műszak model
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
+     * @return LengthAwarePaginator<int, WorkShift>
      */
-    public function getWorkShift(int $id): WorkShift
+    public function fetch(Request $request, int $companyId): LengthAwarePaginator
     {
-        return $this->repo->getWorkShift($id);
+        return $this->index($request, $companyId);
+    }
+
+    public function find(int $id, int $companyId): WorkShift
+    {
+        return $this->repo->findOrFailScoped($id, $companyId);
     }
 
     /**
-     * Műszak lekérése név alapján
-     * 
-     * @param string $name Műszak neve
-     * @return WorkShift Műszak model
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
+     * @param array<string, mixed> $data
      */
-    public function getWorkShiftByName(string $name): WorkShift
+    public function store(array $data, int $companyId): WorkShift
     {
-        return $this->repo->getWorkShiftByName($name);
-    }
+        $data['company_id'] = $companyId;
 
-    /**
-     * Új műszak létrehozása
-     * 
-     * @param array{
-     *    company_id: int,
-     *    name: string,
-     *    start_time?: string|null,
-     *    end_time?: string|null,
-     *    break_minutes?: int|null,
-     *    work_time_minutes?: int|null,
-     *    is_flexible?: bool,
-     *    active: boolean
-     * } $data Műszak adatok
-     * @return WorkShift Létrehozott műszak
-     */
-    public function store(array $data): WorkShift
-    {
         return $this->repo->store($data);
     }
 
     /**
-     * Műszak adatainak frissítése
-     * 
+     * @param array<string, mixed> $data
+     */
+    public function update(int $id, array $data, int $companyId): WorkShift
+    {
+        $shift = $this->find($id, $companyId);
+
+        return $this->repo->update($shift, $data);
+    }
+
+    /**
+     * @param list<int> $ids
+     */
+    public function bulkDelete(array $ids, int $companyId): int
+    {
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+
+        if ($ids === []) {
+            return 0;
+        }
+
+        return $this->repo->bulkDelete($ids, $companyId);
+    }
+
+    public function destroy(int $id, int $companyId): bool
+    {
+        $shift = $this->find($id, $companyId);
+        $this->repo->destroy($shift);
+
+        return true;
+    }
+
+    /**
      * @param array{
-     *    company_id: int,
-     *    name: string,
-     *    start_time?: string|null,
-     *    end_time?: string|null,
-     *    break_minutes?: int|null,
-     *    work_time_minutes?: int|null,
-     *    is_flexible?: bool,
-     *    active: boolean
-     * } $data Frissítendő adatok
-     * @param int $id Műszak azonosító
-     * @return WorkShift Frissített műszak
+     *   search?: ?string,
+     *   only_active?: bool,
+     *   limit?: int
+     * } $params
+     * @return array<int, array{id:int, name:string}>
      */
-    public function update(array $data, $id): WorkShift
+    public function getToSelect(array $params, int $companyId): array
     {
-        return $this->repo->update($data, $id);
-    }
-
-    /**
-     * Több műszak törlése egyszerre
-     * 
-     * Automatikusan kiszűri a duplikátumokat.
-     * 
-     * @param list<int> $ids Műszak azonosítók tömbje
-     * @return int A törölt rekordok száma
-     */
-    public function bulkDelete(array $ids): int
-    {
-        // opcionális tisztítás: nullok/duplikátumok kiszűrése
-        $ids = array_values(array_unique($ids));
-        
-        return (int) $this->repo->bulkDelete($ids);
-    }
-
-    /**
-     * Egy műszak törlése
-     * 
-     * @param int $id Műszak azonosító
-     * @return bool Sikeres törlés esetén true
-     */
-    public function destroy(int $id): bool
-    {
-        return $this->repo->destroy($id);
-    }
-
-    /**
-     * Műszakok lekérése select listához
-     * 
-     * Egyszerűsített műszak lista (id, name) dropdown/select mezőkhöz.
-     * 
-     * @param array{
-     *   only_with_employees?: bool
-     * } $params Szűrési paraméterek
-     * @return array<int, array{id:int, name:string}> Műszakok tömbje
-     */
-    public function getToSelect(array $params): array
-    {
-        return $this->repo->getToSelect($params);
+        return $this->repo->getToSelect($params, $companyId);
     }
 }

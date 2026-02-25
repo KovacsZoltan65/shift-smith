@@ -29,9 +29,9 @@ class WorkScheduleService
      * @param Request $request HTTP kérés (search, field, order, per_page paraméterekkel)
      * @return LengthAwarePaginator<int, WorkSchedule> Lapozott munkabeosztás lista
      */
-    public function fetch(Request $request): LengthAwarePaginator
+    public function fetch(Request $request, int $companyId): LengthAwarePaginator
     {
-        return $this->repo->fetch($request);
+        return $this->repo->fetch($request, $companyId);
     }
 
     /**
@@ -41,9 +41,9 @@ class WorkScheduleService
      * @return WorkSchedule Munkabeosztás model
      * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
      */
-    public function getWorkSchedule(int $id): WorkSchedule
+    public function getWorkSchedule(int $id, int $companyId): WorkSchedule
     {
-        return $this->repo->getWorkSchedule($id);
+        return $this->repo->findOrFailScoped($id, $companyId);
     }
 
     /**
@@ -52,9 +52,9 @@ class WorkScheduleService
      * @param int $id Munkabeosztás azonosító
      * @return WorkSchedule Munkabeosztás model
      */
-    public function find(int $id): WorkSchedule
+    public function find(int $id, int $companyId): WorkSchedule
     {
-        return $this->repo->getWorkSchedule($id);
+        return $this->repo->findOrFailScoped($id, $companyId);
     }
 
     /**
@@ -63,15 +63,14 @@ class WorkScheduleService
      * @param WorkScheduleData $data Validált DTO adatok
      * @return WorkScheduleData Létrehozott munkabeosztás DTO
      */
-    public function store(WorkScheduleData $data): WorkScheduleData
+    public function store(WorkScheduleData $data, int $companyId): WorkScheduleData
     {
         $workSchedule = $this->repo->store([
-            'company_id' => $data->company_id,
             'name' => $data->name,
             'date_from' => $data->date_from,
             'date_to' => $data->date_to,
             'status' => $data->status,
-        ]);
+        ], $companyId);
 
         return WorkScheduleData::fromModel($workSchedule);
     }
@@ -83,15 +82,14 @@ class WorkScheduleService
      * @param WorkScheduleData $data Frissítendő DTO adatok
      * @return WorkScheduleData Frissített munkabeosztás DTO
      */
-    public function update(int $id, WorkScheduleData $data): WorkScheduleData
+    public function update(int $id, WorkScheduleData $data, int $companyId): WorkScheduleData
     {
         $workSchedule = $this->repo->update([
-            'company_id' => $data->company_id,
             'name' => $data->name,
             'date_from' => $data->date_from,
             'date_to' => $data->date_to,
             'status' => $data->status,
-        ], $id);
+        ], $id, $companyId);
 
         return WorkScheduleData::fromModel($workSchedule);
     }
@@ -104,10 +102,10 @@ class WorkScheduleService
      * @param list<int> $ids Munkabeosztás azonosítók tömbje
      * @return int A törölt rekordok száma
      */
-    public function bulkDelete(array $ids): int
+    public function bulkDelete(array $ids, int $companyId): int
     {
         $ids = array_values(array_unique($ids));
-        return (int) $this->repo->bulkDelete($ids);
+        return (int) $this->repo->bulkDelete($ids, $companyId);
     }
 
     /**
@@ -116,8 +114,8 @@ class WorkScheduleService
      * @param int $id Munkabeosztás azonosító
      * @return bool Sikeres törlés esetén true
      */
-    public function destroy(int $id): bool
+    public function destroy(int $id, int $companyId): bool
     {
-        return $this->repo->destroy($id);
+        return $this->repo->destroy($id, $companyId);
     }
 }

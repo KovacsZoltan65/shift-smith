@@ -10,7 +10,7 @@ class IndexRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can(WorkShiftPolicy::PERM_VIEW_ANY, WorkShift::class) ?? false;
+        return $this->user()?->can(WorkShiftPolicy::PERM_VIEW, WorkShift::class) ?? false;
     }
     
     /**
@@ -22,11 +22,10 @@ class IndexRequest extends FormRequest
     {
         return [
             'search'   => ['nullable', 'string', 'max:255'],
-            'field'    => ['nullable', 'string', 'in:id,company_id,name,start_time,end_time,work_time_minutes,break_minutes,is_flexible,active,created_at,updated_at'],
+            'field'    => ['nullable', 'string', 'in:id,name,start_time,end_time,work_time_minutes,break_minutes,active,created_at,updated_at'],
             'order'    => ['nullable', 'string', 'in:asc,desc'],
             'page'     => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'company_id' => ['nullable', 'integer', 'exists:companies,id'],
         ];
     }
     
@@ -65,10 +64,6 @@ class IndexRequest extends FormRequest
     /**
      * @return array{
      *   search?: string,
-     *   name?: string,
-     *   email?: string,
-     *   phone?: string,
-     *   company_id?: int|null,
      *   field?: string,
      *   order?: 'asc'|'desc',
      *   page?: int,
@@ -88,7 +83,6 @@ class IndexRequest extends FormRequest
 
         return [
             'search'   => $search,
-            'company_id' => isset($data['company_id']) ? (int) $data['company_id'] : null,
             'field'    => $data['field'] ?? 'id',
             'order'    => $data['order'] ?? 'desc',
             'page'     => (int) ($data['page'] ?? 1),

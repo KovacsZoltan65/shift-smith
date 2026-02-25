@@ -26,7 +26,6 @@ use Spatie\Activitylog\Traits\LogsActivity;
  * @property string|null $end_time Befejezési időpont (HH:MM)
  * @property int|null $work_time_minutes Munka idő percekben
  * @property int|null $break_minutes Szünet idő percekben
- * @property bool $is_flexible Rugalmas műszak jelző
  * @property boolean $active Aktív státusz
  * @property \Illuminate\Support\Carbon|null $deleted_at Törlés időpontja (soft delete)
  * @property \Illuminate\Support\Carbon $created_at Létrehozás időpontja
@@ -46,7 +45,6 @@ class WorkShift extends Model
         'start_time',
         'end_time',
         'work_time_minutes',
-        'is_flexible',
         'break_minutes',
         'active',
     ];
@@ -57,7 +55,6 @@ class WorkShift extends Model
     /** @var array<string,string> */
     protected $casts = [
         'active' => 'bool',
-        'is_flexible' => 'bool',
         'start_time' => 'string',
         'end_time' => 'string',
         'work_time_minutes' => 'int',
@@ -66,13 +63,13 @@ class WorkShift extends Model
     
     /** @var array<int,string> */
     public const SORTABLE = [
+        'id',
         'company_id',
         'name',
         'start_time',
         'end_time',
         'work_time_minutes',
         'break_minutes',
-        'is_flexible',
         'active',
         'created_at',
     ];

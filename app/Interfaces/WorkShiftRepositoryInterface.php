@@ -13,11 +13,9 @@ interface WorkShiftRepositoryInterface
     /**
      * @return LengthAwarePaginator<int, WorkShift>
      */
-    public function fetch(Request $request): LengthAwarePaginator;
-    
-    public function getWorkShift(int $id): WorkShift;
+    public function paginate(Request $request, int $companyId): LengthAwarePaginator;
 
-    public function getWorkShiftByName(string $name): WorkShift;
+    public function findOrFailScoped(int $id, int $companyId): WorkShift;
     
     /**
      * Summary of store
@@ -28,7 +26,6 @@ interface WorkShiftRepositoryInterface
      *    end_time?: string|null,
      *    break_minutes?: int|null,
      *    work_time_minutes?: int|null,
-     *    is_flexible?: bool,
      *    active: boolean
      * } $data
      * @return WorkShift
@@ -38,34 +35,34 @@ interface WorkShiftRepositoryInterface
     /**
      * Summary of update
      * @param array{
-     *    company_id: int,
      *    name: string,
      *    start_time?: string|null,
      *    end_time?: string|null,
      *    break_minutes?: int|null,
      *    work_time_minutes?: int|null,
-     *    is_flexible?: bool,
      *    active: boolean
      * } $data
-     * @param int $id
+     * @param WorkShift $shift
      * @return WorkShift
      */
-    public function update(array $data, $id): WorkShift;
+    public function update(WorkShift $shift, array $data): WorkShift;
     
     /**
      * @param list<int> $ids
      * @return int
      */
-    public function bulkDelete(array $ids): int;
-    
-    public function destroy(int $id): bool;
+    public function bulkDelete(array $ids, int $companyId): int;
+
+    public function destroy(WorkShift $shift): void;
     
     /**
      * @param array{
-     *   only_with_employees?: bool
+     *   search?: ?string,
+     *   only_active?: bool,
+     *   limit?: int
      * } $params
      *
      * @return array<int, array{id:int, name:string}>
      */
-    public function getToSelect(array $params): array;
+    public function getToSelect(array $params, int $companyId): array;
 }

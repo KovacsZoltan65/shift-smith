@@ -16,14 +16,14 @@ beforeEach(function (): void {
 });
 
 it('calendar feed heti nézetben működik', function (): void {
-    $user = $this->createAdminUser();
+    [, $company] = $this->createTenantWithCompany();
+    $user = $this->createAdminUser($company);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
     $today = CarbonImmutable::today();
     $weekStart = $today->startOfWeek();
 
-    $company = Company::factory()->create();
     $schedule = WorkSchedule::factory()->create([
         'company_id' => $company->id,
         'date_from' => $weekStart->subWeeks(2)->toDateString(),
@@ -41,8 +41,7 @@ it('calendar feed heti nézetben működik', function (): void {
         'date' => $weekStart->toDateString(),
     ]);
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+    $this->actingAsUserInCompany($user, $company)
         ->getJson(route('scheduling.calendar.feed', [
             'schedule_id' => $schedule->id,
             'view_type' => 'week',
@@ -57,12 +56,12 @@ it('calendar feed heti nézetben működik', function (): void {
 });
 
 it('calendar feed havi nézetben működik', function (): void {
-    $user = $this->createAdminUser();
+    [, $company] = $this->createTenantWithCompany();
+    $user = $this->createAdminUser($company);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
     $today = CarbonImmutable::today();
-    $company = Company::factory()->create();
     $schedule = WorkSchedule::factory()->create([
         'company_id' => $company->id,
         'date_from' => $today->startOfMonth()->toDateString(),
@@ -80,8 +79,7 @@ it('calendar feed havi nézetben működik', function (): void {
         'date' => $today->toDateString(),
     ]);
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+    $this->actingAsUserInCompany($user, $company)
         ->getJson(route('scheduling.calendar.feed', [
             'schedule_id' => $schedule->id,
             'view_type' => 'month',
@@ -94,12 +92,12 @@ it('calendar feed havi nézetben működik', function (): void {
 });
 
 it('calendar feed napi nézetben működik', function (): void {
-    $user = $this->createAdminUser();
+    [, $company] = $this->createTenantWithCompany();
+    $user = $this->createAdminUser($company);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
     $today = CarbonImmutable::today();
-    $company = Company::factory()->create();
     $schedule = WorkSchedule::factory()->create([
         'company_id' => $company->id,
         'date_from' => $today->subDays(1)->toDateString(),
@@ -117,8 +115,7 @@ it('calendar feed napi nézetben működik', function (): void {
         'date' => $today->toDateString(),
     ]);
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+    $this->actingAsUserInCompany($user, $company)
         ->getJson(route('scheduling.calendar.feed', [
             'schedule_id' => $schedule->id,
             'view_type' => 'day',
@@ -130,16 +127,15 @@ it('calendar feed napi nézetben működik', function (): void {
 });
 
 it('calendar feed tenant izolált', function (): void {
-    $user = $this->createAdminUser();
+    [, $companyA] = $this->createTenantWithCompany();
+    [, $companyB] = $this->createTenantWithCompany();
+    $user = $this->createAdminUser($companyA);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
-    $companyA = Company::factory()->create();
-    $companyB = Company::factory()->create();
     $scheduleB = WorkSchedule::factory()->create(['company_id' => $companyB->id]);
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $companyA->id])
+    $this->actingAsUserInCompany($user, $companyA)
         ->getJson(route('scheduling.calendar.feed', [
             'schedule_id' => $scheduleB->id,
             'view_type' => 'week',
@@ -149,14 +145,14 @@ it('calendar feed tenant izolált', function (): void {
 });
 
 it('calendar feed heti nézetben alkalmazza a szűrőket', function (): void {
-    $user = $this->createAdminUser();
+    [, $company] = $this->createTenantWithCompany();
+    $user = $this->createAdminUser($company);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
     $today = CarbonImmutable::today();
     $weekStart = $today->startOfWeek();
 
-    $company = Company::factory()->create();
     $positionA = Position::factory()->create(['company_id' => $company->id]);
     $positionB = Position::factory()->create(['company_id' => $company->id]);
     $employeeA = Employee::factory()->create(['company_id' => $company->id, 'position_id' => $positionA->id]);
@@ -204,8 +200,7 @@ it('calendar feed heti nézetben alkalmazza a szűrőket', function (): void {
         'date' => $weekStart->addDays(3)->toDateString(),
     ]);
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+    $this->actingAsUserInCompany($user, $company)
         ->getJson(route('scheduling.calendar.feed', [
             'schedule_id' => $schedule->id,
             'view_type' => 'week',
@@ -220,14 +215,14 @@ it('calendar feed heti nézetben alkalmazza a szűrőket', function (): void {
 });
 
 it('calendar feed havi nézetben alkalmazza a szűrőket', function (): void {
-    $user = $this->createAdminUser();
+    [, $company] = $this->createTenantWithCompany();
+    $user = $this->createAdminUser($company);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
     $today = CarbonImmutable::today();
     $monthStart = $today->startOfMonth();
 
-    $company = Company::factory()->create();
     $positionA = Position::factory()->create(['company_id' => $company->id]);
     $positionB = Position::factory()->create(['company_id' => $company->id]);
     $employeeA = Employee::factory()->create(['company_id' => $company->id, 'position_id' => $positionA->id]);
@@ -266,8 +261,7 @@ it('calendar feed havi nézetben alkalmazza a szűrőket', function (): void {
         'date' => $monthStart->addDays(2)->toDateString(),
     ]);
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+    $this->actingAsUserInCompany($user, $company)
         ->getJson(route('scheduling.calendar.feed', [
             'schedule_id' => $schedule->id,
             'view_type' => 'month',
@@ -283,13 +277,13 @@ it('calendar feed havi nézetben alkalmazza a szűrőket', function (): void {
 });
 
 it('calendar feed napi nézetben alkalmazza a szűrőket', function (): void {
-    $user = $this->createAdminUser();
+    [, $company] = $this->createTenantWithCompany();
+    $user = $this->createAdminUser($company);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
     $today = CarbonImmutable::today();
 
-    $company = Company::factory()->create();
     $positionA = Position::factory()->create(['company_id' => $company->id]);
     $positionB = Position::factory()->create(['company_id' => $company->id]);
     $employeeA = Employee::factory()->create(['company_id' => $company->id, 'position_id' => $positionA->id]);
@@ -329,8 +323,7 @@ it('calendar feed napi nézetben alkalmazza a szűrőket', function (): void {
         'date' => $today->toDateString(),
     ]);
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+    $this->actingAsUserInCompany($user, $company)
         ->getJson(route('scheduling.calendar.feed', [
             'schedule_id' => $schedule->id,
             'view_type' => 'day',
@@ -345,14 +338,14 @@ it('calendar feed napi nézetben alkalmazza a szűrőket', function (): void {
 });
 
 it('calendar feed heti nézetben elfogadja a hétszámot', function (): void {
-    $user = $this->createAdminUser();
+    [, $company] = $this->createTenantWithCompany();
+    $user = $this->createAdminUser($company);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
     $today = CarbonImmutable::today();
     $weekStart = $today->startOfWeek();
 
-    $company = Company::factory()->create();
     $schedule = WorkSchedule::factory()->create([
         'company_id' => $company->id,
         'date_from' => $weekStart->subWeeks(1)->toDateString(),
@@ -370,8 +363,7 @@ it('calendar feed heti nézetben elfogadja a hétszámot', function (): void {
         'date' => $weekStart->toDateString(),
     ]);
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+    $this->actingAsUserInCompany($user, $company)
         ->getJson(route('scheduling.calendar.feed', [
             'schedule_id' => $schedule->id,
             'view_type' => 'week',

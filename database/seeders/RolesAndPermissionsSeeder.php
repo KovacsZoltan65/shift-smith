@@ -72,6 +72,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
         /** @var list<string> $customPermissions */
         $customPermissions = [
+            'hq.companies.view',
             'employee_work_patterns.assign',
             'employee_work_patterns.unassign',
             'employee_work_patterns.view',
@@ -185,7 +186,9 @@ class RolesAndPermissionsSeeder extends Seeder
             $bar->advance();
 
             $adminRole->syncPermissions(
-                Permission::where('name', 'not like', '%.forceDelete%')->get()
+                Permission::where('name', 'not like', '%.forceDelete%')
+                    ->where('name', 'not like', 'hq.%')
+                    ->get()
             );
             $bar->advance();
 
@@ -193,12 +196,14 @@ class RolesAndPermissionsSeeder extends Seeder
                 Permission::where(function ($q) {
                     $q->where('name', 'like', '%.viewAny')
                       ->orWhere('name', 'like', '%.view');
-                })->get()
+                })->where('name', 'not like', 'hq.%')->get()
             );
             $bar->advance();
 
             $userRole->syncPermissions(
-                Permission::where('name', 'like', '%.view')->get()
+                Permission::where('name', 'like', '%.view')
+                    ->where('name', 'not like', 'hq.%')
+                    ->get()
             );
             $bar->advance();
         });

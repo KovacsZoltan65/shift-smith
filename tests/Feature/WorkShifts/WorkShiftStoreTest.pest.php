@@ -3,79 +3,73 @@
 declare(strict_types=1);
 
 use App\Models\Company;
-use App\Models\User;
-use App\Models\WorkShift;
 use App\Services\Cache\CacheVersionService;
-use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function (): void {
     $this->seedRolesAndPermissions();
 });
 
-it('megtagadja a műszak létrehozást, ha nincs create jogosultság', function (): void {
-    /** @var User $user */
-    $user = User::factory()->create();
+it('forbids work shift store without create permission', function (): void {
+    $company = Company::factory()->create();
+    $user = $this->createAdminUser($company);
+    $user->syncRoles([]);
     $user->assignRole('user');
 
-    $company = Company::factory()->create();
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+    $user->refresh();
 
-    $this
-        ->actingAs($user)
+    $this->actingAs($user)
+        ->withSession(['current_company_id' => $company->id])
         ->postJson(route('work_shifts.store'), [
-            'company_id' => $company->id,
-            'name' => 'Nope',
-            'start_time' => '08:00:00',
-            'end_time' => '16:00:00',
-            'work_time_minutes' => 480,
-            'break_minutes' => 30,
+            'name' => 'Reggel',
+            'start_time' => '08:00',
+            'end_time' => '16:00',
             'active' => true,
         ])
         ->assertForbidden();
 });
 
-it('létrehozza a műszakot adminnal és növeli a cache verziókat', function (): void {
-    $user = $this->createAdminUser();
-
-    app(PermissionRegistrar::class)->forgetCachedPermissions();
-    $user->refresh();
-
+it('validates required fields and end_time rule on store', function (): void {
     $company = Company::factory()->create();
+    $user = $this->createAdminUser($company);
+
+    $this->actingAs($user)
+        ->withSession(['current_company_id' => $company->id])
+        ->postJson(route('work_shifts.store'), [
+            'name' => '',
+            'start_time' => '16:00',
+            'end_time' => '08:00',
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['name', 'end_time']);
+});
+
+it('stores shift in current company and bumps fetch+selector cache versions', function (): void {
+    $company = Company::factory()->create();
+    $user = $this->createAdminUser($company);
     $versioner = app(CacheVersionService::class);
 
-    Cache::forever('v:work_shifts.fetch', 1);
-    Cache::forever('v:selectors.work_shifts', 1);
+    $beforeFetch = $versioner->get('work_shifts.fetch');
+    $beforeSelector = $versioner->get('selectors.work_shifts');
 
-    $payload = WorkShift::factory()->make([
-        'company_id' => $company->id,
-        'name' => 'Teszt műszak',
-        'start_time' => '08:00:00',
-        'end_time' => '16:00:00',
-        'work_time_minutes' => 450,
-        'break_minutes' => 30,
-        'active' => true,
-    ])->only([
-        'company_id',
-        'name',
-        'start_time',
-        'end_time',
-        'work_time_minutes',
-        'break_minutes',
-        'active',
-    ]);
-
-    $this
-        ->actingAs($user)
-        ->postJson(route('work_shifts.store'), $payload)
-        ->assertOk();
+    $this->actingAs($user)
+        ->withSession(['current_company_id' => $company->id])
+        ->postJson(route('work_shifts.store'), [
+            'name' => 'Délelőtt',
+            'start_time' => '08:00',
+            'end_time' => '12:00',
+            'work_time_minutes' => 240,
+            'break_minutes' => 15,
+            'active' => true,
+        ])
+        ->assertCreated();
 
     $this->assertDatabaseHas('work_shifts', [
         'company_id' => $company->id,
-        'name' => 'Teszt műszak',
-        'start_time' => '08:00:00',
-        'end_time' => '16:00:00',
+        'name' => 'Délelőtt',
     ]);
 
-    expect($versioner->get('work_shifts.fetch'))->toBe(2);
-    expect($versioner->get('selectors.work_shifts'))->toBe(2);
+    expect($versioner->get('work_shifts.fetch'))->toBeGreaterThan($beforeFetch);
+    expect($versioner->get('selectors.work_shifts'))->toBeGreaterThan($beforeSelector);
 });

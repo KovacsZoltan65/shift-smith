@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\TenantGroup;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -17,6 +18,7 @@ class CompanyFactory extends Factory
     public function definition(): array
     {
         return [
+            'tenant_group_id' => TenantGroup::factory(),
             'name'    => fake()->company(),
             'email'   => fake()->email(),
             'address' => fake()->address(),

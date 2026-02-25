@@ -10,7 +10,7 @@ class DeleteRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can(WorkShiftPolicy::PERM_DELETE, WorkShift::class);
+        return $this->user()?->can(WorkShiftPolicy::PERM_DELETE, WorkShift::class) ?? false;
     }
     
     /**
@@ -20,9 +20,6 @@ class DeleteRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            'id'   => ['required', 'int',],
-        ];
+        return [];
     }
 }
-

@@ -3,10 +3,11 @@
 declare(strict_types=1);
 
 use App\Models\Company;
+use App\Models\TenantGroup;
 use App\Models\WorkSchedule;
+use App\Services\Cache\CacheNamespaces;
 use App\Models\User;
 use App\Services\Cache\CacheVersionService;
-use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function (): void {
@@ -18,10 +19,11 @@ it('denies work schedule creation if user lacks permission', function (): void {
     $user = User::factory()->create();
     $user->assignRole('user');
 
-    $company = Company::factory()->create();
+    $tenant = TenantGroup::factory()->create();
+    $company = Company::factory()->create(['tenant_group_id' => $tenant->id]);
 
     $this
-        ->actingAs($user)
+        ->actingAsUserInCompany($user, $company)
         ->postJson(route('work_schedules.store'), [
             'company_id' => $company->id,
             'name' => 'Nope',
@@ -36,9 +38,10 @@ it('denies work schedule creation if user lacks permission', function (): void {
 
 it('validates required fields on store', function (): void {
     $user = $this->createAdminUser();
+    [, $company] = $this->createTenantWithCompany();
 
     $this
-        ->actingAs($user)
+        ->actingAsUserInCompany($user, $company)
         ->postJson(route('work_schedules.store'), [
             'company_id' => null,
             'name' => '',
@@ -48,16 +51,17 @@ it('validates required fields on store', function (): void {
 });
 
 it('allows admin to store a work schedule and bumps cache versions', function (): void {
-    $user = $this->createAdminUser();
+    [, $company] = $this->createTenantWithCompany();
+    $user = $this->createAdminUser($company);
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
-    $company = Company::factory()->create();
-
     $versioner = app(CacheVersionService::class);
-
-    Cache::forever('v:work_schedules.fetch', 1);
+    $tenantNamespace = CacheNamespaces::tenantWorkSchedules((int) $company->tenant_group_id);
+    $companyNamespace = "company:{$company->id}:work_schedules";
+    $tenantBefore = $versioner->get($tenantNamespace);
+    $companyBefore = $versioner->get($companyNamespace);
 
     $payload = WorkSchedule::factory()->make([
         'company_id' => $company->id,
@@ -68,7 +72,7 @@ it('allows admin to store a work schedule and bumps cache versions', function ()
     $payload['date_to'] = \Illuminate\Support\Carbon::parse((string) $payload['date_to'])->format('Y-m-d');
 
     $this
-        ->actingAs($user)
+        ->actingAsUserInCompany($user, $company)
         ->postJson(route('work_schedules.store'), $payload)
         ->assertCreated();
 
@@ -78,5 +82,6 @@ it('allows admin to store a work schedule and bumps cache versions', function ()
         'status' => 'draft',
     ]);
 
-    expect($versioner->get('work_schedules.fetch'))->toBe(2);
+    expect($versioner->get($tenantNamespace))->toBeGreaterThan($tenantBefore);
+    expect($versioner->get($companyNamespace))->toBeGreaterThan($companyBefore);
 });
