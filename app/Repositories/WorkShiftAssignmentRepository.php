@@ -6,8 +6,10 @@ namespace App\Repositories;
 
 use App\Interfaces\WorkShiftAssignmentRepositoryInterface;
 use App\Models\WorkShiftAssignment;
+use App\Services\Cache\CacheNamespaces;
 use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
+use App\Services\TenantContext;
 use Illuminate\Container\Container as AppContainer;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +22,8 @@ class WorkShiftAssignmentRepository extends BaseRepository implements WorkShiftA
     public function __construct(
         AppContainer $app,
         private readonly CacheService $cacheService,
-        private readonly CacheVersionService $cacheVersionService
+        private readonly CacheVersionService $cacheVersionService,
+        private readonly TenantContext $tenantContext
     ) {
         parent::__construct($app);
     }
@@ -61,7 +64,7 @@ class WorkShiftAssignmentRepository extends BaseRepository implements WorkShiftA
             ]);
             $assignment->save();
 
-            $this->invalidateAfterWrite($companyId);
+            $this->invalidateAfterWrite();
 
             return $assignment->fresh(['employee:id,first_name,last_name', 'workSchedule:id,name']) ?? $assignment;
         });
@@ -78,17 +81,19 @@ class WorkShiftAssignmentRepository extends BaseRepository implements WorkShiftA
 
             $deleted = (bool) $assignment->delete();
             if ($deleted) {
-                $this->invalidateAfterWrite((int) $assignment->company_id);
+                $this->invalidateAfterWrite();
             }
 
             return $deleted;
         });
     }
 
-    private function invalidateAfterWrite(int $companyId): void
+    private function invalidateAfterWrite(): void
     {
-        DB::afterCommit(function () use ($companyId): void {
-            $this->cacheVersionService->bump("company:{$companyId}:work_schedule_assignments");
+        DB::afterCommit(function (): void {
+            $tenantGroupId = $this->tenantContext->currentTenantGroupIdOrFail();
+            $namespace = CacheNamespaces::tenantWorkScheduleAssignments($tenantGroupId);
+            $this->cacheVersionService->bump($namespace);
         });
     }
 

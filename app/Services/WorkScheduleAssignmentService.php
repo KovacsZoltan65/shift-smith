@@ -7,8 +7,10 @@ namespace App\Services;
 use App\Data\WorkScheduleAssignment\CalendarEventData;
 use App\Data\WorkScheduleAssignment\WorkScheduleAssignmentData;
 use App\Interfaces\WorkScheduleAssignmentRepositoryInterface;
+use App\Services\Cache\CacheNamespaces;
 use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
+use App\Services\TenantContext;
 use App\Models\WorkSchedule;
 use App\Models\WorkShiftAssignment;
 use Carbon\CarbonImmutable;
@@ -21,7 +23,8 @@ class WorkScheduleAssignmentService
     public function __construct(
         private readonly WorkScheduleAssignmentRepositoryInterface $repository,
         private readonly CacheService $cacheService,
-        private readonly CacheVersionService $cacheVersionService
+        private readonly CacheVersionService $cacheVersionService,
+        private readonly TenantContext $tenantContext
     ) {}
 
     /**
@@ -77,7 +80,9 @@ class WorkScheduleAssignmentService
         ];
         ksort($paramsForKey);
 
-        $version = $this->cacheVersionService->get('work_schedule_assignments');
+        $tenantGroupId = $this->tenantContext->currentTenantGroupIdOrFail();
+        $namespace = CacheNamespaces::tenantWorkScheduleAssignments($tenantGroupId);
+        $version = $this->cacheVersionService->get($namespace);
         $hash = hash('sha256', json_encode($paramsForKey, JSON_THROW_ON_ERROR));
         $key = "v{$version}:feed:{$hash}";
 

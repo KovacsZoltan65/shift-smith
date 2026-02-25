@@ -9,11 +9,13 @@ use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\Support\CreatesUsers;
+use Tests\Support\InteractsWithTenantSession;
 
 abstract class TestCase extends BaseTestCase
 {
     use CreatesApplication;
     use CreatesUsers;
+    use InteractsWithTenantSession;
 
     public User $user;
 

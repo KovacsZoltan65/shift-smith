@@ -30,8 +30,8 @@ it('requires selected company context for work schedule assignment routes', func
 });
 
 it('does not leak assignment data between companies', function (): void {
-    $companyA = Company::factory()->create();
-    $companyB = Company::factory()->create();
+    [, $companyA] = $this->createTenantWithCompany();
+    [, $companyB] = $this->createTenantWithCompany();
 
     $user = $this->createAdminUser($companyA);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -42,8 +42,7 @@ it('does not leak assignment data between companies', function (): void {
         'status' => 'draft',
     ]);
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $companyA->id])
+    $this->actingAsUserInCompany($user, $companyA)
         ->getJson(route('scheduling.calendar.feed', [
             'schedule_id' => $scheduleB->id,
             'view_type' => 'week',
@@ -53,8 +52,8 @@ it('does not leak assignment data between companies', function (): void {
 });
 
 it('blocks writes to another company scope', function (): void {
-    $companyA = Company::factory()->create();
-    $companyB = Company::factory()->create();
+    [, $companyA] = $this->createTenantWithCompany();
+    [, $companyB] = $this->createTenantWithCompany();
 
     $user = $this->createAdminUser($companyA);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -67,8 +66,7 @@ it('blocks writes to another company scope', function (): void {
     $employeeB = Employee::factory()->create(['company_id' => $companyB->id]);
     $shiftB = WorkShift::factory()->create(['company_id' => $companyB->id]);
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $companyA->id])
+    $this->actingAsUserInCompany($user, $companyA)
         ->postJson(route('work_schedule_assignments.store'), [
             'work_schedule_id' => $scheduleB->id,
             'employee_id' => $employeeB->id,

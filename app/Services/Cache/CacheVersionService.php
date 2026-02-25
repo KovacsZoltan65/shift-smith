@@ -72,6 +72,10 @@ final class CacheVersionService
 
     private function qualifyNamespace(string $namespace): string
     {
+        if (str_starts_with($namespace, 'tenant:') || str_starts_with($namespace, 'landlord:')) {
+            return $namespace;
+        }
+
         $tenantId = $this->tenantId();
 
         if ($tenantId === null) {

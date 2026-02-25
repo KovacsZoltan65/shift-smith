@@ -9,7 +9,9 @@ use App\Models\Employee;
 use App\Models\WorkSchedule;
 use App\Models\WorkShift;
 use App\Models\WorkShiftAssignment;
+use App\Services\Cache\CacheNamespaces;
 use App\Services\Cache\CacheVersionService;
+use App\Services\TenantContext;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +20,8 @@ use Override;
 final class WorkScheduleAssignmentRepository implements WorkScheduleAssignmentRepositoryInterface
 {
     public function __construct(
-        private readonly CacheVersionService $cacheVersionService
+        private readonly CacheVersionService $cacheVersionService,
+        private readonly TenantContext $tenantContext
     ) {}
 
     #[Override]
@@ -116,7 +119,7 @@ final class WorkScheduleAssignmentRepository implements WorkScheduleAssignmentRe
                 ...$payload,
                 'company_id' => $companyId,
             ]);
-            $this->invalidateAfterWrite($companyId);
+            $this->invalidateAfterWrite();
             return $row->fresh(['employee', 'workShift', 'workSchedule']) ?? $row;
         });
     }
@@ -135,7 +138,7 @@ final class WorkScheduleAssignmentRepository implements WorkScheduleAssignmentRe
             $row->save();
             $row->refresh();
 
-            $this->invalidateAfterWrite((int) $assignment->company_id);
+            $this->invalidateAfterWrite();
 
             return $row->fresh(['employee', 'workShift', 'workSchedule']) ?? $row;
         });
@@ -154,7 +157,7 @@ final class WorkScheduleAssignmentRepository implements WorkScheduleAssignmentRe
             $deleted = (bool) $row->delete();
 
             if ($deleted) {
-                $this->invalidateAfterWrite((int) $assignment->company_id);
+                $this->invalidateAfterWrite();
             }
 
             return $deleted;
@@ -171,7 +174,7 @@ final class WorkScheduleAssignmentRepository implements WorkScheduleAssignmentRe
                 ->delete();
 
             if ($deleted > 0) {
-                $this->invalidateAfterWrite($companyId);
+                $this->invalidateAfterWrite();
             }
 
             return $deleted;
@@ -211,7 +214,7 @@ final class WorkScheduleAssignmentRepository implements WorkScheduleAssignmentRe
                 }
             }
 
-            $this->invalidateAfterWrite($companyId);
+            $this->invalidateAfterWrite();
 
             return WorkShiftAssignment::query()
                 ->with(['employee', 'workShift', 'workSchedule'])
@@ -338,10 +341,12 @@ final class WorkScheduleAssignmentRepository implements WorkScheduleAssignmentRe
             ->count();
     }
 
-    private function invalidateAfterWrite(int $companyId): void
+    private function invalidateAfterWrite(): void
     {
         DB::afterCommit(function (): void {
-            $this->cacheVersionService->bump('work_schedule_assignments');
+            $tenantGroupId = $this->tenantContext->currentTenantGroupIdOrFail();
+            $namespace = CacheNamespaces::tenantWorkScheduleAssignments($tenantGroupId);
+            $this->cacheVersionService->bump($namespace);
         });
     }
 

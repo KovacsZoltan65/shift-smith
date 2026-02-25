@@ -6,8 +6,10 @@ namespace App\Repositories;
 
 use App\Interfaces\WorkScheduleRepositoryInterface;
 use App\Models\WorkSchedule;
+use App\Services\Cache\CacheNamespaces;
 use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
+use App\Services\TenantContext;
 use App\Traits\Functions;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
@@ -29,14 +31,17 @@ final class WorkScheduleRepository implements WorkScheduleRepositoryInterface
     protected string $tag;
 
     private readonly CacheVersionService $cacheVersionService;
+    private readonly TenantContext $tenantContext;
 
     public function __construct(
         CacheService $cacheService,
-        CacheVersionService $cacheVersionService
+        CacheVersionService $cacheVersionService,
+        TenantContext $tenantContext
     ) {
         $this->cacheService = $cacheService;
         $this->tag = WorkSchedule::getTag();
         $this->cacheVersionService = $cacheVersionService;
+        $this->tenantContext = $tenantContext;
     }
 
     /**
@@ -119,7 +124,9 @@ final class WorkScheduleRepository implements WorkScheduleRepositoryInterface
         ];
         ksort($paramsForKey);
 
-        $version = $this->cacheVersionService->get("company:{$companyId}:work_schedules");
+        $tenantGroupId = $this->tenantContext->currentTenantGroupIdOrFail();
+        $namespace = CacheNamespaces::tenantWorkSchedules($tenantGroupId);
+        $version = $this->cacheVersionService->get($namespace);
         $hash = hash('sha256', json_encode($paramsForKey, JSON_THROW_ON_ERROR));
         $key = "v{$version}:{$hash}";
 
@@ -180,7 +187,7 @@ final class WorkScheduleRepository implements WorkScheduleRepositoryInterface
                 'company_id' => $companyId,
             ]);
 
-            $this->invalidateAfterWrite($companyId);
+            $this->invalidateAfterWrite();
 
             return $workSchedule;
         });
@@ -221,7 +228,7 @@ final class WorkScheduleRepository implements WorkScheduleRepositoryInterface
             $workSchedule->save();
             $workSchedule->refresh();
 
-            $this->invalidateAfterWrite($companyId);
+            $this->invalidateAfterWrite();
 
             return $workSchedule;
         });
@@ -258,7 +265,7 @@ final class WorkScheduleRepository implements WorkScheduleRepositoryInterface
                 ->whereIn('id', $ids)
                 ->delete();
 
-            $this->invalidateAfterWrite($companyId);
+            $this->invalidateAfterWrite();
 
             return (int) $deleted;
         });
@@ -292,7 +299,7 @@ final class WorkScheduleRepository implements WorkScheduleRepositoryInterface
 
             $deleted = (bool) $workSchedule->delete();
 
-            $this->invalidateAfterWrite($companyId);
+            $this->invalidateAfterWrite();
 
             return $deleted;
         });
@@ -306,10 +313,12 @@ final class WorkScheduleRepository implements WorkScheduleRepositoryInterface
      * 
      * @return void
      */
-    private function invalidateAfterWrite(int $companyId): void
+    private function invalidateAfterWrite(): void
     {
-        DB::afterCommit(function () use ($companyId): void {
-            $this->cacheVersionService->bump("company:{$companyId}:work_schedules");
+        DB::afterCommit(function (): void {
+            $tenantGroupId = $this->tenantContext->currentTenantGroupIdOrFail();
+            $namespace = CacheNamespaces::tenantWorkSchedules($tenantGroupId);
+            $this->cacheVersionService->bump($namespace);
             $this->cacheVersionService->bump('work_schedules.fetch');
         });
     }

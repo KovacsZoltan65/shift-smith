@@ -13,18 +13,17 @@ beforeEach(function (): void {
 });
 
 it('calendar oldal planner jogot ad adminnak', function (): void {
-    $user = $this->createAdminUser();
+    [, $company] = $this->createTenantWithCompany();
+    $user = $this->createAdminUser($company);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
-    $company = Company::factory()->create();
     WorkSchedule::factory()->create([
         'company_id' => $company->id,
         'status' => 'draft',
     ]);
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+    $this->actingAsUserInCompany($user, $company)
         ->get(route('scheduling.calendar'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
@@ -35,18 +34,17 @@ it('calendar oldal planner jogot ad adminnak', function (): void {
 });
 
 it('calendar oldal planner jogot ad superadminnak', function (): void {
+    [, $company] = $this->createTenantWithCompany();
     $user = $this->createSuperadminUser();
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
-    $company = Company::factory()->create();
     WorkSchedule::factory()->create([
         'company_id' => $company->id,
         'status' => 'draft',
     ]);
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+    $this->actingAsUserInCompany($user, $company)
         ->get(route('scheduling.calendar'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
@@ -57,20 +55,20 @@ it('calendar oldal planner jogot ad superadminnak', function (): void {
 });
 
 it('calendar oldal planner jogot megtagad egyszeru usertol', function (): void {
+    [, $company] = $this->createTenantWithCompany();
     /** @var User $user */
     $user = User::factory()->create();
     $user->assignRole('user');
+    $user->companies()->syncWithoutDetaching([$company->id]);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
-    $company = Company::factory()->create();
     WorkSchedule::factory()->create([
         'company_id' => $company->id,
         'status' => 'draft',
     ]);
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+    $this->actingAsUserInCompany($user, $company)
         ->get(route('scheduling.calendar'))
         ->assertForbidden();
 });
