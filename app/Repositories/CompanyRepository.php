@@ -19,11 +19,7 @@ use Prettus\Repository\Eloquent\BaseRepository;
 use App\Services\Cache\CacheVersionService;
 
 /**
- * Cég repository osztály
- * 
  * Adatbázis műveletek kezelése cégekhez.
- * Cache támogatással, verziókezeléssel és lapozással.
- * Prettus Repository pattern implementáció.
  */
 class CompanyRepository extends BaseRepository implements CompanyRepositoryInterface
 {
@@ -55,13 +51,9 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     }
     
     /**
-     * Cégek listázása lapozással, szűréssel és rendezéssel
-     * 
-     * Cache-elhető lekérdezés verziókezeléssel.
-     * Támogatja a keresést (név, email), rendezést és lapozást.
-     * 
-     * @param Request $request HTTP kérés (search, field, order, per_page, page paraméterekkel)
-     * @return LengthAwarePaginator<int, Company> Lapozott cég lista
+     * Cégek listázása lapozással, szűréssel és rendezéssel.
+     *
+     * @return LengthAwarePaginator<int, Company>
      */
     public function fetch(Request $request): LengthAwarePaginator
     {
@@ -82,8 +74,6 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
         $field = \in_array($request->input('field', ''), $sortable, true)
             ? $request->input('field')
             : null;
-        
-        //$direction = strtolower($request->input('order', '')) === 'desc' ? 'desc' : 'asc';
         
         $orderRaw = (string) $request->input('order', 'desc');
         $direction = strtolower($orderRaw) === 'asc' ? 'asc' : 'desc';
@@ -155,7 +145,6 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     /**
      * HQ cégek globális listázása tenant scope nélkül.
      *
-     * @param Request $request
      * @return LengthAwarePaginator<int, Company>
      */
     public function fetchHq(Request $request): LengthAwarePaginator
@@ -230,11 +219,9 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     }
     
     /**
-     * Egy cég lekérése azonosító alapján
-     * 
-     * @param int $id Cég azonosító
-     * @return Company Cég model
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
+     * Cég lekérése azonosító alapján.
+     *
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
      */
     public function getCompany(int $id): Company
     {
@@ -245,15 +232,12 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     }
     
     /**
-     * Cég lekérése név alapján
-     * 
-     * @param string $name Cég neve
-     * @return Company Cég model
-     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException Ha a rekord nem található
+     * Cég lekérése név alapján.
+     *
+     * @throws \Illuminate\Database\Eloquent\ModelNotFoundException
      */
     public function getCompanyByName(string $name): Company
     {
-        // Get the company by its name
         /** @var Company $company */
         $company = Company::where('name', '=', $name)->firstOrFail();
 
@@ -261,16 +245,10 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     }
     
     /**
-     * Cégek lekérése select listához
-     * 
-     * Egyszerűsített cég lista (id, name) dropdown/select mezőkhöz.
-     * Cache-elhető, csak aktív cégeket ad vissza.
-     * Opcionálisan szűrhető csak olyan cégekre, amelyeknek van munkavállalója.
-     * 
-     * @param array{
-     *   only_with_employees?: bool
-     * } $params Szűrési paraméterek
-     * @return array<int, array{id:int, name:string}> Cégek tömbje
+     * Cégek lekérése select listához.
+     *
+     * @param array{only_with_employees?: bool} $params
+     * @return array<int, array{id:int, name:string}>
      */
     public function getToSelect(array $params): array
     {
@@ -318,18 +296,15 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     }
 
     /**
-     * Új cég létrehozása
-     * 
-     * Tranzakcióban futtatva, alapértelmezett beállításokkal.
-     * Létrehozás után cache invalidálás.
-     * 
+     * Új cég létrehozása.
+     *
      * @param array{
      *   name: string,
      *   address?: string|null,
      *   phone?: string|null,
-     *   email?: string|null
-     * } $data Cég adatok
-     * @return Company Létrehozott cég
+     *   email?: string|null,
+     *   active?: bool
+     * } $data
      */
     public function store(array $data): Company
     {
@@ -373,20 +348,15 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     }
 
     /**
-     * Cég adatainak frissítése
-     * 
-     * Tranzakcióban futtatva, pesszimista zárolással.
-     * Frissítés után cache invalidálás.
-     * 
+     * Cég adatainak frissítése.
+     *
      * @param array{
      *    name: string,
-     *    email: string,
-     *    address: string,
-     *    phone: string,
-     *    active: boolean
-     * } $data Frissítendő adatok
-     * @param int $id Cég azonosító
-     * @return Company Frissített cég
+     *    email?: string|null,
+     *    address?: string|null,
+     *    phone?: string|null,
+     *    active?: bool
+     * } $data
      */
     public function update(array $data, $id): Company
     {
@@ -408,12 +378,9 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     }
     
     /**
-     * Több cég törlése egyszerre
-     * 
-     * Tranzakcióban futtatva, cache invalidálással.
-     * 
-     * @param list<int> $ids Cég azonosítók tömbje
-     * @return int A törölt rekordok száma
+     * Több cég törlése egyszerre.
+     *
+     * @param list<int> $ids
      */
     public function bulkDelete(array $ids): int
     {
@@ -427,13 +394,7 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     }
     
     /**
-     * Egy cég törlése
-     * 
-     * Tranzakcióban futtatva, pesszimista zárolással.
-     * Törli a kapcsolódó beállításokat és invalidálja a cache-t.
-     * 
-     * @param int $id Cég azonosító
-     * @return bool Sikeres törlés esetén true
+     * Egy cég törlése.
      */
     public function destroy(int $id): bool
     {
@@ -454,12 +415,7 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     }
     
     /**
-     * Cache invalidálás cég írási műveletek után
-     * 
-     * Növeli a verzió számokat a cég listázás és selector cache-ekhez.
-     * DB commit után fut, így biztosítva a konzisztenciát.
-     * 
-     * @return void
+     * Cache invalidálás cég írási műveletek után.
      */
     private function invalidateAfterCompanyWrite(): void
     {
@@ -474,33 +430,22 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     }
     
     /**
-     * Alapértelmezett beállítások létrehozása új céghez
-     * 
-     * @param Company $company Cég model
-     * @return void
+     * Alapértelmezett beállítások létrehozása új céghez.
      */
     private function createDefaultSettings(Company $company): void{}
 
     /**
-     * Alapértelmezett beállítások frissítése
-     * 
-     * @param Company $company Cég model
-     * @return void
+     * Alapértelmezett beállítások frissítése.
      */
     private function updateDefaultSettings(Company $company): void{}
 
     /**
-     * Alapértelmezett beállítások törlése
-     * 
-     * @param Company $company Cég model
-     * @return void
+     * Alapértelmezett beállítások törlése.
      */
     private function deleteDefaultSettings(Company $company): void{}
     
     /**
-     * Repository model osztály megadása
-     * 
-     * @return string Model osztály neve
+     * Repository model osztály megadása.
      */
     public function model(): string
     {
@@ -508,11 +453,7 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     }
 
     /**
-     * Repository inicializálás
-     * 
-     * Criteria-k regisztrálása (pl. query string alapú szűrés).
-     * 
-     * @return void
+     * Repository inicializálás.
      */
     public function boot(): void
     {

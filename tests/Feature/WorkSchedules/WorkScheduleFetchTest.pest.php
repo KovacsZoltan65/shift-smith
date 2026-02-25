@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\TenantGroup;
 use App\Models\Company;
 use App\Models\WorkSchedule;
 use Spatie\Permission\PermissionRegistrar;
@@ -28,13 +29,13 @@ it('megtagadja a beosztások lekérését, ha nincs viewAny jogosultság', funct
 });
 
 it('visszaadja a beosztás listát meta és filter adatokkal, működő szűréssel', function (): void {
-    $user = $this->createAdminUser();
+    $tenant = TenantGroup::factory()->create();
+    $companyA = Company::factory()->create(['tenant_group_id' => $tenant->id]);
+    $companyB = Company::factory()->create(['tenant_group_id' => $tenant->id]);
+    $user = $this->createAdminUser($companyA);
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
-
-    $companyA = Company::factory()->create();
-    $companyB = Company::factory()->create();
 
     WorkSchedule::factory()->create([
         'company_id' => $companyA->id,
@@ -58,7 +59,7 @@ it('visszaadja a beosztás listát meta és filter adatokkal, működő szűrés
     ]);
 
     $resp = $this
-        ->actingAs($user)
+        ->actingAsUserInCompany($user, $companyA)
         ->getJson(route('work_schedules.fetch', [
             'company_id' => $companyA->id,
             'search' => 'alpha',

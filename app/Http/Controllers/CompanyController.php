@@ -16,28 +16,16 @@ use App\Data\Company\CompanyData;
 use App\Data\Company\CompanyIndexData;
 
 /**
- * Cég controller osztály
- * 
- * HTTP kérések kezelése cégek CRUD műveleteihez.
- * Inertia.js frontend integráció és JSON API végpontok.
- * Policy-alapú autorizációval.
+ * HTTP végpontok kezelése a cégek CRUD műveleteihez.
  */
 class CompanyController extends Controller
 {
-    /**
-     * @param CompanyService $service Cég szolgáltatás
-     */
     public function __construct(
         private readonly CompanyService $service
     ) {}
     
     /**
-     * Cégek lista oldal megjelenítése
-     * 
-     * Inertia oldal renderelés szűrési paraméterekkel.
-     * 
-     * @param IndexRequest $request Validált kérés (search, field, order, per_page)
-     * @return InertiaResponse Inertia válasz a Companies/Index komponenssel
+     * Cégek listaoldal renderelése.
      */
     public function index(IndexRequest $request): InertiaResponse
     {
@@ -50,12 +38,7 @@ class CompanyController extends Controller
     }
     
     /**
-     * Cégek listázása JSON formátumban
-     * 
-     * Lapozott lista meta adatokkal (current_page, per_page, total, last_page).
-     * 
-     * @param IndexRequest $request Validált kérés
-     * @return JsonResponse Lapozott cég lista JSON-ben
+     * Cégek listázása JSON formátumban.
      */
     public function fetch(IndexRequest $request): JsonResponse
     {
@@ -79,10 +62,7 @@ class CompanyController extends Controller
     }
     
     /**
-     * Egy cég lekérése azonosító alapján
-     * 
-     * @param int $id Cég azonosító
-     * @return JsonResponse Cég adatok JSON-ben
+     * Cég lekérése azonosító alapján.
      */
     public function getCompany(int $id): JsonResponse
     {
@@ -96,10 +76,7 @@ class CompanyController extends Controller
     }
     
     /**
-     * Cég lekérése név alapján
-     * 
-     * @param string $name Cég neve
-     * @return JsonResponse Cég adatok JSON-ben
+     * Cég lekérése név alapján.
      */
     public function getCompanyByName(string $name): JsonResponse
     {
@@ -113,12 +90,7 @@ class CompanyController extends Controller
     }
     
     /**
-     * Új cég létrehozása
-     * 
-     * Validált adatokkal új cég létrehozása.
-     * 
-     * @param CompanyData $data Validált DTO adatok
-     * @return JsonResponse Létrehozott cég JSON-ben
+     * Új cég létrehozása.
      */
     public function store(CompanyData $data): JsonResponse
     {
@@ -134,10 +106,6 @@ class CompanyController extends Controller
 
     /**
      * Cég adatainak frissítése.
-     *
-     * @param int $id Cég azonosító
-     * @param CompanyData $data Validált DTO adatok
-     * @return JsonResponse Frissített cég JSON-ben
      */
     public function update(int $id, CompanyData $data): JsonResponse
     {
@@ -153,14 +121,7 @@ class CompanyController extends Controller
     }
     
     /**
-     * Több rekord törlése egyszerre.
-     *
-     * Engedélyezés: 'delete' policy.
-     * Validálás: BulkDeleteRequest.
-     *
-     * @param  \App\Http\Requests\Company\BulkDeleteRequest  $request
-     * @return \Illuminate\Http\JsonResponse
-     * @throws \Throwable
+     * Több cég törlése egyszerre.
      */
     public function bulkDelete(BulkDeleteRequest $request): JsonResponse
     {
@@ -176,12 +137,7 @@ class CompanyController extends Controller
     }
     
     /**
-     * Egyetlen rekord törlése.
-     *
-     * Engedélyezés: 'delete' policy.
-     *
-     * @param  int  $id  A törlendő rekord azonosítója.
-     * @throws \Throwable
+     * Egy cég törlése.
      */
     public function destroy(int $id): JsonResponse
     {
@@ -197,13 +153,9 @@ class CompanyController extends Controller
     }
     
     /**
-     * Cégek lekérése select listához
-     * 
-     * Egyszerűsített lista (id, name) dropdown/select mezőkhöz.
-     * Opcionálisan csak olyan cégek, amelyeknek van munkavállalója.
-     * 
-     * @param Request $request HTTP kérés (only_with_employees paraméterrel)
-     * @return array<int, array{id: int, name: string}> Cégek tömbje
+     * Cégek lekérése select listához.
+     *
+     * @return array<int, array{id:int, name:string}>
      */
     public function getToSelect(Request $request): array
     {

@@ -9,25 +9,18 @@ use Illuminate\Http\Request;
 use App\Data\Company\CompanyData;
 
 /**
- * Cég szolgáltatás osztály
- * 
- * Üzleti logikai réteg a cégek kezeléséhez.
- * Repository pattern-t használ az adatbázis műveletekhez.
+ * Üzleti logika a cégek kezeléséhez.
  */
 class CompanyService
 {
-    /**
-     * @param CompanyRepositoryInterface $repo Cég repository
-     */
     public function __construct(
         private readonly CompanyRepositoryInterface $repo
     ) {}
     
     /**
-     * Cégek listázása lapozással és szűréssel
-     * 
-     * @param Request $request HTTP kérés (search, field, order, per_page paraméterekkel)
-     * @return LengthAwarePaginator<int, Company> Lapozott cég lista
+     * Cégek listázása lapozással és szűréssel.
+     *
+     * @return LengthAwarePaginator<int, Company>
      */
     public function fetch(Request $request): LengthAwarePaginator
     {
@@ -36,6 +29,8 @@ class CompanyService
 
     /**
      * HQ globális (landlord) céglista tenant scope nélkül.
+     *
+     * @return LengthAwarePaginator<int, Company>
      */
     public function fetchHq(Request $request): LengthAwarePaginator
     {
@@ -43,10 +38,7 @@ class CompanyService
     }
 
     /**
-     * Cég lekérése azonosító alapján (policy-barát model lookup).
-     *
-     * @param int $id Cég azonosító
-     * @return Company Cég model
+     * Cég lekérése azonosító alapján.
      */
     public function find(int $id): Company
     {
@@ -54,10 +46,7 @@ class CompanyService
     }
 
     /**
-     * Cég lekérése név alapján (policy-barát model lookup).
-     *
-     * @param string $name Cég név
-     * @return Company Cég model
+     * Cég lekérése név alapján.
      */
     public function findByName(string $name): Company
     {
@@ -66,9 +55,6 @@ class CompanyService
 
     /**
      * Cég DTO lekérése azonosító alapján.
-     *
-     * @param int $id Cég azonosító
-     * @return CompanyData Cég DTO
      */
     public function getById(int $id): CompanyData
     {
@@ -77,9 +63,6 @@ class CompanyService
 
     /**
      * Cég DTO lekérése név alapján.
-     *
-     * @param string $name Cég név
-     * @return CompanyData Cég DTO
      */
     public function getByName(string $name): CompanyData
     {
@@ -88,9 +71,6 @@ class CompanyService
 
     /**
      * Új cég létrehozása.
-     *
-     * @param CompanyData $data Validált DTO adatok
-     * @return CompanyData Létrehozott cég DTO
      */
     public function store(CompanyData $data): CompanyData
     {
@@ -107,10 +87,6 @@ class CompanyService
 
     /**
      * Cég adatainak frissítése.
-     *
-     * @param int $id Cég azonosító
-     * @param CompanyData $data Frissítendő DTO adatok
-     * @return CompanyData Frissített cég DTO
      */
     public function update(int $id, CompanyData $data): CompanyData
     {
@@ -126,26 +102,19 @@ class CompanyService
     }
     
     /**
-     * Több cég törlése egyszerre
-     * 
-     * Automatikusan kiszűri a duplikátumokat.
-     * 
-     * @param list<int> $ids Cég azonosítók tömbje
-     * @return int A törölt rekordok száma
+     * Több cég törlése egyszerre.
+     *
+     * @param list<int> $ids
      */
     public function bulkDelete(array $ids): int
     {
-        // opcionális tisztítás: nullok/duplikátumok kiszűrése
         $ids = array_values(array_unique($ids));
         
         return (int) $this->repo->bulkDelete($ids);
     }
     
     /**
-     * Egy cég törlése
-     * 
-     * @param int $id Cég azonosító
-     * @return bool Sikeres törlés esetén true
+     * Egy cég törlése.
      */
     public function destroy(int $id): bool
     {
@@ -153,14 +122,10 @@ class CompanyService
     }
     
     /**
-     * Cégek lekérése select listához
-     * 
-     * Egyszerűsített cég lista (id, name) dropdown/select mezőkhöz.
-     * 
-     * @param array{
-     *   only_with_employees?: bool
-     * } $params Szűrési paraméterek
-     * @return array<int, array{id:int, name:string}> Cégek tömbje
+     * Cégek lekérése select listához.
+     *
+     * @param array{only_with_employees?: bool} $params
+     * @return array<int, array{id:int, name:string}>
      */
     public function getToSelect(array $params): array
     {

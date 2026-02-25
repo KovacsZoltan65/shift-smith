@@ -51,8 +51,10 @@ it('findOrFailScoped path returns 404 on company mismatch', function (): void {
     $user->refresh();
 
     $this->actingAs($user)
-        ->withSession(['current_company_id' => $companyOne->id])
+        ->withSession([
+            'current_company_id' => $companyOne->id,
+            'current_tenant_group_id' => $tenantGroup->id,
+        ])
         ->getJson(route('work_schedules.by_id', ['id' => $scheduleInCompanyTwo->id]))
         ->assertNotFound();
 });
-

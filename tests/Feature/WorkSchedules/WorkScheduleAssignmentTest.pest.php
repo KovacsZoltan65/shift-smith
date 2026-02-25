@@ -33,8 +33,7 @@ it('csak a work schedule intervallumán belüli assignmentet engedi', function (
         'status' => 'draft',
     ]);
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id, 'current_tenant_group_id' => $tenant->id])
+    $this->actingAsUserInCompany($user, $company)
         ->postJson(route('work_shift_assignments.store', ['work_shift' => $shift->id]), [
             'employee_id' => $employee->id,
             'work_schedule_id' => $schedule->id,
@@ -109,14 +108,13 @@ it('megtagadja az assignment létrehozást jogosultság nélkül', function (): 
     ]);
 
     /** @var User $user */
-    $user = User::factory()->create();
+    $user = User::factory()->create(['email_verified_at' => now()]);
     $user->assignRole('user');
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
-    $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id, 'current_tenant_group_id' => $tenant->id])
+    $this->actingAsUserInCompany($user, $company)
         ->postJson(route('work_shift_assignments.store', ['work_shift' => $shift->id]), [
             'employee_id' => $employee->id,
             'work_schedule_id' => $schedule->id,

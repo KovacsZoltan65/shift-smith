@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Company;
 use App\Models\Employee;
+use App\Models\TenantGroup;
 use App\Models\WorkShift;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -12,12 +13,13 @@ beforeEach(function (): void {
 });
 
 it('autoplan draft work schedule-t és generation reportot hoz létre', function (): void {
-    $user = $this->createAdminUser();
+    $tenant = TenantGroup::factory()->create();
+    $company = Company::factory()->create(['tenant_group_id' => $tenant->id]);
+    $user = $this->createAdminUser($company);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
     $user->givePermissionTo('work_schedules.autoplan');
 
-    $company = Company::factory()->create();
     $employeeA = Employee::factory()->create(['company_id' => $company->id]);
     $employeeB = Employee::factory()->create(['company_id' => $company->id]);
     $shift = WorkShift::factory()->create([
@@ -45,8 +47,7 @@ it('autoplan draft work schedule-t és generation reportot hoz létre', function
         ],
     ];
 
-    $response = $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+    $response = $this->actingAsUserInCompany($user, $company)
         ->postJson(route('scheduling.work_schedules.autoplan.generate'), $payload)
         ->assertCreated()
         ->assertJsonPath('data.work_schedule.status', 'draft');

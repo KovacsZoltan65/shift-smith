@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\TenantGroup;
 use App\Models\Company;
 use App\Models\WorkSchedule;
 use Spatie\Permission\PermissionRegistrar;
@@ -28,19 +29,19 @@ it('denies work schedules fetch if user lacks viewAny permission', function (): 
 });
 
 it('supports tenant scoping by company_id filter', function (): void {
-    $user = $this->createAdminUser();
+    $tenant = TenantGroup::factory()->create();
+    $c1 = Company::factory()->create(['tenant_group_id' => $tenant->id]);
+    $c2 = Company::factory()->create(['tenant_group_id' => $tenant->id]);
+    $user = $this->createAdminUser($c1);
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
-
-    $c1 = Company::factory()->create();
-    $c2 = Company::factory()->create();
 
     WorkSchedule::factory()->count(3)->create(['company_id' => $c1->id, 'status' => 'draft']);
     WorkSchedule::factory()->count(2)->create(['company_id' => $c2->id, 'status' => 'draft']);
 
     $resp = $this
-        ->actingAs($user)
+        ->actingAsUserInCompany($user, $c1)
         ->getJson(route('work_schedules.fetch', [
             'company_id' => $c1->id,
             'page' => 1,

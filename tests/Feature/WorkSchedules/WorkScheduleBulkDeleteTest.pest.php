@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\Company;
+use App\Models\TenantGroup;
 use App\Models\WorkSchedule;
 use App\Services\Cache\CacheVersionService;
 use Illuminate\Support\Facades\Cache;
@@ -20,28 +21,29 @@ it('denies bulk delete if user lacks permission', function (): void {
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
-    $company = Company::factory()->create();
+    $tenant = TenantGroup::factory()->create();
+    $company = Company::factory()->create(['tenant_group_id' => $tenant->id]);
     $ws1 = WorkSchedule::factory()->create(['company_id' => $company->id, 'status' => 'draft']);
     $ws2 = WorkSchedule::factory()->create(['company_id' => $company->id, 'status' => 'draft']);
 
     $this
-        ->actingAs($user)
+        ->actingAsUserInCompany($user, $company)
         ->deleteJson(route('work_schedules.destroy_bulk'), ['ids' => [$ws1->id, $ws2->id]])
         ->assertForbidden();
 });
 
 it('prevents bulk delete if any published is included', function (): void {
-    $user = $this->createAdminUser();
+    [, $company] = $this->createTenantWithCompany();
+    $user = $this->createAdminUser($company);
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
-    $company = Company::factory()->create();
     $draft = WorkSchedule::factory()->create(['company_id' => $company->id, 'status' => 'draft']);
     $pub = WorkSchedule::factory()->create(['company_id' => $company->id, 'status' => 'published']);
 
     $this
-        ->actingAs($user)
+        ->actingAsUserInCompany($user, $company)
         ->deleteJson(route('work_schedules.destroy_bulk'), ['ids' => [$draft->id, $pub->id]])
         ->assertUnprocessable();
 
@@ -50,12 +52,12 @@ it('prevents bulk delete if any published is included', function (): void {
 });
 
 it('allows admin to bulk delete drafts and bumps cache versions', function (): void {
-    $user = $this->createAdminUser();
+    [, $company] = $this->createTenantWithCompany();
+    $user = $this->createAdminUser($company);
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
-    $company = Company::factory()->create();
     $ws = WorkSchedule::factory()->count(3)->create(['company_id' => $company->id, 'status' => 'draft']);
 
     $versioner = app(CacheVersionService::class);
@@ -64,7 +66,7 @@ it('allows admin to bulk delete drafts and bumps cache versions', function (): v
     $ids = $ws->pluck('id')->all();
 
     $this
-        ->actingAs($user)
+        ->actingAsUserInCompany($user, $company)
         ->deleteJson(route('work_schedules.destroy_bulk'), ['ids' => $ids])
         ->assertOk()
         ->assertJson(['deleted' => 3]);
