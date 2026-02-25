@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\TenantGroup;
 use App\Traits\Functions;
 use Closure;
 use DateInterval;
@@ -22,6 +23,10 @@ class CacheService
     {
         // Spatie Multitenancy context
         $tenantId = app()->bound('context') ? app('context')->get(self::TENANT_CTX_KEY) : null;
+
+        if (! is_numeric($tenantId)) {
+            $tenantId = TenantGroup::current()?->id;
+        }
 
         if (! is_numeric($tenantId)) {
             return null;

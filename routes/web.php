@@ -205,7 +205,7 @@ Route::middleware(['auth', 'verified'])
  * ======================================
  * Cégek kezelése
  */
-Route::middleware(['auth', 'verified'])
+Route::middleware(['auth', 'verified', 'ensure.company'])
     ->prefix('companies')
     ->as('companies.')
     ->controller(CompanyController::class)
@@ -313,7 +313,7 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
     Route::post('/', 'store')->name('store')->middleware('throttle:20,1');
     Route::put('/{id}', 'update')->whereNumber('id')->name('update')->middleware('throttle:30,1');
     Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy')->middleware('throttle:20,1');
-    Route::delete('destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
+    Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
 });
 
 /**
@@ -337,16 +337,21 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
  * SCHEDULING CALENDAR + WORK SCHEDULE ASSIGNMENTS
  * ======================================
  */
-Route::middleware(['auth', 'verified'])
+Route::middleware(['auth', 'verified', 'ensure.company'])
     ->controller(WorkScheduleAssignmentController::class)
     ->group(function (): void {
         Route::get('/scheduling/calendar', 'calendar')->name('scheduling.calendar')->middleware('throttle:60,1');
         Route::get('/scheduling/calendar/feed', 'feed')->name('scheduling.calendar.feed')->middleware('throttle:120,1');
+    });
 
-        Route::post('/work-schedule-assignments', 'store')->name('work_schedule_assignments.store')->middleware('throttle:20,1');
-        Route::put('/work-schedule-assignments/{id}', 'update')->whereNumber('id')->name('work_schedule_assignments.update')->middleware('throttle:30,1');
-        Route::delete('/work-schedule-assignments/{id}', 'destroy')->whereNumber('id')->name('work_schedule_assignments.destroy')->middleware('throttle:20,1');
-        Route::post('/work-schedule-assignments/bulk-upsert', 'bulkUpsert')->name('work_schedule_assignments.bulk_upsert')->middleware('throttle:30,1');
+Route::middleware(['auth', 'verified', 'ensure.company'])
+    ->prefix('work-schedule-assignments')
+    ->controller(WorkScheduleAssignmentController::class)
+    ->group(function (): void {
+        Route::post('/', 'store')->name('work_schedule_assignments.store')->middleware('throttle:20,1');
+        Route::put('/{id}', 'update')->whereNumber('id')->name('work_schedule_assignments.update')->middleware('throttle:30,1');
+        Route::delete('/{id}', 'destroy')->whereNumber('id')->name('work_schedule_assignments.destroy')->middleware('throttle:20,1');
+        Route::post('/bulk-upsert', 'bulkUpsert')->name('work_schedule_assignments.bulk_upsert')->middleware('throttle:30,1');
     });
 
 Route::middleware(['auth', 'verified'])

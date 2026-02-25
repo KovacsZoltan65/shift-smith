@@ -6,9 +6,11 @@ namespace App\Repositories\Admin;
 
 use App\Interfaces\Admin\PermissionRepositoryInterface;
 use App\Models\Admin\Permission;
+use App\Models\TenantGroup;
 use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
 use App\Traits\Functions;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Container\Container as AppContainer;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
@@ -237,9 +239,17 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
     {
         return DB::transaction(function() use($ids): int {
             
-            DB::table('role_has_permissions')->whereIn('permission_id', $ids)->delete();
-            DB::table('model_has_permissions')->whereIn('permission_id', $ids)->delete();
-            
+            $this->assertLandlordPermissionMutationAllowed();
+
+            $permissions = Permission::query()
+                ->whereIn('id', $ids)
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($permissions as $permission) {
+                $this->clearAssignments($permission);
+            }
+
             $deleted = Permission::query()->whereIn('id', $ids)->delete();
             
             $this->invalidateAfterPermissionWrite();
@@ -263,11 +273,11 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
     {
         return DB::transaction(function () use ($id) {
             
-            DB::table('role_has_permissions')->where('permission_id', $id)->delete();
-            DB::table('model_has_permissions')->where('permission_id', $id)->delete();
+            $this->assertLandlordPermissionMutationAllowed();
             
             /** @var Permission $permission */
             $permission = Permission::query()->lockForUpdate()->findOrFail($id);
+            $this->clearAssignments($permission);
 
             $deleted = (bool) $permission->delete();
 
@@ -374,6 +384,29 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
      * @return void
      */
     private function deleteDefaultSettings(Permission $permission): void{}
+
+    private function clearAssignments(Permission $permission): void
+    {
+        $permission->roles()->detach();
+
+        if (method_exists($permission, 'users')) {
+            $permission->users()->detach();
+        }
+    }
+
+    private function assertLandlordPermissionMutationAllowed(): void
+    {
+        $user = Auth::user();
+
+        if ($user === null) {
+            return;
+        }
+
+        $isSuperadmin = method_exists($user, 'hasRole') && $user->hasRole('superadmin');
+        $isLandlordContext = TenantGroup::current() === null;
+
+        abort_if(! ($isSuperadmin && $isLandlordContext), 403, 'Global permission mutation is landlord-only.');
+    }
 
     /**
      * Repository model osztály megadása

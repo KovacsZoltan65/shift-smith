@@ -5,22 +5,68 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use App\Interfaces\WorkScheduleAssignmentRepositoryInterface;
+use App\Models\Employee;
+use App\Models\WorkSchedule;
+use App\Models\WorkShift;
 use App\Models\WorkShiftAssignment;
 use App\Services\Cache\CacheVersionService;
-use Illuminate\Container\Container as AppContainer;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Override;
-use Prettus\Repository\Criteria\RequestCriteria;
-use Prettus\Repository\Eloquent\BaseRepository;
 
-class WorkScheduleAssignmentRepository extends BaseRepository implements WorkScheduleAssignmentRepositoryInterface
+final class WorkScheduleAssignmentRepository implements WorkScheduleAssignmentRepositoryInterface
 {
     public function __construct(
-        AppContainer $app,
         private readonly CacheVersionService $cacheVersionService
-    ) {
-        parent::__construct($app);
+    ) {}
+
+    #[Override]
+    public function paginate(int $companyId, array $filters): LengthAwarePaginator
+    {
+        $page = max(1, (int) ($filters['page'] ?? 1));
+        $perPage = min(max((int) ($filters['per_page'] ?? 10), 1), 100);
+        $field = (string) ($filters['field'] ?? 'id');
+        $direction = strtolower((string) ($filters['order'] ?? 'desc')) === 'asc' ? 'asc' : 'desc';
+        $allowedFields = ['id', 'date', 'employee_id', 'work_shift_id', 'work_schedule_id', 'created_at'];
+
+        if (! in_array($field, $allowedFields, true)) {
+            $field = 'id';
+        }
+
+        $query = WorkShiftAssignment::query()
+            ->with([
+                'employee:id,company_id,first_name,last_name,position_id',
+                'workShift:id,company_id,name,start_time,end_time',
+                'workSchedule:id,company_id,name,date_from,date_to,status',
+            ])
+            ->where('company_id', $companyId)
+            ->when(! empty($filters['search']), function ($q) use ($filters): void {
+                $term = mb_strtolower(trim((string) $filters['search']), 'UTF-8');
+                if ($term === '') {
+                    return;
+                }
+
+                $q->where(function ($qq) use ($term): void {
+                    $qq->whereHas('employee', function ($e) use ($term): void {
+                        $e->whereRaw("LOWER(CONCAT(last_name, ' ', first_name)) like ?", ["%{$term}%"]);
+                    })->orWhereHas('workShift', fn ($s) => $s->whereRaw('LOWER(name) like ?', ["%{$term}%"]));
+                });
+            })
+            ->when(! empty($filters['schedule_id']), fn ($q) => $q->where('work_schedule_id', (int) $filters['schedule_id']))
+            ->when(! empty($filters['employee_id']), fn ($q) => $q->where('employee_id', (int) $filters['employee_id']))
+            ->when(! empty($filters['work_shift_id']), fn ($q) => $q->where('work_shift_id', (int) $filters['work_shift_id']))
+            ->when(! empty($filters['date_from']), fn ($q) => $q->whereDate('date', '>=', (string) $filters['date_from']))
+            ->when(! empty($filters['date_to']), fn ($q) => $q->whereDate('date', '<=', (string) $filters['date_to']))
+            ->orderBy($field, $direction);
+
+        return $query->paginate($perPage, ['*'], 'page', $page);
+    }
+
+    #[Override]
+    public function fetch(int $companyId, array $filters): Collection
+    {
+        return $this->paginate($companyId, [...$filters, 'per_page' => 100, 'page' => 1])->getCollection();
     }
 
     #[Override]
@@ -51,49 +97,80 @@ class WorkScheduleAssignmentRepository extends BaseRepository implements WorkSch
     }
 
     #[Override]
-    public function create(array $payload): WorkShiftAssignment
+    public function findOrFailScoped(int $id, int $companyId): WorkShiftAssignment
     {
-        return DB::transaction(function () use ($payload): WorkShiftAssignment {
+        /** @var WorkShiftAssignment $assignment */
+        $assignment = WorkShiftAssignment::query()
+            ->where('company_id', $companyId)
+            ->findOrFail($id);
+
+        return $assignment;
+    }
+
+    #[Override]
+    public function store(int $companyId, array $payload): WorkShiftAssignment
+    {
+        return DB::transaction(function () use ($companyId, $payload): WorkShiftAssignment {
             /** @var WorkShiftAssignment $row */
-            $row = WorkShiftAssignment::query()->create($payload);
-            $this->invalidateAfterWrite((int) $row->company_id);
+            $row = WorkShiftAssignment::query()->create([
+                ...$payload,
+                'company_id' => $companyId,
+            ]);
+            $this->invalidateAfterWrite($companyId);
             return $row->fresh(['employee', 'workShift', 'workSchedule']) ?? $row;
         });
     }
 
     #[Override]
-    public function updateAssignment(int $companyId, int $id, array $payload): WorkShiftAssignment
+    public function update(WorkShiftAssignment $assignment, array $payload): WorkShiftAssignment
     {
-        return DB::transaction(function () use ($companyId, $id, $payload): WorkShiftAssignment {
+        return DB::transaction(function () use ($assignment, $payload): WorkShiftAssignment {
             /** @var WorkShiftAssignment $row */
             $row = WorkShiftAssignment::query()
-                ->where('company_id', $companyId)
+                ->where('company_id', (int) $assignment->company_id)
                 ->lockForUpdate()
-                ->findOrFail($id);
+                ->findOrFail($assignment->id);
 
             $row->fill($payload);
             $row->save();
             $row->refresh();
 
-            $this->invalidateAfterWrite($companyId);
+            $this->invalidateAfterWrite((int) $assignment->company_id);
 
             return $row->fresh(['employee', 'workShift', 'workSchedule']) ?? $row;
         });
     }
 
     #[Override]
-    public function deleteAssignment(int $companyId, int $id): bool
+    public function delete(WorkShiftAssignment $assignment): bool
     {
-        return DB::transaction(function () use ($companyId, $id): bool {
+        return DB::transaction(function () use ($assignment): bool {
             /** @var WorkShiftAssignment $row */
             $row = WorkShiftAssignment::query()
-                ->where('company_id', $companyId)
+                ->where('company_id', (int) $assignment->company_id)
                 ->lockForUpdate()
-                ->findOrFail($id);
+                ->findOrFail($assignment->id);
 
             $deleted = (bool) $row->delete();
 
             if ($deleted) {
+                $this->invalidateAfterWrite((int) $assignment->company_id);
+            }
+
+            return $deleted;
+        });
+    }
+
+    #[Override]
+    public function bulkDelete(array $ids, int $companyId): int
+    {
+        return DB::transaction(function () use ($ids, $companyId): int {
+            $deleted = (int) WorkShiftAssignment::query()
+                ->where('company_id', $companyId)
+                ->whereIn('id', $ids)
+                ->delete();
+
+            if ($deleted > 0) {
                 $this->invalidateAfterWrite($companyId);
             }
 
@@ -156,31 +233,116 @@ class WorkScheduleAssignmentRepository extends BaseRepository implements WorkSch
     }
 
     #[Override]
-    public function findForCompany(int $companyId, int $id): WorkShiftAssignment
+    public function getSchedulesForSelector(int $companyId): Collection
     {
-        /** @var WorkShiftAssignment $assignment */
-        $assignment = WorkShiftAssignment::query()
+        return WorkSchedule::query()
             ->where('company_id', $companyId)
-            ->findOrFail($id);
+            ->orderByDesc('date_from')
+            ->get(['id', 'company_id', 'name', 'date_from', 'date_to', 'status']);
+    }
 
-        return $assignment;
+    #[Override]
+    public function findScheduleForCompany(int $companyId, int $scheduleId): WorkSchedule
+    {
+        return $this->findScheduleOrFailScoped($scheduleId, $companyId);
+    }
+
+    #[Override]
+    public function findEmployeeForCompany(int $companyId, int $employeeId): Employee
+    {
+        return $this->findEmployeeOrFailScoped($employeeId, $companyId);
+    }
+
+    #[Override]
+    public function findShiftForCompany(int $companyId, int $workShiftId): WorkShift
+    {
+        return $this->findShiftOrFailScoped($workShiftId, $companyId);
+    }
+
+    #[Override]
+    public function employeesBelongToCompany(int $companyId, array $employeeIds): bool
+    {
+        if ($employeeIds === []) {
+            return true;
+        }
+
+        return $this->countEmployeesScoped($employeeIds, $companyId) === count($employeeIds);
+    }
+
+    #[Override]
+    public function shiftsBelongToCompany(int $companyId, array $shiftIds): bool
+    {
+        if ($shiftIds === []) {
+            return true;
+        }
+
+        return $this->countShiftsScoped($shiftIds, $companyId) === count($shiftIds);
+    }
+
+    #[Override]
+    public function findScheduleOrFailScoped(int $scheduleId, int $companyId): WorkSchedule
+    {
+        /** @var WorkSchedule $schedule */
+        $schedule = WorkSchedule::query()
+            ->where('company_id', $companyId)
+            ->findOrFail($scheduleId);
+
+        return $schedule;
+    }
+
+    #[Override]
+    public function findEmployeeOrFailScoped(int $employeeId, int $companyId): Employee
+    {
+        /** @var Employee $employee */
+        $employee = Employee::query()
+            ->where('company_id', $companyId)
+            ->findOrFail($employeeId);
+
+        return $employee;
+    }
+
+    #[Override]
+    public function findShiftOrFailScoped(int $workShiftId, int $companyId): WorkShift
+    {
+        /** @var WorkShift $shift */
+        $shift = WorkShift::query()
+            ->where('company_id', $companyId)
+            ->findOrFail($workShiftId);
+
+        return $shift;
+    }
+
+    #[Override]
+    public function countEmployeesScoped(array $employeeIds, int $companyId): int
+    {
+        if ($employeeIds === []) {
+            return 0;
+        }
+
+        return Employee::query()
+            ->where('company_id', $companyId)
+            ->whereIn('id', $employeeIds)
+            ->count();
+    }
+
+    #[Override]
+    public function countShiftsScoped(array $shiftIds, int $companyId): int
+    {
+        if ($shiftIds === []) {
+            return 0;
+        }
+
+        return WorkShift::query()
+            ->where('company_id', $companyId)
+            ->whereIn('id', $shiftIds)
+            ->count();
     }
 
     private function invalidateAfterWrite(int $companyId): void
     {
-        DB::afterCommit(function () use ($companyId): void {
-            $this->cacheVersionService->bump("company:{$companyId}:work_schedule_assignments");
+        DB::afterCommit(function (): void {
+            $this->cacheVersionService->bump('work_schedule_assignments');
         });
     }
 
-    #[Override]
-    public function model(): string
-    {
-        return WorkShiftAssignment::class;
-    }
-
-    public function boot(): void
-    {
-        $this->pushCriteria(app(RequestCriteria::class));
-    }
 }

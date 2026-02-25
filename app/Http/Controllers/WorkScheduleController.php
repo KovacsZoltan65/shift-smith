@@ -8,8 +8,10 @@ use App\Http\Requests\WorkSchedule\BulkDeleteRequest;
 use App\Http\Requests\WorkSchedule\IndexRequest;
 use App\Models\WorkSchedule;
 use App\Policies\WorkSchedulePolicy;
+use App\Services\CurrentCompany;
 use App\Services\WorkScheduleService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -30,7 +32,8 @@ class WorkScheduleController extends Controller
      * @param WorkScheduleService $service Munkabeosztás service
      */
     public function __construct(
-        private readonly WorkScheduleService $service
+        private readonly WorkScheduleService $service,
+        private readonly CurrentCompany $currentCompany,
     ) {}
 
     /**
@@ -42,10 +45,14 @@ class WorkScheduleController extends Controller
     public function index(IndexRequest $request): InertiaResponse
     {
         $this->authorize(WorkSchedulePolicy::PERM_VIEW_ANY, WorkSchedule::class);
+        $currentCompanyId = $this->getCurrentCompanyId($request);
+
+        $filter = $request->validatedFilters();
+        $filter['company_id'] = $currentCompanyId;
 
         return Inertia::render('WorkSchedules/Index', [
             'title'  => 'Beosztások',
-            'filter' => $request->validatedFilters(),
+            'filter' => $filter,
         ]);
     }
 
@@ -58,9 +65,12 @@ class WorkScheduleController extends Controller
     public function fetch(IndexRequest $request): JsonResponse
     {
         $this->authorize(WorkSchedulePolicy::PERM_VIEW_ANY, WorkSchedule::class);
+        $currentCompanyId = $this->getCurrentCompanyId($request);
 
-        $workSchedules = $this->service->fetch($request);
+        $workSchedules = $this->service->fetch($request, $currentCompanyId);
         $items = WorkScheduleIndexData::collect($workSchedules->items());
+        $filter = $request->validatedFilters();
+        $filter['company_id'] = $currentCompanyId;
 
         return response()->json([
             'message' => 'Beosztások sikeresen lekérve.',
@@ -71,7 +81,7 @@ class WorkScheduleController extends Controller
                 'total'        => $workSchedules->total(),
                 'last_page'    => $workSchedules->lastPage(),
             ],
-            'filter' => $request->validatedFilters(),
+            'filter' => $filter,
         ], Response::HTTP_OK);
     }
 
@@ -81,9 +91,10 @@ class WorkScheduleController extends Controller
      * @param int $id Munkabeosztás azonosító
      * @return JsonResponse Munkabeosztás adatok JSON-ben
      */
-    public function getWorkSchedule(int $id): JsonResponse
+    public function getWorkSchedule(Request $request, int $id): JsonResponse
     {
-        $workSchedule = $this->service->find($id);
+        $currentCompanyId = $this->getCurrentCompanyId($request);
+        $workSchedule = $this->service->find($id, $currentCompanyId);
         $this->authorize(WorkSchedulePolicy::PERM_VIEW, $workSchedule);
 
         return response()->json([
@@ -98,11 +109,12 @@ class WorkScheduleController extends Controller
      * @param WorkScheduleData $data Validált adat DTO
      * @return JsonResponse Létrehozott munkabeosztás JSON-ben
      */
-    public function store(WorkScheduleData $data): JsonResponse
+    public function store(Request $request, WorkScheduleData $data): JsonResponse
     {
         $this->authorize(WorkSchedulePolicy::PERM_CREATE, WorkSchedule::class);
+        $currentCompanyId = $this->getCurrentCompanyId($request);
 
-        $created = $this->service->store($data);
+        $created = $this->service->store($data, $currentCompanyId);
 
         return response()->json([
             'message' => 'A beosztás sikeresen létrehozva.',
@@ -117,12 +129,13 @@ class WorkScheduleController extends Controller
      * @param WorkScheduleData $data Validált adat DTO
      * @return JsonResponse Frissített munkabeosztás JSON-ben
      */
-    public function update(int $id, WorkScheduleData $data): JsonResponse
+    public function update(Request $request, int $id, WorkScheduleData $data): JsonResponse
     {
-        $workSchedule = $this->service->find($id);
+        $currentCompanyId = $this->getCurrentCompanyId($request);
+        $workSchedule = $this->service->find($id, $currentCompanyId);
         $this->authorize(WorkSchedulePolicy::PERM_UPDATE, $workSchedule);
 
-        $updated = $this->service->update($id, $data);
+        $updated = $this->service->update($id, $data, $currentCompanyId);
 
         return response()->json([
             'message' => 'Beosztás sikeresen frissítve.',
@@ -138,13 +151,14 @@ class WorkScheduleController extends Controller
      * @param int $id Munkabeosztás azonosító
      * @return JsonResponse Törlés eredménye JSON-ben
      */
-    public function destroy(int $id): JsonResponse
+    public function destroy(Request $request, int $id): JsonResponse
     {
-        $workSchedule = $this->service->getWorkSchedule($id);
+        $currentCompanyId = $this->getCurrentCompanyId($request);
+        $workSchedule = $this->service->getWorkSchedule($id, $currentCompanyId);
         $this->authorize(WorkSchedulePolicy::PERM_DELETE, $workSchedule);
 
         try {
-            $deleted = $this->service->destroy($id);
+            $deleted = $this->service->destroy($id, $currentCompanyId);
 
             return response()->json($deleted, Response::HTTP_OK);
         } catch (Throwable $th) {
@@ -167,11 +181,12 @@ class WorkScheduleController extends Controller
     public function bulkDelete(BulkDeleteRequest $request): JsonResponse
     {
         $this->authorize(WorkSchedulePolicy::PERM_DELETE_ANY, WorkSchedule::class);
+        $currentCompanyId = $this->getCurrentCompanyId($request);
 
         $data = $request->validated();
 
         try {
-            $deleted = $this->service->bulkDelete($data['ids']);
+            $deleted = $this->service->bulkDelete($data['ids'], $currentCompanyId);
 
             return response()->json([
                 'message' => 'Sikeres törlés.',
@@ -184,5 +199,13 @@ class WorkScheduleController extends Controller
                 'message' => $code === Response::HTTP_UNPROCESSABLE_ENTITY ? ($th->getMessage() ?: 'Törlés sikertelen.') : 'Váratlan hiba történt',
             ], $code);
         }
+    }
+
+    private function getCurrentCompanyId(Request $request): int
+    {
+        $currentCompanyId = $this->currentCompany->currentCompanyId($request);
+        abort_if($currentCompanyId === null, 403, 'No company selected');
+
+        return $currentCompanyId;
     }
 }

@@ -2,14 +2,17 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\UserMenuStat;
+use App\Services\Menu\MenuContextService;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 
 class TrackMenuUsage
 {
+    public function __construct(
+        private readonly MenuContextService $menuContextService,
+    ) {}
+
     public function handle(Request $request, Closure $next): Response
     {
         /** @var Response $response */
@@ -47,17 +50,7 @@ class TrackMenuUsage
             return $response;
         }
 
-        // biztos increment: insert esetén is működik
-        $stat = UserMenuStat::query()->firstOrCreate(
-            ['user_id' => $user->id, 'menu_key' => $routeName],
-            ['hit_count' => 0, 'last_used_at' => now()]
-        );
-
-        $stat->increment('hit_count');
-        $stat->forceFill(['last_used_at' => now()])->save();
-
-        // menu_order cache invalidálás (userenként)
-        Cache::forget("menu_order:user:{$user->id}");
+        $this->menuContextService->trackMenuUsage((int) $user->id, (string) $routeName);
 
         return $response;
     }

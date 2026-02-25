@@ -246,21 +246,29 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
         abort_if($authUser && \in_array($authUser->id, $ids, true), 403, 'Saját fiókot nem törölhetsz.');
     
         return DB::transaction(function() use($ids): int {
+            $users = User::query()
+                ->with('companies:id,tenant_group_id')
+                ->whereIn('id', $ids)
+                ->lockForUpdate()
+                ->get();
+
+            $deleted = 0;
+
+            foreach ($users as $user) {
+                $this->assertCanManageTargetUser($user);
+                $this->clearPermissionAssignments($user);
+
+                $userDeleted = (bool) $user->delete();
+                if ($userDeleted) {
+                    $deleted++;
+                }
+
+                $this->deleteDefaultSettings($user);
+            }
             
-            // Jogosultságok törlése
-            DB::table('model_has_roles')
-                ->where('model_type', User::class)
-                ->whereIn('model_id', $ids)
-                ->delete();
-            
-            DB::table('model_has_permissions')
-                ->where('model_type', User::class)
-                ->whereIn('model_id', $ids)
-                ->delete();
-            
-            $deleted = User::query()->whereIn('id', $ids)->delete();
-            
-            $this->invalidateAfterUserWrite();
+            if ($deleted > 0) {
+                $this->invalidateAfterUserWrite();
+            }
             
             return $deleted;
         });
@@ -288,16 +296,9 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
                 403, 
                 'Saját fiókot nem törölhetsz.'
             );
-            
-            DB::table('model_has_roles')
-                ->where('model_type', User::class)
-                ->where('model_id', '=', $id)
-                ->delete();
-            
-            DB::table('model_has_permissions')
-                ->where('model_type', User::class)
-                ->where('model_id', '=', $id)
-                ->delete();
+
+            $this->assertCanManageTargetUser($user);
+            $this->clearPermissionAssignments($user);
             
             $deleted = (bool) $user->delete();
             
@@ -353,6 +354,45 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      * @return void
      */
     private function deleteDefaultSettings(User $user): void{}
+
+    private function clearPermissionAssignments(User $user): void
+    {
+        $user->syncRoles([]);
+        $user->syncPermissions([]);
+    }
+
+    private function assertCanManageTargetUser(User $target): void
+    {
+        $authUser = Auth::user();
+
+        if (! $authUser instanceof User) {
+            return;
+        }
+
+        if ($authUser->hasRole('superadmin')) {
+            return;
+        }
+
+        $authTenantGroupIds = $authUser->companies()
+            ->pluck('tenant_group_id')
+            ->map(static fn ($id): int => (int) $id)
+            ->filter(static fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        $targetTenantGroupIds = $target->companies()
+            ->pluck('tenant_group_id')
+            ->map(static fn ($id): int => (int) $id)
+            ->filter(static fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        $hasSharedTenant = ! empty(array_intersect($authTenantGroupIds, $targetTenantGroupIds));
+
+        abort_if(! $hasSharedTenant, 404, 'User not found.');
+    }
     
     /**
      * Repository model osztály megadása

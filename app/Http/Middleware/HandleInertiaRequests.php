@@ -5,9 +5,8 @@ namespace App\Http\Middleware;
 use App\Models\User;
 use App\Services\CompanyContextService;
 use App\Services\CurrentCompany;
+use App\Services\Menu\MenuContextService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Inertia\Middleware;
 use Tighten\Ziggy\Ziggy;
 
@@ -15,7 +14,8 @@ class HandleInertiaRequests extends Middleware
 {
     public function __construct(
         private readonly CurrentCompany $currentCompany,
-        private readonly CompanyContextService $companyContext
+        private readonly CompanyContextService $companyContext,
+        private readonly MenuContextService $menuContextService,
     ) {}
 
     /**
@@ -47,24 +47,7 @@ class HandleInertiaRequests extends Middleware
         $selectableCompanyCount = 0;
         
         if ($user) {
-            
-            $needCache = config('cache.enable_menu', false);
-            $cacheKey  = "menu_order:user:{$user->id}";
-            $ttl       = (int) config('cache.menu_refresh_second', 60);
-            
-            $callback = function() use($user) {
-                return DB::table('user_menu_stats')
-                    ->where('user_id', $user->id)
-                    ->orderByDesc('hit_count')
-                    ->orderByDesc('last_used_at')
-                    ->pluck('menu_key')
-                    ->values()
-                    ->all();
-            };
-            
-            $menuOrder = $needCache
-                ? Cache::remember($cacheKey, $ttl, $callback)
-                : $callback();
+            $menuOrder = $this->menuContextService->getMenuOrderForUser((int) $user->id);
 
             if ($user instanceof User && $currentCompanyId !== null) {
                 $currentCompany = $this->companyContext->findSelectableCompany($user, $currentCompanyId);

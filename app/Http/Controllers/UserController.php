@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Password;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
 /**
@@ -232,6 +233,13 @@ class UserController extends Controller
 
             return response()->json($deleted, Response::HTTP_OK);
         } catch (Throwable $th) {
+            if ($th instanceof HttpExceptionInterface) {
+                return response()->json(
+                    ['message' => $th->getMessage() !== '' ? $th->getMessage() : 'Váratlan hiba történt'],
+                    $th->getStatusCode()
+                );
+            }
+
             return response()->json(
                 ['message' => 'Váratlan hiba történt'],
                 Response::HTTP_INTERNAL_SERVER_ERROR
@@ -269,6 +277,12 @@ class UserController extends Controller
                 'deleted' => $deleted,
             ], Response::HTTP_OK);
         } catch(Throwable $th) {
+            if ($th instanceof HttpExceptionInterface) {
+                return response()->json([
+                    'message' => $th->getMessage() !== '' ? $th->getMessage() : 'Törlés sikertelen.',
+                ], $th->getStatusCode());
+            }
+
             return response()->json([
                 'message' => 'Törlés sikertelen.',
             ], Response::HTTP_INTERNAL_SERVER_ERROR);

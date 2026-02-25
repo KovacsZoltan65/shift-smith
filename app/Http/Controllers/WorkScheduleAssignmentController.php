@@ -16,6 +16,7 @@ use App\Policies\WorkScheduleAssignmentPolicy;
 use App\Services\WorkScheduleAssignmentService;
 use App\Support\CurrentCompanyContext;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -31,7 +32,7 @@ class WorkScheduleAssignmentController extends Controller
     {
         $this->authorize(WorkScheduleAssignmentPolicy::PERM_VIEW_ANY, WorkShiftAssignment::class);
 
-        $companyId = $this->companyContext->resolve($request);
+        $companyId = $this->requireCurrentCompanyId($request);
         $schedules = $this->service->getSchedulesForSelector($companyId)
             ->map(fn ($s): array => [
                 'id' => (int) $s->id,
@@ -63,7 +64,7 @@ class WorkScheduleAssignmentController extends Controller
     {
         $this->authorize(WorkScheduleAssignmentPolicy::PERM_VIEW_ANY, WorkShiftAssignment::class);
 
-        $companyId = $this->companyContext->resolve($request);
+        $companyId = $this->requireCurrentCompanyId($request);
         $data = $request->validated();
 
         $result = $this->service->feed(
@@ -98,7 +99,7 @@ class WorkScheduleAssignmentController extends Controller
     {
         $this->authorize(WorkScheduleAssignmentPolicy::PERM_CREATE, WorkShiftAssignment::class);
 
-        $companyId = $this->companyContext->resolve($request);
+        $companyId = $this->requireCurrentCompanyId($request);
         $created = $this->service->create($companyId, $request->validated());
 
         return response()->json([
@@ -109,7 +110,7 @@ class WorkScheduleAssignmentController extends Controller
 
     public function update(UpdateRequest $request, int $id): JsonResponse
     {
-        $companyId = $this->companyContext->resolve($request);
+        $companyId = $this->requireCurrentCompanyId($request);
         $assignment = $this->service->findAssignmentForCompany($companyId, $id);
         $this->authorize(WorkScheduleAssignmentPolicy::PERM_UPDATE, $assignment);
         $updated = $this->service->update($companyId, $id, $request->validated());
@@ -122,7 +123,7 @@ class WorkScheduleAssignmentController extends Controller
 
     public function destroy(DeleteRequest $request, int $id): JsonResponse
     {
-        $companyId = $this->companyContext->resolve($request);
+        $companyId = $this->requireCurrentCompanyId($request);
         $assignment = $this->service->findAssignmentForCompany($companyId, $id);
         $this->authorize(WorkScheduleAssignmentPolicy::PERM_DELETE, $assignment);
         $deleted = $this->service->delete($companyId, $id);
@@ -137,7 +138,7 @@ class WorkScheduleAssignmentController extends Controller
     {
         $this->authorize(WorkScheduleAssignmentPolicy::PERM_CREATE, WorkShiftAssignment::class);
 
-        $companyId = $this->companyContext->resolve($request);
+        $companyId = $this->requireCurrentCompanyId($request);
         $data = $request->validated();
 
         $rows = $this->service->bulkUpsert(
@@ -153,5 +154,10 @@ class WorkScheduleAssignmentController extends Controller
             'data' => $rows,
             'count' => count($rows),
         ], Response::HTTP_OK);
+    }
+
+    private function requireCurrentCompanyId(Request $request): int
+    {
+        return $this->companyContext->resolve($request);
     }
 }

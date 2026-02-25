@@ -12,6 +12,7 @@ use App\Policies\WorkSchedulePolicy;
 use App\Services\Scheduling\AutoPlanService;
 use App\Support\CurrentCompanyContext;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class AutoPlanController extends Controller
@@ -33,7 +34,7 @@ class AutoPlanController extends Controller
 
     public function generate(GenerateRequest $request): JsonResponse
     {
-        $companyId = $this->companyContext->resolve($request);
+        $companyId = $this->requireCurrentCompanyId($request);
         $userId = (int) $request->user()->id;
 
         $data = GenerateInputData::fromPayload($request->validated());
@@ -43,5 +44,16 @@ class AutoPlanController extends Controller
             'message' => 'AutoPlan draft generálás kész.',
             'data' => $result,
         ], Response::HTTP_CREATED);
+    }
+
+    private function requireCurrentCompanyId(Request $request): int
+    {
+        $companyId = $this->companyContext->resolve($request);
+
+        if ($companyId === null) {
+            abort(Response::HTTP_UNPROCESSABLE_ENTITY, 'Nincs kiválasztott cég kontextus.');
+        }
+
+        return $companyId;
     }
 }

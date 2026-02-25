@@ -9,9 +9,7 @@ use App\Data\WorkScheduleAssignment\WorkScheduleAssignmentData;
 use App\Interfaces\WorkScheduleAssignmentRepositoryInterface;
 use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
-use App\Models\Employee;
 use App\Models\WorkSchedule;
-use App\Models\WorkShift;
 use App\Models\WorkShiftAssignment;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -79,7 +77,7 @@ class WorkScheduleAssignmentService
         ];
         ksort($paramsForKey);
 
-        $version = $this->cacheVersionService->get("company:{$companyId}:work_schedule_assignments");
+        $version = $this->cacheVersionService->get('work_schedule_assignments');
         $hash = hash('sha256', json_encode($paramsForKey, JSON_THROW_ON_ERROR));
         $key = "v{$version}:feed:{$hash}";
 
@@ -107,18 +105,17 @@ class WorkScheduleAssignmentService
 
     public function create(int $companyId, array $payload): WorkScheduleAssignmentData
     {
-        $schedule = $this->findSchedule($companyId, (int) $payload['work_schedule_id']);
+        $schedule = $this->repository->findScheduleForCompany($companyId, (int) $payload['work_schedule_id']);
         $this->guardPlannerWritable($schedule);
 
-        $employee = $this->findEmployee($companyId, (int) $payload['employee_id']);
-        $shift = $this->findShift($companyId, (int) $payload['work_shift_id']);
+        $employee = $this->repository->findEmployeeForCompany($companyId, (int) $payload['employee_id']);
+        $shift = $this->repository->findShiftForCompany($companyId, (int) $payload['work_shift_id']);
         $date = (string) $payload['date'];
 
         $this->guardDateWritable($date);
         $this->validateUniqueEmployeeDate($companyId, (int) $employee->id, $date);
 
-        $row = $this->repository->create([
-            'company_id' => $companyId,
+        $row = $this->repository->store($companyId, [
             'work_schedule_id' => (int) $schedule->id,
             'employee_id' => (int) $employee->id,
             'work_shift_id' => (int) $shift->id,
@@ -130,18 +127,18 @@ class WorkScheduleAssignmentService
 
     public function update(int $companyId, int $id, array $payload): WorkScheduleAssignmentData
     {
-        $existing = $this->repository->findForCompany($companyId, $id);
-        $schedule = $this->findSchedule($companyId, (int) $payload['work_schedule_id']);
+        $existing = $this->repository->findOrFailScoped($id, $companyId);
+        $schedule = $this->repository->findScheduleForCompany($companyId, (int) $payload['work_schedule_id']);
         $this->guardPlannerWritable($schedule);
 
-        $employee = $this->findEmployee($companyId, (int) $payload['employee_id']);
-        $shift = $this->findShift($companyId, (int) $payload['work_shift_id']);
+        $employee = $this->repository->findEmployeeForCompany($companyId, (int) $payload['employee_id']);
+        $shift = $this->repository->findShiftForCompany($companyId, (int) $payload['work_shift_id']);
         $date = (string) $payload['date'];
 
         $this->guardDateWritable($date);
         $this->validateUniqueEmployeeDate($companyId, (int) $employee->id, $date, (int) $existing->id);
 
-        $row = $this->repository->updateAssignment($companyId, $id, [
+        $row = $this->repository->update($existing, [
             'work_schedule_id' => (int) $schedule->id,
             'employee_id' => (int) $employee->id,
             'work_shift_id' => (int) $shift->id,
@@ -153,12 +150,12 @@ class WorkScheduleAssignmentService
 
     public function delete(int $companyId, int $id): bool
     {
-        $assignment = $this->repository->findForCompany($companyId, $id);
-        $schedule = $this->findSchedule($companyId, (int) $assignment->work_schedule_id);
+        $assignment = $this->repository->findOrFailScoped($id, $companyId);
+        $schedule = $this->repository->findScheduleForCompany($companyId, (int) $assignment->work_schedule_id);
         $this->guardPlannerWritable($schedule);
         $this->guardDateWritable((string) $assignment->date->format('Y-m-d'));
 
-        return $this->repository->deleteAssignment($companyId, $id);
+        return $this->repository->delete($assignment);
     }
 
     /**
@@ -176,10 +173,10 @@ class WorkScheduleAssignmentService
         $schedule = $this->findSchedule($companyId, $workScheduleId);
         $this->guardPlannerWritable($schedule);
 
-        $this->findShift($companyId, $workShiftId);
+        $this->repository->findShiftForCompany($companyId, $workShiftId);
 
         foreach ($employeeIds as $employeeId) {
-            $this->findEmployee($companyId, (int) $employeeId);
+            $this->repository->findEmployeeForCompany($companyId, (int) $employeeId);
         }
 
         foreach ($dates as $date) {
@@ -199,45 +196,17 @@ class WorkScheduleAssignmentService
 
     public function findAssignmentForCompany(int $companyId, int $id): WorkShiftAssignment
     {
-        return $this->repository->findForCompany($companyId, $id);
+        return $this->repository->findOrFailScoped($id, $companyId);
     }
 
     public function getSchedulesForSelector(int $companyId): Collection
     {
-        return WorkSchedule::query()
-            ->where('company_id', $companyId)
-            ->orderByDesc('date_from')
-            ->get(['id', 'company_id', 'name', 'date_from', 'date_to', 'status']);
+        return $this->repository->getSchedulesForSelector($companyId);
     }
 
     private function findSchedule(int $companyId, int $scheduleId): WorkSchedule
     {
-        /** @var WorkSchedule $schedule */
-        $schedule = WorkSchedule::query()
-            ->where('company_id', $companyId)
-            ->findOrFail($scheduleId);
-
-        return $schedule;
-    }
-
-    private function findEmployee(int $companyId, int $employeeId): Employee
-    {
-        /** @var Employee $employee */
-        $employee = Employee::query()
-            ->where('company_id', $companyId)
-            ->findOrFail($employeeId);
-
-        return $employee;
-    }
-
-    private function findShift(int $companyId, int $workShiftId): WorkShift
-    {
-        /** @var WorkShift $shift */
-        $shift = WorkShift::query()
-            ->where('company_id', $companyId)
-            ->findOrFail($workShiftId);
-
-        return $shift;
+        return $this->repository->findScheduleForCompany($companyId, $scheduleId);
     }
 
     /**
@@ -251,16 +220,14 @@ class WorkScheduleAssignmentService
     {
         $employeeIds = $filters['employee_ids'] ?? [];
         if (!empty($employeeIds)) {
-            $count = Employee::query()->where('company_id', $companyId)->whereIn('id', $employeeIds)->count();
-            if ($count !== count($employeeIds)) {
+            if (! $this->repository->employeesBelongToCompany($companyId, $employeeIds)) {
                 throw ValidationException::withMessages(['employee_ids' => 'A kiválasztott dolgozók között cégidegen elem található.']);
             }
         }
 
         $workShiftIds = $filters['work_shift_ids'] ?? [];
         if (!empty($workShiftIds)) {
-            $count = WorkShift::query()->where('company_id', $companyId)->whereIn('id', $workShiftIds)->count();
-            if ($count !== count($workShiftIds)) {
+            if (! $this->repository->shiftsBelongToCompany($companyId, $workShiftIds)) {
                 throw ValidationException::withMessages(['work_shift_ids' => 'A kiválasztott műszakok között cégidegen elem található.']);
             }
         }
