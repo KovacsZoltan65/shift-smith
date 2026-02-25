@@ -5,9 +5,9 @@ declare(strict_types=1);
 use App\Models\Company;
 use App\Models\TenantGroup;
 use App\Models\WorkSchedule;
+use App\Services\Cache\CacheNamespaces;
 use App\Models\User;
 use App\Services\Cache\CacheVersionService;
-use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function (): void {
@@ -58,8 +58,10 @@ it('allows admin to store a work schedule and bumps cache versions', function ()
     $user->refresh();
 
     $versioner = app(CacheVersionService::class);
-
-    Cache::forever('v:work_schedules.fetch', 1);
+    $tenantNamespace = CacheNamespaces::tenantWorkSchedules((int) $company->tenant_group_id);
+    $companyNamespace = "company:{$company->id}:work_schedules";
+    $tenantBefore = $versioner->get($tenantNamespace);
+    $companyBefore = $versioner->get($companyNamespace);
 
     $payload = WorkSchedule::factory()->make([
         'company_id' => $company->id,
@@ -80,5 +82,6 @@ it('allows admin to store a work schedule and bumps cache versions', function ()
         'status' => 'draft',
     ]);
 
-    expect($versioner->get('work_schedules.fetch'))->toBe(2);
+    expect($versioner->get($tenantNamespace))->toBeGreaterThan($tenantBefore);
+    expect($versioner->get($companyNamespace))->toBeGreaterThan($companyBefore);
 });

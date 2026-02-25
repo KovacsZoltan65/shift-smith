@@ -167,7 +167,6 @@ final class WorkScheduleRepository implements WorkScheduleRepositoryInterface
      * Tranzakcióban futtatva, cache invalidálással.
      * 
      * @param array{
-     *   company_id: int,
      *   name: string,
      *   date_from: string,
      *   date_to: string,
@@ -179,6 +178,7 @@ final class WorkScheduleRepository implements WorkScheduleRepositoryInterface
     public function store(array $data, int $companyId): WorkSchedule
     {
         abort_if($companyId <= 0, 403, 'No company selected');
+        unset($data['company_id']);
 
         return DB::transaction(function () use ($data, $companyId): WorkSchedule {
             /** @var WorkSchedule $workSchedule */
@@ -187,7 +187,7 @@ final class WorkScheduleRepository implements WorkScheduleRepositoryInterface
                 'company_id' => $companyId,
             ]);
 
-            $this->invalidateAfterWrite();
+            $this->invalidateAfterWrite($companyId);
 
             return $workSchedule;
         });
@@ -200,7 +200,6 @@ final class WorkScheduleRepository implements WorkScheduleRepositoryInterface
      * Frissítés után cache invalidálás.
      * 
      * @param array{
-     *   company_id: int,
      *   name: string,
      *   date_from: string,
      *   date_to: string,
@@ -213,6 +212,7 @@ final class WorkScheduleRepository implements WorkScheduleRepositoryInterface
     public function update(array $data, int $id, int $companyId): WorkSchedule
     {
         abort_if($companyId <= 0, 403, 'No company selected');
+        unset($data['company_id']);
 
         return DB::transaction(function () use ($data, $id, $companyId): WorkSchedule {
             /** @var WorkSchedule $workSchedule */
@@ -228,7 +228,7 @@ final class WorkScheduleRepository implements WorkScheduleRepositoryInterface
             $workSchedule->save();
             $workSchedule->refresh();
 
-            $this->invalidateAfterWrite();
+            $this->invalidateAfterWrite($companyId);
 
             return $workSchedule;
         });
@@ -265,7 +265,7 @@ final class WorkScheduleRepository implements WorkScheduleRepositoryInterface
                 ->whereIn('id', $ids)
                 ->delete();
 
-            $this->invalidateAfterWrite();
+            $this->invalidateAfterWrite($companyId);
 
             return (int) $deleted;
         });
@@ -299,7 +299,7 @@ final class WorkScheduleRepository implements WorkScheduleRepositoryInterface
 
             $deleted = (bool) $workSchedule->delete();
 
-            $this->invalidateAfterWrite();
+            $this->invalidateAfterWrite($companyId);
 
             return $deleted;
         });
@@ -313,13 +313,13 @@ final class WorkScheduleRepository implements WorkScheduleRepositoryInterface
      * 
      * @return void
      */
-    private function invalidateAfterWrite(): void
+    private function invalidateAfterWrite(int $companyId): void
     {
-        DB::afterCommit(function (): void {
+        DB::afterCommit(function () use ($companyId): void {
             $tenantGroupId = $this->tenantContext->currentTenantGroupIdOrFail();
             $namespace = CacheNamespaces::tenantWorkSchedules($tenantGroupId);
             $this->cacheVersionService->bump($namespace);
-            $this->cacheVersionService->bump('work_schedules.fetch');
+            $this->cacheVersionService->bump("company:{$companyId}:work_schedules");
         });
     }
 

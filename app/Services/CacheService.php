@@ -19,47 +19,69 @@ class CacheService
 
     private const TENANT_CTX_KEY = 'tenantId';
 
-    private function tenantId(): ?int
+    private function contextTenantId(): ?int
     {
-        // Spatie Multitenancy context
-        $tenantId = app()->bound('context') ? app('context')->get(self::TENANT_CTX_KEY) : null;
+        try {
+            if (! app()->bound('context')) {
+                return null;
+            }
 
-        if (! is_numeric($tenantId)) {
-            $tenantId = TenantGroup::current()?->id;
-        }
+            $context = app('context');
+            if (! \is_object($context) || ! method_exists($context, 'get')) {
+                return null;
+            }
 
-        if (! is_numeric($tenantId)) {
+            $tenantId = $context->get(self::TENANT_CTX_KEY);
+
+            return is_numeric($tenantId) && (int) $tenantId > 0
+                ? (int) $tenantId
+                : null;
+        } catch (\Throwable) {
             return null;
         }
+    }
 
-        $id = (int) $tenantId;
+    private function resolveTenantPrefix(): string
+    {
+        // 1) Spatie Context kulcs
+        $contextTenantId = $this->contextTenantId();
+        if ($contextTenantId !== null) {
+            return "tenant:{$contextTenantId}";
+        }
 
-        return $id > 0 ? $id : null;
+        // 2) Current tenant fallback
+        $currentTenantId = TenantGroup::current()?->id;
+        if (is_numeric($currentTenantId) && (int) $currentTenantId > 0) {
+            return 'tenant:'.(int) $currentTenantId;
+        }
+
+        // 3) Landlord context
+        return 'landlord';
     }
 
     private function qualifyTag(string $tag): string
     {
-        $tenantId = $this->tenantId();
-
-        // Ha nincs tenant, landlord/guest mód: elkülönített namespace
-        if ($tenantId === null) {
-            return "landlord:{$tag}";
-        }
-
-        return "tenant:{$tenantId}:{$tag}";
+        $prefix = $this->resolveTenantPrefix();
+        return "{$prefix}:{$tag}";
     }
 
-    private function qualifyKey(string $tag, string $key): string
+    private function qualifyKey(string $qualifiedTag, string $keyInput): string
     {
-        // kulcs tenant- + tag-aware
-        // pl: tenant:76:companies:list?page=1
-        return $this->qualifyTag($tag).":{$key}";
+        return "{$qualifiedTag}:".hash('sha256', $keyInput);
     }
 
+    /**
+     * Summary of put
+     * @param string $tag
+     * @param string $key
+     * @param mixed $value
+     * @param DateTimeInterface|DateInterval|int $ttl
+     * @return void
+     */
     public function put(string $tag, string $key, mixed $value, DateTimeInterface|DateInterval|int $ttl = 3600): void
     {
         $qualifiedTag = $this->qualifyTag($tag);
-        $cacheKey = $this->qualifyKey($tag, $key);
+        $cacheKey = $this->qualifyKey($qualifiedTag, $key);
 
         if (Cache::supportsTags()) {
             Cache::tags([$qualifiedTag])->put($cacheKey, $value, $ttl);
@@ -77,7 +99,7 @@ class CacheService
         DateTimeInterface|DateInterval|int $ttl = 3600
     ): mixed {
         $qualifiedTag = $this->qualifyTag($tag);
-        $cacheKey = $this->qualifyKey($tag, $key);
+        $cacheKey = $this->qualifyKey($qualifiedTag, $key);
 
         if (Cache::supportsTags()) {
             return Cache::tags([$qualifiedTag])->remember($cacheKey, $ttl, $callback);
@@ -109,13 +131,24 @@ class CacheService
 
         if ($store instanceof RedisStore) {
             $prefix = (string) config('cache.prefix');
+            $prefixScope = $this->resolveTenantPrefix();
 
-            // pattern legyen tenant-aware a hívó oldalon:
-            // pl: tenant:76:companies:*
-            $keys = $store->connection()->keys($prefix.":{$pattern}");
+            $qualifiedPattern = str_starts_with($pattern, 'tenant:') || str_starts_with($pattern, 'landlord:')
+                ? $pattern
+                : "{$prefixScope}:{$pattern}";
 
-            foreach ($keys as $key) {
-                Cache::forget(str_replace($prefix.':', '', (string) $key));
+            $prefixWithColon = $prefix !== '' ? $prefix.':' : '';
+            $keys = $store->connection()->keys($prefixWithColon.$qualifiedPattern);
+
+            foreach ($keys as $redisKey) {
+                $redisKey = (string) $redisKey;
+
+                // Cache::forget() prefix nélküli kulcsot vár
+                $cacheKey = $prefixWithColon !== '' && str_starts_with($redisKey, $prefixWithColon)
+                    ? substr($redisKey, strlen($prefixWithColon))
+                    : $redisKey;
+
+                Cache::forget($cacheKey);
             }
 
             return;
@@ -132,7 +165,7 @@ class CacheService
         /** @var array<int,string> $keys */
         $keys = Cache::get("{$tag}_keys", []);
 
-        if (! in_array($key, $keys, true)) {
+        if (! \in_array($key, $keys, true)) {
             $keys[] = $key;
             Cache::put("{$tag}_keys", $keys, 3600);
         }

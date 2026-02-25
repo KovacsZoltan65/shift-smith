@@ -61,14 +61,4 @@ trait Functions
         ]);
     }
     */
-
-    /**
-     * @param string $tag
-     * @param string $key
-     * @return string
-     */
-    public function generateCacheKey(string $tag, string $key): string
-    {
-        return "{$tag}:" . hash('sha256', $key);
-    }
 }

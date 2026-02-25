@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\TenantGroup;
+use App\Models\Company;
 use App\Services\Cache\CacheNamespaces;
 use App\Services\Cache\CacheVersionService;
 use Illuminate\Support\Facades\Cache;
@@ -61,6 +62,29 @@ it('isolates tenant work schedules namespace between tenant groups', function ()
 
     $beforeOne = $versioner->get($namespaceOne);
     $afterOne = $versioner->bump($namespaceOne);
+    $currentTwo = $versioner->get($namespaceTwo);
+
+    expect($afterOne)->toBeGreaterThan($beforeOne);
+    expect($currentTwo)->toBe($beforeOne);
+    expect($currentTwo)->not->toBe($afterOne);
+});
+
+it('isolates company scoped work_schedules namespace by tenant group', function (): void {
+    $versioner = app(CacheVersionService::class);
+
+    $tenantOne = TenantGroup::factory()->create();
+    $tenantTwo = TenantGroup::factory()->create();
+
+    $companyOne = Company::factory()->create(['tenant_group_id' => $tenantOne->id]);
+    $companyTwo = Company::factory()->create(['tenant_group_id' => $tenantTwo->id]);
+
+    $tenantOne->makeCurrent();
+    $namespaceOne = "company:{$companyOne->id}:work_schedules";
+    $beforeOne = $versioner->get($namespaceOne);
+    $afterOne = $versioner->bump($namespaceOne);
+
+    $tenantTwo->makeCurrent();
+    $namespaceTwo = "company:{$companyTwo->id}:work_schedules";
     $currentTwo = $versioner->get($namespaceTwo);
 
     expect($afterOne)->toBeGreaterThan($beforeOne);

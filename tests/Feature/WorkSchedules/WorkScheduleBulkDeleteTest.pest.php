@@ -5,8 +5,8 @@ declare(strict_types=1);
 use App\Models\Company;
 use App\Models\TenantGroup;
 use App\Models\WorkSchedule;
+use App\Services\Cache\CacheNamespaces;
 use App\Services\Cache\CacheVersionService;
-use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function (): void {
@@ -61,7 +61,10 @@ it('allows admin to bulk delete drafts and bumps cache versions', function (): v
     $ws = WorkSchedule::factory()->count(3)->create(['company_id' => $company->id, 'status' => 'draft']);
 
     $versioner = app(CacheVersionService::class);
-    Cache::forever('v:work_schedules.fetch', 1);
+    $tenantNamespace = CacheNamespaces::tenantWorkSchedules((int) $company->tenant_group_id);
+    $companyNamespace = "company:{$company->id}:work_schedules";
+    $tenantBefore = $versioner->get($tenantNamespace);
+    $companyBefore = $versioner->get($companyNamespace);
 
     $ids = $ws->pluck('id')->all();
 
@@ -75,5 +78,6 @@ it('allows admin to bulk delete drafts and bumps cache versions', function (): v
         $this->assertSoftDeleted('work_schedules', ['id' => $id]);
     }
 
-    expect($versioner->get('work_schedules.fetch'))->toBe(2);
+    expect($versioner->get($tenantNamespace))->toBeGreaterThan($tenantBefore);
+    expect($versioner->get($companyNamespace))->toBeGreaterThan($companyBefore);
 });
