@@ -14,11 +14,11 @@ it('redirects guests on work shift fetch', function (): void {
     $this->get(route('work_shifts.fetch'))->assertRedirect();
 });
 
-it('forbids fetch when user lacks viewAny permission', function (): void {
+it('forbids fetch when user lacks view permission', function (): void {
     $company = Company::factory()->create();
     $user = $this->createAdminUser($company);
     $user->syncRoles([]);
-    $user->assignRole('user');
+    $user->syncPermissions([]);
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
@@ -57,6 +57,5 @@ it('returns only current company records with meta and filter', function (): voi
         ]);
 
     expect($response->json('meta.total'))->toBe(5);
-    expect($response->json('filter.company_id'))->toBe($companyA->id);
     expect(collect($response->json('data'))->pluck('company_id')->unique()->all())->toBe([$companyA->id]);
 });

@@ -17,7 +17,7 @@ afterEach(function (): void {
     TenantGroup::forgetCurrent();
 });
 
-it('forbids work shift selector without viewAny permission', function (): void {
+it('forbids work shift selector without view permission', function (): void {
     $company = Company::factory()->create();
     $user = $this->createAdminUser($company);
     $user->syncRoles([]);
@@ -67,7 +67,7 @@ it('selector cache namespace reacts to selectors.work_shifts bump', function ():
     $first = $repo->getToSelect([
         'company_id' => $company->id,
         'only_active' => true,
-    ]);
+    ], $company->id);
 
     expect(array_column($first, 'name'))->toContain('A Shift');
 
@@ -77,7 +77,7 @@ it('selector cache namespace reacts to selectors.work_shifts bump', function ():
     $second = $repo->getToSelect([
         'company_id' => $company->id,
         'only_active' => true,
-    ]);
+    ], $company->id);
 
     expect(array_column($second, 'name'))->toContain('B Shift');
 });

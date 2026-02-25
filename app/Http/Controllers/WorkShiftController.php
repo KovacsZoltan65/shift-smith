@@ -29,7 +29,7 @@ final class WorkShiftController extends Controller
 
     public function index(IndexRequest $request): InertiaResponse
     {
-        $this->authorize(WorkShiftPolicy::PERM_VIEW_ANY, WorkShift::class);
+        $this->authorize(WorkShiftPolicy::PERM_VIEW, WorkShift::class);
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
         abort_if($currentCompanyId === null, 403, 'No company selected');
@@ -45,15 +45,13 @@ final class WorkShiftController extends Controller
 
     public function fetch(FetchRequest $request): JsonResponse
     {
-        $this->authorize(WorkShiftPolicy::PERM_VIEW_ANY, WorkShift::class);
+        $this->authorize(WorkShiftPolicy::PERM_VIEW, WorkShift::class);
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
         abort_if($currentCompanyId === null, 403, 'No company selected');
-        $request->merge(['company_id' => $currentCompanyId]);
 
-        $workShifts = $this->service->fetch($request);
+        $workShifts = $this->service->fetch($request, $currentCompanyId);
         $filter = $request->validatedFilters();
-        $filter['company_id'] = $currentCompanyId;
 
         return response()->json([
             'message' => 'Műszakok sikeresen lekérve.',
@@ -70,7 +68,7 @@ final class WorkShiftController extends Controller
 
     public function getWorkShift(Request $request, int $id): JsonResponse
     {
-        $this->authorize(WorkShiftPolicy::PERM_VIEW_ANY, WorkShift::class);
+        $this->authorize(WorkShiftPolicy::PERM_VIEW, WorkShift::class);
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
         abort_if($currentCompanyId === null, 403, 'No company selected');
@@ -93,9 +91,7 @@ final class WorkShiftController extends Controller
 
         /** @var array<string, mixed> $data */
         $data = $request->validated();
-        $data['company_id'] = $currentCompanyId;
-
-        $created = $this->service->store($data);
+        $created = $this->service->store($data, $currentCompanyId);
 
         return response()->json([
             'message' => 'A műszak sikeresen létrehozva.',
@@ -154,22 +150,21 @@ final class WorkShiftController extends Controller
         ], $deleted ? Response::HTTP_OK : Response::HTTP_INTERNAL_SERVER_ERROR);
     }
 
-    public function getToSelect(Request $request): JsonResponse
+    public function getToSelect(FetchRequest $request): JsonResponse
     {
-        $this->authorize(WorkShiftPolicy::PERM_VIEW_ANY, WorkShift::class);
+        $this->authorize(WorkShiftPolicy::PERM_VIEW, WorkShift::class);
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
         abort_if($currentCompanyId === null, 403, 'No company selected');
 
         $params = [
-            'company_id' => $currentCompanyId,
             'search' => $request->string('search')->toString() ?: null,
             'only_active' => $request->boolean('only_active', true),
             'limit' => max(1, min(100, (int) $request->integer('limit', 50))),
         ];
 
         return response()->json(
-            $this->service->getToSelect($params),
+            $this->service->getToSelect($params, $currentCompanyId),
             Response::HTTP_OK
         );
     }

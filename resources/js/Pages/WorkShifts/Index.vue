@@ -1,6 +1,6 @@
 <script setup>
 import { Head } from "@inertiajs/vue3";
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 
@@ -14,26 +14,25 @@ import Toast from "primevue/toast";
 import { useConfirm } from "primevue/useconfirm";
 import { useToast } from "primevue/usetoast";
 
-// WorkShifts modalok (útvonalat igazítsd a te struktúrádhoz)
 import CreateModal from "@/Pages/WorkShifts/CreateModal.vue";
 import EditModal from "@/Pages/WorkShifts/EditModal.vue";
 import AssignmentModal from "@/Pages/WorkShifts/AssignmentModal.vue";
 
-import { csrfFetch } from "@/lib/csrfFetch";
-
+import WorkShiftService from "@/services/WorkShiftService.js";
 import { usePermissions } from "@/composables/usePermissions";
-const { has } = usePermissions();
 
-// Permission prefix: work_shifts.*
-const canCreate = has("work_shifts.create");
-const canUpdate = has("work_shifts.update");
-const canDelete = has("work_shifts.delete");
-const canAssignEmployee = has("work_shifts.update");
+const { has } = usePermissions();
 
 const props = defineProps({
     title: String,
     filter: Object,
 });
+
+const canCreate = computed(() => has("work_shifts.create"));
+const canUpdate = computed(() => has("work_shifts.update"));
+const canDelete = computed(() => has("work_shifts.delete"));
+const canAssignEmployee = computed(() => has("work_shifts.update"));
+const canAnyRowAction = computed(() => canUpdate.value || canDelete.value || canAssignEmployee.value);
 
 const toast = useToast();
 const confirm = useConfirm();
@@ -50,55 +49,37 @@ const error = ref(null);
 
 const rows = ref([]);
 const totalRecords = ref(0);
-
-// checkbox selection
 const selected = ref([]);
 
-// ------------------------
-// Row actions menu
 const rowMenu = ref();
 const rowMenuModel = ref([]);
-const rowMenuRow = ref(null);
 
-const openRowMenu = (event, row) => {
-    rowMenuRow.value = row;
-
-    rowMenuModel.value = [
-        {
-            label: "Szerkesztés",
-            icon: "pi pi-pencil",
-            disabled: actionLoading.value || !canUpdate,
-            command: () => openEditModal(row),
-        },
-        {
-            label: "Törlés",
-            icon: "pi pi-trash",
-            disabled: actionLoading.value || !canDelete,
-            command: () => confirmDeleteOne(row),
-        },
-        {
-            label: "Dolgozó hozzárendelés",
-            icon: "pi pi-user-plus",
-            disabled: actionLoading.value || !canAssignEmployee,
-            command: () => openAssignmentModal(row),
-        },
-    ];
-
-    rowMenu.value.toggle(event);
-};
-// ------------------------
-
-// lazy state (Companies minta)
 const lazy = ref({
     first: 0,
-    rows: 10,
-    page: 0,
-    sortField: "name",
-    sortOrder: 1,
+    rows: Number(props.filter?.per_page ?? 10),
+    page: Math.max(Number(props.filter?.page ?? 1) - 1, 0),
+    sortField: props.filter?.field ?? "id",
+    sortOrder: props.filter?.order === "asc" ? 1 : -1,
 });
+lazy.value.first = lazy.value.page * lazy.value.rows;
 
 const search = ref(props.filter?.search ?? "");
 let t = null;
+
+const formatCreatedAt = (value) => {
+    if (!value) return "-";
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+
+    return date.toLocaleString("hu-HU", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+};
 
 const openCreate = () => {
     createOpen.value = true;
@@ -129,23 +110,35 @@ const onSearchInput = () => {
     }, 300);
 };
 
-const buildQuery = () => {
+const buildParams = () => {
     const order = lazy.value.sortOrder === 1 ? "asc" : "desc";
 
-    const q = {
-        ...(props.filter ?? {}),
+    const params = {
         page: lazy.value.page + 1,
         per_page: lazy.value.rows,
         field: lazy.value.sortField,
         order,
-        search: search.value?.trim() || "",
+        search: search.value?.trim() || undefined,
     };
 
-    Object.keys(q).forEach((k) => {
-        if (q[k] === null || q[k] === undefined || q[k] === "") delete q[k];
+    Object.keys(params).forEach((k) => {
+        if (params[k] === null || params[k] === undefined || params[k] === "") {
+            delete params[k];
+        }
     });
 
-    return new URLSearchParams(q).toString();
+    return params;
+};
+
+const syncPagination = (meta) => {
+    const currentPage = Number(meta?.current_page ?? lazy.value.page + 1);
+    const perPage = Number(meta?.per_page ?? lazy.value.rows);
+    const total = Number(meta?.total ?? 0);
+
+    lazy.value.page = Math.max(currentPage - 1, 0);
+    lazy.value.rows = perPage > 0 ? perPage : lazy.value.rows;
+    lazy.value.first = lazy.value.page * lazy.value.rows;
+    totalRecords.value = total;
 };
 
 const fetchWorkShifts = async () => {
@@ -153,18 +146,11 @@ const fetchWorkShifts = async () => {
     error.value = null;
 
     try {
-        const res = await fetch(`/work-shifts/fetch?${buildQuery()}`, {
-            headers: { "X-Requested-With": "XMLHttpRequest" },
-        });
-
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const json = await res.json();
-
-        rows.value = json.data ?? [];
-        totalRecords.value = json.meta?.total ?? 0;
+        const { data } = await WorkShiftService.getWorkShifts(buildParams());
+        rows.value = Array.isArray(data?.data) ? data.data : [];
+        syncPagination(data?.meta ?? {});
     } catch (e) {
-        error.value = e?.message || "Ismeretlen hiba";
+        error.value = e?.response?.data?.message || e?.message || "Ismeretlen hiba";
     } finally {
         loading.value = false;
     }
@@ -185,11 +171,34 @@ const onSort = (event) => {
     fetchWorkShifts();
 };
 
-const confirmDeleteOne = (row) => {
-    const label = row?.name ?? row?.title ?? `#${row?.id ?? ""}`;
+const openRowMenu = (event, row) => {
+    rowMenuModel.value = [
+        {
+            label: "Szerkesztés",
+            icon: "pi pi-pencil",
+            disabled: actionLoading.value || !canUpdate.value,
+            command: () => openEditModal(row),
+        },
+        {
+            label: "Törlés",
+            icon: "pi pi-trash",
+            disabled: actionLoading.value || !canDelete.value,
+            command: () => confirmDeleteOne(row),
+        },
+        {
+            label: "Dolgozó hozzárendelés",
+            icon: "pi pi-user-plus",
+            disabled: actionLoading.value || !canAssignEmployee.value,
+            command: () => openAssignmentModal(row),
+        },
+    ];
 
+    rowMenu.value.toggle(event);
+};
+
+const confirmDeleteOne = (row) => {
     confirm.require({
-        message: `Biztos törlöd: ${label}?`,
+        message: `Biztos törlöd: ${row.name}?`,
         header: "Megerősítés",
         icon: "pi pi-exclamation-triangle",
         acceptLabel: "Törlés",
@@ -203,22 +212,7 @@ const deleteOne = async (id) => {
     actionLoading.value = true;
 
     try {
-        const res = await csrfFetch(`/work-shifts/${id}`, {
-            method: "DELETE",
-            headers: {
-                "X-Requested-With": "XMLHttpRequest",
-                Accept: "application/json",
-            },
-        });
-
-        if (!res.ok) {
-            let msg = `Törlés sikertelen (HTTP ${res.status})`;
-            try {
-                const body = await res.json();
-                msg = body?.message || msg;
-            } catch (_) {}
-            throw new Error(msg);
-        }
+        await WorkShiftService.deleteWorkShift(id);
 
         toast.add({
             severity: "success",
@@ -228,13 +222,12 @@ const deleteOne = async (id) => {
         });
 
         selected.value = selected.value.filter((x) => x.id !== id);
-
         await fetchWorkShifts();
     } catch (e) {
         toast.add({
             severity: "error",
             summary: "Hiba",
-            detail: e?.message || "Ismeretlen hiba",
+            detail: e?.response?.data?.message || e?.message || "Ismeretlen hiba",
             life: 3500,
         });
     } finally {
@@ -261,28 +254,12 @@ const bulkDelete = async (ids) => {
     actionLoading.value = true;
 
     try {
-        const res = await csrfFetch(`/work-shifts/destroy_bulk`, {
-            method: "DELETE",
-            headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
-            },
-            body: JSON.stringify({ ids }),
-        });
-
-        if (!res.ok) {
-            let msg = `Bulk törlés sikertelen (HTTP ${res.status})`;
-            try {
-                const body = await res.json();
-                msg = body?.message || msg;
-            } catch (_) {}
-            throw new Error(msg);
-        }
+        const { data } = await WorkShiftService.deleteWorkShifts(ids);
 
         toast.add({
             severity: "success",
             summary: "Siker",
-            detail: `Törölve: ${ids.length} db`,
+            detail: `Törölve: ${data?.deleted ?? ids.length} db`,
             life: 2500,
         });
 
@@ -292,7 +269,7 @@ const bulkDelete = async (ids) => {
         toast.add({
             severity: "error",
             summary: "Hiba",
-            detail: e?.message || "Ismeretlen hiba",
+            detail: e?.response?.data?.message || e?.message || "Ismeretlen hiba",
             life: 3500,
         });
     } finally {
@@ -309,10 +286,8 @@ onMounted(fetchWorkShifts);
     <Toast />
     <ConfirmDialog />
 
-    <!-- CREATE MODAL -->
     <CreateModal v-model="createOpen" @saved="onSaved" :canCreate="canCreate" />
 
-    <!-- EDIT MODAL -->
     <EditModal
         v-model="editOpen"
         :workShift="editShift"
@@ -333,7 +308,6 @@ onMounted(fetchWorkShifts);
                 <div class="flex items-center gap-3">
                     <h1 class="text-2xl font-semibold">{{ title }}</h1>
 
-                    <!-- CREATE -->
                     <Button
                         v-if="canCreate"
                         label="Új műszak"
@@ -343,7 +317,6 @@ onMounted(fetchWorkShifts);
                         data-testid="work_shifts-create"
                     />
 
-                    <!-- FRISSÍTÉS -->
                     <Button
                         label="Frissítés"
                         icon="pi pi-refresh"
@@ -355,7 +328,6 @@ onMounted(fetchWorkShifts);
                         data-testid="work_shifts-refresh"
                     />
 
-                    <!-- BULK DELETE -->
                     <Button
                         v-if="canDelete"
                         label="Kijelöltek törlése"
@@ -389,7 +361,7 @@ onMounted(fetchWorkShifts);
                 <div class="text-sm">{{ error }}</div>
             </div>
 
-            <Menu ref="rowMenu" :model="rowMenuModel" popup />
+            <Menu v-if="canAnyRowAction" ref="rowMenu" :model="rowMenuModel" popup />
 
             <DataTable
                 v-model:selection="selected"
@@ -409,39 +381,20 @@ onMounted(fetchWorkShifts);
                 @sort="onSort"
                 selectionMode="multiple"
             >
-                <template #empty> Nincs találat. </template>
+                <template #empty>Nincs találat.</template>
 
-                <!-- checkbox oszlop -->
                 <Column selectionMode="multiple" headerStyle="width: 3rem" />
-
                 <Column field="id" header="ID" sortable style="width: 90px" />
-
-                <!-- Ha nálad "name" a mező, ok. Ha pl. "title", akkor írd át. -->
                 <Column field="name" header="Név" sortable />
-
-                <!-- Tipikus WorkShift mezők (ha eltér, nyugodtan alakítsd) -->
-                <Column
-                    field="start_time"
-                    header="Kezdés"
-                    sortable
-                    style="width: 140px"
-                />
-                <Column field="end_time" header="Vége" sortable style="width: 140px" />
-
-                <Column
-                    field="work_time_minutes"
-                    header="Munkaidő"
-                    sortable
-                    style="width: 140px"
-                />
-
-                <Column
-                    field="break_minutes"
-                    header="Szünet"
-                    sortable
-                    style="width: 140px"
-                />
-
+                <Column field="start_time" header="Kezdés" sortable style="width: 120px" />
+                <Column field="end_time" header="Vége" sortable style="width: 120px" />
+                <Column field="work_time_minutes" header="Munkaidő" sortable style="width: 130px" />
+                <Column field="break_minutes" header="Szünet" sortable style="width: 120px" />
+                <Column field="created_at" header="Létrehozva" sortable style="width: 190px">
+                    <template #body="{ data }">
+                        {{ formatCreatedAt(data.created_at) }}
+                    </template>
+                </Column>
                 <Column field="active" header="Aktív" sortable style="width: 120px">
                     <template #body="{ data }">
                         <span
@@ -457,8 +410,8 @@ onMounted(fetchWorkShifts);
                     </template>
                 </Column>
 
-                <!-- Actions -->
                 <Column
+                    v-if="canAnyRowAction"
                     header="Műveletek"
                     headerStyle="width: 120px"
                     bodyStyle="white-space: nowrap;"
@@ -473,9 +426,7 @@ onMounted(fetchWorkShifts);
                                 rounded
                                 :disabled="actionLoading"
                                 @click="openRowMenu($event, data)"
-                                :title="`Műveletek: ${
-                                    data.name ?? data.title ?? data.id
-                                }`"
+                                :title="`Műveletek: ${data.name}`"
                             />
                         </div>
                     </template>

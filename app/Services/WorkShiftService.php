@@ -18,21 +18,31 @@ final class WorkShiftService
     /**
      * @return LengthAwarePaginator<int, WorkShift>
      */
-    public function fetch(Request $request): LengthAwarePaginator
+    public function index(Request $request, int $companyId): LengthAwarePaginator
     {
-        return $this->repo->fetch($request);
+        return $this->repo->paginate($request, $companyId);
+    }
+
+    /**
+     * @return LengthAwarePaginator<int, WorkShift>
+     */
+    public function fetch(Request $request, int $companyId): LengthAwarePaginator
+    {
+        return $this->index($request, $companyId);
     }
 
     public function find(int $id, int $companyId): WorkShift
     {
-        return $this->repo->getWorkShift($id, $companyId);
+        return $this->repo->findOrFailScoped($id, $companyId);
     }
 
     /**
      * @param array<string, mixed> $data
      */
-    public function store(array $data): WorkShift
+    public function store(array $data, int $companyId): WorkShift
     {
+        $data['company_id'] = $companyId;
+
         return $this->repo->store($data);
     }
 
@@ -41,9 +51,9 @@ final class WorkShiftService
      */
     public function update(int $id, array $data, int $companyId): WorkShift
     {
-        $data['company_id'] = $companyId;
+        $shift = $this->find($id, $companyId);
 
-        return $this->repo->update($data, $id);
+        return $this->repo->update($shift, $data);
     }
 
     /**
@@ -62,20 +72,22 @@ final class WorkShiftService
 
     public function destroy(int $id, int $companyId): bool
     {
-        return $this->repo->destroy($id, $companyId);
+        $shift = $this->find($id, $companyId);
+        $this->repo->destroy($shift);
+
+        return true;
     }
 
     /**
      * @param array{
-     *   company_id: int,
      *   search?: ?string,
      *   only_active?: bool,
      *   limit?: int
      * } $params
      * @return array<int, array{id:int, name:string}>
      */
-    public function getToSelect(array $params): array
+    public function getToSelect(array $params, int $companyId): array
     {
-        return $this->repo->getToSelect($params);
+        return $this->repo->getToSelect($params, $companyId);
     }
 }

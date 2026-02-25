@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Models\Company;
-use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function (): void {
@@ -14,12 +13,11 @@ it('redirects guests to login on work shifts index', function (): void {
     $this->get(route('work_shifts.index'))->assertRedirect();
 });
 
-it('forbids index when user lacks viewAny permission', function (): void {
+it('forbids index when user lacks view permission', function (): void {
     $company = Company::factory()->create();
-    /** @var User $user */
-    $user = User::factory()->create();
-    $user->assignRole('user');
-    $user->companies()->syncWithoutDetaching([$company->id]);
+    $user = $this->createAdminUser($company);
+    $user->syncRoles([]);
+    $user->syncPermissions([]);
 
     $this->actingAs($user)
         ->withSession(['current_company_id' => $company->id])

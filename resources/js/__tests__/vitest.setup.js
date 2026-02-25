@@ -39,7 +39,7 @@ const allow = new Set([
 
     // WorkShifts
     "work_shifts.view",
-    "work_shifts.viewAny",
+    "work_shifts.view",
     "work_shifts.create",
     "work_shifts.update",
     "work_shifts.delete",

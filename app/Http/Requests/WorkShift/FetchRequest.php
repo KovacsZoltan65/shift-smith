@@ -12,7 +12,7 @@ class FetchRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can(WorkShiftPolicy::PERM_VIEW_ANY, WorkShift::class) ?? false;
+        return $this->user()?->can(WorkShiftPolicy::PERM_VIEW, WorkShift::class) ?? false;
     }
 
     /**
@@ -25,6 +25,8 @@ class FetchRequest extends FormRequest
             'field' => ['nullable', 'string', 'in:id,name,start_time,end_time,work_time_minutes,break_minutes,active,created_at,updated_at'],
             'order' => ['nullable', 'string', 'in:asc,desc'],
             'active' => ['nullable', 'boolean'],
+            'only_active' => ['nullable', 'boolean'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:100'],
             'page' => ['nullable', 'integer', 'min:1'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];

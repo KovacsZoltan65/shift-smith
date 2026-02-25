@@ -10,14 +10,11 @@ use App\Models\TenantGroup;
 use App\Models\WorkShift;
 use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
-use Illuminate\Container\Container as AppContainer;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Prettus\Repository\Criteria\RequestCriteria;
-use Prettus\Repository\Eloquent\BaseRepository;
 
-final class WorkShiftRepository extends BaseRepository implements WorkShiftRepositoryInterface
+final class WorkShiftRepository implements WorkShiftRepositoryInterface
 {
     private const NS_WORK_SHIFTS_FETCH = 'work_shifts.fetch';
     private const NS_SELECTORS_WORK_SHIFTS = 'selectors.work_shifts';
@@ -25,21 +22,19 @@ final class WorkShiftRepository extends BaseRepository implements WorkShiftRepos
     private readonly string $tag;
 
     public function __construct(
-        AppContainer $app,
         private readonly CacheService $cacheService,
         private readonly CacheVersionService $cacheVersionService,
     ) {
-        parent::__construct($app);
         $this->tag = WorkShift::getTag();
     }
 
-    public function fetch(Request $request): LengthAwarePaginator
+    public function paginate(Request $request, int $companyId): LengthAwarePaginator
     {
         $needCache = (bool) config('cache.enable_work_shifts', false);
 
         $page = max(1, (int) $request->integer('page', 1));
         $perPage = min(max(1, (int) $request->integer('per_page', 10)), 100);
-        $companyId = $this->resolveTenantScopedCompanyId((int) $request->integer('company_id', 0));
+        $companyId = $this->resolveTenantScopedCompanyId($companyId);
         $termRaw = trim((string) $request->input('search', ''));
         $term = $termRaw === '' ? null : mb_strtolower($termRaw, 'UTF-8');
         $field = in_array((string) $request->input('field', ''), WorkShift::getSortable(), true)
@@ -103,7 +98,7 @@ final class WorkShiftRepository extends BaseRepository implements WorkShiftRepos
         return $workShifts;
     }
 
-    public function getWorkShift(int $id, int $companyId): WorkShift
+    public function findOrFailScoped(int $id, int $companyId): WorkShift
     {
         $scopedCompanyId = $this->resolveTenantScopedCompanyId($companyId);
 
@@ -129,17 +124,17 @@ final class WorkShiftRepository extends BaseRepository implements WorkShiftRepos
         });
     }
 
-    public function update(array $data, $id): WorkShift
+    public function update(WorkShift $shift, array $data): WorkShift
     {
-        $scopedCompanyId = $this->resolveTenantScopedCompanyId((int) ($data['company_id'] ?? 0));
-        $data['company_id'] = $scopedCompanyId;
+        $scopedCompanyId = $this->resolveTenantScopedCompanyId((int) $shift->company_id);
+        unset($data['company_id']);
 
-        return DB::transaction(function () use ($data, $id, $scopedCompanyId): WorkShift {
+        return DB::transaction(function () use ($data, $shift, $scopedCompanyId): WorkShift {
             /** @var WorkShift $workShift */
             $workShift = WorkShift::query()
                 ->where('company_id', $scopedCompanyId)
                 ->lockForUpdate()
-                ->findOrFail($id);
+                ->findOrFail($shift->id);
 
             $workShift->fill($data);
             $workShift->save();
@@ -169,32 +164,28 @@ final class WorkShiftRepository extends BaseRepository implements WorkShiftRepos
         });
     }
 
-    public function destroy(int $id, int $companyId): bool
+    public function destroy(WorkShift $shift): void
     {
-        $scopedCompanyId = $this->resolveTenantScopedCompanyId($companyId);
+        $scopedCompanyId = $this->resolveTenantScopedCompanyId((int) $shift->company_id);
 
-        return DB::transaction(function () use ($id, $scopedCompanyId): bool {
+        DB::transaction(function () use ($shift, $scopedCompanyId): void {
             /** @var WorkShift $workShift */
             $workShift = WorkShift::query()
                 ->where('company_id', $scopedCompanyId)
                 ->lockForUpdate()
-                ->findOrFail($id);
+                ->findOrFail($shift->id);
 
-            $deleted = (bool) $workShift->delete();
+            $workShift->delete();
 
-            if ($deleted) {
-                $this->invalidateAfterWrite();
-            }
-
-            return $deleted;
+            $this->invalidateAfterWrite();
         });
     }
 
-    public function getToSelect(array $params): array
+    public function getToSelect(array $params, int $companyId): array
     {
         $needCache = (bool) config('cache.enable_work_shiftToSelect', false);
 
-        $companyId = $this->resolveTenantScopedCompanyId((int) ($params['company_id'] ?? 0));
+        $companyId = $this->resolveTenantScopedCompanyId($companyId);
         $onlyActive = array_key_exists('only_active', $params) ? (bool) $params['only_active'] : true;
         $searchRaw = trim((string) ($params['search'] ?? ''));
         $search = $searchRaw === '' ? null : mb_strtolower($searchRaw, 'UTF-8');
@@ -242,16 +233,6 @@ final class WorkShiftRepository extends BaseRepository implements WorkShiftRepos
         );
 
         return $items;
-    }
-
-    public function model(): string
-    {
-        return WorkShift::class;
-    }
-
-    public function boot(): void
-    {
-        $this->pushCriteria(app(RequestCriteria::class));
     }
 
     private function resolveTenantScopedCompanyId(int $companyId): int

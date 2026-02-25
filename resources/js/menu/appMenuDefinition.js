@@ -71,7 +71,7 @@ export const appMenuDefinition = [
                 title: "Műszakok",
                 route: "work_shifts.index",
                 key: "work_shifts.index",
-                can: "work_shifts.viewAny",
+                can: "work_shifts.view",
             },
             {
                 title: "Munkarendek",

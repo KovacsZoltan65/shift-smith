@@ -10,7 +10,7 @@ class IndexRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can(WorkShiftPolicy::PERM_VIEW_ANY, WorkShift::class) ?? false;
+        return $this->user()?->can(WorkShiftPolicy::PERM_VIEW, WorkShift::class) ?? false;
     }
     
     /**

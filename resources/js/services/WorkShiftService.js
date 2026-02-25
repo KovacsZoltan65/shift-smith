@@ -1,13 +1,12 @@
 import BaseService from "@/services/BaseService.js";
 
 class WorkShiftService extends BaseService {
-    constructor() {
-        super();
-        this.url = "work-shifts";
+    getWorkShifts(params = {}) {
+        return this.get(route("work_shifts.fetch"), { params });
     }
 
-    getWorkShifts(params = {}) {
-        return this.get(`${this.url}/fetch`, { params });
+    getWorkShift(id) {
+        return this.get(route("work_shifts.by_id", id));
     }
 
     storeWorkShift(params) {
