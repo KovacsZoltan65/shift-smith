@@ -1,6 +1,6 @@
 <script setup>
 import { Head } from "@inertiajs/vue3";
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 
@@ -21,14 +21,40 @@ import { csrfFetch } from "@/lib/csrfFetch";
 
 import { usePermissions } from "@/composables/usePermissions";
 const { has } = usePermissions();
-const canCreate = has("companies.create");
-const canUpdate = has("companies.update");
-const canDelete = has("companies.delete");
 
 const props = defineProps({
     title: String,
     filter: Object,
+    endpointBase: {
+        type: String,
+        default: "/companies",
+    },
+    permissionPrefix: {
+        type: String,
+        default: "companies",
+    },
+    hqBadge: {
+        type: String,
+        default: "",
+    },
+    fetchRouteName: {
+        type: String,
+        default: "",
+    },
+    detailRouteName: {
+        type: String,
+        default: "",
+    },
+    forbiddenRedirectRouteName: {
+        type: String,
+        default: "",
+    },
 });
+
+const canCreate = computed(() => has(`${props.permissionPrefix}.create`));
+const canUpdate = computed(() => has(`${props.permissionPrefix}.update`));
+const canDelete = computed(() => has(`${props.permissionPrefix}.delete`));
+const canAnyRowAction = computed(() => canUpdate.value || canDelete.value);
 
 const toast = useToast();
 const confirm = useConfirm();
@@ -40,6 +66,7 @@ const editCompany = ref(null);
 const loading = ref(false);
 const actionLoading = ref(false);
 const error = ref(null);
+const forbiddenHandled = ref(false);
 
 const rows = ref([]);
 const totalRecords = ref(0);
@@ -60,13 +87,13 @@ const openRowMenu = (event, row) => {
         {
             label: "Szerkesztés",
             icon: "pi pi-pencil",
-            disabled: actionLoading.value || !canUpdate,
+            disabled: actionLoading.value || !canUpdate.value,
             command: () => openEditModal(row),
         },
         {
             label: "Törlés",
             icon: "pi pi-trash",
-            disabled: actionLoading.value || !canDelete,
+            disabled: actionLoading.value || !canDelete.value,
             command: () => confirmDeleteOne(row),
         },
     ];
@@ -78,11 +105,12 @@ const openRowMenu = (event, row) => {
 // lazy state (Users minta)
 const lazy = ref({
     first: 0,
-    rows: 10,
-    page: 0,
-    sortField: "id",
-    sortOrder: -1,
+    rows: Number(props.filter?.per_page ?? 10),
+    page: Math.max(Number(props.filter?.page ?? 1) - 1, 0),
+    sortField: props.filter?.field ?? "id",
+    sortOrder: props.filter?.order === "asc" ? 1 : -1,
 });
+lazy.value.first = lazy.value.page * lazy.value.rows;
 
 const search = ref(props.filter?.search ?? "");
 let t = null;
@@ -130,14 +158,75 @@ const buildQuery = () => {
     return new URLSearchParams(q).toString();
 };
 
+const fetchUrl = () => {
+    const query = {
+        ...(props.filter ?? {}),
+        page: lazy.value.page + 1,
+        per_page: lazy.value.rows,
+        field: lazy.value.sortField,
+        order: lazy.value.sortOrder === 1 ? "asc" : "desc",
+        search: search.value?.trim() || undefined,
+    };
+
+    if (props.fetchRouteName) {
+        return route(props.fetchRouteName, query);
+    }
+
+    return `${props.endpointBase}/fetch?${buildQuery()}`;
+};
+
+const resolveDetailUrl = (id) => {
+    if (props.detailRouteName) {
+        return route(props.detailRouteName, id);
+    }
+
+    return `${props.endpointBase}/${id}`;
+};
+
+const syncPaginationFromMeta = (meta) => {
+    const currentPage = Number(meta?.current_page ?? lazy.value.page + 1);
+    const perPage = Number(meta?.per_page ?? lazy.value.rows);
+    const total = Number(meta?.total ?? 0);
+
+    lazy.value.page = Math.max(currentPage - 1, 0);
+    lazy.value.rows = perPage > 0 ? perPage : lazy.value.rows;
+    lazy.value.first = lazy.value.page * lazy.value.rows;
+    totalRecords.value = total;
+};
+
+const handleForbidden = () => {
+    if (forbiddenHandled.value) return;
+    forbiddenHandled.value = true;
+
+    toast.add({
+        severity: "warn",
+        summary: "Nincs jogosultság",
+        detail: "A HQ cégek megtekintéséhez superadmin jogosultság szükséges.",
+        life: 3500,
+    });
+
+    if (props.forbiddenRedirectRouteName) {
+        setTimeout(() => {
+            window.location.assign(route(props.forbiddenRedirectRouteName));
+        }, 250);
+    }
+};
+
 const fetchCompanies = async () => {
+    if (forbiddenHandled.value) return;
+
     loading.value = true;
     error.value = null;
 
     try {
-        const res = await fetch(`/companies/fetch?${buildQuery()}`, {
+        const res = await fetch(fetchUrl(), {
             headers: { "X-Requested-With": "XMLHttpRequest" },
         });
+
+        if (res.status === 403) {
+            handleForbidden();
+            return;
+        }
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
@@ -151,7 +240,7 @@ const fetchCompanies = async () => {
             : (json?.data?.data ?? []);
 
         rows.value = items;
-        totalRecords.value = json?.meta?.total ?? 0;
+        syncPaginationFromMeta(json?.meta ?? {});
     } catch (e) {
         error.value = e?.message || "Ismeretlen hiba";
     } finally {
@@ -190,7 +279,7 @@ const deleteOne = async (id) => {
     actionLoading.value = true;
 
     try {
-        const res = await csrfFetch(`/companies/${id}`, {
+        const res = await csrfFetch(resolveDetailUrl(id), {
             method: "DELETE",
             headers: {
                 "X-Requested-With": "XMLHttpRequest",
@@ -248,7 +337,7 @@ const bulkDelete = async (ids) => {
     actionLoading.value = true;
 
     try {
-        const res = await csrfFetch(`/companies/destroy_bulk`, {
+        const res = await csrfFetch(`${props.endpointBase}/destroy_bulk`, {
             method: "DELETE",
             headers: {
                 "Content-Type": "application/json",
@@ -312,6 +401,12 @@ onMounted(fetchCompanies);
             <div class="mb-4 flex items-center justify-between gap-3">
                 <div class="flex items-center gap-3">
                     <h1 class="text-2xl font-semibold">{{ title }}</h1>
+                    <span
+                        v-if="hqBadge"
+                        class="inline-flex items-center rounded bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700"
+                    >
+                        {{ hqBadge }}
+                    </span>
 
                     <!-- CREATE -->
                     <Button
@@ -369,7 +464,7 @@ onMounted(fetchCompanies);
                 <div class="text-sm">{{ error }}</div>
             </div>
 
-            <Menu ref="rowMenu" :model="rowMenuModel" popup />
+            <Menu v-if="canAnyRowAction" ref="rowMenu" :model="rowMenuModel" popup />
 
             <DataTable
                 v-model:selection="selected"
@@ -415,6 +510,7 @@ onMounted(fetchCompanies);
 
                 <!-- Actions -->
                 <Column
+                    v-if="canAnyRowAction"
                     header="Műveletek"
                     headerStyle="width: 3rem"
                     bodyStyle="white-space: nowrap;"

@@ -26,6 +26,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'ensure.company' => \App\Http\Middleware\EnsureCompanySelected::class,
+            'hq.landlord' => \App\Http\Middleware\EnsureHqLandlordContext::class,
+            'superadmin' => \App\Http\Middleware\EnsureSuperadmin::class,
         ]);
 
         $middleware->validateCsrfTokens(except: [

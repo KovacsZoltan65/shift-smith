@@ -21,6 +21,12 @@ export const appMenuDefinition = [
                 key: "companies.index",
                 can: "companies.viewAny",
             },
+            {
+                title: "HQ Cégek",
+                route: "hq.companies.index",
+                key: "hq.companies.index",
+                can: "hq.companies.view",
+            },
         ],
     },
     {

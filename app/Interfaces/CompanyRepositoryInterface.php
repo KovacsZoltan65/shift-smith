@@ -14,6 +14,13 @@ interface CompanyRepositoryInterface
      * @return LengthAwarePaginator<int, \App\Models\Company>
      */
     public function fetch(Request $request): LengthAwarePaginator;
+
+    /**
+     * HQ globális (landlord) cég lista, tenant scope nélkül.
+     *
+     * @return LengthAwarePaginator<int, \App\Models\Company>
+     */
+    public function fetchHq(Request $request): LengthAwarePaginator;
     
     public function getCompany(int $id): Company;
 

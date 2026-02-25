@@ -35,6 +35,14 @@ class CompanyService
     }
 
     /**
+     * HQ globális (landlord) céglista tenant scope nélkül.
+     */
+    public function fetchHq(Request $request): LengthAwarePaginator
+    {
+        return $this->repo->fetchHq($request);
+    }
+
+    /**
      * Cég lekérése azonosító alapján (policy-barát model lookup).
      *
      * @param int $id Cég azonosító

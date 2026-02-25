@@ -36,6 +36,8 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     
     /** Cache namespace a cégek listázásához */
     private const NS_COMPANIES_FETCH = 'companies.fetch';
+    /** Cache namespace HQ/landlord cég listához */
+    private const NS_HQ_COMPANIES_FETCH = 'hq.companies.fetch';
     /** Cache namespace a cég selector listához */
     private const NS_SELECTORS_COMPANIES = 'selectors.companies';
 
@@ -136,6 +138,83 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
         ksort($paramsForKey);
 
         $version = $this->cacheVersionService->get(self::NS_COMPANIES_FETCH);
+        $hash = hash('sha256', json_encode($paramsForKey, JSON_THROW_ON_ERROR));
+        $key = "v{$version}:{$hash}";
+
+        /** @var LengthAwarePaginator<int, Company> $companies */
+        $companies = $this->cacheService->remember(
+            tag: $this->tag,
+            key: $key,
+            callback: $queryCallback,
+            ttl: (int) config('cache.ttl_fetch', 60)
+        );
+
+        return $companies;
+    }
+
+    /**
+     * HQ cégek globális listázása tenant scope nélkül.
+     *
+     * @param Request $request
+     * @return LengthAwarePaginator<int, Company>
+     */
+    public function fetchHq(Request $request): LengthAwarePaginator
+    {
+        $needCache = (bool) config('cache.enable_companies', false);
+
+        $page = (int) $request->integer('page', 1);
+
+        $perPage = (int) $request->integer('per_page', 10);
+        $perPage = ($perPage > 0) ? min($perPage, 100) : 10;
+
+        $rawTerm = \trim((string) $request->input('search', ''));
+        $term = $rawTerm === '' ? null : \mb_strtolower($rawTerm, 'UTF-8');
+
+        $sortable = Company::getSortable();
+        $field = \in_array($request->input('field', ''), $sortable, true)
+            ? $request->input('field')
+            : null;
+
+        $orderRaw = (string) $request->input('order', 'desc');
+        $direction = strtolower($orderRaw) === 'asc' ? 'asc' : 'desc';
+
+        $appendQuery = $request->only(['search', 'field', 'order', 'per_page']);
+
+        $queryCallback = function () use ($term, $field, $direction, $perPage, $page, $appendQuery): LengthAwarePaginator {
+            $q = Company::query()
+                ->when($term, function ($qq) use ($term) {
+                    $qq->where(function ($q) use ($term) {
+                        $q->where('name', 'like', "%{$term}%")
+                            ->orWhere('email', 'like', "%{$term}%");
+                    });
+                })
+                ->when($field, fn ($qq) => $qq->orderBy($field, $direction))
+                ->when(!$field, fn ($qq) => $qq->orderByDesc('id'));
+
+            $paginator = $q->paginate($perPage, ['*'], 'page', $page);
+            $paginator->appends($appendQuery);
+
+            return $paginator;
+        };
+
+        if (!$needCache) {
+            /** @var LengthAwarePaginator<int, Company> $companies */
+            $companies = $queryCallback();
+
+            return $companies;
+        }
+
+        $paramsForKey = [
+            'page' => $page,
+            'per_page' => $perPage,
+            'search' => $term,
+            'field' => $field,
+            'order' => $direction,
+            'scope' => 'hq_global_landlord',
+        ];
+        ksort($paramsForKey);
+
+        $version = $this->cacheVersionService->get(self::NS_HQ_COMPANIES_FETCH);
         $hash = hash('sha256', json_encode($paramsForKey, JSON_THROW_ON_ERROR));
         $key = "v{$version}:{$hash}";
 
@@ -387,6 +466,7 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
         DB::afterCommit(function():void {
             // Companies lista oldal cache
             $this->cacheVersionService->bump(self::NS_COMPANIES_FETCH);
+            $this->cacheVersionService->bump(self::NS_HQ_COMPANIES_FETCH);
 
             // CompanySelector cache (mert a selector aktív cégeket listáz)
             $this->cacheVersionService->bump(self::NS_SELECTORS_COMPANIES);

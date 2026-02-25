@@ -221,6 +221,21 @@ Route::middleware(['auth', 'verified'])
         Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy')->middleware('throttle:20,1');
         Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
     });
+
+/**
+ * ======================================
+ * HQ COMPANIES (landlord/global)
+ * ======================================
+ */
+Route::middleware(['auth', 'verified', 'superadmin', 'hq.landlord'])
+    ->prefix('hq/companies')
+    ->as('hq.companies.')
+    ->controller(\App\Http\Controllers\Hq\CompanyController::class)
+    ->group(function (): void {
+        Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
+        Route::get('/fetch', 'fetch')->name('fetch')->middleware('throttle:60,1');
+        Route::get('/{id}', 'getCompany')->whereNumber('id')->name('by_id')->middleware('throttle:60,1');
+    });
     
 /**
  * ======================================
