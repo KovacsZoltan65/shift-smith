@@ -36,6 +36,8 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     private const NS_HQ_COMPANIES_FETCH = 'hq.companies.fetch';
     /** Cache namespace a cég selector listához */
     private const NS_SELECTORS_COMPANIES = 'selectors.companies';
+    /** Cache namespace a dashboard KPI-khoz */
+    private const NS_DASHBOARD_STATS = 'dashboard.stats';
 
     public function __construct(
         AppContainer $app, 
@@ -426,6 +428,7 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
 
             // CompanySelector cache (mert a selector aktív cégeket listáz)
             $this->cacheVersionService->bump(self::NS_SELECTORS_COMPANIES);
+            $this->cacheVersionService->bump(self::NS_DASHBOARD_STATS);
         });
     }
     

@@ -18,6 +18,7 @@ final class WorkShiftRepository implements WorkShiftRepositoryInterface
 {
     private const NS_WORK_SHIFTS_FETCH = 'work_shifts.fetch';
     private const NS_SELECTORS_WORK_SHIFTS = 'selectors.work_shifts';
+    private const NS_DASHBOARD_STATS = 'dashboard.stats';
 
     private readonly string $tag;
 
@@ -256,6 +257,7 @@ final class WorkShiftRepository implements WorkShiftRepositoryInterface
         DB::afterCommit(function (): void {
             $this->cacheVersionService->bump(self::NS_WORK_SHIFTS_FETCH);
             $this->cacheVersionService->bump(self::NS_SELECTORS_WORK_SHIFTS);
+            $this->cacheVersionService->bump(self::NS_DASHBOARD_STATS);
         });
     }
 }

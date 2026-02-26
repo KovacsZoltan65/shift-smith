@@ -40,6 +40,8 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     private const NS_USERS_FETCH = 'users.fetch';
     /** Cache namespace a felhasználó selector listához */
     private const NS_SELECTORS_USERS = 'selectors.users';
+    /** Cache namespace a dashboard KPI-khoz */
+    private const NS_DASHBOARD_STATS = 'dashboard.stats';
     
     public function __construct(
         AppContainer $app,
@@ -328,6 +330,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
 
             // UserSelector cache (mert a selector aktív felhasználókat listáz)
             $this->cacheVersionService->bump(self::NS_SELECTORS_USERS);
+            $this->cacheVersionService->bump(self::NS_DASHBOARD_STATS);
         });
     }
     

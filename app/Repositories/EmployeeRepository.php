@@ -44,6 +44,8 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
     private const NS_SELECTORS_EMPLOYEES = 'selectors.employees';
     /** Cache namespace a cég selector listához (cross-invalidálás) */
     private const NS_SELECTORS_COMPANIES = 'selectors.companies';
+    /** Cache namespace a dashboard KPI-khoz */
+    private const NS_DASHBOARD_STATS = 'dashboard.stats';
     
     public function __construct(
         AppContainer $app, 
@@ -626,6 +628,8 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
             if ($affectsCompanySelector) {
                 $this->cacheVersionService->bump(self::NS_SELECTORS_COMPANIES);
             }
+
+            $this->cacheVersionService->bump(self::NS_DASHBOARD_STATS);
         });
     }
     

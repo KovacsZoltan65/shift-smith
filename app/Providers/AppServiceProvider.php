@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Interfaces\Admin\PermissionRepositoryInterface;
 use App\Interfaces\Admin\RoleRepositoryInterface;
 use App\Interfaces\CompanyRepositoryInterface;
+use App\Repositories\Dashboard\DashboardRepositoryInterface;
 use App\Interfaces\EmployeeRepositoryInterface;
 use App\Interfaces\EmployeeWorkPatternRepositoryInterface;
 use App\Interfaces\PositionRepositoryInterface;
@@ -21,6 +22,7 @@ use App\Observers\EmployeeObserver;
 use App\Repositories\Admin\PermissionRepository;
 use App\Repositories\Admin\RoleRepository;
 use App\Repositories\CompanyRepository;
+use App\Repositories\Dashboard\DashboardRepository;
 use App\Repositories\EmployeeRepository;
 use App\Repositories\EmployeeWorkPatternRepository;
 use App\Repositories\PositionRepository;
@@ -52,6 +54,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             CompanyRepositoryInterface::class, 
             CompanyRepository::class
+        );
+        $this->app->bind(
+            DashboardRepositoryInterface::class,
+            DashboardRepository::class
         );
         $this->app->bind(
             RoleRepositoryInterface::class, 

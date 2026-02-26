@@ -2,29 +2,28 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Models\Company;
-use App\Models\Employee;
-use App\Models\WorkShift;
+use App\Services\CurrentCompany;
+use App\Services\DashboardService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
+    public function __construct(
+        private readonly DashboardService $dashboardService,
+        private readonly CurrentCompany $currentCompany,
+    ) {}
+
     public function index(Request $request)
     {
-        $stats = [
-            'users' => User::count(),
-            'employees' => Employee::count(),
-            'companies' => Company::count(),
-            'work_shifts' => WorkShift::count(),
-        ];
+        $selectedCompanyId = $this->currentCompany->currentCompanyId($request);
+        abort_if($selectedCompanyId === null, 403, 'No company selected');
 
-        $recentUsers = User::latest()->limit(5)->get(['id', 'name', 'email', 'created_at']);
+        $payload = $this->dashboardService->getDashboardStats($selectedCompanyId);
 
         return Inertia::render('Dashboard', [
-            'stats' => $stats,
-            'recentUsers' => $recentUsers,
+            'stats' => $payload['stats'],
+            'recentUsers' => $payload['recentUsers'],
         ]);
     }
 }
