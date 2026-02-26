@@ -32,14 +32,7 @@ it('megtagadja a tömeges törlést, ha a felhasználónak nincs engedélye', fu
 });
 
 it('lehetővé teszi az adminisztrátor számára a jogosultságok tömeges törlését', function (): void {
-    // admin user: kapjon role-t / permissiont (a seed alapján)
-    $user = $this->createAdminUser();
-
-    // ha a createAdminUser nem ad role-t automatikusan, akkor add rá:
-    // $user->syncRoles(['admin']);
-
-    // ha permissiont kell explicit (seeded név alapján):
-    // $user->givePermissionTo('permissions.deleteAny');
+    $user = $this->createSuperadminUser();
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();

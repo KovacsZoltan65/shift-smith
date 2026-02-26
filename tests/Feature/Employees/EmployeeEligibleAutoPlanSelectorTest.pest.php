@@ -24,10 +24,13 @@ it('megtagadja az eligible autoplan selector lekérést jogosultság nélkül', 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
-    $company = Company::factory()->create();
+    $company = $user->companies()->firstOrFail();
 
     $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+        ->withSession([
+            'current_company_id' => (int) $company->id,
+            'current_tenant_group_id' => (int) $company->tenant_group_id,
+        ])
         ->getJson(route('employees.selector', ['eligible_for_autoplan' => 1]))
         ->assertForbidden();
 });

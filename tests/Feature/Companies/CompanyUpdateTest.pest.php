@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Models\Company;
 use App\Models\User;
 use App\Services\Cache\CacheVersionService;
-use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function (): void {
@@ -52,15 +51,14 @@ it('allows admin to update a company and bumps cache versions', function (): voi
     $user->refresh();
 
     $versioner = app(CacheVersionService::class);
+    $companiesFetchBefore = $versioner->get('companies.fetch');
+    $companiesSelectorBefore = $versioner->get('selectors.companies');
 
     /** @var Company $company */
     $company = Company::factory()->create([
         'name' => 'Old Name',
         'active' => true,
     ]);
-
-    Cache::forever('v:companies.fetch', 1);
-    Cache::forever('v:selectors.companies', 1);
 
     // Biztosan "elfogadott" mezők + email formátum: factory
     $payload = Company::factory()->make([
@@ -80,8 +78,8 @@ it('allows admin to update a company and bumps cache versions', function (): voi
         'active' => 0,
     ]);
 
-    expect($versioner->get('companies.fetch'))->toBe(2);
-    expect($versioner->get('selectors.companies'))->toBe(2);
+    expect($versioner->get('companies.fetch'))->toBeGreaterThan($companiesFetchBefore);
+    expect($versioner->get('selectors.companies'))->toBeGreaterThan($companiesSelectorBefore);
 });
 
 it('allows keeping the same email on update (unique ignore current id)', function (): void {

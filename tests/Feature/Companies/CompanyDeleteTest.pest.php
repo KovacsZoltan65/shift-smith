@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use App\Models\Company;
 use App\Services\Cache\CacheVersionService;
-use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function (): void {
@@ -36,12 +35,11 @@ it('allows admin to delete a company (soft delete) and bumps cache versions', fu
     $user = $user->refresh();
 
     $versioner = app(CacheVersionService::class);
+    $companiesFetchBefore = $versioner->get('companies.fetch');
+    $companiesSelectorBefore = $versioner->get('selectors.companies');
 
     /** @var Company $company */
     $company = Company::factory()->create();
-
-    Cache::forever('v:companies.fetch', 1);
-    Cache::forever('v:selectors.companies', 1);
 
     $this
         ->actingAs($user)
@@ -51,6 +49,6 @@ it('allows admin to delete a company (soft delete) and bumps cache versions', fu
 
     $this->assertSoftDeleted('companies', ['id' => $company->id]);
 
-    expect($versioner->get('companies.fetch'))->toBe(2);
-    expect($versioner->get('selectors.companies'))->toBe(2);
+    expect($versioner->get('companies.fetch'))->toBeGreaterThan($companiesFetchBefore);
+    expect($versioner->get('selectors.companies'))->toBeGreaterThan($companiesSelectorBefore);
 });

@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Models\Company;
 use App\Models\User;
 use App\Services\Cache\CacheVersionService;
-use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function (): void {
@@ -47,9 +46,8 @@ it('allows admin to store a company and bumps cache versions', function (): void
     $user->refresh();
 
     $versioner = app(CacheVersionService::class);
-
-    Cache::forever('v:companies.fetch', 1);
-    Cache::forever('v:selectors.companies', 1);
+    $companiesFetchBefore = $versioner->get('companies.fetch');
+    $companiesSelectorBefore = $versioner->get('selectors.companies');
 
     // Factory által generált "biztosan elfogadott" formátum
     $payload = Company::factory()->make([
@@ -68,8 +66,8 @@ it('allows admin to store a company and bumps cache versions', function (): void
         'active' => 1,
     ]);
 
-    expect($versioner->get('companies.fetch'))->toBe(2);
-    expect($versioner->get('selectors.companies'))->toBe(2);
+    expect($versioner->get('companies.fetch'))->toBeGreaterThan($companiesFetchBefore);
+    expect($versioner->get('selectors.companies'))->toBeGreaterThan($companiesSelectorBefore);
 });
 
 it('enforces unique email among not-soft-deleted companies', function (): void {

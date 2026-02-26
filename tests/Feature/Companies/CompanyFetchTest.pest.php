@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\Company;
+use App\Models\TenantGroup;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function (): void {
@@ -28,16 +29,28 @@ it('megtagadja a vállalatok általi lekérést, ha a felhasználónak nincs vie
 
 it('lehetővé teszi az adminisztrátor számára, hogy meta + szűrővel rendelkező cégeket kérjen le', function (): void {
     $user = $this->createAdminUser();
+    $company = $user->companies()->firstOrFail();
+    $tenantGroupId = (int) $company->tenant_group_id;
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
-    Company::factory()->count(15)->create();
+    TenantGroup::query()->whereKey($tenantGroupId)->firstOrFail()->makeCurrent();
 
-    $expectedTotal = Company::query()->count();
+    Company::factory()->count(15)->create([
+        'tenant_group_id' => $tenantGroupId,
+    ]);
+
+    $expectedTotal = Company::query()
+        ->where('tenant_group_id', $tenantGroupId)
+        ->count();
 
     $resp = $this
         ->actingAs($user)
+        ->withSession([
+            'current_company_id' => (int) $company->id,
+            'current_tenant_group_id' => $tenantGroupId,
+        ])
         ->getJson(route('companies.fetch', [
             'page' => 1,
             'per_page' => 10,
@@ -59,16 +72,36 @@ it('lehetővé teszi az adminisztrátor számára, hogy meta + szűrővel rendel
 
 it('supports search and defaults to sorting by id desc', function (): void {
     $user = $this->createAdminUser();
+    $company = $user->companies()->firstOrFail();
+    $tenantGroupId = (int) $company->tenant_group_id;
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
-    Company::factory()->create(['name' => 'AAA Alpha', 'email' => 'aaa@example.com']);
-    Company::factory()->create(['name' => 'BBB Beta', 'email' => 'bbb@example.com']);
-    $last = Company::factory()->create(['name' => 'Zzz Last', 'email' => 'last@example.com']);
+    TenantGroup::query()->whereKey($tenantGroupId)->firstOrFail()->makeCurrent();
+
+    Company::factory()->create([
+        'tenant_group_id' => $tenantGroupId,
+        'name' => 'AAA Alpha',
+        'email' => 'aaa@example.com',
+    ]);
+    Company::factory()->create([
+        'tenant_group_id' => $tenantGroupId,
+        'name' => 'BBB Beta',
+        'email' => 'bbb@example.com',
+    ]);
+    $last = Company::factory()->create([
+        'tenant_group_id' => $tenantGroupId,
+        'name' => 'Zzz Last',
+        'email' => 'last@example.com',
+    ]);
 
     $respSearch = $this
         ->actingAs($user)
+        ->withSession([
+            'current_company_id' => (int) $company->id,
+            'current_tenant_group_id' => $tenantGroupId,
+        ])
         ->getJson(route('companies.fetch', [
             'search' => 'beta',
             'page' => 1,
@@ -82,6 +115,10 @@ it('supports search and defaults to sorting by id desc', function (): void {
 
     $resp = $this
         ->actingAs($user)
+        ->withSession([
+            'current_company_id' => (int) $company->id,
+            'current_tenant_group_id' => $tenantGroupId,
+        ])
         ->getJson(route('companies.fetch', [
             'page' => 1,
             'per_page' => 10,

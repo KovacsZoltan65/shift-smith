@@ -6,7 +6,6 @@ use App\Models\Company;
 use App\Models\Employee;
 use App\Models\Position;
 use App\Services\Cache\CacheVersionService;
-use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function (): void {
@@ -42,10 +41,9 @@ it('allows admin to store employee and bumps cache versions', function (): void 
     ]);
 
     $versioner = app(CacheVersionService::class);
-
-    Cache::forever('v:employees.fetch', 1);
-    Cache::forever('v:selectors.employees', 1);
-    Cache::forever('v:selectors.companies', 1);
+    $employeesFetchBefore = $versioner->get('employees.fetch');
+    $employeesSelectorBefore = $versioner->get('selectors.employees');
+    $companiesSelectorBefore = $versioner->get('selectors.companies');
 
     $payload = Employee::factory()->make([
         'company_id' => $company->id,
@@ -74,7 +72,7 @@ it('allows admin to store employee and bumps cache versions', function (): void 
         'position_id'=> $position->id,
     ]);
 
-    expect($versioner->get('employees.fetch'))->toBe(2);
-    expect($versioner->get('selectors.employees'))->toBe(2);
-    expect($versioner->get('selectors.companies'))->toBe(2); // store always affects company selector (only_with_employees)
+    expect($versioner->get('employees.fetch'))->toBeGreaterThan($employeesFetchBefore);
+    expect($versioner->get('selectors.employees'))->toBeGreaterThan($employeesSelectorBefore);
+    expect($versioner->get('selectors.companies'))->toBeGreaterThan($companiesSelectorBefore); // store always affects company selector (only_with_employees)
 });

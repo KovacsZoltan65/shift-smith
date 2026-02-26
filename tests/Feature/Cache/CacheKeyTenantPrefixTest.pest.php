@@ -19,11 +19,15 @@ it('generates tenant prefixed cache key when tenant is current', function (): vo
 
     $service = app(CacheService::class);
     $ref = new ReflectionClass($service);
+    $qualifyTag = $ref->getMethod('qualifyTag');
+    $qualifyTag->setAccessible(true);
     $method = $ref->getMethod('qualifyKey');
     $method->setAccessible(true);
 
+    /** @var string $tag */
+    $tag = $qualifyTag->invoke($service, 'companies');
     /** @var string $key */
-    $key = $method->invoke($service, 'companies', 'abc');
+    $key = $method->invoke($service, $tag, 'abc');
 
     expect($key)->toStartWith("tenant:{$tenant->id}:companies:");
 });
@@ -33,11 +37,15 @@ it('generates landlord prefixed cache key when no tenant is current', function (
 
     $service = app(CacheService::class);
     $ref = new ReflectionClass($service);
+    $qualifyTag = $ref->getMethod('qualifyTag');
+    $qualifyTag->setAccessible(true);
     $method = $ref->getMethod('qualifyKey');
     $method->setAccessible(true);
 
+    /** @var string $tag */
+    $tag = $qualifyTag->invoke($service, 'companies');
     /** @var string $key */
-    $key = $method->invoke($service, 'companies', 'abc');
+    $key = $method->invoke($service, $tag, 'abc');
 
     expect($key)->toStartWith('landlord:companies:');
     expect($key)->not->toStartWith('tenant:landlord:');
