@@ -58,13 +58,6 @@ const allow = new Set([
     "shifts.update",
     "shifts.delete",
 
-    // Planning
-    "planning.view",
-    "planning.viewAny",
-    "planning.create",
-    "planning.update",
-    "planning.delete",
-
     // WorkPatterns
     "work_patterns.view",
     "work_patterns.viewAny",

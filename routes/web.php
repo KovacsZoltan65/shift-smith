@@ -109,7 +109,6 @@ Route::middleware(['auth', 'verified', 'ensure.company'])->group(function () {
     //Route::get('/employees', fn () => Inertia::render('HR/Employees/Index', ['title' => 'Dolgozók']))->name('employees.index');
     
     Route::get('/assignments', fn () => Inertia::render('HR/Assignments/Index'))->name('assignments.index');
-    Route::get('/planning', fn () => Inertia::render('HR/Planning/Index'))->name('planning.index');
 
     // Beállítások
     Route::get('/settings/app', [SettingsController::class, 'app'])->name('settings.app');

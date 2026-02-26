@@ -80,12 +80,6 @@ export const appMenuDefinition = [
                 can: "work_patterns.viewAny",
             },
             {
-                title: "Tervezés",
-                route: "planning.index",
-                key: "planning.index",
-                can: "planning.view",
-            },
-            {
                 title: "Naptár",
                 route: "scheduling.calendar",
                 key: "scheduling.calendar",
