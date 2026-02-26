@@ -8,13 +8,17 @@ use Illuminate\Http\Request;
 
 final class CurrentCompany
 {
-    public const SESSION_KEY = 'current_company_id';
+    public const SESSION_KEY = 'selected_company_id';
+    private const LEGACY_SESSION_KEY = 'current_company_id';
 
     public function currentCompanyId(Request $request): ?int
     {
         $value = $request->session()->get(self::SESSION_KEY);
+        if (! is_numeric($value)) {
+            $value = $request->session()->get(self::LEGACY_SESSION_KEY);
+        }
 
-        if (!is_numeric($value)) {
+        if (! is_numeric($value)) {
             return null;
         }
 
@@ -26,12 +30,14 @@ final class CurrentCompany
     public function setCurrentCompanyId(Request $request, int $companyId): void
     {
         $request->session()->put(self::SESSION_KEY, $companyId);
+        $request->session()->put(self::LEGACY_SESSION_KEY, $companyId);
     }
 
     public function clearCurrentCompany(Request $request): void
     {
         $request->session()->forget([
             self::SESSION_KEY,
+            self::LEGACY_SESSION_KEY,
             CurrentTenantGroup::SESSION_KEY,
         ]);
     }

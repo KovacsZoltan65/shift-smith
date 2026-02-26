@@ -36,27 +36,26 @@ final class EnsureCompanySelected
             return $next($request);
         }
 
-        $currentCompanyId = $this->currentCompany->currentCompanyId($request);
+        $selectedCompanyId = $this->currentCompany->currentCompanyId($request);
         $sessionTenantId = $this->currentTenantGroup->currentTenantGroupId($request);
 
-        if ($currentCompanyId !== null) {
+        if ($selectedCompanyId !== null) {
             if ($sessionTenantId !== null) {
-                if (! $this->isCurrentCompanyValidForTenant($user, $currentCompanyId, $sessionTenantId)) {
+                if (! $this->isCurrentCompanyValidForTenant($user, $selectedCompanyId, $sessionTenantId)) {
                     return $this->resetAndRedirect($request);
                 }
 
                 return $next($request);
             }
 
-            if ($this->companyContext->userCanSelectCompany($user, $currentCompanyId)) {
-                // IDE:
-                $tenantGroupId = $this->companyContext->tenantGroupIdForCompany($user, $currentCompanyId);
+            if ($this->companyContext->userCanSelectCompany($user, $selectedCompanyId)) {
+                $tenantGroupId = $this->companyContext->tenantGroupIdForCompany($user, $selectedCompanyId);
 
                 if ($tenantGroupId !== null) {
                     $this->currentTenantGroup->setCurrentTenantGroupId($request, $tenantGroupId);
                 } else {
                     Log::error('company.missing_tenant_group_id', [
-                        'company_id' => $currentCompanyId,
+                        'company_id' => $selectedCompanyId,
                         'user_id' => $user->id,
                     ]);
 

@@ -32,7 +32,7 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'verified', 'ensure.company'])
+    ->middleware(['auth', 'verified', 'ensure.company', 'tenant.group'])
     ->name('dashboard');
 
 Route::middleware('auth')->group(function () {

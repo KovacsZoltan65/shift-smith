@@ -51,6 +51,44 @@ class SettingsMetaSeeder extends Seeder
                 'is_editable' => true,
                 'is_visible' => true,
             ],
+            [
+                'key' => 'planning.allowed_weekdays',
+                'group' => 'scheduling.autoplan',
+                'label' => 'Tervezhető napok',
+                'type' => 'multiselect',
+                'default_value' => [1, 2, 3, 4, 5, 6, 7],
+                'description' => 'ISO hét napok: 1=H, ... 7=V. Az AutoPlan csak ezeken a napokon generál.',
+                'options' => [
+                    ['label' => 'Hétfő', 'value' => 1],
+                    ['label' => 'Kedd', 'value' => 2],
+                    ['label' => 'Szerda', 'value' => 3],
+                    ['label' => 'Csütörtök', 'value' => 4],
+                    ['label' => 'Péntek', 'value' => 5],
+                    ['label' => 'Szombat', 'value' => 6],
+                    ['label' => 'Vasárnap', 'value' => 7],
+                ],
+                'validation' => ['required', 'array', 'min:1'],
+                'order_index' => 40,
+                'is_editable' => true,
+                'is_visible' => true,
+            ],
+            [
+                'key' => 'autoplan.weekend_policy',
+                'group' => 'scheduling.autoplan',
+                'label' => 'Hétvége policy',
+                'type' => 'select',
+                'default_value' => 'require_if_demand',
+                'description' => 'skip: hétvége teljes kihagyása, allow: hétvége opcionális, require_if_demand: csak explicit hétvégi demand esetén tervez.',
+                'options' => [
+                    ['label' => 'Kihagyás', 'value' => 'skip'],
+                    ['label' => 'Engedélyezett', 'value' => 'allow'],
+                    ['label' => 'Csak demand esetén', 'value' => 'require_if_demand'],
+                ],
+                'validation' => ['required', 'string', 'in:skip,allow,require_if_demand'],
+                'order_index' => 50,
+                'is_editable' => true,
+                'is_visible' => true,
+            ],
         ];
 
         foreach ($rows as $row) {
@@ -61,4 +99,3 @@ class SettingsMetaSeeder extends Seeder
         }
     }
 }
-

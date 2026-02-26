@@ -15,6 +15,8 @@ class AppSettingsSeeder extends Seeder
             ['key' => 'autoplan.min_rest_hours', 'value' => 11],
             ['key' => 'autoplan.max_consecutive_days', 'value' => 6],
             ['key' => 'autoplan.weekend_fairness', 'value' => true],
+            ['key' => 'planning.allowed_weekdays', 'value' => [1, 2, 3, 4, 5, 6, 7]],
+            ['key' => 'autoplan.weekend_policy', 'value' => 'require_if_demand'],
         ];
 
         foreach ($rows as $row) {

@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'ensure.company' => \App\Http\Middleware\EnsureCompanySelected::class,
+            'tenant.group' => \App\Http\Middleware\EnsureTenantGroupContext::class,
             'hq.landlord' => \App\Http\Middleware\EnsureHqLandlordContext::class,
             'superadmin' => \App\Http\Middleware\EnsureSuperadmin::class,
         ]);

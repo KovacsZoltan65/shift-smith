@@ -7,7 +7,9 @@ export function csrfToken() {
 }
 
 export async function csrfFetch(url, options = {}) {
-    const xsrf = decodeURIComponent(getCookie("XSRF-TOKEN"));
+    const xsrfRaw = getCookie("XSRF-TOKEN");
+    const xsrf = xsrfRaw ? decodeURIComponent(xsrfRaw) : "";
+    const csrf = csrfToken();
 
     return fetch(url, {
         credentials: "include",
@@ -15,6 +17,7 @@ export async function csrfFetch(url, options = {}) {
         headers: {
             "X-Requested-With": "XMLHttpRequest",
             Accept: "application/json",
+            ...(csrf ? { "X-CSRF-TOKEN": csrf } : {}),
             ...(xsrf ? { "X-XSRF-TOKEN": xsrf } : {}),
             ...(options.headers ?? {}),
         },

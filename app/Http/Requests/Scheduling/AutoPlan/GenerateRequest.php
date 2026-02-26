@@ -30,7 +30,7 @@ class GenerateRequest extends FormRequest
             'demand.weekday' => ['required', 'array', 'min:1'],
             'demand.weekday.*.shift_id' => ['required', 'integer', 'exists:work_shifts,id'],
             'demand.weekday.*.required_count' => ['required', 'integer', 'min:1', 'max:500'],
-            'demand.weekend' => ['required', 'array', 'min:1'],
+            'demand.weekend' => ['nullable', 'array'],
             'demand.weekend.*.shift_id' => ['required', 'integer', 'exists:work_shifts,id'],
             'demand.weekend.*.required_count' => ['required', 'integer', 'min:1', 'max:500'],
 
@@ -43,8 +43,18 @@ class GenerateRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $demand = $this->input('demand');
+        if (!\is_array($demand)) {
+            $demand = [];
+        }
+
+        if (!\array_key_exists('weekend', $demand) || !\is_array($demand['weekend'])) {
+            $demand['weekend'] = [];
+        }
+
         $rules = $this->input('rules');
         if (!\is_array($rules)) {
+            $this->merge(['demand' => $demand]);
             return;
         }
 
@@ -52,6 +62,9 @@ class GenerateRequest extends FormRequest
             $rules['weekend_fairness'] = filter_var($rules['weekend_fairness'], FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
         }
 
-        $this->merge(['rules' => $rules]);
+        $this->merge([
+            'demand' => $demand,
+            'rules' => $rules,
+        ]);
     }
 }

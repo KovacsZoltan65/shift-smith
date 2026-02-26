@@ -8,6 +8,7 @@ use App\Data\Scheduling\AutoPlan\GenerateInputData;
 use App\Data\Scheduling\AutoPlan\GenerateResultData;
 use App\Models\WorkShift;
 use App\Repositories\Scheduling\AutoPlanRepository;
+use App\Services\SettingsResolverService;
 use App\Services\Cache\CacheNamespaces;
 use App\Services\Cache\CacheVersionService;
 use App\Services\TenantContext;
@@ -20,6 +21,7 @@ class AutoPlanService
 {
     public function __construct(
         private readonly AutoPlanRepository $repository,
+        private readonly SettingsResolverService $settingsResolverService,
         private readonly CacheVersionService $cacheVersionService,
         private readonly TenantContext $tenantContext
     ) {}
@@ -48,6 +50,7 @@ class AutoPlanService
         }
 
         $resolvedRules = $this->resolveRules($input);
+        $planningRules = $this->resolvePlanningRules($companyId, $userId);
         $lookaroundDays = max(7, $resolvedRules['max_consecutive_days'] + 2);
 
         $existing = $this->repository->assignmentsForEmployeesBetween(
@@ -58,7 +61,14 @@ class AutoPlanService
         );
 
         $state = $this->buildState($employees, $existing, $shifts, $monthStart, $monthEnd);
-        $slots = $this->buildSlots($monthStart, $monthEnd, $weekdayDemand, $weekendDemand);
+        $slots = $this->buildSlots(
+            monthStart: $monthStart,
+            monthEnd: $monthEnd,
+            weekdayDemand: $weekdayDemand,
+            weekendDemand: $weekendDemand,
+            allowedWeekdays: $planningRules['allowed_weekdays'],
+            weekendPolicy: $planningRules['weekend_policy']
+        );
 
         $pendingRows = [];
         $missing = [];
@@ -131,6 +141,7 @@ class AutoPlanService
             $monthStart,
             $monthEnd,
             $resolvedRules,
+            $planningRules,
             $pendingRows,
             $missing,
             $slotsTotal,
@@ -156,6 +167,7 @@ class AutoPlanService
 
             $resultJson = [
                 'rules' => $resolvedRules,
+                'planning' => $planningRules,
                 'coverage' => [
                     'slots_total' => $slotsTotal,
                     'slots_filled' => $filled,
@@ -178,6 +190,7 @@ class AutoPlanService
                     ],
                     'rules' => $input->rules,
                     'rules_resolved' => $resolvedRules,
+                    'planning_rules_resolved' => $planningRules,
                 ],
                 resultJson: $resultJson,
                 createdBy: $userId
@@ -229,12 +242,19 @@ class AutoPlanService
      * @return array{
      *   min_rest_hours:int,
      *   max_consecutive_days:int,
-     *   weekend_fairness:bool
+     *   weekend_fairness:bool,
+     *   allowed_weekdays:list<int>,
+     *   weekend_policy:'skip'|'allow'|'require_if_demand'
      * }
      */
     public function defaults(): array
     {
-        return $this->repository->getAutoPlanRules();
+        $autoplanRules = $this->repository->getAutoPlanRules();
+
+        return [
+            ...$autoplanRules,
+            ...$this->resolvePlanningRules(companyId: null, userId: null),
+        ];
     }
 
     /**
@@ -271,6 +291,45 @@ class AutoPlanService
             'min_rest_hours' => max(0, (int) $minRest),
             'max_consecutive_days' => max(1, (int) $maxConsecutive),
             'weekend_fairness' => (bool) $weekendFairness,
+        ];
+    }
+
+    /**
+     * @return array{
+     *   allowed_weekdays:list<int>,
+     *   weekend_policy:'skip'|'allow'|'require_if_demand'
+     * }
+     */
+    private function resolvePlanningRules(?int $companyId, ?int $userId): array
+    {
+        $allowedWeekdaysValue = $this->settingsResolverService->effectiveValue('planning.allowed_weekdays', [
+            'company_id' => $companyId,
+            'user_id' => $userId,
+        ])['value'] ?? [1, 2, 3, 4, 5, 6, 7];
+
+        $allowedWeekdays = \is_array($allowedWeekdaysValue)
+            ? array_values(array_unique(array_filter(
+                array_map('intval', $allowedWeekdaysValue),
+                static fn (int $day): bool => $day >= 1 && $day <= 7
+            )))
+            : [1, 2, 3, 4, 5, 6, 7];
+
+        if ($allowedWeekdays === []) {
+            $allowedWeekdays = [1, 2, 3, 4, 5, 6, 7];
+        }
+
+        $weekendPolicyRaw = (string) ($this->settingsResolverService->effectiveValue('autoplan.weekend_policy', [
+            'company_id' => $companyId,
+            'user_id' => $userId,
+        ])['value'] ?? 'require_if_demand');
+
+        $weekendPolicy = \in_array($weekendPolicyRaw, ['skip', 'allow', 'require_if_demand'], true)
+            ? $weekendPolicyRaw
+            : 'require_if_demand';
+
+        return [
+            'allowed_weekdays' => $allowedWeekdays,
+            'weekend_policy' => $weekendPolicy,
         ];
     }
 
@@ -355,18 +414,33 @@ class AutoPlanService
     /**
      * @param array<int,int> $weekdayDemand
      * @param array<int,int> $weekendDemand
+     * @param list<int> $allowedWeekdays
+     * @param 'skip'|'allow'|'require_if_demand' $weekendPolicy
      * @return list<array{date:string,shift_id:int}>
      */
     private function buildSlots(
         CarbonImmutable $monthStart,
         CarbonImmutable $monthEnd,
         array $weekdayDemand,
-        array $weekendDemand
+        array $weekendDemand,
+        array $allowedWeekdays,
+        string $weekendPolicy
     ): array {
         $slots = [];
         $cursor = $monthStart;
 
         while ($cursor->lessThanOrEqualTo($monthEnd)) {
+            $weekdayIso = (int) $cursor->dayOfWeekIso;
+            if (!\in_array($weekdayIso, $allowedWeekdays, true)) {
+                $cursor = $cursor->addDay();
+                continue;
+            }
+
+            if ($cursor->isWeekend() && $weekendPolicy === 'skip') {
+                $cursor = $cursor->addDay();
+                continue;
+            }
+
             $demand = $cursor->isWeekend() ? $weekendDemand : $weekdayDemand;
             foreach ($demand as $shiftId => $requiredCount) {
                 for ($i = 0; $i < $requiredCount; $i++) {

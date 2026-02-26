@@ -66,6 +66,8 @@ const defaults = ref({
     min_rest_hours: 11,
     max_consecutive_days: 6,
     weekend_fairness: true,
+    allowed_weekdays: [1, 2, 3, 4, 5, 6, 7],
+    weekend_policy: "require_if_demand",
 });
 
 const monthRegex = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -74,16 +76,13 @@ const hasValidDemand = (items) =>
     items.length > 0 &&
     items.every((x) => Number(x.shift_id) > 0 && Number(x.required_count) >= 1);
 
-const canContinueToScope = computed(
-    () => hasValidDemand(weekdayDemand.value) && hasValidDemand(weekendDemand.value),
-);
+const canContinueToScope = computed(() => hasValidDemand(weekdayDemand.value));
 
 const canGenerate = computed(() => {
     return (
         monthRegex.test(month.value) &&
         selectedEmployeeIds.value.length > 0 &&
-        hasValidDemand(weekdayDemand.value) &&
-        hasValidDemand(weekendDemand.value)
+        hasValidDemand(weekdayDemand.value)
     );
 });
 
@@ -244,12 +243,18 @@ const loadDefaults = async () => {
             min_rest_hours: Number(data?.data?.min_rest_hours ?? 11),
             max_consecutive_days: Number(data?.data?.max_consecutive_days ?? 6),
             weekend_fairness: !!data?.data?.weekend_fairness,
+            allowed_weekdays: Array.isArray(data?.data?.allowed_weekdays)
+                ? data.data.allowed_weekdays.map((x) => Number(x)).filter((x) => x >= 1 && x <= 7)
+                : [1, 2, 3, 4, 5, 6, 7],
+            weekend_policy: String(data?.data?.weekend_policy ?? "require_if_demand"),
         };
     } catch (_) {
         defaults.value = {
             min_rest_hours: 11,
             max_consecutive_days: 6,
             weekend_fairness: true,
+            allowed_weekdays: [1, 2, 3, 4, 5, 6, 7],
+            weekend_policy: "require_if_demand",
         };
     }
 };
@@ -407,6 +412,10 @@ onMounted(async () => {
                     <div>Minimum pihenőidő: <b>{{ defaults.min_rest_hours }} óra</b></div>
                     <div>Max egymást követő nap: <b>{{ defaults.max_consecutive_days }} nap</b></div>
                     <div>Hétvégi arányosság: <b>{{ defaults.weekend_fairness ? "Bekapcsolva" : "Kikapcsolva" }}</b></div>
+                    <div>Hétvége policy: <b>{{ defaults.weekend_policy }}</b></div>
+                    <div class="md:col-span-2 xl:col-span-4">
+                        Tervezhető napok (ISO): <b>{{ (defaults.allowed_weekdays || []).join(", ") }}</b>
+                    </div>
                     <div class="min-w-0 rounded border border-slate-200 p-2">
                         <label class="mb-1 block text-xs text-slate-600">Elvárt napi munkaidő</label>
                         <div class="flex flex-wrap items-center gap-2">
@@ -450,7 +459,7 @@ onMounted(async () => {
 
                 <div class="rounded-lg border border-slate-200 p-3">
                     <div class="mb-3 flex items-center justify-between">
-                        <div class="font-medium">Hétvégi igény</div>
+                        <div class="font-medium">Hétvégi igény (opcionális)</div>
                         <Button label="+ Sor" size="small" text @click="addDemandRow(weekendDemand)" />
                     </div>
 
