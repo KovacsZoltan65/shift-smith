@@ -54,8 +54,8 @@ class WorkPatternController extends Controller
             'title' => 'Munkarendek',
             'filter' => [
                 'search' => $request->string('search')->toString() ?: null,
-                'field' => $request->string('field')->toString() ?: 'id',
-                'order' => $request->string('order')->toString() ?: 'desc',
+                'field' => $request->string('field')->toString() ?: 'name',
+                'order' => $request->string('order')->toString() ?: 'asc',
                 'page' => max(1, (int) $request->integer('page', 1)),
                 'per_page' => min(max(1, (int) $request->integer('per_page', 10)), 100),
                 'company_id' => $currentCompanyId,

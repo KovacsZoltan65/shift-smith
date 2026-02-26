@@ -63,8 +63,8 @@ class FetchRequest extends FormRequest
 
         return [
             'search' => isset($data['search']) ? trim((string) $data['search']) : null,
-            'field' => (string) ($data['field'] ?? 'id'),
-            'order' => (string) ($data['order'] ?? 'desc'),
+            'field' => (string) ($data['field'] ?? 'name'),
+            'order' => (string) ($data['order'] ?? 'asc'),
             'page' => (int) ($data['page'] ?? 1),
             'per_page' => (int) ($data['per_page'] ?? 10),
             'company_id' => (int) $data['company_id'],

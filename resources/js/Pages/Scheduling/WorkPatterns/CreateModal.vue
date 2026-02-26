@@ -87,7 +87,9 @@ const submit = async () => {
                 const body = await res.json();
                 const bag = body?.errors ?? {};
                 const flat = {};
-                Object.keys(bag).forEach((k) => (flat[k] = bag[k]?.[0] ?? String(bag[k])));
+                Object.keys(bag).forEach(
+                    (k) => (flat[k] = bag[k]?.[0] ?? String(bag[k]))
+                );
                 errors.value = flat;
                 return;
             }
@@ -128,7 +130,12 @@ const submit = async () => {
 
         <template #footer>
             <div class="flex justify-end gap-2">
-                <Button label="Mégse" severity="secondary" :disabled="saving" @click="close" />
+                <Button
+                    label="Mégse"
+                    severity="secondary"
+                    :disabled="saving"
+                    @click="close"
+                />
                 <Button
                     label="Mentés"
                     icon="pi pi-check"

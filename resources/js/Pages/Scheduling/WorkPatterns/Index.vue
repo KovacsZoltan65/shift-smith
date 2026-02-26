@@ -60,8 +60,8 @@ const lazy = ref({
     first: 0,
     rows: 10,
     page: 0,
-    sortField: "id",
-    sortOrder: -1,
+    sortField: props.filter?.field || "name",
+    sortOrder: (props.filter?.order || "asc") === "asc" ? 1 : -1,
 });
 
 const rowMenu = ref();

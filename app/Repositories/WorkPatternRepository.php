@@ -46,7 +46,7 @@ class WorkPatternRepository extends BaseRepository implements WorkPatternReposit
         $field = in_array((string) $request->input('field', ''), WorkPattern::SORTABLE, true)
             ? (string) $request->input('field')
             : null;
-        $direction = strtolower((string) $request->input('order', 'desc')) === 'asc' ? 'asc' : 'desc';
+        $direction = strtolower((string) $request->input('order', 'asc')) === 'desc' ? 'desc' : 'asc';
 
         $queryCallback = function () use ($companyId, $term, $field, $direction, $perPage, $page): LengthAwarePaginator {
             $query = WorkPattern::query()
@@ -63,7 +63,7 @@ class WorkPatternRepository extends BaseRepository implements WorkPatternReposit
                     $q->whereRaw('LOWER(name) like ?', ["%{$term}%"]);
                 })
                 ->when($field, fn ($q) => $q->orderBy($field, $direction))
-                ->when(!$field, fn ($q) => $q->orderByDesc('id'));
+                ->when(!$field, fn ($q) => $q->orderBy('name'));
 
             return $query->paginate($perPage, ['*'], 'page', $page);
         };

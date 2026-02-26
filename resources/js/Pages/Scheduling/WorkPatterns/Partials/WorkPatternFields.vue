@@ -24,6 +24,7 @@ const toIntOrNull = (v) => {
 
 <template>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Név -->
         <div class="md:col-span-2">
             <label class="mb-1 block text-sm">Név</label>
             <InputText
@@ -32,9 +33,12 @@ const toIntOrNull = (v) => {
                 :disabled="disabled"
                 @update:modelValue="(v) => set('name', String(v ?? '').trimStart())"
             />
-            <div v-if="errors?.name" class="mt-1 text-sm text-red-600">{{ errors.name }}</div>
+            <div v-if="errors?.name" class="mt-1 text-sm text-red-600">
+                {{ errors.name }}
+            </div>
         </div>
 
+        <!-- Napi munkaidő -->
         <div>
             <label class="mb-1 block text-sm">Napi munkaidő (perc)</label>
             <InputText
@@ -49,6 +53,7 @@ const toIntOrNull = (v) => {
             </div>
         </div>
 
+        <!-- Szünet -->
         <div>
             <label class="mb-1 block text-sm">Szünet (perc)</label>
             <InputText
@@ -63,6 +68,7 @@ const toIntOrNull = (v) => {
             </div>
         </div>
 
+        <!-- Core törzsidő kezdete -->
         <div>
             <label class="mb-1 block text-sm">Core kezdés (HH:mm)</label>
             <InputText
@@ -80,6 +86,7 @@ const toIntOrNull = (v) => {
             </div>
         </div>
 
+        <!-- Core törzsidő vége -->
         <div>
             <label class="mb-1 block text-sm">Core zárás (HH:mm)</label>
             <InputText
@@ -95,6 +102,7 @@ const toIntOrNull = (v) => {
         </div>
     </div>
 
+    <!-- Aktív -->
     <div class="mt-4 flex items-center gap-2">
         <Checkbox
             inputId="wp-active"
