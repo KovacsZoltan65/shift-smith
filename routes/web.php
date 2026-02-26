@@ -5,7 +5,6 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\CompanySelectController;
-use App\Http\Controllers\Scheduling\AutoPlanController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\EmployeeWorkPatternController;
 use App\Http\Controllers\PositionController;
@@ -15,7 +14,6 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkPatternController;
 use App\Http\Controllers\WorkScheduleAssignmentController;
 use App\Http\Controllers\WorkShiftAssignmentController;
-use App\Http\Controllers\WorkScheduleController;
 use App\Http\Controllers\WorkShiftController;
 use App\Http\Controllers\DashboardController;
 use Illuminate\Foundation\Application;
@@ -54,8 +52,6 @@ Route::middleware(['auth', 'verified', 'ensure.company', 'throttle:120,1'])->gro
     Route::get('/selectors/companies', [CompanyController::class, 'getToSelect'])->name('selectors.companies');
     // Employee Selector
     Route::get('/selectors/employees', [EmployeeController::class, 'getToSelect'])->name('selectors.employees');
-    Route::get('/selectors/employees/eligible-autoplan', [EmployeeController::class, 'getEligibleForAutoPlan'])
-        ->name('selectors.employees.eligible_autoplan');
     // Position Selector
     Route::get('/selectors/positions', [PositionController::class, 'getToSelect'])->name('selectors.positions');
     // WorkShift Selector
@@ -352,40 +348,6 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
         Route::delete('/{id}', 'destroy')->whereNumber('id')->name('work_schedule_assignments.destroy')->middleware('throttle:20,1');
         Route::post('/bulk-upsert', 'bulkUpsert')->name('work_schedule_assignments.bulk_upsert')->middleware('throttle:30,1');
     });
-
-Route::middleware(['auth', 'verified'])
-    ->controller(AutoPlanController::class)
-    ->group(function (): void {
-        Route::get('/scheduling/work-schedules/autoplan/defaults', 'defaults')
-            ->name('scheduling.work_schedules.autoplan.defaults')
-            ->middleware('throttle:60,1');
-        Route::post('/scheduling/work-schedules/autoplan', 'generate')
-            ->name('scheduling.work_schedules.autoplan.generate')
-            ->middleware('throttle:10,1');
-    });
-
-/**
- * ======================================
- * WORK_SCHEDULES
- * ======================================
- * Beosztások kezelése
- */
-Route::middleware(['auth', 'verified', 'ensure.company'])
-    ->prefix('work_schedules')
-    ->as('work_schedules.')
-    ->controller(WorkScheduleController::class)
-    ->group(function() {
-    // Olvasási műveletek
-    Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
-    Route::get('/fetch', 'fetch')->name('fetch')->middleware('throttle:60,1');
-    Route::get('/{id}', 'getWorkSchedule')->whereNumber('id')->name('by_id')->middleware('throttle:60,1');
-    
-    // Írási műveletek
-    Route::post('/', 'store')->name('store')->middleware('throttle:20,1');
-    Route::put('/{id}', 'update')->whereNumber('id')->name('update')->middleware('throttle:30,1');
-    Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy')->middleware('throttle:20,1');
-    Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
-});
 
 /**
  * ======================================

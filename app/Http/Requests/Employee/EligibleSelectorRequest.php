@@ -17,7 +17,7 @@ use Illuminate\Foundation\Http\FormRequest;
 class EligibleSelectorRequest extends FormRequest
 {
     /**
-     * Csak AutoPlan vagy dolgozó-listázás jogosultsággal érhető el.
+     * Csak dolgozó-listázás jogosultsággal érhető el.
      */
     public function authorize(): bool
     {
@@ -26,9 +26,7 @@ class EligibleSelectorRequest extends FormRequest
             return false;
         }
 
-        return $user->can('work_schedules.autoplan')
-            || $user->can('work_schedules.create')
-            || $user->can('employees.viewAny');
+        return $user->can('employees.viewAny');
     }
 
     /**

@@ -78,14 +78,6 @@ const allow = new Set([
     "work_schedule_assignments.update",
     "work_schedule_assignments.delete",
 
-    // WorkSchedules
-    "work_schedules.view",
-    "work_schedules.viewAny",
-    "work_schedules.create",
-    "work_schedules.update",
-    "work_schedules.delete",
-    "work_schedules.deleteAny",
-    "work_schedules.autoplan",
 ]);
 
 vi.mock("@/composables/usePermissions", () => ({
