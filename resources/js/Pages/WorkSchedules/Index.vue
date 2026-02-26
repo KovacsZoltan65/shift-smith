@@ -236,6 +236,26 @@ const resetToFirstPageAndFetch = () => {
     fetchWorkSchedules();
 };
 
+const onCompanyChange = (value) => {
+    companyId.value = value;
+    resetToFirstPageAndFetch();
+};
+
+const onStatusChange = (value) => {
+    status.value = value;
+    resetToFirstPageAndFetch();
+};
+
+const onDateFromChange = (value) => {
+    dateFrom.value = value;
+    resetToFirstPageAndFetch();
+};
+
+const onDateToChange = (value) => {
+    dateTo.value = value;
+    resetToFirstPageAndFetch();
+};
+
 const confirmBulkDelete = () => {
     const all = selected.value ?? [];
     if (!all.length) return;
@@ -425,12 +445,7 @@ onMounted(fetchWorkSchedules);
                         <label class="mb-1 block text-xs text-gray-600">Cég</label>
                         <CompanySelector
                             :modelValue="companyId"
-                            @update:modelValue="
-                                (v) => {
-                                    companyId.value = v;
-                                    resetToFirstPageAndFetch();
-                                }
-                            "
+                            @update:modelValue="onCompanyChange"
                             placeholder="Összes"
                         />
                     </div>
@@ -443,12 +458,7 @@ onMounted(fetchWorkSchedules);
                             optionLabel="label"
                             optionValue="value"
                             :modelValue="status"
-                            @update:modelValue="
-                                (v) => {
-                                    status.value = v;
-                                    resetToFirstPageAndFetch();
-                                }
-                            "
+                            @update:modelValue="onStatusChange"
                         />
                     </div>
 
@@ -459,12 +469,7 @@ onMounted(fetchWorkSchedules);
                             dateFormat="yy-mm-dd"
                             showIcon
                             :modelValue="dateFrom"
-                            @update:modelValue="
-                                (v) => {
-                                    dateFrom.value = v;
-                                    resetToFirstPageAndFetch();
-                                }
-                            "
+                            @update:modelValue="onDateFromChange"
                         />
                     </div>
 
@@ -475,12 +480,7 @@ onMounted(fetchWorkSchedules);
                             dateFormat="yy-mm-dd"
                             showIcon
                             :modelValue="dateTo"
-                            @update:modelValue="
-                                (v) => {
-                                    dateTo.value = v;
-                                    resetToFirstPageAndFetch();
-                                }
-                            "
+                            @update:modelValue="onDateToChange"
                         />
                     </div>
                 </div>
