@@ -43,8 +43,8 @@ class WorkShiftSeeder extends Seeder
             ],
             [
                 'name' => 'Rugalmas',
-                'start_time' => null,
-                'end_time' => null,
+                'start_time' => '08:00:00',
+                'end_time' => '16:00:00',
                 'is_flexible' => true,
                 'active' => true,
             ],
@@ -68,3 +68,4 @@ class WorkShiftSeeder extends Seeder
         });
     }
 }
+
