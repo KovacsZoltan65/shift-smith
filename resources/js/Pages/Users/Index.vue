@@ -22,6 +22,7 @@ import EditModal from "@/Pages/Users/EditModal.vue";
 import PasswordResetModal from "@/Pages/Users/PasswordResetModal.vue";
 import UserService from "@/services/UserService.js";
 import RoleService from "@/services/Auth/RoleService.js";
+import CompanyService from "@/services/CompanyService.js";
 import { csrfFetch } from "@/lib/csrfFetch";
 import { usePermissions } from "@/composables/usePermissions";
 
@@ -54,9 +55,11 @@ const error = ref(null);
 const rows = ref([]);
 const totalRecords = ref(0);
 const selected = ref([]);
+const companyOptions = ref([]);
 
 const authUserId = computed(() => Number(page.props.auth?.user?.id ?? 0));
 const canManageUserRoles = computed(() => has("users.assignRoles"));
+const defaultCompanyId = computed(() => Number(page.props.companyContext?.current_company_id ?? 0) || null);
 
 const rowMenu = ref();
 const rowMenuModel = ref([]);
@@ -258,6 +261,25 @@ const fetchUsers = async () => {
     }
 };
 
+const fetchCompanyOptions = async () => {
+    try {
+        const response = await CompanyService.getToSelect();
+        const items = Array.isArray(response?.data) ? response.data : response?.data?.data ?? [];
+
+        companyOptions.value = items.map((company) => ({
+            label: company.name,
+            value: Number(company.id),
+        }));
+    } catch (e) {
+        toast.add({
+            severity: "error",
+            summary: "Hiba",
+            detail: e?.message || "A céglista betöltése sikertelen.",
+            life: 3500,
+        });
+    }
+};
+
 const onPage = (event) => {
     lazy.value.first = event.first;
     lazy.value.rows = event.rows;
@@ -409,7 +431,9 @@ const goEdit = (row) => {
     router.visit(`/users/${row.id}/edit`);
 };
 
-onMounted(fetchUsers);
+onMounted(async () => {
+    await Promise.all([fetchUsers(), fetchCompanyOptions()]);
+});
 </script>
 
 <template>
@@ -418,8 +442,18 @@ onMounted(fetchUsers);
     <Toast />
     <ConfirmDialog />
 
-    <CreateModal v-model="createOpen" @saved="onSaved" />
-    <EditModal v-model="editOpen" :user="editUser" @saved="onSaved" />
+    <CreateModal
+        v-model="createOpen"
+        :companies="companyOptions"
+        :defaultCompanyId="defaultCompanyId"
+        @saved="onSaved"
+    />
+    <EditModal
+        v-model="editOpen"
+        :user="editUser"
+        :companies="companyOptions"
+        @saved="onSaved"
+    />
     <PasswordResetModal v-model="pwOpen" :user="pwUser" @sent="onPasswordResetSent" />
 
     <AuthenticatedLayout>

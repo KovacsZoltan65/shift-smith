@@ -6,6 +6,7 @@ use App\Interfaces\UserRepositoryInterface;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 /**
  * Felhasználó szolgáltatás osztály
@@ -73,6 +74,7 @@ class UserService
      * @param array{
      *   name: string,
      *   email: string,
+     *   company_id: int,
      *   password: string,
      *   roles?: array<int, string>
      * } $data Felhasználó adatok
@@ -80,6 +82,10 @@ class UserService
      */
     public function store(array $data): User
     {
+        if (! isset($data['password']) || ! is_string($data['password']) || trim($data['password']) === '') {
+            $data['password'] = Str::random(40);
+        }
+
         return $this->repo->store($data);
     }
     
@@ -95,6 +101,7 @@ class UserService
         /** @var array{
          *   name: string,
          *   email: string,
+         *   company_id: int,
          *   password: string,
          *   company_id?: int|null,
          *   is_active?: bool
