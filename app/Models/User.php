@@ -12,6 +12,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Http\Request;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Permission\Traits\HasRoles;
@@ -196,7 +197,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function companies(): BelongsToMany
     {
-        return $this->belongsToMany(Company::class)
+        return $this->belongsToMany(Company::class, 'company_user')
             ->withTimestamps();
     }
 
@@ -208,7 +209,18 @@ class User extends Authenticatable implements MustVerifyEmail
     public function employees(): BelongsToMany
     {
         return $this->belongsToMany(Employee::class, 'user_employee')
-            ->withPivot(['active'])
+            ->withPivot(['company_id', 'active'])
             ->withTimestamps();
+    }
+
+    /**
+     * Egy adott company-hoz tartozó user_employee rekord.
+     *
+     * @return HasOne<UserEmployee, $this>
+     */
+    public function employeeForCompany(int $companyId): HasOne
+    {
+        return $this->hasOne(UserEmployee::class)
+            ->where('company_id', $companyId);
     }
 }

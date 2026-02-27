@@ -78,14 +78,8 @@ final class CompanySelectorRepository
             return $query;
         }
 
-        return $query->whereHas('employees', function (Builder $employeeQuery) use ($user): void {
-            $employeeQuery
-                ->where('company_employee.active', true)
-                ->whereHas('users', function (Builder $userQuery) use ($user): void {
-                    $userQuery
-                        ->whereKey((int) $user->id)
-                        ->where('user_employee.active', true);
-                });
+        return $query->whereHas('users', function (Builder $userQuery) use ($user): void {
+            $userQuery->whereKey((int) $user->id);
         });
     }
 }

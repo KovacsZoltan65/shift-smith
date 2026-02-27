@@ -16,10 +16,12 @@ use App\Interfaces\WorkShiftAssignmentRepositoryInterface;
 use App\Interfaces\WorkShiftRepositoryInterface;
 use App\Models\Company;
 use App\Models\CompanyEmployee;
+use App\Models\CompanyUser;
 use App\Models\Employee;
 use App\Models\UserEmployee;
 use App\Observers\CompanyObserver;
 use App\Observers\CompanyEmployeeObserver;
+use App\Observers\CompanyUserObserver;
 use App\Observers\EmployeeObserver;
 use App\Observers\UserEmployeeObserver;
 use App\Repositories\Admin\PermissionRepository;
@@ -30,6 +32,10 @@ use App\Repositories\EmployeeRepository;
 use App\Repositories\EmployeeWorkPatternRepository;
 use App\Repositories\PositionRepository;
 use App\Repositories\UserRepository;
+use App\Repositories\UserEmployeeRepository;
+use App\Repositories\UserEmployeeRepositoryInterface;
+use App\Repositories\UserAssignments\UserAssignmentRepository;
+use App\Repositories\UserAssignments\UserAssignmentRepositoryInterface;
 use App\Repositories\WorkPatternRepository;
 use App\Repositories\WorkScheduleAssignmentRepository;
 use App\Repositories\WorkShiftAssignmentRepository;
@@ -97,6 +103,14 @@ class AppServiceProvider extends ServiceProvider
             EmployeeWorkPatternRepositoryInterface::class,
             EmployeeWorkPatternRepository::class
         );
+        $this->app->bind(
+            UserEmployeeRepositoryInterface::class,
+            UserEmployeeRepository::class
+        );
+        $this->app->bind(
+            UserAssignmentRepositoryInterface::class,
+            UserAssignmentRepository::class
+        );
     }
 
     /**
@@ -115,6 +129,7 @@ class AppServiceProvider extends ServiceProvider
         Employee::observe(EmployeeObserver::class);
         Company::observe(CompanyObserver::class);
         CompanyEmployee::observe(CompanyEmployeeObserver::class);
+        CompanyUser::observe(CompanyUserObserver::class);
         UserEmployee::observe(UserEmployeeObserver::class);
         
         if (!defined('APP_ACTIVE'))   define('APP_ACTIVE', 1);

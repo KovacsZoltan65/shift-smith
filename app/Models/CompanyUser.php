@@ -8,35 +8,23 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class UserEmployee extends Model
+final class CompanyUser extends Model
 {
     use HasFactory;
 
-    protected $table = 'user_employee';
+    protected $table = 'company_user';
 
     /** @var list<string> */
     protected $fillable = [
-        'user_id',
         'company_id',
-        'employee_id',
-        'active',
+        'user_id',
     ];
 
     /** @var array<string, string> */
     protected $casts = [
-        'user_id' => 'int',
         'company_id' => 'int',
-        'employee_id' => 'int',
-        'active' => 'bool',
+        'user_id' => 'int',
     ];
-
-    /**
-     * @return BelongsTo<User, $this>
-     */
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
 
     /**
      * @return BelongsTo<Company, $this>
@@ -47,10 +35,10 @@ class UserEmployee extends Model
     }
 
     /**
-     * @return BelongsTo<Employee, $this>
+     * @return BelongsTo<User, $this>
      */
-    public function employee(): BelongsTo
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(Employee::class);
+        return $this->belongsTo(User::class);
     }
 }

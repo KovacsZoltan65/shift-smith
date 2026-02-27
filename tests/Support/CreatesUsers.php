@@ -46,6 +46,7 @@ trait CreatesUsers
         UserEmployee::query()->updateOrCreate(
             [
                 'user_id' => (int) $user->id,
+                'company_id' => (int) $company->id,
                 'employee_id' => (int) $employee->id,
             ],
             [

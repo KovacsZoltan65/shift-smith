@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\UserAssignmentController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\CompanySelectController;
 use App\Http\Controllers\CompanyController;
@@ -159,6 +160,19 @@ Route::middleware(['auth', 'verified'])
         Route::put('/permissions/{id}', [PermissionController::class, 'update'])->whereNumber('id')->name('permissions.update')->middleware('throttle:30,1');
         Route::delete('/permissions/{id}', [PermissionController::class, 'destroy'])->whereNumber('id')->name('permissions.destroy')->middleware('throttle:20,1');
         Route::delete('/permissions/destroy_bulk', [PermissionController::class, 'destroyBulk'])->name('permissions.destroy_bulk')->middleware('throttle:10,1');
+
+        // ---------------------------------------
+        // USER <-> EMPLOYEE MAPPING
+        // ---------------------------------------
+        Route::middleware(['ensure.company'])->group(function (): void {
+            Route::get('/user-assignments', [UserAssignmentController::class, 'index'])->name('user_assignments.index')->middleware('throttle:60,1');
+            Route::get('/user-assignments/fetch/users', [UserAssignmentController::class, 'fetchUsers'])->name('user_assignments.users.fetch')->middleware('throttle:60,1');
+            Route::get('/user-assignments/{user}/fetch', [UserAssignmentController::class, 'fetch'])->name('user_assignments.fetch')->middleware('throttle:60,1');
+            Route::post('/user-assignments/{user}/companies', [UserAssignmentController::class, 'attachCompany'])->name('user_assignments.companies.store')->middleware('throttle:20,1');
+            Route::delete('/user-assignments/{user}/companies/{company}', [UserAssignmentController::class, 'detachCompany'])->name('user_assignments.companies.destroy')->middleware('throttle:20,1');
+            Route::post('/user-assignments/{user}/companies/{company}/employee', [UserAssignmentController::class, 'assignEmployee'])->name('user_assignments.employee.assign')->middleware('throttle:20,1');
+            Route::delete('/user-assignments/{user}/companies/{company}/employee', [UserAssignmentController::class, 'removeEmployee'])->name('user_assignments.employee.destroy')->middleware('throttle:20,1');
+        });
         
     });
     

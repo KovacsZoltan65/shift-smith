@@ -228,7 +228,7 @@ class Employee extends Model
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'user_employee')
-            ->withPivot(['active'])
+            ->withPivot(['company_id', 'active'])
             ->withTimestamps();
     }
 

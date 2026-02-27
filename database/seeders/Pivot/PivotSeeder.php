@@ -12,8 +12,8 @@ class PivotSeeder extends Seeder
     {
         $this->call([
             CompanyEmployeeSeeder::class,
+            CompanyUserSeeder::class,
             UserEmployeeSeeder::class,
         ]);
     }
 }
-

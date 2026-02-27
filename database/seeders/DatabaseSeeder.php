@@ -2,9 +2,7 @@
 
 namespace Database\Seeders;
 
-use Database\Seeders\Pivot\CompanyEmployeeSeeder;
 use Database\Seeders\Pivot\PivotSeeder;
-use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -36,6 +34,9 @@ class DatabaseSeeder extends Seeder
             WorkShiftAssignmentSeeder::class,
             WorkPatternSeeder::class,
         ]);
+
+        // Demo tenant explicit, opt-in seed:
+        // $this->call(\Database\Seeders\Demo\DemoTenantSeeder::class);
         // User::factory(10)->create();
 
         //User::factory()->create([

@@ -80,6 +80,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'settings.updateCompany',
             'settings.viewUser',
             'settings.updateUser',
+            'user_employees.viewAny',
+            'user_employees.create',
+            'user_employees.delete',
+            'user_assignments.viewAny',
+            'user_assignments.update',
         ];
 
         /**

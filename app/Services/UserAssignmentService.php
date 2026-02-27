@@ -1,0 +1,279 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services;
+
+use App\Models\Company;
+use App\Models\Employee;
+use App\Models\TenantGroup;
+use App\Models\User;
+use App\Repositories\UserAssignments\UserAssignmentRepositoryInterface;
+use App\Services\Selectors\CompanySelectorService;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+
+final class UserAssignmentService
+{
+    public function __construct(
+        private readonly UserAssignmentRepositoryInterface $repository,
+        private readonly CompanySelectorService $companySelectorService,
+    ) {}
+
+    /**
+     * @return array{title:string}
+     */
+    public function indexPayload(): array
+    {
+        return [
+            'title' => 'Felhasználó hozzárendelések',
+        ];
+    }
+
+    /**
+     * @return array{
+     *   items: array<int, array{id:int,name:string,email:string,is_superadmin:bool}>,
+     *   meta: array{current_page:int,per_page:int,total:int,last_page:int}
+     * }
+     */
+    public function fetchUsers(?string $search = null, int $perPage = 15): array
+    {
+        $users = $this->repository->fetchUsers($search, $perPage);
+
+        return [
+            'items' => collect($users->items())
+                ->map(static function (User $user): array {
+                    return [
+                        'id' => (int) $user->id,
+                        'name' => (string) $user->name,
+                        'email' => (string) $user->email,
+                        'is_superadmin' => $user->hasRole('superadmin'),
+                    ];
+                })
+                ->values()
+                ->all(),
+            'meta' => [
+                'current_page' => $users->currentPage(),
+                'per_page' => $users->perPage(),
+                'total' => $users->total(),
+                'last_page' => $users->lastPage(),
+            ],
+        ];
+    }
+
+    /**
+     * @return array{
+     *   user_id:int,
+     *   user_name:string,
+     *   is_superadmin:bool,
+     *   read_only:bool,
+     *   read_only_reason:string|null,
+     *   companies: array<int, array{
+     *     id:int,
+     *     name:string,
+     *     assigned_employee:array{id:int,name:string,email:string|null}|null,
+     *     selectable_employees:array<int, array{id:int,name:string,email:string|null}>
+     *   }>,
+     *   selectable_companies: array<int, array{id:int,name:string}>
+     * }
+     */
+    public function fetchUserAssignments(User $actor, User $target, bool $enforceVisibility = true): array
+    {
+        if ($enforceVisibility) {
+            $this->ensureVisibleUser($actor, $target);
+        }
+
+        $isSuperadmin = $target->hasRole('superadmin');
+        $userCompanies = $this->repository->getUserCompanies($target, $actor);
+        $tenantCompanies = $this->repository->getTenantCompanies($actor);
+        $attachedIds = $userCompanies
+            ->pluck('id')
+            ->map(static fn (mixed $id): int => (int) $id)
+            ->all();
+
+        return [
+            'user_id' => (int) $target->id,
+            'user_name' => (string) $target->name,
+            'is_superadmin' => $isSuperadmin,
+            'read_only' => $isSuperadmin,
+            'read_only_reason' => $isSuperadmin ? 'superadmin - nem szükséges hozzárendelés' : null,
+            'companies' => $userCompanies
+                ->map(fn (Company $company): array => $this->mapCompany($target, $company, ! $isSuperadmin))
+                ->values()
+                ->all(),
+            'selectable_companies' => $isSuperadmin
+                ? []
+                : $tenantCompanies
+                    ->reject(fn (Company $company): bool => in_array((int) $company->id, $attachedIds, true))
+                    ->map(static fn (Company $company): array => [
+                        'id' => (int) $company->id,
+                        'name' => (string) $company->name,
+                    ])
+                    ->values()
+                    ->all(),
+        ];
+    }
+
+    public function attachCompany(User $actor, User $target, int $companyId): void
+    {
+        $this->ensureMutableTarget($actor, $target);
+        $company = $this->resolveCompany($actor, $companyId);
+
+        DB::transaction(function () use ($target, $company): void {
+            $this->repository->attachCompany($target, $company);
+            $this->bumpSelectorAfterCommit();
+        });
+    }
+
+    public function detachCompany(User $actor, User $target, Company $company): void
+    {
+        $this->ensureMutableTarget($actor, $target);
+        $tenantCompany = $this->resolveCompany($actor, (int) $company->id);
+
+        if (! $this->repository->userHasCompany($target, $tenantCompany)) {
+            throw ValidationException::withMessages([
+                'company_id' => 'A felhasználó nincs ehhez a céghez rendelve.',
+            ]);
+        }
+
+        DB::transaction(function () use ($target, $tenantCompany): void {
+            $this->repository->detachCompany($target, $tenantCompany);
+            $this->bumpSelectorAfterCommit();
+        });
+    }
+
+    public function assignEmployee(User $actor, User $target, Company $company, int $employeeId): void
+    {
+        $this->ensureMutableTarget($actor, $target);
+        $tenantCompany = $this->resolveCompany($actor, (int) $company->id);
+
+        if (! $this->repository->userHasCompany($target, $tenantCompany)) {
+            throw ValidationException::withMessages([
+                'company_id' => 'A felhasználó nincs ehhez a céghez rendelve.',
+            ]);
+        }
+
+        $employee = $this->repository->findCompanyEmployeeById($tenantCompany, $employeeId);
+        if (! $employee instanceof Employee) {
+            throw ValidationException::withMessages([
+                'employee_id' => 'A dolgozó nem szerepel a company_employee pivotban a kiválasztott céghez.',
+            ]);
+        }
+
+        DB::transaction(function () use ($target, $tenantCompany, $employee): void {
+            $this->repository->assignEmployee($target, $tenantCompany, $employee);
+            $this->bumpSelectorAfterCommit();
+        });
+    }
+
+    public function removeEmployee(User $actor, User $target, Company $company): void
+    {
+        $this->ensureMutableTarget($actor, $target);
+        $tenantCompany = $this->resolveCompany($actor, (int) $company->id);
+
+        if (! $this->repository->userHasCompany($target, $tenantCompany)) {
+            throw ValidationException::withMessages([
+                'company_id' => 'A felhasználó nincs ehhez a céghez rendelve.',
+            ]);
+        }
+
+        if (! $this->repository->getAssignedEmployee($target, $tenantCompany) instanceof Employee) {
+            throw ValidationException::withMessages([
+                'employee_id' => 'Ehhez a céghez nincs dolgozó hozzárendelés.',
+            ]);
+        }
+
+        DB::transaction(function () use ($target, $tenantCompany): void {
+            $this->repository->removeEmployee($target, $tenantCompany);
+            $this->bumpSelectorAfterCommit();
+        });
+    }
+
+    private function ensureVisibleUser(User $actor, User $target): void
+    {
+        if ($this->repository->userIsVisibleInTenant($target, $actor)) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'user_id' => 'A felhasználó nem érhető el az aktuális tenant groupban.',
+        ]);
+    }
+
+    private function ensureMutableTarget(User $actor, User $target): void
+    {
+        $this->ensureVisibleUser($actor, $target);
+
+        if ($target->hasRole('superadmin')) {
+            throw ValidationException::withMessages([
+                'user_id' => 'A superadmin felhasználóhoz nem szükséges hozzárendelés.',
+            ]);
+        }
+    }
+
+    private function resolveCompany(User $actor, int $companyId): Company
+    {
+        $company = $this->repository->findTenantCompanyById($companyId, $actor);
+
+        if ($company instanceof Company) {
+            return $company;
+        }
+
+        throw ValidationException::withMessages([
+            'company_id' => 'A kiválasztott cég nem érhető el az aktuális tenant groupban.',
+        ]);
+    }
+
+    /**
+     * @return array{
+     *   id:int,
+     *   name:string,
+     *   assigned_employee:array{id:int,name:string,email:string|null}|null,
+     *   selectable_employees:array<int, array{id:int,name:string,email:string|null}>
+     * }
+     */
+    private function mapCompany(User $target, Company $company, bool $includeSelectableEmployees): array
+    {
+        $assignedEmployee = $this->repository->getAssignedEmployee($target, $company);
+        $selectableEmployees = $includeSelectableEmployees
+            ? $this->repository->getCompanyEmployees($company)
+            : collect();
+
+        return [
+            'id' => (int) $company->id,
+            'name' => (string) $company->name,
+            'assigned_employee' => $assignedEmployee instanceof Employee ? $this->mapEmployee($assignedEmployee) : null,
+            'selectable_employees' => $selectableEmployees
+                ->map(fn (Employee $employee): array => $this->mapEmployee($employee))
+                ->values()
+                ->all(),
+        ];
+    }
+
+    /**
+     * @return array{id:int,name:string,email:string|null}
+     */
+    private function mapEmployee(Employee $employee): array
+    {
+        return [
+            'id' => (int) $employee->id,
+            'name' => trim((string) $employee->name),
+            'email' => $employee->email !== null ? (string) $employee->email : null,
+        ];
+    }
+
+    private function bumpSelectorAfterCommit(): void
+    {
+        $tenantGroupId = TenantGroup::current()?->id;
+
+        if (! is_numeric($tenantGroupId)) {
+            throw ValidationException::withMessages([
+                'tenant_group_id' => 'Nincs aktív tenant group kontextus.',
+            ]);
+        }
+
+        DB::afterCommit(function () use ($tenantGroupId): void {
+            $this->companySelectorService->bumpSelectorVersionForTenant((int) $tenantGroupId);
+        });
+    }
+}

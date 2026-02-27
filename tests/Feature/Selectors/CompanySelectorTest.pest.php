@@ -3,17 +3,15 @@
 declare(strict_types=1);
 
 use App\Models\Company;
-use App\Models\CompanyEmployee;
-use App\Models\Employee;
+use App\Models\CompanyUser;
 use App\Models\TenantGroup;
-use App\Models\UserEmployee;
 use Spatie\Permission\PermissionRegistrar;
 
 beforeEach(function (): void {
     $this->seedRolesAndPermissions();
 });
 
-it('returns only companies linked through user_employee -> company_employee in current tenant', function (): void {
+it('returns only companies linked through company_user in current tenant', function (): void {
     $tenantOne = TenantGroup::factory()->create();
     $tenantTwo = TenantGroup::factory()->create();
 
@@ -21,17 +19,8 @@ it('returns only companies linked through user_employee -> company_employee in c
     $companyB = Company::factory()->create(['tenant_group_id' => $tenantOne->id, 'name' => 'B Company', 'active' => true]);
     $companyC = Company::factory()->create(['tenant_group_id' => $tenantTwo->id, 'name' => 'C Company', 'active' => true]);
 
-    $e1 = Employee::factory()->create(['company_id' => $companyA->id]);
-    $e2 = Employee::factory()->create(['company_id' => $companyB->id]);
-    $e3 = Employee::factory()->create(['company_id' => $companyC->id]);
-
-    CompanyEmployee::query()->updateOrCreate(['company_id' => $companyA->id, 'employee_id' => $e1->id], ['active' => true]);
-    CompanyEmployee::query()->updateOrCreate(['company_id' => $companyB->id, 'employee_id' => $e2->id], ['active' => true]);
-    CompanyEmployee::query()->updateOrCreate(['company_id' => $companyC->id, 'employee_id' => $e3->id], ['active' => true]);
-
     $user = $this->createAdminUser($companyA);
-    UserEmployee::query()->where('user_id', $user->id)->delete();
-    UserEmployee::query()->updateOrCreate(['user_id' => $user->id, 'employee_id' => $e1->id], ['active' => true]);
+    $user->companies()->sync([$companyA->id]);
 
     $tenantOne->makeCurrent();
 
@@ -47,20 +36,13 @@ it('returns only companies linked through user_employee -> company_employee in c
     expect($ids)->toBe([$companyA->id]);
 });
 
-it('returns both tenant companies after adding a matching company_employee mapping', function (): void {
+it('returns both tenant companies after adding a direct company_user mapping', function (): void {
     $tenantOne = TenantGroup::factory()->create();
     $companyA = Company::factory()->create(['tenant_group_id' => $tenantOne->id, 'name' => 'A Company', 'active' => true]);
     $companyB = Company::factory()->create(['tenant_group_id' => $tenantOne->id, 'name' => 'B Company', 'active' => true]);
 
-    $e1 = Employee::factory()->create(['company_id' => $companyA->id]);
-    $e2 = Employee::factory()->create(['company_id' => $companyB->id]);
-
-    CompanyEmployee::query()->updateOrCreate(['company_id' => $companyA->id, 'employee_id' => $e1->id], ['active' => true]);
-    CompanyEmployee::query()->updateOrCreate(['company_id' => $companyB->id, 'employee_id' => $e2->id], ['active' => true]);
-
     $user = $this->createAdminUser($companyA);
-    UserEmployee::query()->where('user_id', $user->id)->delete();
-    UserEmployee::query()->updateOrCreate(['user_id' => $user->id, 'employee_id' => $e1->id], ['active' => true]);
+    $user->companies()->sync([$companyA->id]);
 
     $tenantOne->makeCurrent();
     $session = [
@@ -72,7 +54,10 @@ it('returns both tenant companies after adding a matching company_employee mappi
     $first->assertOk();
     expect(array_map('intval', array_column($first->json(), 'id')))->toBe([$companyA->id]);
 
-    CompanyEmployee::query()->updateOrCreate(['company_id' => $companyB->id, 'employee_id' => $e1->id], ['active' => true]);
+    CompanyUser::query()->firstOrCreate([
+        'company_id' => (int) $companyB->id,
+        'user_id' => (int) $user->id,
+    ]);
 
     $second = $this->actingAs($user)->withSession($session)->getJson(route('selectors.companies'));
     $second->assertOk();

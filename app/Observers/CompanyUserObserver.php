@@ -4,35 +4,36 @@ declare(strict_types=1);
 
 namespace App\Observers;
 
-use App\Models\UserEmployee;
+use App\Models\Company;
+use App\Models\CompanyUser;
 use App\Services\Selectors\CompanySelectorService;
 use Illuminate\Support\Facades\DB;
 
-final class UserEmployeeObserver
+final class CompanyUserObserver
 {
     public function __construct(
         private readonly CompanySelectorService $selectorService,
     ) {}
 
-    public function created(UserEmployee $pivot): void
+    public function created(CompanyUser $pivot): void
     {
-        $this->bumpForEmployee($pivot);
+        $this->bumpForCompany($pivot);
     }
 
-    public function updated(UserEmployee $pivot): void
+    public function updated(CompanyUser $pivot): void
     {
-        $this->bumpForEmployee($pivot);
+        $this->bumpForCompany($pivot);
     }
 
-    public function deleted(UserEmployee $pivot): void
+    public function deleted(CompanyUser $pivot): void
     {
-        $this->bumpForEmployee($pivot);
+        $this->bumpForCompany($pivot);
     }
 
-    private function bumpForEmployee(UserEmployee $pivot): void
+    private function bumpForCompany(CompanyUser $pivot): void
     {
-        $tenantGroupId = $pivot->company()
-            ->withoutGlobalScopes()
+        $tenantGroupId = Company::query()
+            ->whereKey((int) $pivot->company_id)
             ->value('tenant_group_id');
 
         if (! is_numeric($tenantGroupId) || (int) $tenantGroupId <= 0) {

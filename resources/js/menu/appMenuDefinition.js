@@ -16,6 +16,12 @@ export const appMenuDefinition = [
                 can: "users.viewAny",
             },
             {
+                title: "Felhasználó hozzárendelések",
+                route: "admin.user_assignments.index",
+                key: "admin.user_assignments.index",
+                can: "user_assignments.viewAny",
+            },
+            {
                 title: "Cégek",
                 route: "companies.index",
                 key: "companies.index",

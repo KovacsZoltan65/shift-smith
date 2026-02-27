@@ -28,14 +28,8 @@ final class CompanyAccessRepository
         return Company::query()
             ->where('tenant_group_id', $tenantGroupId)
             ->where('active', true)
-            ->whereHas('employees', function (Builder $employeeQuery) use ($user): void {
-                $employeeQuery
-                    ->where('company_employee.active', true)
-                    ->whereHas('users', function (Builder $userQuery) use ($user): void {
-                        $userQuery
-                            ->whereKey((int) $user->id)
-                            ->where('user_employee.active', true);
-                    });
+            ->whereHas('users', function (Builder $userQuery) use ($user): void {
+                $userQuery->whereKey((int) $user->id);
             })
             ->pluck('id')
             ->map(static fn ($id): int => (int) $id)
