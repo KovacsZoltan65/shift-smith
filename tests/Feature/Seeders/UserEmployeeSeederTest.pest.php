@@ -9,6 +9,7 @@ use App\Models\TenantGroup;
 use App\Models\User;
 use App\Models\UserEmployee;
 use Database\Seeders\Pivot\UserEmployeeSeeder;
+use Illuminate\Support\Facades\DB;
 
 beforeEach(function (): void {
     $this->seedRolesAndPermissions();
@@ -138,3 +139,38 @@ it('does not create cross-tenant mapping when same email exists in another tenan
     expect($mappedEmployeeIds)->not->toContain((int) $tenantTwoEmployee->id);
 });
 
+it('never produces duplicate company-employee assignments after seeding', function (): void {
+    $tenant = TenantGroup::factory()->create();
+    $company = Company::factory()->create([
+        'tenant_group_id' => $tenant->id,
+        'active' => true,
+    ]);
+
+    $users = User::factory()->count(3)->create();
+    foreach ($users as $user) {
+        $user->assignRole('user');
+        $user->companies()->syncWithoutDetaching([(int) $company->id]);
+    }
+
+    $employees = Employee::factory()->count(2)->create([
+        'company_id' => $company->id,
+        'active' => true,
+    ]);
+
+    foreach ($employees as $employee) {
+        CompanyEmployee::query()->updateOrCreate(
+            ['company_id' => $company->id, 'employee_id' => $employee->id],
+            ['active' => true]
+        );
+    }
+
+    app(UserEmployeeSeeder::class)->run();
+
+    $duplicates = DB::table('user_employee')
+        ->select('company_id', 'employee_id')
+        ->groupBy('company_id', 'employee_id')
+        ->havingRaw('COUNT(*) > 1')
+        ->count();
+
+    expect($duplicates)->toBe(0);
+});

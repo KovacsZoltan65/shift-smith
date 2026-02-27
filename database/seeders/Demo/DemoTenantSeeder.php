@@ -95,6 +95,7 @@ final class DemoTenantSeeder extends Seeder
                 anna: $employees['anna@alfa.test'],
                 accountant: $employees['konyvelo1@alfa.test'],
             );
+            $this->assertNoDuplicateEmployeeAssignments();
 
             $this->logLocalSummary($tenant, $company, $users);
         } finally {
@@ -126,9 +127,33 @@ final class DemoTenantSeeder extends Seeder
             $uniqueRows
         );
 
-        if (! $hasCompanyId || $uniqueColumns !== ['user_id', 'company_id']) {
+        $companyEmployeeUniqueRows = DB::connection()->select(
+            'SELECT column_name
+             FROM information_schema.statistics
+             WHERE table_schema = ?
+               AND table_name = ?
+               AND non_unique = 0
+               AND index_name = ?
+             ORDER BY seq_in_index',
+            [
+                (string) DB::connection()->getDatabaseName(),
+                'user_employee',
+                'user_employee_company_employee_unique',
+            ]
+        );
+
+        $companyEmployeeUniqueColumns = array_map(
+            static fn (object $row): string => (string) $row->column_name,
+            $companyEmployeeUniqueRows
+        );
+
+        if (
+            ! $hasCompanyId
+            || $uniqueColumns !== ['user_id', 'company_id']
+            || $companyEmployeeUniqueColumns !== ['company_id', 'employee_id']
+        ) {
             throw new RuntimeException(
-                'Missing schema requirement: user_employee must have company_id and UNIQUE(user_id, company_id). Run migrations first.'
+                'Missing schema requirement: user_employee must have company_id, UNIQUE(user_id, company_id) and UNIQUE(company_id, employee_id). Run migrations first.'
             );
         }
     }
@@ -321,6 +346,31 @@ final class DemoTenantSeeder extends Seeder
                 'active' => true,
             ]
         );
+    }
+
+    private function assertNoDuplicateEmployeeAssignments(): void
+    {
+        $duplicates = UserEmployee::query()
+            ->selectRaw('company_id, employee_id, COUNT(*) as aggregate')
+            ->groupBy(['company_id', 'employee_id'])
+            ->havingRaw('COUNT(*) > 1')
+            ->limit(10)
+            ->get();
+
+        if ($duplicates->isEmpty()) {
+            return;
+        }
+
+        $pairs = $duplicates
+            ->map(fn (UserEmployee $row): string => sprintf(
+                '[company_id=%d, employee_id=%d, count=%d]',
+                (int) $row->company_id,
+                (int) $row->employee_id,
+                (int) ($row->aggregate ?? 0),
+            ))
+            ->implode(', ');
+
+        throw new RuntimeException('Seeder produced duplicate employee assignment: '.$pairs);
     }
 
     /**

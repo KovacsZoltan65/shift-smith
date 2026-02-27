@@ -39,6 +39,8 @@ interface UserAssignmentRepositoryInterface
 
     public function removeEmployee(User $user, Company $company): void;
 
+    public function employeeAssignedToOtherUser(User $user, Company $company, Employee $employee): bool;
+
     public function findTenantCompanyById(int $companyId, ?User $actor = null): ?Company;
 
     public function findCompanyEmployeeById(Company $company, int $employeeId): ?Employee;

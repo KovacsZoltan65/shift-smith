@@ -165,6 +165,12 @@ final class UserAssignmentService
             ]);
         }
 
+        if ($this->repository->employeeAssignedToOtherUser($target, $tenantCompany, $employee)) {
+            throw ValidationException::withMessages([
+                'employee_id' => 'Ez a dolgozó már hozzá van rendelve egy másik felhasználóhoz ebben a cégben.',
+            ]);
+        }
+
         DB::transaction(function () use ($target, $tenantCompany, $employee): void {
             $this->repository->assignEmployee($target, $tenantCompany, $employee);
             $this->bumpSelectorAfterCommit();

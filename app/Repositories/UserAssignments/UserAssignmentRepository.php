@@ -133,6 +133,15 @@ final class UserAssignmentRepository implements UserAssignmentRepositoryInterfac
             ->delete();
     }
 
+    public function employeeAssignedToOtherUser(User $user, Company $company, Employee $employee): bool
+    {
+        return UserEmployee::query()
+            ->where('company_id', (int) $company->id)
+            ->where('employee_id', (int) $employee->id)
+            ->where('user_id', '!=', (int) $user->id)
+            ->exists();
+    }
+
     public function findTenantCompanyById(int $companyId, ?User $actor = null): ?Company
     {
         $tenantGroupId = $this->currentTenantGroupId();
