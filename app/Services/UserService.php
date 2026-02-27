@@ -29,6 +29,17 @@ class UserService
     {
         return $this->repo->fetch($request);
     }
+
+    /**
+     * @param array{
+     *   search?: string|null
+     * } $params
+     * @return array<int, array{id:int, name:string, email:string}>
+     */
+    public function getToSelect(array $params = []): array
+    {
+        return $this->repo->getToSelect($params);
+    }
     
     /**
      * Egy felhasználó lekérése azonosító alapján

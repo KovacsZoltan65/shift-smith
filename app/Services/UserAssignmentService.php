@@ -32,7 +32,7 @@ final class UserAssignmentService
 
     /**
      * @return array{
-     *   items: array<int, array{id:int,name:string,email:string,is_superadmin:bool}>,
+     *   items: array<int, array{id:int,name:string,email:string,is_superadmin:bool,primary_role_name:string|null}>,
      *   meta: array{current_page:int,per_page:int,total:int,last_page:int}
      * }
      */
@@ -43,11 +43,16 @@ final class UserAssignmentService
         return [
             'items' => collect($users->items())
                 ->map(static function (User $user): array {
+                    $primaryRoleName = $user->roles
+                        ->sortBy(fn ($role): string => (string) $role->name)
+                        ->first()?->name;
+
                     return [
                         'id' => (int) $user->id,
                         'name' => (string) $user->name,
                         'email' => (string) $user->email,
                         'is_superadmin' => $user->hasRole('superadmin'),
+                        'primary_role_name' => $primaryRoleName !== null ? (string) $primaryRoleName : null,
                     ];
                 })
                 ->values()

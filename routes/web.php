@@ -2,8 +2,10 @@
 
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\RoleUsersController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserAssignmentController;
+use App\Http\Controllers\Admin\UserRoleController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\CompanySelectController;
 use App\Http\Controllers\CompanyController;
@@ -132,6 +134,7 @@ Route::middleware(['auth', 'verified'])
         // SELECTOROK
         Route::get('/selectors/roles', [RoleController::class, 'getToSelect'])->name('selectors.roles')->middleware('throttle:120,1');
         Route::get('/selectors/permissions', [PermissionController::class, 'getToSelect'])->name('selectors.permissions')->middleware('throttle:120,1');
+        Route::get('/selectors/users', [UserController::class, 'getToSelect'])->name('selectors.users')->middleware('throttle:120,1');
         
         // Olvasási műveletek
         Route::get('/roles', [RoleController::class, 'index'])->name('roles.index')->middleware('throttle:60,1');
@@ -142,6 +145,7 @@ Route::middleware(['auth', 'verified'])
         // Írási műveletek
         Route::post('/roles', [RoleController::class, 'store'])->name('roles.store')->middleware('throttle:20,1');
         Route::put('/roles/{id}', [RoleController::class, 'update'])->whereNumber('id')->name('roles.update')->middleware('throttle:30,1');
+        Route::patch('/roles/{role}/users', [RoleUsersController::class, 'update'])->whereNumber('role')->name('roles.users.update')->middleware('throttle:20,1');
         Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->whereNumber('id')->name('roles.destroy')->middleware('throttle:20,1');
         Route::delete('/roles/destroy_bulk', [RoleController::class, 'destroyBulk'])->name('roles.destroy_bulk')->middleware('throttle:10,1');
         
@@ -205,6 +209,16 @@ Route::middleware(['auth', 'verified'])
         Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
         // PASSWORD RESET EMAIL - nagyon szigorú limit
         Route::post('/{user}/password-reset', 'sendPasswordReset')->name('send_password_reset')->middleware('throttle:5,1');
+    });
+
+Route::middleware(['auth', 'verified'])
+    ->prefix('admin/users')
+    ->name('admin.users.')
+    ->group(function (): void {
+        Route::patch('/{user}/role', [UserRoleController::class, 'update'])
+            ->whereNumber('user')
+            ->name('role.update')
+            ->middleware('throttle:20,1');
     });
 
 

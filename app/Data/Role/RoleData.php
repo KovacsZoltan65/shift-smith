@@ -22,6 +22,7 @@ class RoleData extends Data
      * @param string $name Szerepkör név
      * @param string $guard_name Guard név
      * @param list<int> $permission_ids Jogosultság azonosítók
+     * @param list<int> $user_ids Felhasználó azonosítók
      * @param ?string $createdAt Létrehozás ideje
      * @param ?string $updatedAt Frissítés ideje
      */
@@ -36,6 +37,9 @@ class RoleData extends Data
 
         #[ArrayType]
         public array $permission_ids = [],
+
+        #[ArrayType]
+        public array $user_ids = [],
 
         #[MapName('created_at')]
         public ?string $createdAt = null,
@@ -52,13 +56,14 @@ class RoleData extends Data
      */
     public static function fromModel(Role $role): self
     {
-        $role->loadMissing('permissions');
+        $role->loadMissing(['permissions', 'users:id']);
 
         return new self(
             id: (int) $role->id,
             name: (string) $role->name,
             guard_name: (string) $role->guard_name,
             permission_ids: $role->permissions->pluck('id')->map(fn ($id): int => (int) $id)->all(),
+            user_ids: $role->users->pluck('id')->map(fn ($id): int => (int) $id)->all(),
             createdAt: optional($role->created_at)?->toDateTimeString(),
             updatedAt: optional($role->updated_at)?->toDateTimeString(),
         );

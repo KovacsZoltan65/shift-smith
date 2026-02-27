@@ -7,6 +7,7 @@ const allow = new Set([
     "users.viewAny",
     "users.create",
     "users.update",
+    "users.assignRoles",
     "users.delete",
 
     // Employees

@@ -14,7 +14,12 @@ class UpdateRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->can(UserPolicy::PERM_UPDATE, User::class) ?? false;
+        $id = (int) $this->route('id');
+        $target = $id > 0 ? User::query()->find($id) : null;
+
+        return $target instanceof User
+            ? ($this->user()?->can(UserPolicy::PERM_UPDATE, $target) ?? false)
+            : false;
     }
 
     /**

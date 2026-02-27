@@ -66,6 +66,19 @@ const dialogEmployeeOptions = computed(() =>
         : []
 );
 
+const userRoleLabel = (user) => {
+    if (user?.is_superadmin) return "superadmin";
+    return user?.primary_role_name ?? "—";
+};
+
+const userRoleSeverity = (user) => {
+    if (user?.is_superadmin) return "contrast";
+    if (!user?.primary_role_name) return "secondary";
+    if (user.primary_role_name === "admin") return "warning";
+    if (user.primary_role_name === "manager") return "info";
+    return "secondary";
+};
+
 const parseMessage = async (error, fallback) => {
     const detail =
         error?.response?.data?.message ||
@@ -386,10 +399,9 @@ onMounted(async () => {
                             </template>
                         </Column>
 
-                        <Column header="Típus" style="width: 110px">
+                        <Column header="Role" style="width: 140px">
                             <template #body="{ data }">
-                                <Tag v-if="data.is_superadmin" value="superadmin" severity="contrast" />
-                                <Tag v-else value="user" severity="secondary" />
+                                <Tag :value="userRoleLabel(data)" :severity="userRoleSeverity(data)" />
                             </template>
                         </Column>
                     </DataTable>

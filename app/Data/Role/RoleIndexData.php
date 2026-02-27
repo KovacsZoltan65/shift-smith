@@ -22,6 +22,7 @@ class RoleIndexData extends Data
         public string $name,
         public string $guard_name,
         public int $users_count = 0,
+        public array $user_ids = [],
         public ?string $created_at = null,
     ) {}
 
@@ -38,6 +39,9 @@ class RoleIndexData extends Data
             name: (string) $role->name,
             guard_name: (string) $role->guard_name,
             users_count: (int) ($role->users_count ?? 0),
+            user_ids: $role->relationLoaded('users')
+                ? $role->users->pluck('id')->map(fn ($id): int => (int) $id)->values()->all()
+                : [],
             created_at: optional($role->created_at)?->toDateTimeString(),
         );
     }

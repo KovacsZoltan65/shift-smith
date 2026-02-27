@@ -289,5 +289,20 @@ class UserController extends Controller
         }
         
     }
+
+    /**
+     * Egyszerűsített user selector a role-user hozzárendeléshez.
+     *
+     * @param Request $request
+     * @return array<int, array{id:int, name:string, email:string}>
+     */
+    public function getToSelect(Request $request): array
+    {
+        $this->authorize(UserPolicy::PERM_VIEW_ANY, User::class);
+
+        return $this->service->getToSelect([
+            'search' => trim((string) $request->input('search', '')) ?: null,
+        ]);
+    }
     
 }

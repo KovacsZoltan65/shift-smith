@@ -11,6 +11,7 @@ use App\Models\Position;
 use App\Models\User;
 use App\Models\WorkPattern;
 use App\Models\WorkShift;
+use App\Support\PermissionCatalog;
 use App\Support\MenuPermissions;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Seeder;
@@ -165,6 +166,10 @@ class RolesAndPermissionsSeeder extends Seeder
             foreach ($customPermissions as $permissionName) {
                 Permission::firstOrCreate(['name' => $permissionName]);
                 $bar->advance();
+            }
+
+            foreach (PermissionCatalog::p0Flat() as $permissionName) {
+                Permission::firstOrCreate(['name' => $permissionName]);
             }
 
             /**

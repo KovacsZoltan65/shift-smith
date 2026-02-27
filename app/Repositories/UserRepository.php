@@ -87,6 +87,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
 
         $queryCallback = function () use ($term, $field, $direction, $perPage, $page, $appendQuery): LengthAwarePaginator {
             $q = User::query()
+                ->with('roles:id,name')
                 ->when($term, function ($qq) use ($term) {
                     $qq->where(function ($q) use ($term) {
                         $q->where('name', 'like', "%{$term}%")
@@ -98,6 +99,11 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
 
             $paginator = $q->paginate($perPage, ['*'], 'page', $page);
             $paginator->appends($appendQuery);
+            $paginator->getCollection()->transform(function (User $user): User {
+                $user->setAttribute('primary_role_name', $user->roles->first()?->name);
+
+                return $user;
+            });
 
             return $paginator;
         };
@@ -127,6 +133,60 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             key: $key,
             callback: $queryCallback,
             ttl: (int) config('cache.ttl_fetch', 60)
+        );
+
+        return $users;
+    }
+
+    /**
+     * @param array{
+     *   search?: string|null
+     * } $params
+     * @return array<int, array{id:int, name:string, email:string}>
+     */
+    public function getToSelect(array $params = []): array
+    {
+        $needCache = (bool) config('cache.enable_userToSelect', false);
+
+        $search = isset($params['search']) && is_string($params['search'])
+            ? trim($params['search'])
+            : null;
+
+        $params['search'] = $search !== '' ? $search : null;
+        ksort($params);
+
+        $queryCallback = function () use ($search): array {
+            /** @var array<int, array{id:int, name:string, email:string}> $out */
+            $out = User::query()
+                ->when($search, fn ($query) => $query->whereLike(['name', 'email'], $search))
+                ->select(['id', 'name', 'email'])
+                ->orderBy('name')
+                ->get()
+                ->map(fn (User $user): array => [
+                    'id' => (int) $user->id,
+                    'name' => (string) $user->name,
+                    'email' => (string) $user->email,
+                ])
+                ->values()
+                ->all();
+
+            return $out;
+        };
+
+        if (! $needCache) {
+            return $queryCallback();
+        }
+
+        $version = $this->cacheVersionService->get(self::NS_SELECTORS_USERS);
+        $hash = hash('sha256', json_encode($params, JSON_THROW_ON_ERROR));
+        $key = "v{$version}:{$hash}";
+
+        /** @var array<int, array{id:int, name:string, email:string}> $users */
+        $users = $this->cacheService->remember(
+            tag: self::NS_SELECTORS_USERS,
+            key: $key,
+            callback: $queryCallback,
+            ttl: (int) config('cache.ttl_fetch', 1800)
         );
 
         return $users;

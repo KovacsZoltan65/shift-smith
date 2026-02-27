@@ -14,13 +14,13 @@ const props = defineProps({
 const emit = defineEmits(["update:modelValue"]);
 
 const selectedRole = ref(null);
-const companies = ref([]);
+const roles = ref([]);
 const isLoading = ref(false);
 
 const shouldUseFilter = computed(() => {
     if (props.filter === true) return true;
     if (props.filter === false) return false;
-    return companies.value.length > 10;
+    return roles.value.length > 10;
 });
 
 // ⚡ Választás visszaadása parentnek
@@ -32,17 +32,18 @@ onMounted(async () => {
     isLoading.value = true;
 
     try {
-        const response = await Service.getCompaniesToSelect();
-        companies.value = response.data;
+        const response = await Service.getToSelect();
+        const items = Array.isArray(response?.data) ? response.data : response?.data?.data ?? [];
+        roles.value = items;
 
         // 👇 Itt állítjuk csak be, ha már minden adat megvan
-        if (props.modelValue && companies.value.some((p) => p.id === props.modelValue)) {
+        if (props.modelValue && roles.value.some((p) => p.id === props.modelValue)) {
             selectedRole.value = props.modelValue;
-        } else if (companies.value.length === 1) {
-            selectedRole.value = companies.value[0].id;
+        } else if (roles.value.length === 1) {
+            selectedRole.value = roles.value[0].id;
         }
     } catch (err) {
-        console.error("Nem sikerült a cégek lekérdezése:", err);
+        console.error("Nem sikerült a role-ok lekérdezése:", err);
     } finally {
         isLoading.value = false;
     }
@@ -51,7 +52,7 @@ onMounted(async () => {
 <template>
     <Select
         v-model="selectedRole"
-        :options="companies"
+        :options="roles"
         optionLabel="name"
         optionValue="id"
         :placeholder="props.placeholder"

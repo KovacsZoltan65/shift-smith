@@ -15,6 +15,14 @@ interface UserRepositoryInterface
      */
     public function fetch(Request $request): LengthAwarePaginator;
 
+    /**
+     * @param array{
+     *   search?: string|null
+     * } $params
+     * @return array<int, array{id:int, name:string, email:string}>
+     */
+    public function getToSelect(array $params = []): array;
+
     public function getUser(int $id): User;
 
     public function getUserByName(string $name): User;

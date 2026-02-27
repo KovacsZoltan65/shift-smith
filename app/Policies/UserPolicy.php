@@ -27,6 +27,8 @@ final class UserPolicy extends BasePolicy
     public const PERM_CREATE = 'users.create';
     /** Felhasználó frissítés jogosultság */
     public const PERM_UPDATE = 'users.update';
+    /** Felhasználó szerepkör hozzárendelés jogosultság */
+    public const PERM_ASSIGN_ROLES = 'users.assignRoles';
     /** Bármely felhasználó frissítés jogosultság */
     public const PERM_UPDATE_ANY = 'users.updateAny';
     /** Saját fiók frissítés jogosultság */
@@ -95,10 +97,21 @@ final class UserPolicy extends BasePolicy
     public function update(User $user, User $model): bool
     {
         if ($user->id === $model->id) {
-            return $user->can(self::PERM_UPDATE_SELF) || $user->can(self::PERM_UPDATE_ANY);
+            return $user->can(self::PERM_UPDATE)
+                || $user->can(self::PERM_UPDATE_SELF)
+                || $user->can(self::PERM_UPDATE_ANY);
         }
 
-        return $user->can(self::PERM_UPDATE_ANY);
+        return $user->can(self::PERM_UPDATE) || $user->can(self::PERM_UPDATE_ANY);
+    }
+
+    public function assignRoles(User $user, User $model): bool
+    {
+        if ($user->id === $model->id) {
+            return $user->can(self::PERM_ASSIGN_ROLES) || $user->can(self::PERM_UPDATE);
+        }
+
+        return $user->can(self::PERM_ASSIGN_ROLES);
     }
 
     /**
@@ -115,4 +128,3 @@ final class UserPolicy extends BasePolicy
         return $user->id !== $model->id && $user->can(self::PERM_DELETE);
     }
 }
-

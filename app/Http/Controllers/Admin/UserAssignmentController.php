@@ -7,6 +7,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UserAssignments\AssignEmployeeRequest;
 use App\Http\Requests\UserAssignments\AttachCompanyRequest;
+use App\Http\Requests\UserAssignments\DetachCompanyRequest;
+use App\Http\Requests\UserAssignments\RemoveEmployeeRequest;
 use App\Models\Company;
 use App\Models\User;
 use App\Policies\UserAssignmentPolicy;
@@ -74,10 +76,8 @@ final class UserAssignmentController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function detachCompany(Request $request, User $user, Company $company): JsonResponse
+    public function detachCompany(DetachCompanyRequest $request, User $user, Company $company): JsonResponse
     {
-        $this->authorize(UserAssignmentPolicy::PERM_UPDATE);
-
         /** @var User $actor */
         $actor = $request->user();
 
@@ -104,10 +104,8 @@ final class UserAssignmentController extends Controller
         ], Response::HTTP_OK);
     }
 
-    public function removeEmployee(Request $request, User $user, Company $company): JsonResponse
+    public function removeEmployee(RemoveEmployeeRequest $request, User $user, Company $company): JsonResponse
     {
-        $this->authorize(UserAssignmentPolicy::PERM_UPDATE);
-
         /** @var User $actor */
         $actor = $request->user();
 

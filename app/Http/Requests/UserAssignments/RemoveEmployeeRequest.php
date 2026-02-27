@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Requests\UserAssignment;
+namespace App\Http\Requests\UserAssignments;
 
 use App\Policies\UserAssignmentPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 
-final class DetachCompanyRequest extends FormRequest
+final class RemoveEmployeeRequest extends FormRequest
 {
     public function authorize(): bool
     {
