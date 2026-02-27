@@ -12,8 +12,10 @@ use App\Http\Requests\EmployeeWorkPattern\UpdateRequest;
 use App\Models\Employee;
 use App\Models\EmployeeWorkPattern;
 use App\Policies\EmployeeWorkPatternPolicy;
+use App\Services\CurrentCompany;
 use App\Services\EmployeeWorkPatternService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -27,7 +29,8 @@ class EmployeeWorkPatternController extends Controller
      * @param EmployeeWorkPatternService $service Hozzárendelés service
      */
     public function __construct(
-        private readonly EmployeeWorkPatternService $service
+        private readonly EmployeeWorkPatternService $service,
+        private readonly CurrentCompany $currentCompany,
     ) {}
 
     /**
@@ -41,8 +44,9 @@ class EmployeeWorkPatternController extends Controller
     {
         $this->authorize(EmployeeWorkPatternPolicy::PERM_VIEW, EmployeeWorkPattern::class);
 
+        $companyId = $this->resolveCurrentCompanyId($request);
         $employeeModel = Employee::query()->findOrFail($employee);
-        $items = $this->service->listByEmployee((int) $employeeModel->id, (int) $employeeModel->company_id);
+        $items = $this->service->listByEmployee((int) $employeeModel->id, $companyId);
 
         return response()->json([
             'message' => 'Dolgozó munkarendjei sikeresen lekérve.',
@@ -61,10 +65,11 @@ class EmployeeWorkPatternController extends Controller
     {
         $this->authorize(EmployeeWorkPatternPolicy::PERM_ASSIGN, EmployeeWorkPattern::class);
 
+        $companyId = $this->resolveCurrentCompanyId($request);
         $employeeModel = Employee::query()->findOrFail($employee);
         $payload = $request->validated();
         $payload['employee_id'] = (int) $employeeModel->id;
-        $payload['company_id'] = (int) $employeeModel->company_id;
+        $payload['company_id'] = $companyId;
 
         $created = $this->service->assign(EmployeeWorkPatternData::from($payload));
 
@@ -86,15 +91,16 @@ class EmployeeWorkPatternController extends Controller
     {
         $this->authorize(EmployeeWorkPatternPolicy::PERM_ASSIGN, EmployeeWorkPattern::class);
 
+        $companyId = $this->resolveCurrentCompanyId($request);
         $employeeModel = Employee::query()->findOrFail($employee);
         $payload = $request->validated();
         $payload['employee_id'] = (int) $employeeModel->id;
-        $payload['company_id'] = (int) $employeeModel->company_id;
+        $payload['company_id'] = $companyId;
 
         $updated = $this->service->updateAssignment(
             $id,
             (int) $employeeModel->id,
-            (int) $employeeModel->company_id,
+            $companyId,
             EmployeeWorkPatternData::from($payload)
         );
 
@@ -116,12 +122,21 @@ class EmployeeWorkPatternController extends Controller
     {
         $this->authorize(EmployeeWorkPatternPolicy::PERM_UNASSIGN, EmployeeWorkPattern::class);
 
+        $companyId = $this->resolveCurrentCompanyId($request);
         $employeeModel = Employee::query()->findOrFail($employee);
-        $deleted = $this->service->unassign($id, (int) $employeeModel->id, (int) $employeeModel->company_id);
+        $deleted = $this->service->unassign($id, (int) $employeeModel->id, $companyId);
 
         return response()->json([
             'message' => $deleted ? 'Hozzárendelés törlése sikeres.' : 'Hozzárendelés törlése sikertelen.',
             'deleted' => (bool) $deleted,
         ], $deleted ? Response::HTTP_OK : Response::HTTP_INTERNAL_SERVER_ERROR);
+    }
+
+    private function resolveCurrentCompanyId(Request $request): int
+    {
+        $companyId = $this->currentCompany->currentCompanyId($request);
+        abort_if($companyId === null, 403, 'No company selected');
+
+        return $companyId;
     }
 }

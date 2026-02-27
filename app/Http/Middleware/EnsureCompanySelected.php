@@ -111,11 +111,15 @@ final class EnsureCompanySelected
             ->where('tenant_group_id', $tenantId)
             ->where('active', true);
 
-        if (! $this->companyContext->isSuperadmin($user)) {
-            $query->whereHas('users', fn ($q) => $q->whereKey($user->id));
+        if (! $query->exists()) {
+            return false;
         }
 
-        return $query->exists();
+        if ($this->companyContext->isSuperadmin($user)) {
+            return true;
+        }
+
+        return $this->companyContext->userCanSelectCompany($user, $companyId);
     }
 
     private function isHqRoute(Request $request): bool

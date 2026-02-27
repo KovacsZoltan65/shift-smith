@@ -26,6 +26,7 @@ interface WorkShiftRepositoryInterface
      *    end_time?: string|null,
      *    break_minutes?: int|null,
      *    work_time_minutes?: int|null,
+     *    breaks?: list<array{break_start_time:string,break_end_time:string,break_minutes:int}>,
      *    active: boolean
      * } $data
      * @return WorkShift
@@ -40,6 +41,7 @@ interface WorkShiftRepositoryInterface
      *    end_time?: string|null,
      *    break_minutes?: int|null,
      *    work_time_minutes?: int|null,
+     *    breaks?: list<array{break_start_time:string,break_end_time:string,break_minutes:int}>,
      *    active: boolean
      * } $data
      * @param WorkShift $shift

@@ -199,4 +199,16 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsToMany(Company::class)
             ->withTimestamps();
     }
+
+    /**
+     * A felhasználóhoz rendelt dolgozók.
+     *
+     * @return BelongsToMany<Employee, $this>
+     */
+    public function employees(): BelongsToMany
+    {
+        return $this->belongsToMany(Employee::class, 'user_employee')
+            ->withPivot(['active'])
+            ->withTimestamps();
+    }
 }

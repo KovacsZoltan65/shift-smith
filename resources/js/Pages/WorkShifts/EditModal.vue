@@ -21,6 +21,7 @@ const form = ref({
     end_time: null,
     work_time_minutes: null,
     break_minutes: null,
+    breaks: [],
     active: true,
 });
 
@@ -33,6 +34,12 @@ const fill = () => {
         end_time: props.workShift?.end_time ? String(props.workShift.end_time).slice(0, 5) : null,
         work_time_minutes: props.workShift?.work_time_minutes ?? null,
         break_minutes: props.workShift?.break_minutes ?? null,
+        breaks: Array.isArray(props.workShift?.breaks)
+            ? props.workShift.breaks.map((row) => ({
+                  break_start_time: row?.break_start_time ? String(row.break_start_time).slice(0, 5) : null,
+                  break_end_time: row?.break_end_time ? String(row.break_end_time).slice(0, 5) : null,
+              }))
+            : [],
         active: Boolean(props.workShift?.active ?? true),
     };
 

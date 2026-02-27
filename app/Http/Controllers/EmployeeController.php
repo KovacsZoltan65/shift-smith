@@ -127,7 +127,7 @@ class EmployeeController extends Controller
     public function getEmployee(int $id): JsonResponse
     {
         $employee = $this->service->getEmployee($id);
-        $this->authorize(EmployeePolicy::PERM_VIEW, $employee);
+        $this->authorize('view', $employee);
 
         try {
             return response()->json(
@@ -152,7 +152,7 @@ class EmployeeController extends Controller
     {
         try {
             $employee = $this->service->getEmployeeByName($name);
-            $this->authorize(EmployeePolicy::PERM_VIEW, $employee);
+            $this->authorize('view', $employee);
 
             return response()->json(
                 $employee,
@@ -192,7 +192,7 @@ class EmployeeController extends Controller
     public function update(int $id, EmployeeData $data): JsonResponse
     {
         $employee = $this->service->getEmployee($id);
-        $this->authorize(EmployeePolicy::PERM_UPDATE, $employee);
+        $this->authorize('update', $employee);
         
         $updated = $this->service->update($data, $id);
         
@@ -245,7 +245,7 @@ class EmployeeController extends Controller
     {
         try {
             $employee = $this->service->getEmployee($id);
-            $this->authorize(EmployeePolicy::PERM_DELETE, $employee);
+            $this->authorize('delete', $employee);
             
             $deleted = $this->service->destroy($id);
 

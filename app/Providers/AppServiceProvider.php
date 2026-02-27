@@ -15,9 +15,13 @@ use App\Interfaces\WorkScheduleAssignmentRepositoryInterface;
 use App\Interfaces\WorkShiftAssignmentRepositoryInterface;
 use App\Interfaces\WorkShiftRepositoryInterface;
 use App\Models\Company;
+use App\Models\CompanyEmployee;
 use App\Models\Employee;
+use App\Models\UserEmployee;
 use App\Observers\CompanyObserver;
+use App\Observers\CompanyEmployeeObserver;
 use App\Observers\EmployeeObserver;
+use App\Observers\UserEmployeeObserver;
 use App\Repositories\Admin\PermissionRepository;
 use App\Repositories\Admin\RoleRepository;
 use App\Repositories\CompanyRepository;
@@ -110,6 +114,8 @@ class AppServiceProvider extends ServiceProvider
 
         Employee::observe(EmployeeObserver::class);
         Company::observe(CompanyObserver::class);
+        CompanyEmployee::observe(CompanyEmployeeObserver::class);
+        UserEmployee::observe(UserEmployeeObserver::class);
         
         if (!defined('APP_ACTIVE'))   define('APP_ACTIVE', 1);
         if (!defined('APP_INACTIVE')) define('APP_INACTIVE', 0);

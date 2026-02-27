@@ -76,8 +76,13 @@ class WorkShiftAssignmentService
     private function validateCompanyConsistency(WorkShift $shift, Employee $employee, WorkSchedule $schedule): void
     {
         $companyId = (int) $shift->company_id;
+        $employeeInCompany = $employee->companies()
+            ->where('companies.id', $companyId)
+            ->where('companies.active', true)
+            ->where('company_employee.active', true)
+            ->exists();
 
-        if ((int) $employee->company_id !== $companyId) {
+        if (! $employeeInCompany) {
             throw ValidationException::withMessages([
                 'employee_id' => 'A dolgozó és a műszak cége nem egyezik.',
             ]);

@@ -20,6 +20,7 @@ const form = ref({
     end_time: null,
     work_time_minutes: null,
     break_minutes: null,
+    breaks: [],
     active: true,
 });
 
@@ -34,6 +35,7 @@ watch(
             end_time: null,
             work_time_minutes: null,
             break_minutes: null,
+            breaks: [],
             active: true,
         };
 
