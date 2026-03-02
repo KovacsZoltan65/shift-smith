@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\Company;
 use App\Models\User;
 use App\Services\CompanyContextService;
 use App\Services\CurrentCompany;
@@ -45,7 +44,7 @@ final class CompanySelectController extends Controller
         if ($companyCount === 1) {
             $companyId = (int) $companies[0]['id'];
 
-            $this->applyCompanyContext($request, $companyId);
+            $this->applyCompanyContext($request, $user, $companyId);
 
             return redirect()->intended(route('dashboard', absolute: false));
         }
@@ -71,19 +70,20 @@ final class CompanySelectController extends Controller
             abort(403, 'The selected company is not assigned to the current user.');
         }
 
-        $this->applyCompanyContext($request, $companyId);
+        $this->applyCompanyContext($request, $user, $companyId);
 
         return redirect()->intended(route('dashboard', absolute: false));
     }
 
-    private function applyCompanyContext(Request $request, int $companyId): void
+    private function applyCompanyContext(Request $request, User $user, int $companyId): void
     {
         $this->currentCompany->setCurrentCompanyId($request, $companyId);
 
-        $tenantGroupId = $this->tenantGroupIdForCompany($companyId);
+        $tenantGroupId = $this->companyContext->tenantGroupIdForCompany($user, $companyId);
         if ($tenantGroupId === null) {
             Log::error('company.missing_tenant_group_id', [
                 'company_id' => $companyId,
+                'user_id' => (int) $user->id,
             ]);
 
             $this->currentTenantGroup->clearCurrentTenantGroup($request);
@@ -91,20 +91,5 @@ final class CompanySelectController extends Controller
         }
 
         $this->currentTenantGroup->setCurrentTenantGroupId($request, $tenantGroupId);
-    }
-
-    private function tenantGroupIdForCompany(int $companyId): ?int
-    {
-        $tenantGroupId = Company::query()
-            ->whereKey($companyId)
-            ->value('tenant_group_id');
-
-        if (! is_numeric($tenantGroupId)) {
-            return null;
-        }
-
-        $id = (int) $tenantGroupId;
-
-        return $id > 0 ? $id : null;
     }
 }

@@ -134,7 +134,13 @@ class EmployeeWorkPatternService
             ]);
         }
 
-        if ((int) $employee->company_id !== $companyId) {
+        $employeeInCompany = $employee->companies()
+            ->where('companies.id', $companyId)
+            ->where('companies.active', true)
+            ->where('company_employee.active', true)
+            ->exists();
+
+        if (! $employeeInCompany) {
             throw ValidationException::withMessages([
                 'employee_id' => 'A dolgozó nem a megadott céghez tartozik.',
             ]);

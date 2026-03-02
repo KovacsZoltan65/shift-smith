@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use App\Interfaces\UserRepositoryInterface;
+use App\Models\Company;
 use App\Models\User;
+use App\Models\UserEmployee;
+use App\Models\TenantGroup;
 use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
 use App\Traits\Functions;
@@ -87,6 +90,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
 
         $queryCallback = function () use ($term, $field, $direction, $perPage, $page, $appendQuery): LengthAwarePaginator {
             $q = User::query()
+                ->with(['roles:id,name', 'companies:id,name,tenant_group_id'])
                 ->when($term, function ($qq) use ($term) {
                     $qq->where(function ($q) use ($term) {
                         $q->where('name', 'like', "%{$term}%")
@@ -98,6 +102,15 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
 
             $paginator = $q->paginate($perPage, ['*'], 'page', $page);
             $paginator->appends($appendQuery);
+            $paginator->getCollection()->transform(function (User $user): User {
+                $company = $this->resolvePreferredCompany($user);
+
+                $user->setAttribute('primary_role_name', $user->roles->first()?->name);
+                $user->setAttribute('current_company_id', $company?->id !== null ? (int) $company->id : null);
+                $user->setAttribute('current_company_name', $company?->name !== null ? (string) $company->name : null);
+
+                return $user;
+            });
 
             return $paginator;
         };
@@ -127,6 +140,60 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             key: $key,
             callback: $queryCallback,
             ttl: (int) config('cache.ttl_fetch', 60)
+        );
+
+        return $users;
+    }
+
+    /**
+     * @param array{
+     *   search?: string|null
+     * } $params
+     * @return array<int, array{id:int, name:string, email:string}>
+     */
+    public function getToSelect(array $params = []): array
+    {
+        $needCache = (bool) config('cache.enable_userToSelect', false);
+
+        $search = isset($params['search']) && is_string($params['search'])
+            ? trim($params['search'])
+            : null;
+
+        $params['search'] = $search !== '' ? $search : null;
+        ksort($params);
+
+        $queryCallback = function () use ($search): array {
+            /** @var array<int, array{id:int, name:string, email:string}> $out */
+            $out = User::query()
+                ->when($search, fn ($query) => $query->whereLike(['name', 'email'], $search))
+                ->select(['id', 'name', 'email'])
+                ->orderBy('name')
+                ->get()
+                ->map(fn (User $user): array => [
+                    'id' => (int) $user->id,
+                    'name' => (string) $user->name,
+                    'email' => (string) $user->email,
+                ])
+                ->values()
+                ->all();
+
+            return $out;
+        };
+
+        if (! $needCache) {
+            return $queryCallback();
+        }
+
+        $version = $this->cacheVersionService->get(self::NS_SELECTORS_USERS);
+        $hash = hash('sha256', json_encode($params, JSON_THROW_ON_ERROR));
+        $key = "v{$version}:{$hash}";
+
+        /** @var array<int, array{id:int, name:string, email:string}> $users */
+        $users = $this->cacheService->remember(
+            tag: self::NS_SELECTORS_USERS,
+            key: $key,
+            callback: $queryCallback,
+            ttl: (int) config('cache.ttl_fetch', 1800)
         );
 
         return $users;
@@ -172,7 +239,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
       *   name: string,
       *   email: string,
       *   password: string,
-      *   company_id?: int|null,
+      *   company_id: int,
       *   is_active?: bool,
       * } $data Felhasználó adatok
      * @return User Létrehozott felhasználó
@@ -180,6 +247,12 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     public function store(array $data): User
     {
         return DB::transaction(function () use ($data): User {
+            $companyId = isset($data['company_id']) && is_numeric($data['company_id'])
+                ? (int) $data['company_id']
+                : null;
+
+            unset($data['company_id']);
+
             /** @var User $user */
             $user = User::query()->create($data);
 //            $user = User::query()->create([
@@ -190,6 +263,10 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
 
             // küldjünk reset linket azonnal
             $status = Password::sendResetLink(['email' => $user->email]);
+
+            if ($companyId !== null && $companyId > 0) {
+                $user->companies()->syncWithoutDetaching([$companyId]);
+            }
             
             $this->createDefaultSettings($user);
             // Cache ürítése
@@ -208,8 +285,8 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      * @param array{
      *   name: string,
      *   email: string,
-     *   password: string,
-     *   company_id?: int|null,
+      *   password: string,
+     *   company_id: int,
      *   is_active?: bool,
      * } $data Frissítendő adatok
      * @param int $id Felhasználó azonosító
@@ -218,11 +295,27 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     public function update(array $data, $id): User
     {
         return DB::transaction(function() use ($data, $id): User {
+            $companyId = isset($data['company_id']) && is_numeric($data['company_id'])
+                ? (int) $data['company_id']
+                : null;
+
+            unset($data['company_id']);
+
             /** @var User $user */
             $user = User::query()->lockForUpdate()->findOrFail($id);
             
             $user->fill($data);
             $user->save();
+
+            if ($companyId !== null && $companyId > 0) {
+                $user->companies()->sync([$companyId]);
+
+                UserEmployee::query()
+                    ->where('user_id', (int) $user->id)
+                    ->where('company_id', '!=', $companyId)
+                    ->delete();
+            }
+
             $user->refresh();
             
             $this->updateDefaultSettings($user);
@@ -395,6 +488,26 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
         $hasSharedTenant = ! empty(array_intersect($authTenantGroupIds, $targetTenantGroupIds));
 
         abort_if(! $hasSharedTenant, 404, 'User not found.');
+    }
+
+    private function resolvePreferredCompany(User $user): ?Company
+    {
+        $currentTenantGroupId = TenantGroup::current()?->id;
+
+        if (is_numeric($currentTenantGroupId) && (int) $currentTenantGroupId > 0) {
+            /** @var Company|null $tenantCompany */
+            $tenantCompany = $user->companies
+                ->first(fn (Company $company): bool => (int) $company->tenant_group_id === (int) $currentTenantGroupId);
+
+            if ($tenantCompany instanceof Company) {
+                return $tenantCompany;
+            }
+        }
+
+        /** @var Company|null $firstCompany */
+        $firstCompany = $user->companies->sortBy('id')->first();
+
+        return $firstCompany;
     }
     
     /**

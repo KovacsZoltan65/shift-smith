@@ -6,6 +6,7 @@ namespace App\Http\Requests\EmployeeWorkPattern;
 
 use App\Models\Employee;
 use App\Models\EmployeeWorkPattern;
+use App\Models\TenantGroup;
 use App\Models\WorkPattern;
 use App\Policies\EmployeeWorkPatternPolicy;
 use Illuminate\Foundation\Http\FormRequest;
@@ -49,6 +50,8 @@ class UpdateRequest extends FormRequest
             $employee = Employee::query()->find($employeeId);
             $workPattern = WorkPattern::query()->find($workPatternId);
             $assignment = EmployeeWorkPattern::query()->find($assignmentId);
+            $tenantGroupId = TenantGroup::current()?->id;
+            $companyId = (int) $this->session()->get('current_company_id', 0);
 
             if (!$employee || !$workPattern || !$assignment) {
                 $validator->errors()->add('work_pattern_id', 'Érvénytelen dolgozó vagy munkarend.');
@@ -60,13 +63,30 @@ class UpdateRequest extends FormRequest
                 return;
             }
 
-            if ((int) $employee->company_id !== (int) $workPattern->company_id) {
-                $validator->errors()->add('work_pattern_id', 'A munkarend és a dolgozó cége nem egyezik.');
+            if ($companyId <= 0) {
+                $validator->errors()->add('company_id', 'Nincs kiválasztott cég kontextus.');
+                return;
+            }
+
+            $employeeInCompany = $employee->companies()
+                ->where('companies.id', $companyId)
+                ->where('companies.active', true)
+                ->where('company_employee.active', true)
+                ->when($tenantGroupId !== null, fn ($q) => $q->where('companies.tenant_group_id', (int) $tenantGroupId))
+                ->exists();
+
+            if (! $employeeInCompany) {
+                $validator->errors()->add('employee', 'A dolgozó nem tartozik a kiválasztott céghez.');
+                return;
+            }
+
+            if ((int) $workPattern->company_id !== $companyId) {
+                $validator->errors()->add('work_pattern_id', 'A munkarend nem a kiválasztott céghez tartozik.');
                 return;
             }
 
             $hasOverlap = EmployeeWorkPattern::query()
-                ->where('company_id', (int) $employee->company_id)
+                ->where('company_id', $companyId)
                 ->where('employee_id', $employeeId)
                 ->where('id', '!=', $assignmentId)
                 ->where(function ($q) use ($dateFrom): void {

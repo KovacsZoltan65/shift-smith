@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Support;
 
+use App\Models\CompanyEmployee;
 use App\Models\Company;
+use App\Models\Employee;
+use App\Models\UserEmployee;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 
@@ -25,6 +28,31 @@ trait CreatesUsers
 
         $user->companies()->syncWithoutDetaching([$company->id]);
         $user->assignRole('admin');
+
+        $employee = Employee::factory()->create([
+            'company_id' => (int) $company->id,
+        ]);
+
+        CompanyEmployee::query()->updateOrCreate(
+            [
+                'company_id' => (int) $company->id,
+                'employee_id' => (int) $employee->id,
+            ],
+            [
+                'active' => true,
+            ]
+        );
+
+        UserEmployee::query()->updateOrCreate(
+            [
+                'user_id' => (int) $user->id,
+                'company_id' => (int) $company->id,
+                'employee_id' => (int) $employee->id,
+            ],
+            [
+                'active' => true,
+            ]
+        );
 
         return $user;
     }

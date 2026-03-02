@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Company\BulkDeleteRequest;
 use App\Http\Requests\Company\IndexRequest;
+use App\Http\Requests\Company\SelectorRequest;
 use App\Models\Company;
+use App\Models\User;
 use App\Policies\CompanyPolicy;
 use App\Services\CompanyService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
+use App\Services\Selectors\CompanySelectorService;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,7 +23,8 @@ use App\Data\Company\CompanyIndexData;
 class CompanyController extends Controller
 {
     public function __construct(
-        private readonly CompanyService $service
+        private readonly CompanyService $service,
+        private readonly CompanySelectorService $companySelectorService,
     ) {}
     
     /**
@@ -157,16 +160,17 @@ class CompanyController extends Controller
      *
      * @return array<int, array{id:int, name:string}>
      */
-    public function getToSelect(Request $request): array
+    public function getToSelect(SelectorRequest $request): array
     {
-        $params = [];
-        
-        $onlyWithEmployees = $request->boolean('only_with_employees');
-        
-        if ($onlyWithEmployees) {
-            $params['only_with_employees'] = true;
-        }
-        
-        return $this->service->getToSelect($params);
+        $user = $request->user();
+        abort_unless($user instanceof User, 401);
+
+        return array_values(array_map(
+            static fn (array $row): array => [
+                'id' => (int) $row['id'],
+                'name' => (string) $row['name'],
+            ],
+            $this->companySelectorService->listSelectableCompaniesForUser($user)
+        ));
     }
 }

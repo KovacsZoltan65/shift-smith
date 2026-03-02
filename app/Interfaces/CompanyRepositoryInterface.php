@@ -79,4 +79,6 @@ interface CompanyRepositoryInterface
      * @return array<int, array{id:int, name:string}>
      */
     public function getToSelect(array $params): array;
+
+    public function companyBelongsToActiveTenantGroup(int $companyId, int $tenantGroupId): bool;
 }

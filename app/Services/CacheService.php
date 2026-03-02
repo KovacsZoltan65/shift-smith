@@ -61,6 +61,10 @@ class CacheService
 
     private function qualifyTag(string $tag): string
     {
+        if (str_starts_with($tag, 'tenant:') || str_starts_with($tag, 'landlord:')) {
+            return $tag;
+        }
+
         $prefix = $this->resolveTenantPrefix();
         return "{$prefix}:{$tag}";
     }

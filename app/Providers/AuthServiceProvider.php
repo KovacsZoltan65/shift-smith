@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 // use Illuminate\Support\Facades\Gate;
+use App\Policies\UserAssignmentPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use Illuminate\Support\Facades\Gate;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -22,10 +24,12 @@ class AuthServiceProvider extends ServiceProvider
         \App\Models\Admin\Permission::class => \App\Policies\PermissionPolicy::class,
         \App\Models\WorkShift::class => \App\Policies\WorkShiftPolicy::class,
         \App\Models\WorkShiftAssignment::class => \App\Policies\WorkScheduleAssignmentPolicy::class,
-        \App\Models\WorkSchedule::class => \App\Policies\WorkSchedulePolicy::class,
         \App\Models\WorkPattern::class => \App\Policies\WorkPatternPolicy::class,
         \App\Models\EmployeeWorkPattern::class => \App\Policies\EmployeeWorkPatternPolicy::class,
         \App\Models\AppSetting::class => \App\Policies\AppSettingPolicy::class,
+        \App\Models\CompanySetting::class => \App\Policies\CompanySettingPolicy::class,
+        \App\Models\UserSetting::class => \App\Policies\UserSettingPolicy::class,
+        \App\Models\UserEmployee::class => \App\Policies\UserEmployeePolicy::class,
         
         //\App\Models\Activity::class               => \App\Policies\ActivityPolicy::class,
         //
@@ -49,6 +53,20 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        $this->registerPolicies();
+
+        Gate::define(UserAssignmentPolicy::PERM_VIEW_ANY, function (\App\Models\User $user): bool {
+            $policy = app(UserAssignmentPolicy::class);
+
+            return $policy->before($user, UserAssignmentPolicy::PERM_VIEW_ANY)
+                ?? $policy->viewAny($user);
+        });
+
+        Gate::define(UserAssignmentPolicy::PERM_UPDATE, function (\App\Models\User $user): bool {
+            $policy = app(UserAssignmentPolicy::class);
+
+            return $policy->before($user, UserAssignmentPolicy::PERM_UPDATE)
+                ?? $policy->update($user);
+        });
     }
 }

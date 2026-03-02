@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\Company;
+use App\Models\Employee;
+use App\Models\EmployeeProfile;
 use App\Models\Position;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -57,10 +59,11 @@ class EmployeeSeeder extends Seeder
                     'company_id' => $companyId,
                     'first_name' => $firstName,
                     'last_name' => $lastName,
-                    'email' => sprintf('employee_%d_%d_%s@example.com', $companyId, $i, Str::lower(Str::random(8))),
+                    'email' => \sprintf('employee_%d_%d_%s@example.com', $companyId, $i, Str::lower(Str::random(8))),
                     'address' => fake()->address(),
                     'position_id' => fake()->randomElement($positionIds),
                     'phone' => fake()->phoneNumber(),
+                    'birth_date' => fake()->dateTimeBetween('-60 years', '-18 years')->format('Y-m-d'),
                     'hired_at' => fake()->date(),
                     'active' => true,
                     'created_at' => $now,
@@ -69,6 +72,17 @@ class EmployeeSeeder extends Seeder
             }
 
             DB::table('employees')->insert($rows);
+
+            Employee::query()
+                ->where('company_id', $companyId)
+                ->whereDoesntHave('profile')
+                ->get(['id', 'company_id'])
+                ->each(function (Employee $employee): void {
+                    EmployeeProfile::factory()->create([
+                        'company_id' => (int) $employee->company_id,
+                        'employee_id' => (int) $employee->id,
+                    ]);
+                });
         });
 
         $total = $companyIds->count() * $countPerCompany;

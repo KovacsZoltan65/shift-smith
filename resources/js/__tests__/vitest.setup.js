@@ -7,6 +7,7 @@ const allow = new Set([
     "users.viewAny",
     "users.create",
     "users.update",
+    "users.assignRoles",
     "users.delete",
 
     // Employees
@@ -58,13 +59,6 @@ const allow = new Set([
     "shifts.update",
     "shifts.delete",
 
-    // Planning
-    "planning.view",
-    "planning.viewAny",
-    "planning.create",
-    "planning.update",
-    "planning.delete",
-
     // WorkPatterns
     "work_patterns.view",
     "work_patterns.viewAny",
@@ -85,14 +79,6 @@ const allow = new Set([
     "work_schedule_assignments.update",
     "work_schedule_assignments.delete",
 
-    // WorkSchedules
-    "work_schedules.view",
-    "work_schedules.viewAny",
-    "work_schedules.create",
-    "work_schedules.update",
-    "work_schedules.delete",
-    "work_schedules.deleteAny",
-    "work_schedules.autoplan",
 ]);
 
 vi.mock("@/composables/usePermissions", () => ({

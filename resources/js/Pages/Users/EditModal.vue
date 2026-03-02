@@ -9,20 +9,22 @@ import { csrfFetch } from "@/lib/csrfFetch";
 const props = defineProps({
     modelValue: Boolean,
     user: { type: Object, default: null },
+    companies: { type: Array, default: () => [] },
 });
 const emit = defineEmits(["update:modelValue", "saved"]);
 
 const loading = ref(false);
 const errors = reactive({});
-const form = ref({ name: "", email: "" });
+const form = ref({ name: "", email: "", company_id: null });
 
 const hasUser = computed(() => !!props.user?.id);
 
-const csrf = () =>
-    document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ?? "";
-
 const fill = () => {
-    form.value = { name: props.user?.name ?? "", email: props.user?.email ?? "" };
+    form.value = {
+        name: props.user?.name ?? "",
+        email: props.user?.email ?? "",
+        company_id: props.user?.current_company_id ?? null,
+    };
     Object.keys(errors).forEach((k) => delete errors[k]);
 };
 
@@ -100,7 +102,12 @@ const submit = async () => {
             <div v-if="errors._global" class="rounded border p-2 text-sm">
                 {{ errors._global }}
             </div>
-            <UserFields v-model="form" :errors="errors" :disabled="loading" />
+            <UserFields
+                v-model="form"
+                :errors="errors"
+                :disabled="loading"
+                :companies="companies"
+            />
         </div>
 
         <template #footer>

@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Password;
 use Tests\TestCase;
 
 class PasswordResetTest extends TestCase
@@ -45,6 +46,18 @@ class PasswordResetTest extends TestCase
 
             return true;
         });
+    }
+
+    public function test_authenticated_user_can_open_reset_password_screen_from_email_link(): void
+    {
+        $user = User::factory()->create();
+        $admin = User::factory()->create();
+        $token = Password::broker()->createToken($user);
+
+        $this->actingAs($admin);
+
+        $this->get('/reset-password/'.$token.'?email='.urlencode($user->email))
+            ->assertStatus(200);
     }
 
     public function test_password_can_be_reset_with_valid_token(): void

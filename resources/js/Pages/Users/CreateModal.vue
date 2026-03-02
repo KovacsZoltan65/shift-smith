@@ -1,26 +1,26 @@
 <script setup>
 import { reactive, ref, watch } from "vue";
-import { usePage } from "@inertiajs/vue3";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 import UserFields from "./Partials/UserFields.vue";
-
 import { csrfFetch } from "@/lib/csrfFetch";
 
-const props = defineProps({ modelValue: Boolean });
+const props = defineProps({
+    modelValue: Boolean,
+    companies: { type: Array, default: () => [] },
+    defaultCompanyId: { type: [Number, null], default: null },
+});
 const emit = defineEmits(["update:modelValue", "saved"]);
-
-const page = usePage();
 
 const loading = ref(false);
 const errors = reactive({});
-const form = ref({ name: "", email: "" });
+const form = ref({ name: "", email: "", company_id: props.defaultCompanyId ?? null });
 
 watch(
     () => props.modelValue,
     (open) => {
         if (!open) return;
-        form.value = { name: "", email: "" };
+        form.value = { name: "", email: "", company_id: props.defaultCompanyId ?? null };
         Object.keys(errors).forEach((k) => delete errors[k]);
     }
 );
@@ -75,7 +75,12 @@ const submit = async () => {
                 {{ errors._global }}
             </div>
 
-            <UserFields v-model="form" :errors="errors" :disabled="loading" />
+            <UserFields
+                v-model="form"
+                :errors="errors"
+                :disabled="loading"
+                :companies="companies"
+            />
 
             <div class="rounded border p-3 text-sm text-gray-700">
                 Mentés után automatikusan kiküldjük a jelszó beállító emailt.

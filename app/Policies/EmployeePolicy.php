@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Models\Employee;
 use App\Models\User;
 use App\Policies\BasePolicy;
+use App\Services\Access\CompanyAccessService;
 
 /**
  * Dolgozó policy osztály
@@ -61,7 +62,14 @@ final class EmployeePolicy extends BasePolicy
      */
     public function view(User $user, Employee $employee): bool
     {
-        return $user->can(self::perm(self::PERM_VIEW));
+        if (! $user->can(self::perm(self::PERM_VIEW))) {
+            return false;
+        }
+
+        /** @var CompanyAccessService $access */
+        $access = app(CompanyAccessService::class);
+
+        return $access->userCanAccessEmployee($user, $employee);
     }
     
     /**
@@ -84,7 +92,14 @@ final class EmployeePolicy extends BasePolicy
      */
     public function update(User $user, Employee $employee): bool
     {
-        return $user->can(self::perm(self::PERM_UPDATE));
+        if (! $user->can(self::perm(self::PERM_UPDATE))) {
+            return false;
+        }
+
+        /** @var CompanyAccessService $access */
+        $access = app(CompanyAccessService::class);
+
+        return $access->userCanAccessEmployee($user, $employee);
     }
 
     /**
@@ -119,7 +134,14 @@ final class EmployeePolicy extends BasePolicy
      */
     public function delete(User $user, Employee $employee): bool
     {
-        return $user->can(self::perm(self::PERM_DELETE));
+        if (! $user->can(self::perm(self::PERM_DELETE))) {
+            return false;
+        }
+
+        /** @var CompanyAccessService $access */
+        $access = app(CompanyAccessService::class);
+
+        return $access->userCanAccessEmployee($user, $employee);
     }
     
     /**

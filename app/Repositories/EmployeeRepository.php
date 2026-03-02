@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use App\Data\Employee\EmployeeLeaveEntitlementData;
 use App\Interfaces\EmployeeRepositoryInterface;
 use App\Models\Company;
 use App\Models\Employee;
 use App\Models\TenantGroup;
+use App\Services\Access\CompanyAccessService;
 use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
 use App\Traits\Functions;
@@ -50,7 +52,8 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
     public function __construct(
         AppContainer $app, 
         CacheService $cacheService, 
-        CacheVersionService $cacheVersionService
+        CacheVersionService $cacheVersionService,
+        private readonly CompanyAccessService $companyAccessService,
     )
     {
         parent::__construct($app);
@@ -86,14 +89,22 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
         // ✅ company filter
         $companyIdRaw = $request->input('company_id');
         $companyId = ($companyIdRaw === null || $companyIdRaw === '') ? null : (int) $companyIdRaw;
-        if ($companyId !== null && $currentTenantId !== null) {
-            $companyBelongsToCurrentTenant = Company::query()
+        if ($companyId !== null) {
+            $companyTenantId = Company::query()
                 ->whereKey($companyId)
-                ->where('tenant_group_id', $currentTenantId)
-                ->exists();
+                ->value('tenant_group_id');
 
-            if (! $companyBelongsToCurrentTenant) {
+            if (! is_numeric($companyTenantId)) {
                 $companyId = null;
+            } else {
+                $companyTenantId = (int) $companyTenantId;
+                if (is_numeric($currentTenantId) && (int) $currentTenantId !== $companyTenantId) {
+                    $companyId = null;
+                }
+
+                if (! is_numeric($currentTenantId)) {
+                    $currentTenantId = $companyTenantId;
+                }
             }
         }
 
@@ -111,10 +122,24 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
             $q = Employee::query()
                 ->with('position:id,name')
                 ->when(
-                    $currentTenantId !== null,
-                    fn ($qq) => $qq->whereHas('company', fn ($cq) => $cq->where('tenant_group_id', $currentTenantId))
-                )
-                ->when($companyId, fn ($qq) => $qq->where('company_id', $companyId))
+                    is_numeric($currentTenantId),
+                    fn ($qq) => $qq->whereHas('companies', fn ($cq) => $cq->where('tenant_group_id', (int) $currentTenantId)->where('company_employee.active', true))
+                );
+
+            if ($companyId !== null) {
+                $q->whereHas('companies', function ($companyQuery) use ($companyId, $currentTenantId): void {
+                    $companyQuery
+                        ->whereKey($companyId)
+                        ->where('companies.active', true)
+                        ->where('company_employee.active', true)
+                        ->when(
+                            is_numeric($currentTenantId),
+                            fn ($tenantScoped) => $tenantScoped->where('companies.tenant_group_id', (int) $currentTenantId)
+                        );
+                });
+            }
+
+            $q
                 ->when($term, function ($qq) use ($term) {
                     $qq->where(function ($q) use ($term) {
                         $q->whereRaw('LOWER(first_name) like ?', ["%{$term}%"])
@@ -203,6 +228,57 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
         $employee = Employee::query()->with('position:id,name')->findOrFail($id);
         
         return $employee;
+    }
+
+    public function findByIdInCompany(int $employeeId, int $companyId): ?Employee
+    {
+        $currentTenantId = TenantGroup::current()?->id;
+
+        /** @var Employee|null $employee */
+        $employee = Employee::query()
+            ->with('position:id,name')
+            ->whereKey($employeeId)
+            ->where('company_id', $companyId)
+            ->whereHas('company', function ($query) use ($companyId, $currentTenantId): void {
+                $query->whereKey($companyId)->where('active', true);
+
+                if (is_numeric($currentTenantId)) {
+                    $query->where('tenant_group_id', (int) $currentTenantId);
+                    return;
+                }
+
+                $query->whereRaw('1 = 0');
+            })
+            ->first();
+
+        return $employee;
+    }
+
+    public function findLeaveEntitlementData(int $employeeId, int $companyId): EmployeeLeaveEntitlementData
+    {
+        $currentTenantId = TenantGroup::current()?->id;
+
+        /** @var Employee $employee */
+        $employee = Employee::query()
+            ->whereKey($employeeId)
+            ->where('company_id', $companyId)
+            ->whereHas('company', function ($query) use ($currentTenantId): void {
+                $query->where('companies.active', true);
+
+                if (is_numeric($currentTenantId)) {
+                    $query->where('companies.tenant_group_id', (int) $currentTenantId);
+                    return;
+                }
+
+                $query->whereRaw('1 = 0');
+            })
+            ->firstOrFail();
+
+        return new EmployeeLeaveEntitlementData(
+            employee_id: (int) $employee->id,
+            company_id: (int) $employee->company_id,
+            birth_date: $employee->birth_date?->toDateString(),
+        );
     }
 
     /**
@@ -375,9 +451,8 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
 
         $queryCallback = function () use ($onlyActive, $companyId): array {
             $q = Employee::query();
-
             if ($companyId !== null) {
-                $q->where('company_id', $companyId);
+                $this->companyAccessService->scopeEmployeesToCompany($q, $companyId);
             }
 
             if ($onlyActive) {
@@ -504,7 +579,6 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
             };
 
             $eligibleQuery = Employee::query()
-                ->where('company_id', $companyId)
                 ->where('active', true)
                 ->whereHas('workPatterns', function ($q) use ($overlap, $companyId, $requiredDailyMinutes): void {
                     $overlap($q);
@@ -516,6 +590,7 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
                                 ->where('daily_work_minutes', $requiredDailyMinutes);
                         });
                 });
+            $this->companyAccessService->scopeEmployeesToCompany($eligibleQuery, $companyId);
             $applySearch($eligibleQuery);
 
             /** @var array<int, array{id:int, full_name:string, name:string, work_pattern_summary:string}> $eligible */
@@ -533,7 +608,8 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
                 ->values()
                 ->all();
 
-            $baseQuery = Employee::query()->where('company_id', $companyId);
+            $baseQuery = Employee::query();
+            $this->companyAccessService->scopeEmployeesToCompany($baseQuery, $companyId);
             $applySearch($baseQuery);
             $totalEmployees = (int) (clone $baseQuery)->count();
             $inactiveCount = (int) (clone $baseQuery)->where('active', false)->count();

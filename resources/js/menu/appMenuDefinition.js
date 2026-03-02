@@ -16,6 +16,12 @@ export const appMenuDefinition = [
                 can: "users.viewAny",
             },
             {
+                title: "Felhasználó hozzárendelések",
+                route: "admin.user_assignments.index",
+                key: "admin.user_assignments.index",
+                can: "user_assignments.viewAny",
+            },
+            {
                 title: "Cégek",
                 route: "companies.index",
                 key: "companies.index",
@@ -56,12 +62,6 @@ export const appMenuDefinition = [
                 can: "employees.viewAny",
             },
             {
-                title: "Beosztások",
-                route: "work_schedules.index",
-                key: "work_schedules.index",
-                can: "work_schedules.viewAny",
-            },
-            {
                 title: "Positions",
                 route: "positions.index",
                 key: "positions.index",
@@ -80,12 +80,6 @@ export const appMenuDefinition = [
                 can: "work_patterns.viewAny",
             },
             {
-                title: "Tervezés",
-                route: "planning.index",
-                key: "planning.index",
-                can: "planning.view",
-            },
-            {
                 title: "Naptár",
                 route: "scheduling.calendar",
                 key: "scheduling.calendar",
@@ -97,22 +91,22 @@ export const appMenuDefinition = [
         title: "Beállítások",
         items: [
             {
-                title: "Applikáció",
-                route: "settings.app",
-                key: "settings.app",
-                can: "settings.viewApp",
+                title: "App Settings",
+                route: "admin.app_settings.index",
+                key: "admin.app_settings.index",
+                can: "app_settings.viewAny",
             },
             {
-                title: "Cég",
-                route: "settings.company",
-                key: "settings.company",
-                can: "settings.viewCompany",
+                title: "Company Settings",
+                route: "admin.company_settings.index",
+                key: "admin.company_settings.index",
+                can: "company_settings.viewAny",
             },
             {
-                title: "Személy",
-                route: "settings.user",
-                key: "settings.user",
-                can: "settings.viewUser",
+                title: "User Settings",
+                route: "admin.user_settings.index",
+                key: "admin.user_settings.index",
+                can: "user_settings.viewAny",
             },
         ],
     },

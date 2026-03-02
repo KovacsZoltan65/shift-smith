@@ -169,15 +169,25 @@ class Company extends Model
      */
 
     /**
-     * Céghez tartozó dolgozók kapcsolata
-     * 
-     * Egy céghez több dolgozó tartozhat (1:N kapcsolat).
-     * 
-     * @return HasMany<Employee, $this> Dolgozók kapcsolata
+     * Céghez tartozó dolgozók kapcsolata (N:M).
+     *
+     * @return BelongsToMany<Employee, $this>
      */
-    public function employees(): HasMany
+    public function employees(): BelongsToMany
     {
-        return $this->hasMany(Employee::class);
+        return $this->belongsToMany(Employee::class, 'company_employee')
+            ->withPivot(['active'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Legacy "home company" kapcsolat employees.company_id alapján.
+     *
+     * @return HasMany<Employee, $this>
+     */
+    public function homeEmployees(): HasMany
+    {
+        return $this->hasMany(Employee::class, 'company_id');
     }
 
     /**
@@ -187,7 +197,7 @@ class Company extends Model
      */
     public function users(): BelongsToMany
     {
-        return $this->belongsToMany(User::class)
+        return $this->belongsToMany(User::class, 'company_user')
             ->withTimestamps();
     }
 

@@ -95,6 +95,20 @@ const fieldError = (key) => {
             </div>
 
             <div>
+                <label class="mb-1 block text-sm font-medium">Születési dátum *</label>
+                <DatePicker
+                    v-model="form.birth_date"
+                    class="w-full"
+                    :disabled="disabled"
+                    dateFormat="yy-mm-dd"
+                    showIcon
+                />
+                <div v-if="fieldError('birth_date')" class="mt-1 text-sm text-red-600">
+                    {{ fieldError("birth_date") }}
+                </div>
+            </div>
+
+            <div>
                 <label class="mb-1 block text-sm font-medium">Belépés dátuma</label>
                 <DatePicker
                     v-model="form.hired_at"

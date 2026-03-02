@@ -20,6 +20,7 @@ class OperatorSeeder extends Seeder
             [
                 'name' => 'Operator',
                 'password' => Hash::make($password),
+                'email_verified_at' => now(),
             ]
         );
 

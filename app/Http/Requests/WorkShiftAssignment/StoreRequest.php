@@ -58,7 +58,13 @@ class StoreRequest extends FormRequest
                 return;
             }
 
-            if ((int) $workShift->company_id !== (int) $employee->company_id) {
+            $employeeInShiftCompany = $employee->companies()
+                ->where('companies.id', (int) $workShift->company_id)
+                ->where('companies.active', true)
+                ->where('company_employee.active', true)
+                ->exists();
+
+            if (! $employeeInShiftCompany) {
                 $validator->errors()->add('employee_id', 'A dolgozó és a műszak cége nem egyezik.');
             }
 

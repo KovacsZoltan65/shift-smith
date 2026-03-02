@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, computed, watch } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { router, Head, usePage } from "@inertiajs/vue3";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
@@ -13,13 +13,21 @@ import { useConfirm } from "primevue/useconfirm";
 import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
 import Menu from "primevue/menu";
+import Dialog from "primevue/dialog";
+import Dropdown from "primevue/dropdown";
+import Tag from "primevue/tag";
 
 import CreateModal from "@/Pages/Users/CreateModal.vue";
 import EditModal from "@/Pages/Users/EditModal.vue";
 import PasswordResetModal from "@/Pages/Users/PasswordResetModal.vue";
+import UserService from "@/services/UserService.js";
+import RoleService from "@/services/Auth/RoleService.js";
+import CompanyService from "@/services/CompanyService.js";
 import { csrfFetch } from "@/lib/csrfFetch";
+import { usePermissions } from "@/composables/usePermissions";
 
 const page = usePage();
+const { has } = usePermissions();
 
 const props = defineProps({
     title: String,
@@ -29,37 +37,72 @@ const props = defineProps({
 const createOpen = ref(false);
 const editOpen = ref(false);
 const pwOpen = ref(false);
+const roleOpen = ref(false);
 const editUser = ref(null);
 const pwUser = ref(null);
+const roleUser = ref(null);
+const selectedRoleId = ref(null);
+const roles = ref([]);
 
 const toast = useToast();
 const confirm = useConfirm();
 
 const loading = ref(false);
 const actionLoading = ref(false);
+const roleLoading = ref(false);
 const error = ref(null);
 
 const rows = ref([]);
 const totalRecords = ref(0);
-
-// checkbox selection
 const selected = ref([]);
+const companyOptions = ref([]);
 
 const authUserId = computed(() => Number(page.props.auth?.user?.id ?? 0));
+const canManageUserRoles = computed(() => has("users.assignRoles"));
+const defaultCompanyId = computed(
+    () => Number(page.props.companyContext?.current_company_id ?? 0) || null
+);
 
-// ------------------------
 const rowMenu = ref();
 const rowMenuModel = ref([]);
-const rowMenuRow = ref(null);
+
+const lazy = ref({
+    first: 0,
+    rows: 10,
+    page: 0,
+    sortField: "name",
+    sortOrder: 1,
+});
+
+const search = ref(props.filter?.search ?? "");
+let t = null;
+
+const isSelf = (row) => Number(row?.id ?? 0) === authUserId.value;
+
+const roleLabel = (row) =>
+    row?.primary_role_name ||
+    (Array.isArray(row?.roles) && row.roles.length ? row.roles[0]?.name : null) ||
+    "—";
+
+const roleSeverity = (roleName) => {
+    if (roleName === "superadmin") return "danger";
+    if (roleName === "admin") return "warning";
+    if (roleName === "operator") return "info";
+    return "secondary";
+};
 
 const openRowMenu = (event, row) => {
-    rowMenuRow.value = row;
-
     rowMenuModel.value = [
         {
             label: "Szerkesztés",
             icon: "pi pi-pencil",
             command: () => openEditModal(row),
+        },
+        {
+            label: "Szerepkör",
+            icon: "pi pi-user-edit",
+            disabled: actionLoading.value || !canManageUserRoles.value,
+            command: () => openRoleModal(row),
         },
         {
             label: "Törlés",
@@ -76,26 +119,6 @@ const openRowMenu = (event, row) => {
 
     rowMenu.value.toggle(event);
 };
-// ------------------------
-
-const isSelf = (row) => {
-    const rowId = Number(row?.id ?? 0);
-    const me = authUserId.value;
-
-    return rowId === me;
-};
-
-// lazy state
-const lazy = ref({
-    first: 0,
-    rows: 10,
-    page: 0,
-    sortField: "name",
-    sortOrder: 1,
-});
-
-const search = ref(props.filter?.search ?? "");
-let t = null;
 
 const openCreate = () => {
     createOpen.value = true;
@@ -115,6 +138,87 @@ const openEditModal = (row) => {
 const openPasswordResetModal = (row) => {
     pwUser.value = row;
     pwOpen.value = true;
+};
+
+const ensureRolesLoaded = async () => {
+    if (roles.value.length) return;
+
+    const response = await RoleService.getToSelect();
+    const items = Array.isArray(response?.data)
+        ? response.data
+        : response?.data?.data ?? [];
+
+    roles.value = items.map((role) => ({
+        label: role.name,
+        value: Number(role.id),
+        name: role.name,
+    }));
+};
+
+const openRoleModal = async (row) => {
+    if (!canManageUserRoles.value) return;
+
+    roleLoading.value = true;
+
+    try {
+        await ensureRolesLoaded();
+        roleUser.value = row;
+
+        const currentRole =
+            roles.value.find((role) => role.name === roleLabel(row)) ??
+            roles.value.find((role) => role.value === Number(row?.role_id ?? 0)) ??
+            null;
+
+        selectedRoleId.value = currentRole?.value ?? null;
+        roleOpen.value = true;
+    } catch (e) {
+        toast.add({
+            severity: "error",
+            summary: "Hiba",
+            detail: e?.message || "Nem sikerült a szerepkörök betöltése.",
+            life: 3500,
+        });
+    } finally {
+        roleLoading.value = false;
+    }
+};
+
+const closeRoleModal = () => {
+    roleOpen.value = false;
+    roleUser.value = null;
+    selectedRoleId.value = null;
+};
+
+const saveRole = async () => {
+    if (!roleUser.value?.id || !selectedRoleId.value) return;
+
+    roleLoading.value = true;
+
+    try {
+        await UserService.updatePrimaryRole(
+            Number(roleUser.value.id),
+            Number(selectedRoleId.value)
+        );
+
+        closeRoleModal();
+        toast.add({
+            severity: "success",
+            summary: "Siker",
+            detail: "Szerepkör frissítve.",
+            life: 2500,
+        });
+
+        await fetchUsers();
+    } catch (e) {
+        toast.add({
+            severity: "error",
+            summary: "Hiba",
+            detail: e?.message || "A szerepkör mentése sikertelen.",
+            life: 3500,
+        });
+    } finally {
+        roleLoading.value = false;
+    }
 };
 
 const onSearchInput = () => {
@@ -142,7 +246,7 @@ const buildQuery = () => {
         if (q[k] === null || q[k] === undefined || q[k] === "") delete q[k];
     });
 
-    return new URLSearchParams(q).toString();
+    return q;
 };
 
 const fetchUsers = async () => {
@@ -150,18 +254,38 @@ const fetchUsers = async () => {
     error.value = null;
 
     try {
-        const res = await fetch(`/users/fetch?${buildQuery()}`, {
-            headers: { "X-Requested-With": "XMLHttpRequest" },
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
+        const response = await UserService.fetchUsers(buildQuery());
+        const json = response?.data ?? {};
 
-        rows.value = json.data ?? [];
-        totalRecords.value = json.meta?.total ?? 0;
+        rows.value = Array.isArray(json?.data) ? json.data : [];
+        totalRecords.value = json?.meta?.total ?? 0;
     } catch (e) {
         error.value = e?.message || "Ismeretlen hiba";
+        rows.value = [];
+        totalRecords.value = 0;
     } finally {
         loading.value = false;
+    }
+};
+
+const fetchCompanyOptions = async () => {
+    try {
+        const response = await CompanyService.getToSelect();
+        const items = Array.isArray(response?.data)
+            ? response.data
+            : response?.data?.data ?? [];
+
+        companyOptions.value = items.map((company) => ({
+            label: company.name,
+            value: Number(company.id),
+        }));
+    } catch (e) {
+        toast.add({
+            severity: "error",
+            summary: "Hiba",
+            detail: e?.message || "A céglista betöltése sikertelen.",
+            life: 3500,
+        });
     }
 };
 
@@ -193,9 +317,6 @@ const formatDate = (value) => {
     }).format(d);
 };
 
-//const csrf = () =>
-//    document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ?? "";
-
 const deleteOne = async (id) => {
     actionLoading.value = true;
     try {
@@ -223,9 +344,7 @@ const deleteOne = async (id) => {
             life: 2500,
         });
 
-        // ha a törölt benne volt a kijelölésben, vedd ki
         selected.value = selected.value.filter((x) => x.id !== id);
-
         await fetchUsers();
     } catch (e) {
         toast.add({
@@ -249,7 +368,6 @@ const onPasswordResetSent = () => {
 };
 
 const confirmDeleteOne = (row) => {
-    console.log("Delete One");
     confirm.require({
         message: `Biztos törlöd: ${row.name} (${row.email})?`,
         header: "Megerősítés",
@@ -319,12 +437,12 @@ const confirmBulkDelete = () => {
 };
 
 const goEdit = (row) => {
-    // ha van named route:
-    // router.visit(route("users.edit", row.id));
     router.visit(`/users/${row.id}/edit`);
 };
 
-onMounted(fetchUsers);
+onMounted(async () => {
+    await Promise.all([fetchUsers(), fetchCompanyOptions()]);
+});
 </script>
 
 <template>
@@ -333,13 +451,18 @@ onMounted(fetchUsers);
     <Toast />
     <ConfirmDialog />
 
-    <!-- CREATE MODAL -->
-    <CreateModal v-model="createOpen" @saved="onSaved" />
-
-    <!-- EDIT MODAL -->
-    <EditModal v-model="editOpen" :user="editUser" @saved="onSaved" />
-
-    <!-- PASSWORD RESET MODAL -->
+    <CreateModal
+        v-model="createOpen"
+        :companies="companyOptions"
+        :defaultCompanyId="defaultCompanyId"
+        @saved="onSaved"
+    />
+    <EditModal
+        v-model="editOpen"
+        :user="editUser"
+        :companies="companyOptions"
+        @saved="onSaved"
+    />
     <PasswordResetModal v-model="pwOpen" :user="pwUser" @sent="onPasswordResetSent" />
 
     <AuthenticatedLayout>
@@ -399,17 +522,15 @@ onMounted(fetchUsers);
                 :first="lazy.first"
                 :totalRecords="totalRecords"
                 :rowsPerPageOptions="[10, 25, 50, 100]"
-                :loading="loading || actionLoading"
+                :loading="loading || actionLoading || roleLoading"
                 sortMode="single"
                 :sortField="lazy.sortField"
                 :sortOrder="lazy.sortOrder"
                 @page="onPage"
                 @sort="onSort"
-                selectionMode="multiple"
             >
                 <template #empty> Nincs találat. </template>
 
-                <!-- checkbox oszlop -->
                 <Column
                     selectionMode="multiple"
                     headerStyle="width: 3rem"
@@ -419,20 +540,39 @@ onMounted(fetchUsers);
                 <Column field="id" header="ID" sortable style="width: 90px" />
                 <Column field="name" header="Név" sortable />
                 <Column field="email" header="Email" sortable />
+                <Column field="primary_role_name" header="Role" style="width: 180px">
+                    <template #body="{ data }">
+                        <button
+                            type="button"
+                            class="inline-flex items-center"
+                            :class="
+                                canManageUserRoles
+                                    ? 'cursor-pointer rounded hover:bg-slate-100'
+                                    : 'cursor-default'
+                            "
+                            :disabled="!canManageUserRoles"
+                            @click="openRoleModal(data)"
+                        >
+                            <Tag
+                                :value="roleLabel(data)"
+                                :severity="roleSeverity(roleLabel(data))"
+                            />
+                        </button>
+                    </template>
+                </Column>
                 <Column field="created_at" header="Létrehozva" sortable>
                     <template #body="{ data }">
                         {{ formatDate(data.created_at) }}
                     </template>
                 </Column>
 
-                <!-- Actions -->
                 <Column
                     header="Műveletek"
                     headerStyle="width: 3rem"
                     bodyStyle="white-space: nowrap;"
                 >
                     <template #body="{ data }">
-                        <div class="flex gap-2 justify-end">
+                        <div class="flex justify-end gap-2">
                             <Button
                                 icon="pi pi-ellipsis-v"
                                 severity="secondary"
@@ -448,5 +588,55 @@ onMounted(fetchUsers);
                 </Column>
             </DataTable>
         </div>
+
+        <Dialog
+            v-model:visible="roleOpen"
+            modal
+            header="Szerepkör módosítása"
+            :style="{ width: '28rem', maxWidth: '95vw' }"
+            :closable="!roleLoading"
+            @hide="closeRoleModal"
+        >
+            <div class="space-y-4">
+                <div>
+                    <div class="text-sm text-slate-500">Felhasználó</div>
+                    <div class="font-medium">{{ roleUser?.name }}</div>
+                    <div class="text-sm text-slate-500">{{ roleUser?.email }}</div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-slate-700">Role</label>
+                    <Select
+                        v-model="selectedRoleId"
+                        :options="roles"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Szerepkör kiválasztása"
+                        class="w-full"
+                        :loading="roleLoading"
+                        :disabled="roleLoading"
+                    />
+                </div>
+            </div>
+
+            <template #footer>
+                <div class="flex justify-end gap-2">
+                    <Button
+                        label="Mégse"
+                        severity="secondary"
+                        text
+                        :disabled="roleLoading"
+                        @click="closeRoleModal"
+                    />
+                    <Button
+                        label="Mentés"
+                        icon="pi pi-check"
+                        :loading="roleLoading"
+                        :disabled="!selectedRoleId"
+                        @click="saveRole"
+                    />
+                </div>
+            </template>
+        </Dialog>
     </AuthenticatedLayout>
 </template>

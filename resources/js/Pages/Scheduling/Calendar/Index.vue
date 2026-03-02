@@ -763,18 +763,6 @@ onMounted(async () => {
     <AuthenticatedLayout>
         <div class="space-y-4 p-6">
             <div class="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4">
-                <div class="min-w-64">
-                    <label class="mb-1 block text-xs text-slate-600">Munkabeosztás</label>
-                    <Select
-                        v-model="scheduleId"
-                        :options="schedules"
-                        optionLabel="name"
-                        optionValue="id"
-                        class="w-full"
-                        placeholder="Válassz beosztást"
-                    />
-                </div>
-
                 <div>
                     <label class="mb-1 block text-xs text-slate-600">Nézet</label>
                     <SelectButton

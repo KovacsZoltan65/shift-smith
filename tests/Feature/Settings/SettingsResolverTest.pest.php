@@ -50,7 +50,12 @@ it('helyes precedence-t alkalmaz: user > company > app > default', function (): 
 
     AppSetting::query()->create(['key' => 'test.settings.b', 'value' => 2]);
     CompanySetting::query()->create(['company_id' => $company->id, 'key' => 'test.settings.b', 'value' => 3]);
-    UserSetting::query()->create(['user_id' => $user->id, 'key' => 'test.settings.b', 'value' => 4]);
+    UserSetting::query()->create([
+        'user_id' => $user->id,
+        'company_id' => $company->id,
+        'key' => 'test.settings.b',
+        'value' => 4,
+    ]);
 
     $resolver = app(SettingsResolverService::class);
 
@@ -62,4 +67,3 @@ it('helyes precedence-t alkalmaz: user > company > app > default', function (): 
     expect($companyResult['value'])->toBe(3)->and($companyResult['source'])->toBe('company');
     expect($userResult['value'])->toBe(4)->and($userResult['source'])->toBe('user');
 });
-

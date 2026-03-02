@@ -194,6 +194,16 @@ class WorkShift extends Model
     }
 
     /**
+     * Műszakhoz tartozó szünetintervallumok.
+     *
+     * @return HasMany<WorkShiftBreak, $this>
+     */
+    public function breaks(): HasMany
+    {
+        return $this->hasMany(WorkShiftBreak::class);
+    }
+
+    /**
      * ===========================================================
      */
 }

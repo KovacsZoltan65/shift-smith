@@ -10,8 +10,8 @@ use App\Models\EmployeeWorkPattern;
 use App\Models\Position;
 use App\Models\User;
 use App\Models\WorkPattern;
-use App\Models\WorkSchedule;
 use App\Models\WorkShift;
+use App\Support\PermissionCatalog;
 use App\Support\MenuPermissions;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Seeder;
@@ -64,7 +64,6 @@ class RolesAndPermissionsSeeder extends Seeder
             'roles'          => Role::class,
             'permissions'    => Permission::class,
             'work_shifts'    => WorkShift::class,
-            'work_schedules' => WorkSchedule::class,
             'work_schedule_assignments' => \App\Models\WorkShiftAssignment::class,
             'work_patterns'  => WorkPattern::class,
             'employee_work_patterns' => EmployeeWorkPattern::class,
@@ -72,17 +71,40 @@ class RolesAndPermissionsSeeder extends Seeder
 
         /** @var list<string> $customPermissions */
         $customPermissions = [
+            'app_settings.view',
+            'app_settings.viewAny',
+            'app_settings.create',
+            'app_settings.update',
+            'app_settings.delete',
+            'app_settings.deleteAny',
+            'company_settings.view',
+            'company_settings.viewAny',
+            'company_settings.create',
+            'company_settings.update',
+            'company_settings.delete',
+            'company_settings.deleteAny',
+            'user_settings.view',
+            'user_settings.viewAny',
+            'user_settings.create',
+            'user_settings.update',
+            'user_settings.delete',
+            'user_settings.deleteAny',
+            'user_settings.manageOthers',
             'hq.companies.view',
             'employee_work_patterns.assign',
             'employee_work_patterns.unassign',
             'employee_work_patterns.view',
-            'work_schedules.autoplan',
             'settings.viewApp',
             'settings.updateApp',
             'settings.viewCompany',
             'settings.updateCompany',
             'settings.viewUser',
             'settings.updateUser',
+            'user_employees.viewAny',
+            'user_employees.create',
+            'user_employees.delete',
+            'user_assignments.viewAny',
+            'user_assignments.update',
         ];
 
         /**
@@ -163,6 +185,10 @@ class RolesAndPermissionsSeeder extends Seeder
             foreach ($customPermissions as $permissionName) {
                 Permission::firstOrCreate(['name' => $permissionName]);
                 $bar->advance();
+            }
+
+            foreach (PermissionCatalog::p0Flat() as $permissionName) {
+                Permission::firstOrCreate(['name' => $permissionName]);
             }
 
             /**

@@ -34,6 +34,7 @@ class EmployeeFactory extends Factory
             'address'    => $this->faker->address,
             'position_id'=> $positionId,
             'phone'      => $this->faker->phoneNumber,
+            'birth_date' => $this->faker->dateTimeBetween('-60 years', '-18 years')->format('Y-m-d'),
             'hired_at'   => $this->faker->date(),
         ];
     }

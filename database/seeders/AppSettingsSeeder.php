@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
@@ -12,16 +10,53 @@ class AppSettingsSeeder extends Seeder
     public function run(): void
     {
         $rows = [
-            ['key' => 'autoplan.min_rest_hours', 'value' => 11],
-            ['key' => 'autoplan.max_consecutive_days', 'value' => 6],
-            ['key' => 'autoplan.weekend_fairness', 'value' => true],
+            [
+                'key' => 'autoplan.min_rest_minutes',
+                'value' => 660,
+                'type' => 'int',
+                'group' => 'autoplan',
+                'label' => 'Minimum pihenőidő két műszak között (perc)',
+                'description' => 'A két egymást követő munkavégzés között elvárt minimális pihenőidő percekben.',
+            ],
+            [
+                'key' => 'autoplan.max_consecutive_days',
+                'value' => 6,
+                'type' => 'int',
+                'group' => 'autoplan',
+                'label' => 'Maximális egymást követő munkanapok',
+                'description' => 'Az egymást követő munkanapok maximálisan megengedett száma.',
+            ],
+            [
+                'key' => 'autoplan.weekend_fairness',
+                'value' => true,
+                'type' => 'bool',
+                'group' => 'autoplan',
+                'label' => 'Hétvégi méltányosság engedélyezve',
+                'description' => 'A hétvégi műszakokat egyenletesen ossza el a munkavállalók között.',
+            ],
+            [
+                'key' => 'settings.user_legacy_global_override_enabled',
+                'value' => false,
+                'type' => 'bool',
+                'group' => 'settings',
+                'label' => 'Régi felhasználók globális felülírása engedélyezve',
+                'description' => 'Lehetővé teszi a cég nélküli user_settings rekordok használatát a feloldó migrálása során.',
+            ],
         ];
 
         foreach ($rows as $row) {
-                DB::table('app_settings')->updateOrInsert(
-                    ['key' => $row['key']],
+
+            DB::table('app_settings')->updateOrInsert(
+                ['key' => $row['key']],
                 [
-                    'value' => json_encode($row['value'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                    'value' => json_encode(
+                        $row['value'],
+                        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                    ),
+                    'type' => $row['type'],
+                    'group' => $row['group'],
+                    'label' => $row['label'],
+                    'description' => $row['description'],
                     'updated_at' => now(),
                     'created_at' => now(),
                 ]

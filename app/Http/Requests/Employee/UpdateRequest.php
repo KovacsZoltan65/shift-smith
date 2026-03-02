@@ -36,6 +36,7 @@ class UpdateRequest extends FormRequest
                 ),
             ],
 
+            'birth_date'  => ['required', 'date', 'before:today'],
             'hired_at'    => ['nullable', 'date'],
             'active'      => ['nullable', 'boolean'],
         ];

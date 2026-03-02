@@ -2,36 +2,55 @@
 
 namespace App\Providers;
 
+use App\Interfaces\AppSettingRepositoryInterface;
 use App\Interfaces\Admin\PermissionRepositoryInterface;
 use App\Interfaces\Admin\RoleRepositoryInterface;
 use App\Interfaces\CompanyRepositoryInterface;
+use App\Interfaces\CompanySettingRepositoryInterface;
 use App\Repositories\Dashboard\DashboardRepositoryInterface;
 use App\Interfaces\EmployeeRepositoryInterface;
+use App\Interfaces\EmployeeProfileRepositoryInterface;
+use App\Interfaces\LeaveBalanceRepositoryInterface;
 use App\Interfaces\EmployeeWorkPatternRepositoryInterface;
 use App\Interfaces\PositionRepositoryInterface;
 use App\Interfaces\UserRepositoryInterface;
+use App\Interfaces\UserSettingRepositoryInterface;
 use App\Interfaces\WorkPatternRepositoryInterface;
 use App\Interfaces\WorkScheduleAssignmentRepositoryInterface;
-use App\Interfaces\WorkScheduleRepositoryInterface;
 use App\Interfaces\WorkShiftAssignmentRepositoryInterface;
 use App\Interfaces\WorkShiftRepositoryInterface;
 use App\Models\Company;
+use App\Models\CompanyEmployee;
+use App\Models\CompanyUser;
 use App\Models\Employee;
+use App\Models\UserEmployee;
 use App\Observers\CompanyObserver;
+use App\Observers\CompanyEmployeeObserver;
+use App\Observers\CompanyUserObserver;
 use App\Observers\EmployeeObserver;
+use App\Observers\UserEmployeeObserver;
 use App\Repositories\Admin\PermissionRepository;
 use App\Repositories\Admin\RoleRepository;
+use App\Repositories\AppSettingRepository;
 use App\Repositories\CompanyRepository;
+use App\Repositories\CompanySettingRepository;
 use App\Repositories\Dashboard\DashboardRepository;
 use App\Repositories\EmployeeRepository;
+use App\Repositories\EmployeeProfileRepository;
+use App\Repositories\LeaveBalanceRepository;
 use App\Repositories\EmployeeWorkPatternRepository;
 use App\Repositories\PositionRepository;
 use App\Repositories\UserRepository;
+use App\Repositories\UserSettingRepository;
+use App\Repositories\UserEmployeeRepository;
+use App\Repositories\UserEmployeeRepositoryInterface;
+use App\Repositories\UserAssignments\UserAssignmentRepository;
+use App\Repositories\UserAssignments\UserAssignmentRepositoryInterface;
 use App\Repositories\WorkPatternRepository;
 use App\Repositories\WorkScheduleAssignmentRepository;
-use App\Repositories\WorkScheduleRepository;
 use App\Repositories\WorkShiftAssignmentRepository;
 use App\Repositories\WorkShiftRepository;
+use App\Services\Settings\SettingsManager;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Grammars\PostgresGrammar;
 use Illuminate\Support\Arr;
@@ -52,8 +71,20 @@ class AppServiceProvider extends ServiceProvider
             UserRepository::class
         );
         $this->app->bind(
+            UserSettingRepositoryInterface::class,
+            UserSettingRepository::class
+        );
+        $this->app->bind(
             CompanyRepositoryInterface::class, 
             CompanyRepository::class
+        );
+        $this->app->bind(
+            AppSettingRepositoryInterface::class,
+            AppSettingRepository::class
+        );
+        $this->app->bind(
+            CompanySettingRepositoryInterface::class,
+            CompanySettingRepository::class
         );
         $this->app->bind(
             DashboardRepositoryInterface::class,
@@ -72,6 +103,14 @@ class AppServiceProvider extends ServiceProvider
             EmployeeRepository::class
         );
         $this->app->bind(
+            EmployeeProfileRepositoryInterface::class,
+            EmployeeProfileRepository::class
+        );
+        $this->app->bind(
+            LeaveBalanceRepositoryInterface::class,
+            LeaveBalanceRepository::class
+        );
+        $this->app->bind(
             PositionRepositoryInterface::class,
             PositionRepository::class
         );
@@ -82,10 +121,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             WorkShiftAssignmentRepositoryInterface::class,
             WorkShiftAssignmentRepository::class
-        );
-        $this->app->bind(
-            WorkScheduleRepositoryInterface::class,
-            WorkScheduleRepository::class
         );
         $this->app->bind(
             WorkScheduleAssignmentRepositoryInterface::class,
@@ -99,6 +134,15 @@ class AppServiceProvider extends ServiceProvider
             EmployeeWorkPatternRepositoryInterface::class,
             EmployeeWorkPatternRepository::class
         );
+        $this->app->bind(
+            UserEmployeeRepositoryInterface::class,
+            UserEmployeeRepository::class
+        );
+        $this->app->bind(
+            UserAssignmentRepositoryInterface::class,
+            UserAssignmentRepository::class
+        );
+        $this->app->singleton('settings.manager', SettingsManager::class);
     }
 
     /**
@@ -116,6 +160,9 @@ class AppServiceProvider extends ServiceProvider
 
         Employee::observe(EmployeeObserver::class);
         Company::observe(CompanyObserver::class);
+        CompanyEmployee::observe(CompanyEmployeeObserver::class);
+        CompanyUser::observe(CompanyUserObserver::class);
+        UserEmployee::observe(UserEmployeeObserver::class);
         
         if (!defined('APP_ACTIVE'))   define('APP_ACTIVE', 1);
         if (!defined('APP_INACTIVE')) define('APP_INACTIVE', 0);

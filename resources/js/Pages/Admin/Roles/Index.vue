@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { Head } from "@inertiajs/vue3";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
@@ -14,11 +14,15 @@ import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
 import Menu from "primevue/menu";
 import Tag from "primevue/tag";
+import Dialog from "primevue/dialog";
+import MultiSelect from "primevue/multiselect";
 
 import CreateModal from "@/Pages/Admin/Roles/CreateModal.vue";
 import EditModal from "@/Pages/Admin/Roles/EditModal.vue";
 
 import { csrfFetch } from "@/lib/csrfFetch";
+import RoleService from "@/services/Auth/RoleService.js";
+import UserService from "@/services/UserService.js";
 
 import { usePermissions } from "@/composables/usePermissions";
 const { has } = usePermissions();
@@ -36,47 +40,24 @@ const confirm = useConfirm();
 
 const createOpen = ref(false);
 const editOpen = ref(false);
+const usersModalOpen = ref(false);
 const editRole = ref(null);
+const usersModalRole = ref(null);
+const usersModalSelectedIds = ref([]);
+const userOptions = ref([]);
 
 const loading = ref(false);
 const actionLoading = ref(false);
+const usersModalLoading = ref(false);
 const error = ref(null);
 
 const rows = ref([]);
 const totalRecords = ref(0);
-
-// checkbox selection
 const selected = ref([]);
 
-// ------------------------
-// Row actions menu
 const rowMenu = ref();
 const rowMenuModel = ref([]);
-const rowMenuRow = ref(null);
 
-const openRowMenu = (event, row) => {
-    rowMenuRow.value = row;
-
-    rowMenuModel.value = [
-        {
-            label: "Szerkesztés",
-            icon: "pi pi-pencil",
-            disabled: actionLoading.value || !canUpdate,
-            command: () => openEditModal(row),
-        },
-        {
-            label: "Törlés",
-            icon: "pi pi-trash",
-            disabled: actionLoading.value || !canDelete,
-            command: () => confirmDeleteOne(row),
-        },
-    ];
-
-    rowMenu.value.toggle(event);
-};
-// ------------------------
-
-// lazy state (Companies minta)
 const lazy = ref({
     first: 0,
     rows: 10,
@@ -88,23 +69,48 @@ const lazy = ref({
 const search = ref(props.filter?.search ?? "");
 let t = null;
 
+const usersModalSummary = computed(() => {
+    if (!usersModalRole.value) return "";
+
+    const count = Array.isArray(usersModalSelectedIds.value) ? usersModalSelectedIds.value.length : 0;
+    return `${count} felhasználó kijelölve`;
+});
+
+const openRowMenu = (event, row) => {
+    rowMenuModel.value = [
+        {
+            label: "Szerkesztés",
+            icon: "pi pi-pencil",
+            disabled: actionLoading.value || !canUpdate,
+            command: () => openEditModal(row),
+        },
+        {
+            label: "Felhasználók",
+            icon: "pi pi-users",
+            disabled: actionLoading.value || !canUpdate,
+            command: () => openUsersModal(row),
+        },
+        {
+            label: "Törlés",
+            icon: "pi pi-trash",
+            disabled: actionLoading.value || !canDelete,
+            command: () => confirmDeleteOne(row),
+        },
+    ];
+
+    rowMenu.value.toggle(event);
+};
+
 const openCreate = () => {
     createOpen.value = true;
 };
 
 const openEditModal = (row) => {
-    // Edithez kell a permission_ids is -> kérjük le a részleteket
     (async () => {
         actionLoading.value = true;
         try {
-            const res = await fetch(`/admin/roles/${row.id}`, {
-                headers: {
-                    "X-Requested-With": "XMLHttpRequest",
-                    Accept: "application/json",
-                },
-            });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const json = await res.json();
+            const response = await RoleService.getRole(row.id);
+            const json = response?.data ?? {};
             editRole.value = json?.data ?? json;
             editOpen.value = true;
         } catch (e) {
@@ -151,7 +157,7 @@ const buildQuery = () => {
         if (q[k] === null || q[k] === undefined || q[k] === "") delete q[k];
     });
 
-    return new URLSearchParams(q).toString();
+    return q;
 };
 
 const fetchRoles = async () => {
@@ -159,28 +165,10 @@ const fetchRoles = async () => {
     error.value = null;
 
     try {
-        const res = await fetch(`/admin/roles/fetch?${buildQuery()}`, {
-            headers: { "X-Requested-With": "XMLHttpRequest" },
-        });
+        const response = await RoleService.getRoles(buildQuery());
+        const json = response?.data ?? {};
 
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const json = await res.json();
-
-        /**
-         * NÁLAD így jön:
-         * {
-         *   data: { current_page, data: [ ... ] },
-         *   meta: { total, ... },
-         *   filter: { ... }
-         * }
-         *
-         * Tehát a rekord tömb: json.data.data
-         */
-        const items = Array.isArray(json?.data)
-            ? json.data
-            : (json?.data?.data ?? []);
-
+        const items = Array.isArray(json?.data) ? json.data : json?.data?.data ?? [];
         rows.value = items;
         totalRecords.value = json?.meta?.total ?? 0;
     } catch (e) {
@@ -205,6 +193,95 @@ const onSort = (event) => {
     lazy.value.first = 0;
     lazy.value.page = 0;
     fetchRoles();
+};
+
+const userOptionLabel = (user) => {
+    if (!user) return "";
+    return user.email ? `${user.name} (${user.email})` : user.name;
+};
+
+const ensureUserOptions = async () => {
+    if (userOptions.value.length) return;
+
+    const response = await UserService.fetchUsersToSelect();
+    const items = Array.isArray(response?.data) ? response.data : response?.data?.data ?? [];
+
+    userOptions.value = items.map((user) => ({
+        label: userOptionLabel(user),
+        value: Number(user.id),
+    }));
+};
+
+const openUsersModal = async (row) => {
+    if (!canUpdate) return;
+
+    usersModalLoading.value = true;
+
+    try {
+        await ensureUserOptions();
+        const response = await RoleService.getRole(row.id);
+        const payload = response?.data?.data ?? response?.data ?? {};
+
+        usersModalRole.value = {
+            id: Number(payload?.id ?? row.id),
+            name: payload?.name ?? row.name,
+            user_ids: Array.isArray(payload?.user_ids)
+                ? payload.user_ids.map((id) => Number(id))
+                : Array.isArray(row?.user_ids)
+                  ? row.user_ids.map((id) => Number(id))
+                  : [],
+        };
+
+        usersModalSelectedIds.value = [...usersModalRole.value.user_ids];
+        usersModalOpen.value = true;
+    } catch (e) {
+        toast.add({
+            severity: "error",
+            summary: "Hiba",
+            detail: e?.message || "Nem sikerült a role felhasználóit betölteni.",
+            life: 3500,
+        });
+    } finally {
+        usersModalLoading.value = false;
+    }
+};
+
+const closeUsersModal = () => {
+    usersModalOpen.value = false;
+    usersModalRole.value = null;
+    usersModalSelectedIds.value = [];
+};
+
+const saveUsersModal = async () => {
+    if (!usersModalRole.value?.id) return;
+
+    usersModalLoading.value = true;
+
+    try {
+        await RoleService.syncRoleUsers(
+            Number(usersModalRole.value.id),
+            usersModalSelectedIds.value.map((id) => Number(id)),
+        );
+
+        closeUsersModal();
+        toast.add({
+            severity: "success",
+            summary: "Siker",
+            detail: "A role felhasználói frissítve.",
+            life: 2500,
+        });
+
+        await fetchRoles();
+    } catch (e) {
+        toast.add({
+            severity: "error",
+            summary: "Hiba",
+            detail: e?.response?.data?.message || e?.message || "A mentés sikertelen.",
+            life: 3500,
+        });
+    } finally {
+        usersModalLoading.value = false;
+    }
 };
 
 const confirmDeleteOne = (row) => {
@@ -248,7 +325,6 @@ const deleteOne = async (id) => {
         });
 
         selected.value = selected.value.filter((x) => x.id !== id);
-
         await fetchRoles();
     } catch (e) {
         toast.add({
@@ -281,7 +357,6 @@ const bulkDelete = async (ids) => {
     actionLoading.value = true;
 
     try {
-        // Ha még nincs ilyen route, akkor vagy add hozzá, vagy vedd ki a bulkDelete gombot.
         const res = await csrfFetch(`/admin/roles/destroy_bulk`, {
             method: "DELETE",
             headers: {
@@ -330,10 +405,8 @@ onMounted(fetchRoles);
     <Toast />
     <ConfirmDialog />
 
-    <!-- CREATE MODAL -->
     <CreateModal v-model="createOpen" :canCreate="canCreate" @saved="onSaved" />
 
-    <!-- EDIT MODAL -->
     <EditModal
         v-model="editOpen"
         :role="editRole"
@@ -347,7 +420,6 @@ onMounted(fetchRoles);
                 <div class="flex items-center gap-3">
                     <h1 class="text-2xl font-semibold">{{ title }}</h1>
 
-                    <!-- CREATE -->
                     <Button
                         v-if="canCreate"
                         label="Új role"
@@ -357,7 +429,6 @@ onMounted(fetchRoles);
                         data-testid="roles-create"
                     />
 
-                    <!-- BULK DELETE -->
                     <Button
                         v-if="canDelete"
                         label="Kijelöltek törlése"
@@ -402,7 +473,7 @@ onMounted(fetchRoles);
                 :first="lazy.first"
                 :totalRecords="totalRecords"
                 :rowsPerPageOptions="[10, 25, 50, 100]"
-                :loading="loading || actionLoading"
+                :loading="loading || actionLoading || usersModalLoading"
                 sortMode="single"
                 :sortField="lazy.sortField"
                 :sortOrder="lazy.sortOrder"
@@ -412,41 +483,35 @@ onMounted(fetchRoles);
             >
                 <template #empty> Nincs találat. </template>
 
-                <!-- checkbox oszlop -->
                 <Column selectionMode="multiple" headerStyle="width: 3rem" />
-
                 <Column field="id" header="ID" sortable style="width: 90px" />
                 <Column field="name" header="Név" sortable />
-
                 <Column field="guard_name" header="Guard" sortable style="width: 140px">
                     <template #body="{ data }">
                         <Tag :value="data.guard_name" />
                     </template>
                 </Column>
+                <Column field="users_count" header="Users" sortable style="width: 140px">
+                    <template #body="{ data }">
+                        <Button
+                            class="p-0"
+                            text
+                            :disabled="!canUpdate"
+                            @click="openUsersModal(data)"
+                        >
+                            {{ data.users_count ?? 0 }}
+                        </Button>
+                    </template>
+                </Column>
+                <Column field="created_at" header="Létrehozva" sortable style="width: 220px" />
 
-                <!-- ha a fetch már ad users_count-ot -->
-                <Column
-                    field="users_count"
-                    header="Users"
-                    sortable
-                    style="width: 120px"
-                />
-
-                <Column
-                    field="created_at"
-                    header="Létrehozva"
-                    sortable
-                    style="width: 220px"
-                />
-
-                <!-- Actions -->
                 <Column
                     header="Műveletek"
                     headerStyle="width: 3rem"
                     bodyStyle="white-space: nowrap;"
                 >
                     <template #body="{ data }">
-                        <div class="flex gap-2 justify-end">
+                        <div class="flex justify-end gap-2">
                             <Button
                                 icon="pi pi-ellipsis-v"
                                 severity="secondary"
@@ -462,5 +527,49 @@ onMounted(fetchRoles);
                 </Column>
             </DataTable>
         </div>
+
+        <Dialog
+            v-model:visible="usersModalOpen"
+            modal
+            header="Role felhasználók szerkesztése"
+            :style="{ width: '34rem', maxWidth: '95vw' }"
+            :closable="!usersModalLoading"
+            @hide="closeUsersModal"
+        >
+            <div class="space-y-4">
+                <div>
+                    <div class="font-medium">{{ usersModalRole?.name }}</div>
+                    <div class="text-sm text-slate-500">{{ usersModalSummary }}</div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-slate-700">Felhasználók</label>
+                    <MultiSelect
+                        v-model="usersModalSelectedIds"
+                        :options="userOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        placeholder="Felhasználók kiválasztása"
+                        class="w-full"
+                        display="chip"
+                        filter
+                        :loading="usersModalLoading"
+                        :disabled="usersModalLoading"
+                    />
+                </div>
+            </div>
+
+            <template #footer>
+                <div class="flex justify-end gap-2">
+                    <Button label="Mégse" severity="secondary" text :disabled="usersModalLoading" @click="closeUsersModal" />
+                    <Button
+                        label="Mentés"
+                        icon="pi pi-check"
+                        :loading="usersModalLoading"
+                        @click="saveUsersModal"
+                    />
+                </div>
+            </template>
+        </Dialog>
     </AuthenticatedLayout>
 </template>

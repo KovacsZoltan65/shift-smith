@@ -30,6 +30,7 @@ const form = ref({
     email: "",
     phone: "",
     position_id: null,
+    birth_date: null,
     hired_at: null,
     active: true,
 });
@@ -44,6 +45,7 @@ const reset = () => {
         email: "",
         phone: "",
         position_id: null,
+        birth_date: null,
         hired_at: null,
         active: true,
     };
@@ -57,6 +59,10 @@ watch(
 );
 
 const toPayload = () => {
+    const birthDate =
+        form.value.birth_date instanceof Date
+            ? form.value.birth_date.toISOString().slice(0, 10)
+            : null;
     const hiredAt =
         form.value.hired_at instanceof Date
             ? form.value.hired_at.toISOString().slice(0, 10)
@@ -69,6 +75,7 @@ const toPayload = () => {
         email: form.value.email?.trim() || null,
         phone: form.value.phone?.trim() || null,
         position_id: form.value.position_id ? Number(form.value.position_id) : null,
+        birth_date: birthDate,
         hired_at: hiredAt,
         active: !!form.value.active,
     };

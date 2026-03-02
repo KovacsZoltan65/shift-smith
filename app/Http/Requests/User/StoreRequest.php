@@ -5,6 +5,7 @@ namespace App\Http\Requests\User;
 use App\Models\User;
 use App\Policies\UserPolicy;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
 class StoreRequest extends FormRequest
@@ -27,13 +28,26 @@ class StoreRequest extends FormRequest
         return [
             'name'     => ['required', 'string', 'max:255'],
             'email'    => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'string', 'confirmed', Password::min(8)
+            'company_id' => [
+                'required',
+                'integer',
+                Rule::exists('companies', 'id')->where(function ($query): void {
+                    $tenantGroupId = (int) $this->session()->get('current_tenant_group_id', 0);
+
+                    if ($tenantGroupId > 0) {
+                        $query
+                            ->where('tenant_group_id', $tenantGroupId)
+                            ->where('active', true);
+                    }
+                }),
+            ],
+            'password' => ['nullable', 'string', 'confirmed', Password::min(8)
                 ->letters()
                 ->mixedCase()
                 ->numbers()
                 ->symbols()
             ],
-            'password_confirmation' => ['required', 'string'],
+            'password_confirmation' => ['required_with:password', 'string'],
         ];
     }
 }

@@ -8,6 +8,7 @@ use App\Interfaces\WorkShiftRepositoryInterface;
 use App\Models\Company;
 use App\Models\TenantGroup;
 use App\Models\WorkShift;
+use App\Models\WorkShiftBreak;
 use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -38,7 +39,7 @@ final class WorkShiftRepository implements WorkShiftRepositoryInterface
         $companyId = $this->resolveTenantScopedCompanyId($companyId);
         $termRaw = trim((string) $request->input('search', ''));
         $term = $termRaw === '' ? null : mb_strtolower($termRaw, 'UTF-8');
-        $field = in_array((string) $request->input('field', ''), WorkShift::getSortable(), true)
+        $field = \in_array((string) $request->input('field', ''), WorkShift::getSortable(), true)
             ? (string) $request->input('field')
             : null;
         $direction = strtolower((string) $request->input('order', 'desc')) === 'asc' ? 'asc' : 'desc';
@@ -57,6 +58,7 @@ final class WorkShiftRepository implements WorkShiftRepositoryInterface
             $onlyActive
         ): LengthAwarePaginator {
             $query = WorkShift::query()
+                ->with(['breaks' => static fn ($q) => $q->orderBy('id')])
                 ->where('company_id', $companyId)
                 ->when($onlyActive !== null, fn ($q) => $q->where('active', $onlyActive))
                 ->when($term, fn ($q) => $q->whereRaw('LOWER(name) like ?', ["%{$term}%"]))
@@ -105,6 +107,7 @@ final class WorkShiftRepository implements WorkShiftRepositoryInterface
 
         /** @var WorkShift $workShift */
         $workShift = WorkShift::query()
+            ->with(['breaks' => static fn ($q) => $q->orderBy('id')])
             ->where('company_id', $scopedCompanyId)
             ->findOrFail($id);
 
@@ -115,22 +118,27 @@ final class WorkShiftRepository implements WorkShiftRepositoryInterface
     {
         $companyId = $this->resolveTenantScopedCompanyId((int) ($data['company_id'] ?? 0));
         $data['company_id'] = $companyId;
+        $breakRows = $data['breaks'] ?? [];
+        unset($data['breaks']);
 
-        return DB::transaction(function () use ($data, $companyId): WorkShift {
+        return DB::transaction(function () use ($data, $breakRows, $companyId): WorkShift {
             /** @var WorkShift $workShift */
             $workShift = WorkShift::query()->create($data);
+            $this->replaceBreaks($workShift, $breakRows, $companyId);
             $this->invalidateAfterWrite();
 
-            return $workShift;
+            return $workShift->load(['breaks' => static fn ($q) => $q->orderBy('id')]);
         });
     }
 
     public function update(WorkShift $shift, array $data): WorkShift
     {
         $scopedCompanyId = $this->resolveTenantScopedCompanyId((int) $shift->company_id);
+        $breakRows = $data['breaks'] ?? [];
         unset($data['company_id']);
+        unset($data['breaks']);
 
-        return DB::transaction(function () use ($data, $shift, $scopedCompanyId): WorkShift {
+        return DB::transaction(function () use ($data, $breakRows, $shift, $scopedCompanyId): WorkShift {
             /** @var WorkShift $workShift */
             $workShift = WorkShift::query()
                 ->where('company_id', $scopedCompanyId)
@@ -139,7 +147,8 @@ final class WorkShiftRepository implements WorkShiftRepositoryInterface
 
             $workShift->fill($data);
             $workShift->save();
-            $workShift->refresh();
+            $this->replaceBreaks($workShift, $breakRows, $scopedCompanyId);
+            $workShift->refresh()->load(['breaks' => static fn ($q) => $q->orderBy('id')]);
 
             $this->invalidateAfterWrite();
 
@@ -259,5 +268,30 @@ final class WorkShiftRepository implements WorkShiftRepositoryInterface
             $this->cacheVersionService->bump(self::NS_SELECTORS_WORK_SHIFTS);
             $this->cacheVersionService->bump(self::NS_DASHBOARD_STATS);
         });
+    }
+
+    /**
+     * @param list<array{break_start_time:string,break_end_time:string,break_minutes:int}> $breakRows
+     */
+    private function replaceBreaks(WorkShift $shift, array $breakRows, int $companyId): void
+    {
+        WorkShiftBreak::query()
+            ->where('company_id', $companyId)
+            ->where('work_shift_id', $shift->id)
+            ->delete();
+
+        if ($breakRows === []) {
+            return;
+        }
+
+        $shift->breaks()->createMany(array_map(
+            static fn (array $row): array => [
+                'company_id' => $companyId,
+                'break_start_time' => $row['break_start_time'],
+                'break_end_time' => $row['break_end_time'],
+                'break_minutes' => $row['break_minutes'],
+            ],
+            $breakRows
+        ));
     }
 }

@@ -1,11 +1,17 @@
 <?php
 
 use App\Http\Controllers\Admin\PermissionController;
+use App\Http\Controllers\Admin\AppSettingController;
+use App\Http\Controllers\Admin\CompanySettingController;
+use App\Http\Controllers\Admin\UserSettingController;
+use App\Http\Controllers\Admin\EmployeeLeaveEntitlementController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\RoleUsersController;
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\UserAssignmentController;
+use App\Http\Controllers\Admin\UserRoleController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\CompanySelectController;
-use App\Http\Controllers\Scheduling\AutoPlanController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\EmployeeWorkPatternController;
 use App\Http\Controllers\PositionController;
@@ -15,7 +21,6 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkPatternController;
 use App\Http\Controllers\WorkScheduleAssignmentController;
 use App\Http\Controllers\WorkShiftAssignmentController;
-use App\Http\Controllers\WorkScheduleController;
 use App\Http\Controllers\WorkShiftController;
 use App\Http\Controllers\DashboardController;
 use Illuminate\Foundation\Application;
@@ -54,8 +59,6 @@ Route::middleware(['auth', 'verified', 'ensure.company', 'throttle:120,1'])->gro
     Route::get('/selectors/companies', [CompanyController::class, 'getToSelect'])->name('selectors.companies');
     // Employee Selector
     Route::get('/selectors/employees', [EmployeeController::class, 'getToSelect'])->name('selectors.employees');
-    Route::get('/selectors/employees/eligible-autoplan', [EmployeeController::class, 'getEligibleForAutoPlan'])
-        ->name('selectors.employees.eligible_autoplan');
     // Position Selector
     Route::get('/selectors/positions', [PositionController::class, 'getToSelect'])->name('selectors.positions');
     // WorkShift Selector
@@ -109,7 +112,6 @@ Route::middleware(['auth', 'verified', 'ensure.company'])->group(function () {
     //Route::get('/employees', fn () => Inertia::render('HR/Employees/Index', ['title' => 'Dolgozók']))->name('employees.index');
     
     Route::get('/assignments', fn () => Inertia::render('HR/Assignments/Index'))->name('assignments.index');
-    Route::get('/planning', fn () => Inertia::render('HR/Planning/Index'))->name('planning.index');
 
     // Beállítások
     Route::get('/settings/app', [SettingsController::class, 'app'])->name('settings.app');
@@ -136,6 +138,7 @@ Route::middleware(['auth', 'verified'])
         // SELECTOROK
         Route::get('/selectors/roles', [RoleController::class, 'getToSelect'])->name('selectors.roles')->middleware('throttle:120,1');
         Route::get('/selectors/permissions', [PermissionController::class, 'getToSelect'])->name('selectors.permissions')->middleware('throttle:120,1');
+        Route::get('/selectors/users', [UserController::class, 'getToSelect'])->name('selectors.users')->middleware('throttle:120,1');
         
         // Olvasási műveletek
         Route::get('/roles', [RoleController::class, 'index'])->name('roles.index')->middleware('throttle:60,1');
@@ -146,6 +149,7 @@ Route::middleware(['auth', 'verified'])
         // Írási műveletek
         Route::post('/roles', [RoleController::class, 'store'])->name('roles.store')->middleware('throttle:20,1');
         Route::put('/roles/{id}', [RoleController::class, 'update'])->whereNumber('id')->name('roles.update')->middleware('throttle:30,1');
+        Route::patch('/roles/{role}/users', [RoleUsersController::class, 'update'])->whereNumber('role')->name('roles.users.update')->middleware('throttle:20,1');
         Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->whereNumber('id')->name('roles.destroy')->middleware('throttle:20,1');
         Route::delete('/roles/destroy_bulk', [RoleController::class, 'destroyBulk'])->name('roles.destroy_bulk')->middleware('throttle:10,1');
         
@@ -164,6 +168,46 @@ Route::middleware(['auth', 'verified'])
         Route::put('/permissions/{id}', [PermissionController::class, 'update'])->whereNumber('id')->name('permissions.update')->middleware('throttle:30,1');
         Route::delete('/permissions/{id}', [PermissionController::class, 'destroy'])->whereNumber('id')->name('permissions.destroy')->middleware('throttle:20,1');
         Route::delete('/permissions/destroy_bulk', [PermissionController::class, 'destroyBulk'])->name('permissions.destroy_bulk')->middleware('throttle:10,1');
+
+        Route::get('/app-settings', [AppSettingController::class, 'index'])->name('app_settings.index')->middleware('throttle:60,1');
+        Route::get('/app-settings/fetch', [AppSettingController::class, 'fetch'])->name('app_settings.fetch')->middleware('throttle:60,1');
+        Route::get('/app-settings/{id}', [AppSettingController::class, 'show'])->whereNumber('id')->name('app_settings.show')->middleware('throttle:60,1');
+        Route::post('/app-settings', [AppSettingController::class, 'store'])->name('app_settings.store')->middleware('throttle:20,1');
+        Route::put('/app-settings/{id}', [AppSettingController::class, 'update'])->whereNumber('id')->name('app_settings.update')->middleware('throttle:30,1');
+        Route::delete('/app-settings/destroy-bulk', [AppSettingController::class, 'bulkDestroy'])->name('app_settings.destroy_bulk')->middleware('throttle:10,1');
+        Route::delete('/app-settings/{id}', [AppSettingController::class, 'destroy'])->whereNumber('id')->name('app_settings.destroy')->middleware('throttle:20,1');
+
+        Route::middleware(['ensure.company'])->group(function (): void {
+            Route::get('/company-settings', [CompanySettingController::class, 'index'])->name('company_settings.index')->middleware('throttle:60,1');
+            Route::get('/company-settings/fetch', [CompanySettingController::class, 'fetch'])->name('company_settings.fetch')->middleware('throttle:60,1');
+            Route::get('/company-settings/effective', [CompanySettingController::class, 'effective'])->name('company_settings.effective')->middleware('throttle:60,1');
+            Route::get('/company-settings/{id}', [CompanySettingController::class, 'show'])->whereNumber('id')->name('company_settings.show')->middleware('throttle:60,1');
+            Route::post('/company-settings', [CompanySettingController::class, 'store'])->name('company_settings.store')->middleware('throttle:20,1');
+            Route::put('/company-settings/{id}', [CompanySettingController::class, 'update'])->whereNumber('id')->name('company_settings.update')->middleware('throttle:30,1');
+            Route::delete('/company-settings/destroy-bulk', [CompanySettingController::class, 'bulkDestroy'])->name('company_settings.destroy_bulk')->middleware('throttle:10,1');
+            Route::delete('/company-settings/{id}', [CompanySettingController::class, 'destroy'])->whereNumber('id')->name('company_settings.destroy')->middleware('throttle:20,1');
+
+            Route::get('/user-settings', [UserSettingController::class, 'index'])->name('user_settings.index')->middleware('throttle:60,1');
+            Route::get('/user-settings/fetch', [UserSettingController::class, 'fetch'])->name('user_settings.fetch')->middleware('throttle:60,1');
+            Route::get('/user-settings/{id}', [UserSettingController::class, 'show'])->whereNumber('id')->name('user_settings.show')->middleware('throttle:60,1');
+            Route::post('/user-settings', [UserSettingController::class, 'store'])->name('user_settings.store')->middleware('throttle:20,1');
+            Route::put('/user-settings/{id}', [UserSettingController::class, 'update'])->whereNumber('id')->name('user_settings.update')->middleware('throttle:30,1');
+            Route::delete('/user-settings/destroy-bulk', [UserSettingController::class, 'bulkDestroy'])->name('user_settings.destroy_bulk')->middleware('throttle:10,1');
+            Route::delete('/user-settings/{id}', [UserSettingController::class, 'destroy'])->whereNumber('id')->name('user_settings.destroy')->middleware('throttle:20,1');
+        });
+
+        // ---------------------------------------
+        // USER <-> EMPLOYEE MAPPING
+        // ---------------------------------------
+        Route::middleware(['ensure.company'])->group(function (): void {
+            Route::get('/user-assignments', [UserAssignmentController::class, 'index'])->name('user_assignments.index')->middleware('throttle:60,1');
+            Route::get('/user-assignments/fetch/users', [UserAssignmentController::class, 'fetchUsers'])->name('user_assignments.users.fetch')->middleware('throttle:60,1');
+            Route::get('/user-assignments/{user}/fetch', [UserAssignmentController::class, 'fetch'])->name('user_assignments.fetch')->middleware('throttle:60,1');
+            Route::post('/user-assignments/{user}/companies', [UserAssignmentController::class, 'attachCompany'])->name('user_assignments.companies.store')->middleware('throttle:20,1');
+            Route::delete('/user-assignments/{user}/companies/{company}', [UserAssignmentController::class, 'detachCompany'])->name('user_assignments.companies.destroy')->middleware('throttle:20,1');
+            Route::post('/user-assignments/{user}/companies/{company}/employee', [UserAssignmentController::class, 'assignEmployee'])->name('user_assignments.employee.assign')->middleware('throttle:20,1');
+            Route::delete('/user-assignments/{user}/companies/{company}/employee', [UserAssignmentController::class, 'removeEmployee'])->name('user_assignments.employee.destroy')->middleware('throttle:20,1');
+        });
         
     });
     
@@ -196,6 +240,16 @@ Route::middleware(['auth', 'verified'])
         Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
         // PASSWORD RESET EMAIL - nagyon szigorú limit
         Route::post('/{user}/password-reset', 'sendPasswordReset')->name('send_password_reset')->middleware('throttle:5,1');
+    });
+
+Route::middleware(['auth', 'verified'])
+    ->prefix('admin/users')
+    ->name('admin.users.')
+    ->group(function (): void {
+        Route::patch('/{user}/role', [UserRoleController::class, 'update'])
+            ->whereNumber('user')
+            ->name('role.update')
+            ->middleware('throttle:20,1');
     });
 
 
@@ -276,6 +330,23 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
         Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
     });
 
+Route::middleware(['auth', 'verified', 'ensure.company'])
+    ->prefix('admin/employees')
+    ->as('employees.')
+    ->controller(\App\Http\Controllers\Admin\EmployeeLeaveProfileController::class)
+    ->group(function (): void {
+        Route::get('/{id}/leave-profile', 'show')->whereNumber('id')->name('leave_profile.show')->middleware('throttle:60,1');
+        Route::put('/{id}/leave-profile', 'update')->whereNumber('id')->name('leave_profile.update')->middleware('throttle:30,1');
+    });
+
+Route::middleware(['auth', 'verified', 'ensure.company'])
+    ->prefix('admin/employees')
+    ->as('employees.')
+    ->controller(EmployeeLeaveEntitlementController::class)
+    ->group(function (): void {
+        Route::get('/{id}/leave-entitlement', 'show')->whereNumber('id')->name('leave_entitlement')->middleware('throttle:60,1');
+    });
+
 /**
  * ======================================
  * EMPLOYEE WORK PATTERNS
@@ -354,40 +425,6 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
         Route::post('/bulk-upsert', 'bulkUpsert')->name('work_schedule_assignments.bulk_upsert')->middleware('throttle:30,1');
     });
 
-Route::middleware(['auth', 'verified'])
-    ->controller(AutoPlanController::class)
-    ->group(function (): void {
-        Route::get('/scheduling/work-schedules/autoplan/defaults', 'defaults')
-            ->name('scheduling.work_schedules.autoplan.defaults')
-            ->middleware('throttle:60,1');
-        Route::post('/scheduling/work-schedules/autoplan', 'generate')
-            ->name('scheduling.work_schedules.autoplan.generate')
-            ->middleware('throttle:10,1');
-    });
-
-/**
- * ======================================
- * WORK_SCHEDULES
- * ======================================
- * Beosztások kezelése
- */
-Route::middleware(['auth', 'verified', 'ensure.company'])
-    ->prefix('work_schedules')
-    ->as('work_schedules.')
-    ->controller(WorkScheduleController::class)
-    ->group(function() {
-    // Olvasási műveletek
-    Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
-    Route::get('/fetch', 'fetch')->name('fetch')->middleware('throttle:60,1');
-    Route::get('/{id}', 'getWorkSchedule')->whereNumber('id')->name('by_id')->middleware('throttle:60,1');
-    
-    // Írási műveletek
-    Route::post('/', 'store')->name('store')->middleware('throttle:20,1');
-    Route::put('/{id}', 'update')->whereNumber('id')->name('update')->middleware('throttle:30,1');
-    Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy')->middleware('throttle:20,1');
-    Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
-});
-
 /**
  * ======================================
  * WORK_PATTERNS
@@ -410,17 +447,4 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
         Route::delete('/destroy_bulk', 'destroyBulk')->name('destroy_bulk')->middleware('throttle:10,1');
     });
 
-/**
- * ======================================
- */
-    
-Route::middleware('guest')->group(function () {
-
-    Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])
-        ->name('password.reset');
-
-    Route::post('/reset-password', [NewPasswordController::class, 'store'])
-        ->name('password.store');
-});
-    
 require __DIR__.'/auth.php';

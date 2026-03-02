@@ -13,14 +13,14 @@ class SettingsMetaSeeder extends Seeder
     {
         $rows = [
             [
-                'key' => 'autoplan.min_rest_hours',
+                'key' => 'autoplan.min_rest_minutes',
                 'group' => 'scheduling.autoplan',
-                'label' => 'Minimum pihenőidő (óra)',
+                'label' => 'Minimum pihenőidő két műszak között (perc)',
                 'type' => 'int',
-                'default_value' => 11,
-                'description' => 'Két műszak között ennyi óra pihenőt kell biztosítani.',
+                'default_value' => 660,
+                'description' => 'A két egymást követő munkavégzés között elvárt minimális pihenőidő percekben.',
                 'options' => null,
-                'validation' => ['required', 'integer', 'min:0', 'max:24'],
+                'validation' => ['required', 'integer', 'min:0', 'max:1440'],
                 'order_index' => 10,
                 'is_editable' => true,
                 'is_visible' => true,
@@ -59,6 +59,9 @@ class SettingsMetaSeeder extends Seeder
                 $row
             );
         }
+
+        SettingsMeta::query()
+            ->where('key', 'autoplan.min_rest_hours')
+            ->delete();
     }
 }
-

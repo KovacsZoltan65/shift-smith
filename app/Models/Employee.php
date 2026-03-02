@@ -9,7 +9,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Override;
 use Spatie\Activitylog\LogOptions;
@@ -29,9 +31,13 @@ use Spatie\Activitylog\Traits\LogsActivity;
  * @property string|null $email Email cím
  * @property string|null $address Cím
  * @property int|null $position_id Pozíció azonosító
- * @property string|null $phone Telefonszám
- * @property string|null $hired_at Felvétel dátuma
- * @property int $active Aktív státusz
+     * @property string|null $phone Telefonszám
+     * @property string|null $hired_at Felvétel dátuma
+     * @property \Illuminate\Support\Carbon|null $birth_date Születési dátum
+     * @property int $children_count Gyermekek száma
+     * @property int $disabled_children_count Fogyatékos gyermekek száma
+     * @property bool $is_disabled Megváltozott munkaképesség / fogyatékosság státusz
+     * @property int $active Aktív státusz
  * @property \App\Models\Company|null $company Kapcsolódó cég
  * @property string $name Teljes név (computed)
  * @property string|null $company_name Cég neve (computed)
@@ -51,12 +57,17 @@ class Employee extends Model
 
     protected $fillable = [
         'company_id', 'first_name', 'last_name', 'email', 'address',
-        'position_id', 'phone', 'hired_at', 'active',
+        'position_id', 'phone', 'hired_at', 'birth_date',
+        'children_count', 'disabled_children_count', 'is_disabled', 'active',
     ];
 
     protected $casts = [
         'position_id' => 'int',
         'hired_at' => 'date',
+        'birth_date' => 'date',
+        'children_count' => 'int',
+        'disabled_children_count' => 'int',
+        'is_disabled' => 'bool',
         'active' => 'bool',
     ];
 
@@ -208,6 +219,30 @@ class Employee extends Model
     }
 
     /**
+     * Dolgozóhoz tartozó cégek (N:M).
+     *
+     * @return BelongsToMany<Company, $this>
+     */
+    public function companies(): BelongsToMany
+    {
+        return $this->belongsToMany(Company::class, 'company_employee')
+            ->withPivot(['active'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Dolgozóhoz tartozó felhasználók (N:M).
+     *
+     * @return BelongsToMany<User, $this>
+     */
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'user_employee')
+            ->withPivot(['company_id', 'active'])
+            ->withTimestamps();
+    }
+
+    /**
      * Dolgozó pozíció kapcsolata.
      *
      * @return BelongsTo<Position, $this>
@@ -225,6 +260,16 @@ class Employee extends Model
     public function workPatterns(): HasMany
     {
         return $this->hasMany(EmployeeWorkPattern::class);
+    }
+
+    /**
+     * Dolgozó szabadság profilja.
+     *
+     * @return HasOne<EmployeeProfile, $this>
+     */
+    public function profile(): HasOne
+    {
+        return $this->hasOne(EmployeeProfile::class);
     }
 
     /**
