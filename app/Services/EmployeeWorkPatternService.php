@@ -6,8 +6,10 @@ namespace App\Services;
 
 use App\Data\EmployeeWorkPattern\EmployeeWorkPatternData;
 use App\Interfaces\EmployeeWorkPatternRepositoryInterface;
+use App\Models\EmployeeWorkPattern;
 use App\Models\Employee;
 use App\Models\WorkPattern;
+use Carbon\CarbonImmutable;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -108,6 +110,61 @@ class EmployeeWorkPatternService
         return $this->repo->unassign($id, $employeeId, $companyId);
     }
 
+    public function findActiveForEmployeeOnDate(int $employeeId, int $companyId, string $date): ?EmployeeWorkPattern
+    {
+        return $this->repo->findActiveForEmployeeOnDate($companyId, $employeeId, $date);
+    }
+
+    public function ensureAssignmentForDate(
+        int $employeeId,
+        int $companyId,
+        int $workPatternId,
+        string $date
+    ): EmployeeWorkPatternData {
+        $this->validateCompanyConsistency($companyId, $employeeId, $workPatternId);
+
+        $current = $this->repo->findActiveForEmployeeOnDate($companyId, $employeeId, $date);
+        $next = $this->repo->findNextForEmployeeAfterDate($companyId, $employeeId, $date);
+        $newDateTo = $this->determineDateTo($current, $next);
+
+        if ($current !== null && (int) $current->work_pattern_id === $workPatternId) {
+            return EmployeeWorkPatternData::fromModel($current);
+        }
+
+        if ($current !== null && (string) $current->date_from->format('Y-m-d') === $date) {
+            $updated = $this->repo->updateAssignment(
+                (int) $current->id,
+                $employeeId,
+                $companyId,
+                [
+                    'work_pattern_id' => $workPatternId,
+                    'date_from' => $date,
+                    'date_to' => $newDateTo,
+                ]
+            );
+
+            return EmployeeWorkPatternData::fromModel($updated);
+        }
+
+        if ($current !== null) {
+            $this->repo->closeAssignment(
+                (int) $current->id,
+                $companyId,
+                $this->previousDay($date)
+            );
+        }
+
+        $created = $this->repo->createAssignment(
+            $companyId,
+            $employeeId,
+            $workPatternId,
+            $date,
+            $newDateTo
+        );
+
+        return EmployeeWorkPatternData::fromModel($created);
+    }
+
     private function validateDateRange(string $dateFrom, ?string $dateTo): void
     {
         if ($dateTo !== null && $dateFrom > $dateTo) {
@@ -151,5 +208,26 @@ class EmployeeWorkPatternService
                 'work_pattern_id' => 'A munkarend nem a megadott céghez tartozik.',
             ]);
         }
+    }
+
+    private function determineDateTo(
+        ?EmployeeWorkPattern $current,
+        ?EmployeeWorkPattern $next
+    ): ?string {
+        $currentDateTo = $current?->date_to?->format('Y-m-d');
+        $nextBoundary = $next !== null
+            ? $this->previousDay((string) $next->date_from->format('Y-m-d'))
+            : null;
+
+        if ($currentDateTo !== null && $nextBoundary !== null) {
+            return min($currentDateTo, $nextBoundary);
+        }
+
+        return $currentDateTo ?? $nextBoundary;
+    }
+
+    private function previousDay(string $date): string
+    {
+        return CarbonImmutable::parse($date)->subDay()->format('Y-m-d');
     }
 }

@@ -5,17 +5,22 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Interfaces\WorkShiftAssignmentRepositoryInterface;
+use App\Models\WorkPattern;
 use App\Models\Employee;
 use App\Models\WorkSchedule;
 use App\Models\WorkShift;
 use App\Models\WorkShiftAssignment;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class WorkShiftAssignmentService
 {
     public function __construct(
-        private readonly WorkShiftAssignmentRepositoryInterface $repo
+        private readonly WorkShiftAssignmentRepositoryInterface $repo,
+        private readonly EmployeeWorkPatternService $employeeWorkPatternService,
+        private readonly WorkPatternService $workPatternService,
+        private readonly WorkScheduleResolverService $workScheduleResolverService
     ) {}
 
     /**
@@ -23,7 +28,18 @@ class WorkShiftAssignmentService
      */
     public function listByWorkShift(int $workShiftId): Collection
     {
-        return $this->repo->listByWorkShift($workShiftId);
+        return $this->repo->listByWorkShift($workShiftId)
+            ->map(function (WorkShiftAssignment $assignment): WorkShiftAssignment {
+                $pattern = $this->employeeWorkPatternService->findActiveForEmployeeOnDate(
+                    (int) $assignment->employee_id,
+                    (int) $assignment->company_id,
+                    (string) $assignment->date->format('Y-m-d')
+                );
+
+                $assignment->setAttribute('work_pattern_name', $pattern?->workPattern?->name);
+
+                return $assignment;
+            });
     }
 
     /**
@@ -46,21 +62,41 @@ class WorkShiftAssignmentService
 
     public function assign(int $workShiftId, array $payload): WorkShiftAssignment
     {
-        $shift = WorkShift::query()->findOrFail($workShiftId);
-        $employee = Employee::query()->findOrFail((int) $payload['employee_id']);
-        $date = (string) $payload['date'];
+        return DB::transaction(function () use ($workShiftId, $payload): WorkShiftAssignment {
+            $shift = WorkShift::query()->findOrFail($workShiftId);
+            $employee = Employee::query()->findOrFail((int) $payload['employee_id']);
+            $workPattern = $this->resolveWorkPattern((int) $shift->company_id, (int) $payload['work_pattern_id']);
+            $date = (string) $payload['date'];
 
-        $workSchedule = $this->resolveWorkSchedule($shift, $payload, $date);
-        $this->validateCompanyConsistency($shift, $employee, $workSchedule);
-        $this->validateDateInScheduleRange($workSchedule, $date);
+            $this->validateCompanyConsistency($shift, $employee);
 
-        return $this->repo->upsertByEmployeeAndDate(
-            companyId: (int) $shift->company_id,
-            workShiftId: (int) $shift->id,
-            workScheduleId: (int) $workSchedule->id,
-            employeeId: (int) $employee->id,
-            date: $date
-        );
+            $workScheduleId = $this->workScheduleResolverService->resolveForCompanyAndPattern(
+                (int) $shift->company_id,
+                (int) $workPattern->id
+            );
+
+            $workSchedule = WorkSchedule::query()->findOrFail($workScheduleId);
+            $this->validateDateInScheduleRange($workSchedule, $date);
+
+            $assignment = $this->repo->upsertByEmployeeAndDate(
+                companyId: (int) $shift->company_id,
+                workShiftId: (int) $shift->id,
+                workScheduleId: (int) $workSchedule->id,
+                employeeId: (int) $employee->id,
+                date: $date
+            );
+
+            $this->employeeWorkPatternService->ensureAssignmentForDate(
+                (int) $employee->id,
+                (int) $shift->company_id,
+                (int) $workPattern->id,
+                $date
+            );
+
+            $assignment->setAttribute('work_pattern_name', $workPattern->name);
+
+            return $assignment;
+        });
     }
 
     public function unassign(int $workShiftId, int $id): bool
@@ -68,30 +104,12 @@ class WorkShiftAssignmentService
         return $this->repo->deleteForWorkShift($workShiftId, $id);
     }
 
-    private function resolveWorkSchedule(WorkShift $shift, array $payload, string $date): WorkSchedule
+    private function resolveWorkPattern(int $companyId, int $workPatternId): WorkPattern
     {
-        if (isset($payload['work_schedule_id']) && (int) $payload['work_schedule_id'] > 0) {
-            return WorkSchedule::query()->findOrFail((int) $payload['work_schedule_id']);
-        }
-
-        /** @var WorkSchedule|null $schedule */
-        $schedule = WorkSchedule::query()
-            ->where('company_id', $shift->company_id)
-            ->whereDate('date_from', '<=', $date)
-            ->whereDate('date_to', '>=', $date)
-            ->orderBy('id')
-            ->first();
-
-        if ($schedule === null) {
-            throw ValidationException::withMessages([
-                'work_schedule_id' => 'A megadott dátumhoz nem található munkabeosztás.',
-            ]);
-        }
-
-        return $schedule;
+        return $this->workPatternService->find($workPatternId, $companyId);
     }
 
-    private function validateCompanyConsistency(WorkShift $shift, Employee $employee, WorkSchedule $schedule): void
+    private function validateCompanyConsistency(WorkShift $shift, Employee $employee): void
     {
         $companyId = (int) $shift->company_id;
         $employeeInCompany = $employee->companies()
@@ -103,12 +121,6 @@ class WorkShiftAssignmentService
         if (! $employeeInCompany) {
             throw ValidationException::withMessages([
                 'employee_id' => 'A dolgozó és a műszak cége nem egyezik.',
-            ]);
-        }
-
-        if ((int) $schedule->company_id !== $companyId) {
-            throw ValidationException::withMessages([
-                'work_schedule_id' => 'A beosztás és a műszak cége nem egyezik.',
             ]);
         }
     }

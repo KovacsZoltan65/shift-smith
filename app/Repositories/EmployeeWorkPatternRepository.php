@@ -129,6 +129,73 @@ class EmployeeWorkPatternRepository extends BaseRepository implements EmployeeWo
         return $query->exists();
     }
 
+    public function findActiveForEmployeeOnDate(int $companyId, int $employeeId, string $date): ?EmployeeWorkPattern
+    {
+        /** @var EmployeeWorkPattern|null $assignment */
+        $assignment = EmployeeWorkPattern::query()
+            ->with('workPattern')
+            ->where('company_id', $companyId)
+            ->where('employee_id', $employeeId)
+            ->whereDate('date_from', '<=', $date)
+            ->where(function ($query) use ($date): void {
+                $query->whereNull('date_to')
+                    ->orWhereDate('date_to', '>=', $date);
+            })
+            ->orderByDesc('date_from')
+            ->first();
+
+        return $assignment;
+    }
+
+    public function findNextForEmployeeAfterDate(int $companyId, int $employeeId, string $date): ?EmployeeWorkPattern
+    {
+        /** @var EmployeeWorkPattern|null $assignment */
+        $assignment = EmployeeWorkPattern::query()
+            ->with('workPattern')
+            ->where('company_id', $companyId)
+            ->where('employee_id', $employeeId)
+            ->whereDate('date_from', '>', $date)
+            ->orderBy('date_from')
+            ->orderBy('id')
+            ->first();
+
+        return $assignment;
+    }
+
+    public function closeAssignment(int $id, int $companyId, string $dateTo): EmployeeWorkPattern
+    {
+        return DB::transaction(function () use ($id, $companyId, $dateTo): EmployeeWorkPattern {
+            /** @var EmployeeWorkPattern $row */
+            $row = EmployeeWorkPattern::query()
+                ->where('company_id', $companyId)
+                ->lockForUpdate()
+                ->findOrFail($id);
+
+            $row->date_to = $dateTo;
+            $row->save();
+            $row->refresh();
+            $this->invalidateAfterWrite($companyId);
+
+            return $row->fresh(['workPattern']) ?? $row;
+        });
+    }
+
+    public function createAssignment(
+        int $companyId,
+        int $employeeId,
+        int $workPatternId,
+        string $dateFrom,
+        ?string $dateTo = null
+    ): EmployeeWorkPattern {
+        return $this->assign([
+            'company_id' => $companyId,
+            'employee_id' => $employeeId,
+            'work_pattern_id' => $workPatternId,
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
+        ]);
+    }
+
     private function invalidateAfterWrite(int $companyId): void
     {
         DB::afterCommit(function () use ($companyId): void {

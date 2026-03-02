@@ -251,6 +251,46 @@ final class WorkScheduleAssignmentRepository implements WorkScheduleAssignmentRe
     }
 
     #[Override]
+    public function firstOrCreateDefaultScheduleForPattern(int $companyId, int $workPatternId): WorkSchedule
+    {
+        $name = sprintf('AUTO-WP-%d', $workPatternId);
+
+        /** @var WorkSchedule|null $schedule */
+        $schedule = WorkSchedule::query()
+            ->withTrashed()
+            ->where('company_id', $companyId)
+            ->where('name', $name)
+            ->first();
+
+        if ($schedule === null) {
+            /** @var WorkSchedule $created */
+            $created = WorkSchedule::query()->create([
+                'company_id' => $companyId,
+                'name' => $name,
+                'date_from' => '2000-01-01',
+                'date_to' => '2099-12-31',
+                'status' => 'published',
+            ]);
+
+            return $created;
+        }
+
+        if ($schedule->trashed()) {
+            $schedule->restore();
+        }
+
+        $schedule->fill([
+            'date_from' => '2000-01-01',
+            'date_to' => '2099-12-31',
+            'status' => 'published',
+        ]);
+        $schedule->save();
+        $schedule->refresh();
+
+        return $schedule;
+    }
+
+    #[Override]
     public function findEmployeeForCompany(int $companyId, int $employeeId): Employee
     {
         return $this->findEmployeeOrFailScoped($employeeId, $companyId);

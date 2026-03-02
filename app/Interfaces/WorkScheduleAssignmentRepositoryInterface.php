@@ -108,6 +108,8 @@ interface WorkScheduleAssignmentRepositoryInterface
 
     public function findScheduleForCompany(int $companyId, int $scheduleId): WorkSchedule;
 
+    public function firstOrCreateDefaultScheduleForPattern(int $companyId, int $workPatternId): WorkSchedule;
+
     public function findEmployeeForCompany(int $companyId, int $employeeId): Employee;
 
     public function findShiftForCompany(int $companyId, int $workShiftId): WorkShift;

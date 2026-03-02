@@ -5,8 +5,8 @@ import Column from "primevue/column";
 import DataTable from "primevue/datatable";
 import DatePicker from "primevue/datepicker";
 import Dialog from "primevue/dialog";
-import { Select } from "primevue";
 import EmployeeSelector from "@/Components/Selectors/EmployeeSelector.vue";
+import WorkPatternSelector from "@/Components/Selectors/WorkPatternSelector.vue";
 import WorkShiftAssignmentService from "@/services/WorkShiftAssignmentService";
 import { useToast } from "primevue/usetoast";
 import { toYmd } from "@/helpers/functions.js";
@@ -31,60 +31,26 @@ const loading = ref(false);
 const saving = ref(false);
 const errors = ref({});
 const rows = ref([]);
-const scheduleOptions = ref([]);
 
 const form = ref({
     employee_id: null,
-    work_schedule_id: null,
+    work_pattern_id: null,
     date: new Date(),
 });
 
 const workShiftId = computed(() => Number(props.workShift?.id ?? 0));
 const companyId = computed(() => Number(props.workShift?.company_id ?? 0) || null);
 
-const formatScheduleLabel = (schedule) => {
-    if (!schedule) return "";
-    return `${schedule.name} (${schedule.date_from} - ${schedule.date_to})`;
-};
-
-const syncScheduleForDate = () => {
-    const date = toYmd(form.value.date);
-    if (!date || !Array.isArray(scheduleOptions.value) || scheduleOptions.value.length === 0) {
-        return;
-    }
-
-    const selectedId = Number(form.value.work_schedule_id ?? 0);
-    const selected = scheduleOptions.value.find((item) => Number(item.id) === selectedId);
-    if (selected && date >= selected.date_from && date <= selected.date_to) {
-        return;
-    }
-
-    const match = scheduleOptions.value.find((item) => date >= item.date_from && date <= item.date_to);
-    form.value.work_schedule_id = match ? Number(match.id) : null;
-};
-
 const load = async () => {
     if (!workShiftId.value) {
         rows.value = [];
-        scheduleOptions.value = [];
         return;
     }
 
     loading.value = true;
     try {
-        const [assignmentsResponse, schedulesResponse] = await Promise.all([
-            WorkShiftAssignmentService.list(workShiftId.value),
-            WorkShiftAssignmentService.listSchedules(workShiftId.value),
-        ]);
-
+        const assignmentsResponse = await WorkShiftAssignmentService.list(workShiftId.value);
         rows.value = Array.isArray(assignmentsResponse?.data?.data) ? assignmentsResponse.data.data : [];
-        const schedules = Array.isArray(schedulesResponse?.data?.data) ? schedulesResponse.data.data : [];
-        scheduleOptions.value = schedules.map((item) => ({
-            ...item,
-            id: Number(item.id),
-            label: formatScheduleLabel(item),
-        }));
-        syncScheduleForDate();
     } catch (e) {
         toast.add({
             severity: "error",
@@ -111,13 +77,6 @@ watch(
     }
 );
 
-watch(
-    () => form.value.date,
-    () => {
-        syncScheduleForDate();
-    }
-);
-
 onMounted(() => {
     if (props.modelValue) load();
 });
@@ -130,12 +89,12 @@ const submit = async () => {
     try {
         await WorkShiftAssignmentService.assign(workShiftId.value, {
             employee_id: Number(form.value.employee_id ?? 0),
-            work_schedule_id: Number(form.value.work_schedule_id ?? 0) || null,
+            work_pattern_id: Number(form.value.work_pattern_id ?? 0),
             date: toYmd(form.value.date),
         });
 
         form.value.employee_id = null;
-        form.value.work_schedule_id = null;
+        form.value.work_pattern_id = null;
         form.value.date = new Date();
 
         await load();
@@ -215,19 +174,15 @@ const remove = async (row) => {
             </div>
 
             <div>
-                <label class="mb-1 block text-sm">Munkabeosztás</label>
-                <Select
-                    v-model="form.work_schedule_id"
-                    :options="scheduleOptions"
-                    optionLabel="label"
-                    optionValue="id"
-                    placeholder="Munkabeosztás..."
-                    class="w-full"
-                    filter
-                    showClear
+                <label class="mb-1 block text-sm">Munkarend</label>
+                <WorkPatternSelector
+                    v-model="form.work_pattern_id"
+                    :companyId="companyId"
+                    :onlyActive="true"
+                    placeholder="Munkarend..."
                 />
-                <div v-if="errors?.work_schedule_id" class="mt-1 text-sm text-red-600">
-                    {{ errors.work_schedule_id }}
+                <div v-if="errors?.work_pattern_id" class="mt-1 text-sm text-red-600">
+                    {{ errors.work_pattern_id }}
                 </div>
             </div>
 
@@ -250,7 +205,11 @@ const remove = async (row) => {
             <template #empty>Nincs hozzárendelés.</template>
 
             <Column field="employee_name" header="Dolgozó" />
-            <Column field="work_schedule_name" header="Beosztás" />
+            <Column header="Munkarend">
+                <template #body="{ data }">
+                    {{ data.work_pattern_name || data.work_schedule_name || "-" }}
+                </template>
+            </Column>
             <Column field="date" header="Nap" />
             <Column header="Művelet" style="width: 120px">
                 <template #body="{ data }">

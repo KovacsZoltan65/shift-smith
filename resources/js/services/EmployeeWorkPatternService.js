@@ -1,20 +1,63 @@
 import BaseService from "@/services/BaseService";
+import { csrfFetch } from "@/lib/csrfFetch.js";
+
+const toAxiosLikeError = async (res, fallbackMessage) => {
+    let data = null;
+    try {
+        data = await res.json();
+    } catch (_) {
+        data = { message: fallbackMessage };
+    }
+
+    const error = new Error(data?.message || fallbackMessage);
+    error.response = { status: res.status, data };
+    return error;
+};
 
 class EmployeeWorkPatternService extends BaseService {
     getList(employeeId) {
         return this.get(`/employees/${employeeId}/work-patterns`);
     }
 
-    assign(employeeId, params) {
-        return this.post(`/employees/${employeeId}/work-patterns/assign`, params);
+    async assign(employeeId, params) {
+        const res = await csrfFetch(`/employees/${employeeId}/work-patterns/assign`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(params),
+        });
+
+        if (!res.ok) {
+            throw await toAxiosLikeError(res, "Munkarend hozzárendelése sikertelen.");
+        }
+
+        return { data: await res.json() };
     }
 
-    update(employeeId, id, params) {
-        return this.put(`/employees/${employeeId}/work-patterns/${id}`, params);
+    async update(employeeId, id, params) {
+        const res = await csrfFetch(`/employees/${employeeId}/work-patterns/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(params),
+        });
+
+        if (!res.ok) {
+            throw await toAxiosLikeError(res, "Munkarend hozzárendelés frissítése sikertelen.");
+        }
+
+        return { data: await res.json() };
     }
 
-    unassign(employeeId, id) {
-        return this.delete(`/employees/${employeeId}/work-patterns/${id}`);
+    async unassign(employeeId, id) {
+        const res = await csrfFetch(`/employees/${employeeId}/work-patterns/${id}`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+        });
+
+        if (!res.ok) {
+            throw await toAxiosLikeError(res, "Munkarend hozzárendelés törlése sikertelen.");
+        }
+
+        return { data: await res.json() };
     }
 }
 

@@ -47,4 +47,18 @@ interface EmployeeWorkPatternRepositoryInterface
         ?string $dateTo,
         ?int $ignoreId = null
     ): bool;
+
+    public function findActiveForEmployeeOnDate(int $companyId, int $employeeId, string $date): ?EmployeeWorkPattern;
+
+    public function findNextForEmployeeAfterDate(int $companyId, int $employeeId, string $date): ?EmployeeWorkPattern;
+
+    public function closeAssignment(int $id, int $companyId, string $dateTo): EmployeeWorkPattern;
+
+    public function createAssignment(
+        int $companyId,
+        int $employeeId,
+        int $workPatternId,
+        string $dateFrom,
+        ?string $dateTo = null
+    ): EmployeeWorkPattern;
 }

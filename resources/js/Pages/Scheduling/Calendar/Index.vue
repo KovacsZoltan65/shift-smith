@@ -980,7 +980,7 @@ onMounted(async () => {
                 </div>
 
                 <div
-                    v-if="canPlanner && plannerDisabledReason && (!selectedPeriodEditable || selectedSchedule?.status === 'published')"
+                    v-if="canPlanner && plannerMode && plannerDisabledReason"
                     class="text-xs text-amber-700"
                 >
                     {{ plannerDisabledReason }}
