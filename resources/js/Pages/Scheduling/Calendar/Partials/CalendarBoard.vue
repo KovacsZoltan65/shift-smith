@@ -196,7 +196,7 @@ const isEditableDay = (d) => {
                         class="w-full rounded border px-2 py-1 text-left text-xs transition hover:bg-sky-50"
                         :class="[row.className || [], shiftColorClass(row)]"
                         type="button"
-                        :draggable="plannerMode && !!row.editable"
+                        :draggable="plannerMode && !!row.editable && row?.extendedProps?.entity_type === 'shift_assignment'"
                         :disabled="plannerMode && !row.editable"
                         @dragstart="onDragStart($event, row)"
                         @click="emit('event-click', row)"
@@ -234,4 +234,6 @@ const isEditableDay = (d) => {
 .shift-color-5 { border-color: #ef4444; background: #fef2f2; }
 .shift-color-6 { border-color: #6366f1; background: #eef2ff; }
 .shift-color-7 { border-color: #06b6d4; background: #ecfeff; }
+.absence-leave { border-color: #16a34a; background: #f0fdf4; }
+.absence-sick_leave { border-color: #dc2626; background: #fef2f2; }
 </style>

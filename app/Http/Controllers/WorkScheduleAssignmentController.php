@@ -11,8 +11,11 @@ use App\Http\Requests\WorkScheduleAssignment\DeleteRequest;
 use App\Http\Requests\WorkScheduleAssignment\FeedRequest;
 use App\Http\Requests\WorkScheduleAssignment\StoreRequest;
 use App\Http\Requests\WorkScheduleAssignment\UpdateRequest;
+use App\Models\EmployeeAbsence;
 use App\Models\WorkShiftAssignment;
+use App\Policies\EmployeeAbsencePolicy;
 use App\Policies\WorkScheduleAssignmentPolicy;
+use App\Services\Scheduling\CalendarFeedService;
 use App\Services\WorkScheduleAssignmentService;
 use App\Support\CurrentCompanyContext;
 use Illuminate\Http\JsonResponse;
@@ -24,6 +27,7 @@ use Symfony\Component\HttpFoundation\Response;
 class WorkScheduleAssignmentController extends Controller
 {
     public function __construct(
+        private readonly CalendarFeedService $calendarFeedService,
         private readonly WorkScheduleAssignmentService $service,
         private readonly CurrentCompanyContext $companyContext
     ) {}
@@ -56,6 +60,12 @@ class WorkScheduleAssignmentController extends Controller
                     && ($request->user()?->can(WorkScheduleAssignmentPolicy::PERM_UPDATE, WorkShiftAssignment::class) ?? false)
                     && ($request->user()?->can(WorkScheduleAssignmentPolicy::PERM_DELETE, WorkShiftAssignment::class) ?? false)
                 ),
+                'absenceViewer' => $request->user()?->can(EmployeeAbsencePolicy::PERM_VIEW_ANY, EmployeeAbsence::class) ?? false,
+                'absencePlanner' => (
+                    ($request->user()?->can(EmployeeAbsencePolicy::PERM_CREATE, EmployeeAbsence::class) ?? false)
+                    && ($request->user()?->can(EmployeeAbsencePolicy::PERM_UPDATE, EmployeeAbsence::class) ?? false)
+                    && ($request->user()?->can(EmployeeAbsencePolicy::PERM_DELETE, EmployeeAbsence::class) ?? false)
+                ),
             ],
         ]);
     }
@@ -67,7 +77,7 @@ class WorkScheduleAssignmentController extends Controller
         $companyId = $this->requireCurrentCompanyId($request);
         $data = $request->validated();
 
-        $result = $this->service->feed(
+        $result = $this->calendarFeedService->feed(
             companyId: $companyId,
             scheduleId: (int) $data['schedule_id'],
             filters: [
@@ -81,7 +91,8 @@ class WorkScheduleAssignmentController extends Controller
                 'employee_ids' => array_values(array_map('intval', $data['employee_ids'] ?? [])),
                 'work_shift_ids' => array_values(array_map('intval', $data['work_shift_ids'] ?? [])),
                 'position_ids' => array_values(array_map('intval', $data['position_ids'] ?? [])),
-            ]
+            ],
+            includeAbsences: $request->user()?->can(EmployeeAbsencePolicy::PERM_VIEW_ANY, EmployeeAbsence::class) ?? false
         );
 
         return response()->json([

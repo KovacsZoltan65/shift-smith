@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\AppSettingController;
+use App\Http\Controllers\Admin\AbsenceController;
 use App\Http\Controllers\Admin\CompanySettingController;
+use App\Http\Controllers\Admin\LeaveTypeController;
 use App\Http\Controllers\Admin\UserSettingController;
 use App\Http\Controllers\Admin\EmployeeLeaveEntitlementController;
 use App\Http\Controllers\Admin\RoleController;
@@ -178,6 +180,19 @@ Route::middleware(['auth', 'verified'])
         Route::delete('/app-settings/{id}', [AppSettingController::class, 'destroy'])->whereNumber('id')->name('app_settings.destroy')->middleware('throttle:20,1');
 
         Route::middleware(['ensure.company'])->group(function (): void {
+            Route::get('/leave-types', [LeaveTypeController::class, 'index'])->name('leave_types.index')->middleware('throttle:60,1');
+            Route::get('/leave-types/fetch', [LeaveTypeController::class, 'fetch'])->name('leave_types.fetch')->middleware('throttle:60,1');
+            Route::post('/leave-types', [LeaveTypeController::class, 'store'])->name('leave_types.store')->middleware('throttle:20,1');
+            Route::get('/leave-types/{id}', [LeaveTypeController::class, 'show'])->whereNumber('id')->name('leave_types.show')->middleware('throttle:60,1');
+            Route::put('/leave-types/{id}', [LeaveTypeController::class, 'update'])->whereNumber('id')->name('leave_types.update')->middleware('throttle:30,1');
+            Route::delete('/leave-types/{id}', [LeaveTypeController::class, 'destroy'])->whereNumber('id')->name('leave_types.destroy')->middleware('throttle:20,1');
+
+            Route::get('/absences/fetch', [AbsenceController::class, 'fetch'])->name('absences.fetch')->middleware('throttle:60,1');
+            Route::post('/absences', [AbsenceController::class, 'store'])->name('absences.store')->middleware('throttle:20,1');
+            Route::get('/absences/{id}', [AbsenceController::class, 'show'])->whereNumber('id')->name('absences.show')->middleware('throttle:60,1');
+            Route::put('/absences/{id}', [AbsenceController::class, 'update'])->whereNumber('id')->name('absences.update')->middleware('throttle:30,1');
+            Route::delete('/absences/{id}', [AbsenceController::class, 'destroy'])->whereNumber('id')->name('absences.destroy')->middleware('throttle:20,1');
+
             Route::get('/company-settings', [CompanySettingController::class, 'index'])->name('company_settings.index')->middleware('throttle:60,1');
             Route::get('/company-settings/fetch', [CompanySettingController::class, 'fetch'])->name('company_settings.fetch')->middleware('throttle:60,1');
             Route::get('/company-settings/effective', [CompanySettingController::class, 'effective'])->name('company_settings.effective')->middleware('throttle:60,1');
@@ -399,6 +414,7 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
     ->controller(WorkShiftAssignmentController::class)
     ->group(function (): void {
         Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
+        Route::get('/schedules', 'schedules')->name('schedules')->middleware('throttle:60,1');
         Route::post('/', 'store')->name('store')->middleware('throttle:20,1');
         Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy')->middleware('throttle:20,1');
     });

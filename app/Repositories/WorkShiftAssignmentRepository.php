@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use App\Interfaces\WorkShiftAssignmentRepositoryInterface;
+use App\Models\WorkSchedule;
 use App\Models\WorkShiftAssignment;
 use App\Services\Cache\CacheNamespaces;
 use App\Services\Cache\CacheVersionService;
@@ -68,6 +69,18 @@ class WorkShiftAssignmentRepository extends BaseRepository implements WorkShiftA
 
             return $assignment->fresh(['employee:id,first_name,last_name', 'workSchedule:id,name']) ?? $assignment;
         });
+    }
+
+    /**
+     * @return Collection<int, WorkSchedule>
+     */
+    public function getSchedulesForCompany(int $companyId): Collection
+    {
+        return WorkSchedule::query()
+            ->where('company_id', $companyId)
+            ->orderByDesc('date_from')
+            ->orderBy('name')
+            ->get(['id', 'company_id', 'name', 'date_from', 'date_to', 'status']);
     }
 
     public function deleteForWorkShift(int $workShiftId, int $id): bool

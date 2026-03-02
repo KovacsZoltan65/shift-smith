@@ -85,6 +85,12 @@ export const appMenuDefinition = [
                 key: "scheduling.calendar",
                 can: "work_schedule_assignments.viewAny",
             },
+            {
+                title: "Szabadság típusok",
+                route: "admin.leave_types.index",
+                key: "admin.leave_types.index",
+                can: "leave_types.viewAny",
+            },
         ],
     },
     {

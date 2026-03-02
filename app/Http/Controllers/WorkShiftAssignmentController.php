@@ -35,6 +35,17 @@ class WorkShiftAssignmentController extends Controller
     }
 
     /**
+     * Hozzárendelhető munkabeosztások listázása műszak szerint.
+     */
+    public function schedules(ListRequest $request, int $work_shift): JsonResponse
+    {
+        return response()->json([
+            'message' => 'Munkabeosztások sikeresen lekérve.',
+            'data' => $this->service->getSchedulesForWorkShift($work_shift),
+        ], Response::HTTP_OK);
+    }
+
+    /**
      * Dolgozó hozzárendelése műszakhoz.
      */
     public function store(StoreRequest $request, int $work_shift): JsonResponse

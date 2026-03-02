@@ -35,6 +35,7 @@ class DatabaseSeeder extends Seeder
             WorkPatternSeeder::class,
 
             LeaveCarryOverAppSettingsSeeder::class,
+            LeaveTypesSeeder::class,
         ]);
 
         // Demo tenant explicit, opt-in seed:

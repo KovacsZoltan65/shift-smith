@@ -16,11 +16,13 @@ import CalendarBoard from "@/Pages/Scheduling/Calendar/Partials/CalendarBoard.vu
 import AssignmentCreateModal from "@/Pages/Scheduling/Calendar/AssignmentCreateModal.vue";
 import AssignmentEditModal from "@/Pages/Scheduling/Calendar/AssignmentEditModal.vue";
 import AssignmentBulkAssignModal from "@/Pages/Scheduling/Calendar/AssignmentBulkAssignModal.vue";
+import AbsenceModal from "@/Pages/Scheduling/Calendar/AbsenceModal.vue";
 
 import EmployeeService from "@/services/EmployeeService.js";
 import WorkShiftService from "@/services/WorkShiftService.js";
 import PositionService from "@/services/PositionService.js";
 import WorkScheduleAssignmentService from "@/services/WorkScheduleAssignmentService.js";
+import AbsenceService from "@/services/AbsenceService.js";
 
 const props = defineProps({
     title: { type: String, default: "Naptár tervező" },
@@ -28,7 +30,7 @@ const props = defineProps({
     schedules: { type: Array, default: () => [] },
     permissions: {
         type: Object,
-        default: () => ({ viewer: false, planner: false }),
+        default: () => ({ viewer: false, planner: false, absenceViewer: false, absencePlanner: false }),
     },
 });
 
@@ -66,6 +68,9 @@ const feedMeta = ref({
 const createOpen = ref(false);
 const editOpen = ref(false);
 const bulkOpen = ref(false);
+const absenceOpen = ref(false);
+const selectedAbsence = ref(null);
+const absenceRange = ref({ from: null, to: null });
 const createDate = ref(null);
 const selectedEvent = ref(null);
 const activeQuickSelect = ref(null);
@@ -75,6 +80,7 @@ const shiftOptions = ref([]);
 const positionOptions = ref([]);
 
 const canPlanner = computed(() => !!props.permissions?.planner);
+const canAbsencePlanner = computed(() => !!props.permissions?.absencePlanner);
 const selectedSchedule = computed(() =>
     props.schedules.find((x) => Number(x.id) === Number(scheduleId.value)) ?? null
 );
@@ -550,6 +556,14 @@ const onDateClick = ({ date }) => {
 };
 
 const onEventClick = (event) => {
+    if (event?.extendedProps?.entity_type === "absence") {
+        selectedAbsence.value = event;
+        if (canAbsencePlanner.value) {
+            absenceOpen.value = true;
+            return;
+        }
+    }
+
     selectedEvent.value = event;
     if (plannerModeEnabled.value && !!event?.editable) {
         editOpen.value = true;
@@ -612,9 +626,62 @@ const handleDelete = async (id) => {
     }
 };
 
+const openAbsenceCreate = () => {
+    selectedAbsence.value = null;
+    absenceRange.value = {
+        from: selectedDateYmd.value,
+        to: selectedDateYmd.value,
+    };
+    absenceOpen.value = true;
+};
+
+const handleAbsenceSubmit = async ({ id, payload }) => {
+    try {
+        if (id > 0) {
+            await AbsenceService.update(id, payload);
+        } else {
+            await AbsenceService.store(payload);
+        }
+
+        absenceOpen.value = false;
+        selectedAbsence.value = null;
+        await loadEvents();
+        toast.add({
+            severity: "success",
+            summary: "Siker",
+            detail: id > 0 ? "Távollét frissítve." : "Távollét létrehozva.",
+            life: 2200,
+        });
+    } catch (e) {
+        toast.add({
+            severity: "error",
+            summary: "Hiba",
+            detail: e?.response?.data?.message || "Távollét mentése sikertelen.",
+            life: 3500,
+        });
+    }
+};
+
+const handleAbsenceDelete = async (id) => {
+    try {
+        await AbsenceService.destroy(id);
+        absenceOpen.value = false;
+        selectedAbsence.value = null;
+        await loadEvents();
+        toast.add({ severity: "success", summary: "Siker", detail: "Távollét törölve.", life: 2200 });
+    } catch (e) {
+        toast.add({
+            severity: "error",
+            summary: "Hiba",
+            detail: e?.response?.data?.message || "Távollét törlése sikertelen.",
+            life: 3500,
+        });
+    }
+};
+
 const onEventDrop = async ({ id, date }) => {
     const row = events.value.find((x) => Number(x.id) === Number(id));
-    if (!row || !row.editable) return;
+    if (!row || !row.editable || row?.extendedProps?.entity_type !== "shift_assignment") return;
 
     await handleUpdate({
         id,
@@ -758,6 +825,16 @@ onMounted(async () => {
         :selectedDates="selectedDates"
         :loading="loading"
         @submit="handleBulk"
+    />
+
+    <AbsenceModal
+        v-model="absenceOpen"
+        :absence="selectedAbsence"
+        :companyId="current_company_id"
+        :defaultRange="absenceRange"
+        :loading="loading"
+        @submit="handleAbsenceSubmit"
+        @delete="handleAbsenceDelete"
     />
 
     <AuthenticatedLayout>
@@ -915,6 +992,14 @@ onMounted(async () => {
                     icon="pi pi-list-check"
                     :disabled="selectedDates.length === 0"
                     @click="bulkOpen = true"
+                />
+
+                <Button
+                    v-if="canAbsencePlanner"
+                    label="Távollét jelölése"
+                    icon="pi pi-briefcase"
+                    severity="contrast"
+                    @click="openAbsenceCreate"
                 />
             </div>
 

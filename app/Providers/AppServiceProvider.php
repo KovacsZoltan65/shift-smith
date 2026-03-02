@@ -35,9 +35,13 @@ use App\Repositories\AppSettingRepository;
 use App\Repositories\CompanyRepository;
 use App\Repositories\CompanySettingRepository;
 use App\Repositories\Dashboard\DashboardRepository;
+use App\Repositories\EmployeeAbsenceRepository;
+use App\Repositories\EmployeeAbsenceRepositoryInterface;
 use App\Repositories\EmployeeRepository;
 use App\Repositories\EmployeeProfileRepository;
 use App\Repositories\LeaveBalanceRepository;
+use App\Repositories\LeaveTypeRepository;
+use App\Repositories\LeaveTypeRepositoryInterface;
 use App\Repositories\EmployeeWorkPatternRepository;
 use App\Repositories\PositionRepository;
 use App\Repositories\UserRepository;
@@ -103,12 +107,20 @@ class AppServiceProvider extends ServiceProvider
             EmployeeRepository::class
         );
         $this->app->bind(
+            EmployeeAbsenceRepositoryInterface::class,
+            EmployeeAbsenceRepository::class
+        );
+        $this->app->bind(
             EmployeeProfileRepositoryInterface::class,
             EmployeeProfileRepository::class
         );
         $this->app->bind(
             LeaveBalanceRepositoryInterface::class,
             LeaveBalanceRepository::class
+        );
+        $this->app->bind(
+            LeaveTypeRepositoryInterface::class,
+            LeaveTypeRepository::class
         );
         $this->app->bind(
             PositionRepositoryInterface::class,

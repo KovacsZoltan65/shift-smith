@@ -5,6 +5,10 @@ class WorkShiftAssignmentService extends BaseService {
         return this.get(`/work_shifts/${workShiftId}/assignments`);
     }
 
+    listSchedules(workShiftId) {
+        return this.get(`/work_shifts/${workShiftId}/assignments/schedules`);
+    }
+
     assign(workShiftId, params) {
         return this.post(`/work_shifts/${workShiftId}/assignments`, params);
     }

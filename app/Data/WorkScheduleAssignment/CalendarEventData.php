@@ -22,6 +22,7 @@ class CalendarEventData extends Data
         /** @var array{
          *   employee_id:int,
          *   employee_name:string,
+         *   entity_type:string,
          *   shift_id:int,
          *   shift_name:string,
          *   shift_start_time:string,
@@ -58,6 +59,7 @@ class CalendarEventData extends Data
             extendedProps: [
                 'employee_id' => (int) $row->employee_id,
                 'employee_name' => $employeeName,
+                'entity_type' => 'shift_assignment',
                 'shift_id' => (int) $row->work_shift_id,
                 'shift_name' => $shiftName,
                 'shift_start_time' => $startTime,

@@ -26,6 +26,24 @@ class WorkShiftAssignmentService
         return $this->repo->listByWorkShift($workShiftId);
     }
 
+    /**
+     * @return Collection<int, array{id:int,name:string,date_from:string,date_to:string,status:?string}>
+     */
+    public function getSchedulesForWorkShift(int $workShiftId): Collection
+    {
+        $shift = WorkShift::query()->findOrFail($workShiftId);
+
+        return $this->repo->getSchedulesForCompany((int) $shift->company_id)
+            ->map(static fn (WorkSchedule $schedule): array => [
+                'id' => (int) $schedule->id,
+                'name' => (string) $schedule->name,
+                'date_from' => (string) $schedule->date_from->format('Y-m-d'),
+                'date_to' => (string) $schedule->date_to->format('Y-m-d'),
+                'status' => $schedule->status ? (string) $schedule->status : null,
+            ])
+            ->values();
+    }
+
     public function assign(int $workShiftId, array $payload): WorkShiftAssignment
     {
         $shift = WorkShift::query()->findOrFail($workShiftId);
