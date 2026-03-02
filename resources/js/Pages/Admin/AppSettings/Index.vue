@@ -21,6 +21,7 @@ import BulkDeleteModal from "./Partials/BulkDeleteModal.vue";
 import CreateModal from "./Partials/CreateModal.vue";
 import DeleteModal from "./Partials/DeleteModal.vue";
 import EditModal from "./Partials/EditModal.vue";
+import { Select } from "primevue";
 
 const props = defineProps({
     title: String,
@@ -88,7 +89,10 @@ const fetchAppSettings = async () => {
 
         rows.value = data?.items ?? [];
         totalRecords.value = Number(data?.meta?.total ?? 0);
-        groupOptions.value = (data?.options?.groups ?? []).map((value) => ({ label: value, value }));
+        groupOptions.value = (data?.options?.groups ?? []).map((value) => ({
+            label: value,
+            value,
+        }));
 
         lazy.value.page = Math.max(Number(data?.meta?.current_page ?? 1) - 1, 0);
         lazy.value.rows = Number(data?.meta?.per_page ?? lazy.value.rows);
@@ -123,7 +127,8 @@ const openDelete = (row) => {
 };
 
 const shortValue = (row) => row?.value_preview ?? "";
-const updatedAt = (row) => (row?.updated_at ? new Date(row.updated_at).toLocaleString() : "-");
+const updatedAt = (row) =>
+    row?.updated_at ? new Date(row.updated_at).toLocaleString() : "-";
 const typeSeverity = (type) => {
     if (type === "bool") return "success";
     if (type === "int") return "info";
@@ -161,9 +166,17 @@ onMounted(fetchAppSettings);
     <Toast />
 
     <CreateModal v-model="createOpen" @saved="handleSaved" />
-    <EditModal v-model="editOpen" :app-setting-id="selectedItem?.id ?? null" @saved="handleSaved" />
+    <EditModal
+        v-model="editOpen"
+        :app-setting-id="selectedItem?.id ?? null"
+        @saved="handleSaved"
+    />
     <DeleteModal v-model="deleteOpen" :item="selectedItem" @deleted="handleDeleted" />
-    <BulkDeleteModal v-model="bulkDeleteOpen" :items="selected" @deleted="handleDeleted" />
+    <BulkDeleteModal
+        v-model="bulkDeleteOpen"
+        :items="selected"
+        @deleted="handleDeleted"
+    />
 
     <AuthenticatedLayout>
         <div class="p-6">
@@ -177,7 +190,12 @@ onMounted(fetchAppSettings);
             <Toolbar class="mb-4">
                 <template #start>
                     <div class="flex flex-wrap items-center gap-2">
-                        <Button v-if="canCreate" label="Új" icon="pi pi-plus" @click="createOpen = true" />
+                        <Button
+                            v-if="canCreate"
+                            label="Új"
+                            icon="pi pi-plus"
+                            @click="createOpen = true"
+                        />
                         <Button
                             label="Frissítés"
                             icon="pi pi-refresh"
@@ -204,7 +222,7 @@ onMounted(fetchAppSettings);
                             class="w-72"
                             @keyup.enter="applyFilters"
                         />
-                        <Dropdown
+                        <Select
                             v-model="filters.group"
                             :options="groupOptions"
                             optionLabel="label"
@@ -214,7 +232,7 @@ onMounted(fetchAppSettings);
                             class="w-48"
                             @change="applyFilters"
                         />
-                        <Dropdown
+                        <Select
                             v-model="filters.type"
                             :options="typeOptions"
                             optionLabel="label"
@@ -228,7 +246,10 @@ onMounted(fetchAppSettings);
                 </template>
             </Toolbar>
 
-            <div v-if="error" class="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div
+                v-if="error"
+                class="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+            >
                 {{ error }}
             </div>
 
@@ -251,7 +272,12 @@ onMounted(fetchAppSettings);
                 @sort="onSort"
             >
                 <Column selectionMode="multiple" headerStyle="width: 3rem" />
-                <Column field="key" header="Kulcs" sortable />
+
+                <Column field="label" header="Megnevezés" sortable>
+                    <template #body="{ data }">
+                        {{ data.label || data.key }}
+                    </template>
+                </Column>
                 <Column field="group" header="Csoport" sortable />
                 <Column field="type" header="Típus" sortable>
                     <template #body="{ data }">
@@ -260,7 +286,9 @@ onMounted(fetchAppSettings);
                 </Column>
                 <Column header="Érték">
                     <template #body="{ data }">
-                        <span class="font-mono text-sm">{{ shortValue(data) || "-" }}</span>
+                        <span class="font-mono text-sm">{{
+                            shortValue(data) || "-"
+                        }}</span>
                     </template>
                 </Column>
                 <Column field="updated_at" header="Frissítve" sortable>

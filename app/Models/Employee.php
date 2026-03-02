@@ -30,9 +30,13 @@ use Spatie\Activitylog\Traits\LogsActivity;
  * @property string|null $email Email cím
  * @property string|null $address Cím
  * @property int|null $position_id Pozíció azonosító
- * @property string|null $phone Telefonszám
- * @property string|null $hired_at Felvétel dátuma
- * @property int $active Aktív státusz
+     * @property string|null $phone Telefonszám
+     * @property string|null $hired_at Felvétel dátuma
+     * @property \Illuminate\Support\Carbon|null $birth_date Születési dátum
+     * @property int $children_count Gyermekek száma
+     * @property int $disabled_children_count Fogyatékos gyermekek száma
+     * @property bool $is_disabled Megváltozott munkaképesség / fogyatékosság státusz
+     * @property int $active Aktív státusz
  * @property \App\Models\Company|null $company Kapcsolódó cég
  * @property string $name Teljes név (computed)
  * @property string|null $company_name Cég neve (computed)
@@ -52,12 +56,17 @@ class Employee extends Model
 
     protected $fillable = [
         'company_id', 'first_name', 'last_name', 'email', 'address',
-        'position_id', 'phone', 'hired_at', 'active',
+        'position_id', 'phone', 'hired_at', 'birth_date',
+        'children_count', 'disabled_children_count', 'is_disabled', 'active',
     ];
 
     protected $casts = [
         'position_id' => 'int',
         'hired_at' => 'date',
+        'birth_date' => 'date',
+        'children_count' => 'int',
+        'disabled_children_count' => 'int',
+        'is_disabled' => 'bool',
         'active' => 'bool',
     ];
 

@@ -9,6 +9,37 @@ export function useAppMenu() {
     const props = computed(() => page.props?.value ?? page.props ?? {});
     const menu = computed(() => appMenuDefinition);
 
+    const itemIdentity = (item) =>
+        String(item?.route ?? item?.key ?? item?.title ?? "");
+
+    const dedupeItems = (items = []) => {
+        const seen = new Set();
+
+        return items.reduce((acc, item) => {
+            if (!item || typeof item !== "object") {
+                return acc;
+            }
+
+            const children = Array.isArray(item.items)
+                ? dedupeItems(item.items)
+                : [];
+
+            const nextItem = Array.isArray(item.items)
+                ? { ...item, items: children }
+                : item;
+
+            const identity = itemIdentity(nextItem);
+            if (!identity || seen.has(identity)) {
+                return acc;
+            }
+
+            seen.add(identity);
+            acc.push(nextItem);
+
+            return acc;
+        }, []);
+    };
+
     const filteredMenu = computed(() => {
         const p = props.value;
 
@@ -41,7 +72,7 @@ export function useAppMenu() {
 
         const groups = menu.value
             .map((group) => {
-                const items = (group.items ?? [])
+                const items = dedupeItems(group.items ?? [])
                     .filter(canSee)
                     .slice()
                     .sort((a, b) => {

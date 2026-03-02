@@ -44,7 +44,7 @@ const set = (key, val) => {
 
         <div class="space-y-1">
             <label class="text-sm font-medium">Cég</label>
-            <Dropdown
+            <Select
                 :modelValue="modelValue.company_id"
                 :options="companies"
                 optionLabel="label"
@@ -54,7 +54,9 @@ const set = (key, val) => {
                 :disabled="disabled"
                 @update:modelValue="(v) => set('company_id', v)"
             />
-            <div v-if="errors.company_id" class="text-sm text-red-600">{{ errors.company_id }}</div>
+            <div v-if="errors.company_id" class="text-sm text-red-600">
+                {{ errors.company_id }}
+            </div>
         </div>
     </div>
 </template>

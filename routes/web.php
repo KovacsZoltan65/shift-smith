@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\AppSettingController;
 use App\Http\Controllers\Admin\CompanySettingController;
 use App\Http\Controllers\Admin\UserSettingController;
+use App\Http\Controllers\Admin\EmployeeLeaveEntitlementController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\RoleUsersController;
 use App\Http\Controllers\Admin\SettingsController;
@@ -327,6 +328,23 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
         Route::put('/{id}', 'update')->whereNumber('id')->name('update')->middleware('throttle:30,1');
         Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy')->middleware('throttle:20,1');
         Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
+    });
+
+Route::middleware(['auth', 'verified', 'ensure.company'])
+    ->prefix('admin/employees')
+    ->as('employees.')
+    ->controller(\App\Http\Controllers\Admin\EmployeeLeaveProfileController::class)
+    ->group(function (): void {
+        Route::get('/{id}/leave-profile', 'show')->whereNumber('id')->name('leave_profile.show')->middleware('throttle:60,1');
+        Route::put('/{id}/leave-profile', 'update')->whereNumber('id')->name('leave_profile.update')->middleware('throttle:30,1');
+    });
+
+Route::middleware(['auth', 'verified', 'ensure.company'])
+    ->prefix('admin/employees')
+    ->as('employees.')
+    ->controller(EmployeeLeaveEntitlementController::class)
+    ->group(function (): void {
+        Route::get('/{id}/leave-entitlement', 'show')->whereNumber('id')->name('leave_entitlement')->middleware('throttle:60,1');
     });
 
 /**

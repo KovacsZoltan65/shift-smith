@@ -59,7 +59,9 @@ const companyOptions = ref([]);
 
 const authUserId = computed(() => Number(page.props.auth?.user?.id ?? 0));
 const canManageUserRoles = computed(() => has("users.assignRoles"));
-const defaultCompanyId = computed(() => Number(page.props.companyContext?.current_company_id ?? 0) || null);
+const defaultCompanyId = computed(
+    () => Number(page.props.companyContext?.current_company_id ?? 0) || null
+);
 
 const rowMenu = ref();
 const rowMenuModel = ref([]);
@@ -142,7 +144,9 @@ const ensureRolesLoaded = async () => {
     if (roles.value.length) return;
 
     const response = await RoleService.getToSelect();
-    const items = Array.isArray(response?.data) ? response.data : response?.data?.data ?? [];
+    const items = Array.isArray(response?.data)
+        ? response.data
+        : response?.data?.data ?? [];
 
     roles.value = items.map((role) => ({
         label: role.name,
@@ -191,7 +195,10 @@ const saveRole = async () => {
     roleLoading.value = true;
 
     try {
-        await UserService.updatePrimaryRole(Number(roleUser.value.id), Number(selectedRoleId.value));
+        await UserService.updatePrimaryRole(
+            Number(roleUser.value.id),
+            Number(selectedRoleId.value)
+        );
 
         closeRoleModal();
         toast.add({
@@ -264,7 +271,9 @@ const fetchUsers = async () => {
 const fetchCompanyOptions = async () => {
     try {
         const response = await CompanyService.getToSelect();
-        const items = Array.isArray(response?.data) ? response.data : response?.data?.data ?? [];
+        const items = Array.isArray(response?.data)
+            ? response.data
+            : response?.data?.data ?? [];
 
         companyOptions.value = items.map((company) => ({
             label: company.name,
@@ -462,7 +471,12 @@ onMounted(async () => {
                 <div class="flex items-center gap-3">
                     <h1 class="text-2xl font-semibold">{{ title }}</h1>
 
-                    <Button label="Új felhasználó" icon="pi pi-plus" size="small" @click="openCreate" />
+                    <Button
+                        label="Új felhasználó"
+                        icon="pi pi-plus"
+                        size="small"
+                        @click="openCreate"
+                    />
 
                     <Button
                         label="Kijelöltek törlése"
@@ -539,7 +553,10 @@ onMounted(async () => {
                             :disabled="!canManageUserRoles"
                             @click="openRoleModal(data)"
                         >
-                            <Tag :value="roleLabel(data)" :severity="roleSeverity(roleLabel(data))" />
+                            <Tag
+                                :value="roleLabel(data)"
+                                :severity="roleSeverity(roleLabel(data))"
+                            />
                         </button>
                     </template>
                 </Column>
@@ -589,7 +606,7 @@ onMounted(async () => {
 
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-slate-700">Role</label>
-                    <Dropdown
+                    <Select
                         v-model="selectedRoleId"
                         :options="roles"
                         optionLabel="label"
@@ -604,7 +621,13 @@ onMounted(async () => {
 
             <template #footer>
                 <div class="flex justify-end gap-2">
-                    <Button label="Mégse" severity="secondary" text :disabled="roleLoading" @click="closeRoleModal" />
+                    <Button
+                        label="Mégse"
+                        severity="secondary"
+                        text
+                        :disabled="roleLoading"
+                        @click="closeRoleModal"
+                    />
                     <Button
                         label="Mentés"
                         icon="pi pi-check"

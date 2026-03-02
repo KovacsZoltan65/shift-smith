@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Data\CompanySetting\EffectiveSettingData;
 use App\Repositories\SettingsRepository;
 use App\Services\Cache\CacheVersionService;
 
@@ -11,6 +12,7 @@ class SettingsResolverService
 {
     public function __construct(
         private readonly SettingsRepository $repository,
+        private readonly EffectiveSettingsResolverService $effectiveResolver,
         private readonly CacheService $cacheService,
         private readonly CacheVersionService $cacheVersionService
     ) {}
@@ -29,54 +31,11 @@ class SettingsResolverService
     {
         $companyId = isset($context['company_id']) ? (int) $context['company_id'] : null;
         $userId = isset($context['user_id']) ? (int) $context['user_id'] : null;
-        $legacyUserFallback = (bool) ($this->repository->appValue('settings.user_legacy_global_override_enabled') ?? false);
+        $resolved = $companyId !== null
+            ? $this->effectiveResolver->getEffectiveValue($key, $companyId, $userId)
+            : $this->resolveAppOnly($key);
 
-        if ($userId !== null) {
-            $userValue = $this->repository->userValue($userId, $key, $companyId, $legacyUserFallback);
-            if ($userValue !== null) {
-                return [
-                    'key' => $key,
-                    'value' => $userValue,
-                    'source' => 'user',
-                    'inherited' => false,
-                    'overridden' => true,
-                ];
-            }
-        }
-
-        if ($companyId !== null) {
-            $companyValue = $this->repository->companyValue($companyId, $key);
-            if ($companyValue !== null) {
-                return [
-                    'key' => $key,
-                    'value' => $companyValue,
-                    'source' => 'company',
-                    'inherited' => $userId !== null,
-                    'overridden' => true,
-                ];
-            }
-        }
-
-        $appValue = $this->repository->appValue($key);
-        if ($appValue !== null) {
-            return [
-                'key' => $key,
-                'value' => $appValue,
-                'source' => 'app',
-                'inherited' => $companyId !== null || $userId !== null,
-                'overridden' => true,
-            ];
-        }
-
-        $meta = $this->repository->metaByKey($key);
-
-        return [
-            'key' => $key,
-            'value' => $meta?->default_value,
-            'source' => 'default',
-            'inherited' => true,
-            'overridden' => false,
-        ];
+        return $this->formatResolvedValue($key, $resolved, $companyId, $userId);
     }
 
     /**
@@ -109,38 +68,25 @@ class SettingsResolverService
             callback: function () use ($companyId, $userId): array {
                 $metaRows = $this->repository->meta();
                 $keys = $metaRows->pluck('key')->map(static fn ($k): string => (string) $k)->values()->all();
-
-                $app = $this->repository->appValuesByKeys($keys);
-                $company = $companyId !== null ? $this->repository->companyValuesByKeys($companyId, $keys) : [];
-                $legacyUserFallback = (bool) ($this->repository->appValue('settings.user_legacy_global_override_enabled') ?? false);
-                $user = [];
-                $userLegacy = [];
-                if ($userId !== null && $companyId !== null) {
-                    $user = $this->repository->userValuesByKeysInCompany($userId, $companyId, $keys);
-                }
-                if ($userId !== null && $legacyUserFallback) {
-                    $userLegacy = $this->repository->userValuesByKeys($userId, $keys);
-                }
+                $resolvedRows = $companyId !== null
+                    ? $this->effectiveResolver->getEffectiveMany($keys, $companyId, $userId)
+                    : array_map(fn (string $key): EffectiveSettingData => $this->resolveAppOnly($key), $keys);
 
                 $out = [];
+                $resolvedByKey = [];
+                foreach ($resolvedRows as $row) {
+                    $resolvedByKey[$row->key] = $row;
+                }
+
                 foreach ($metaRows as $meta) {
                     $k = (string) $meta->key;
-                    if (array_key_exists($k, $user)) {
-                        $out[$k] = $user[$k];
+                    $row = $resolvedByKey[$k] ?? null;
+
+                    if ($row instanceof EffectiveSettingData && $row->source !== 'none') {
+                        $out[$k] = $row->effective_value;
                         continue;
                     }
-                    if (array_key_exists($k, $userLegacy)) {
-                        $out[$k] = $userLegacy[$k];
-                        continue;
-                    }
-                    if (array_key_exists($k, $company)) {
-                        $out[$k] = $company[$k];
-                        continue;
-                    }
-                    if (array_key_exists($k, $app)) {
-                        $out[$k] = $app[$k];
-                        continue;
-                    }
+
                     $out[$k] = $meta->default_value;
                 }
 
@@ -148,5 +94,62 @@ class SettingsResolverService
             },
             ttl: (int) config('cache.ttl_fetch', 300)
         );
+    }
+
+    private function resolveAppOnly(string $key): EffectiveSettingData
+    {
+        $appValues = $this->repository->appValuesByKeys([$key]);
+
+        return new EffectiveSettingData(
+            key: $key,
+            effective_value: $appValues[$key] ?? null,
+            source: array_key_exists($key, $appValues) ? 'app' : 'none',
+            type: null,
+            group: null,
+            label: null,
+            description: null,
+            company_id: 0,
+            user_id: null,
+        );
+    }
+
+    /**
+     * @return array{
+     *   key:string,
+     *   value:mixed,
+     *   source:'user'|'user_legacy'|'company'|'app'|'default',
+     *   inherited:bool,
+     *   overridden:bool
+     * }
+     */
+    private function formatResolvedValue(string $key, EffectiveSettingData $resolved, ?int $companyId, ?int $userId): array
+    {
+        if ($resolved->source !== 'none') {
+            $source = $resolved->source === 'user_legacy' ? 'user' : $resolved->source;
+            $inherited = match ($resolved->source) {
+                'user', 'user_legacy' => false,
+                'company' => $userId !== null,
+                'app' => $companyId !== null || $userId !== null,
+                default => true,
+            };
+
+            return [
+                'key' => $key,
+                'value' => $resolved->effective_value,
+                'source' => $source,
+                'inherited' => $inherited,
+                'overridden' => true,
+            ];
+        }
+
+        $meta = $this->repository->metaByKey($key);
+
+        return [
+            'key' => $key,
+            'value' => $meta?->default_value,
+            'source' => 'default',
+            'inherited' => $companyId !== null || $userId !== null || $meta !== null,
+            'overridden' => false,
+        ];
     }
 }

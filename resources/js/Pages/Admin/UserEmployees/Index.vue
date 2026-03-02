@@ -16,6 +16,7 @@ import Button from "primevue/button";
 import InputText from "primevue/inputtext";
 import Dropdown from "primevue/dropdown";
 import Tag from "primevue/tag";
+import { Select } from "primevue";
 
 const props = defineProps({
     title: { type: String, default: "User - Employee összerendelés" },
@@ -32,8 +33,12 @@ const users = ref(Array.isArray(props.users) ? props.users : []);
 const selectedUserId = ref(
     Number(props.selected_user_id ?? users.value?.[0]?.id ?? 0) || null
 );
-const currentMapping = ref(Array.isArray(props.current_mapping) ? props.current_mapping : []);
-const selectableEmployees = ref(Array.isArray(props.selectable_employees) ? props.selectable_employees : []);
+const currentMapping = ref(
+    Array.isArray(props.current_mapping) ? props.current_mapping : []
+);
+const selectableEmployees = ref(
+    Array.isArray(props.selectable_employees) ? props.selectable_employees : []
+);
 const selectedEmployeeId = ref(null);
 
 const loading = ref(false);
@@ -41,7 +46,9 @@ const actionLoading = ref(false);
 const search = ref("");
 
 const filteredUsers = computed(() => {
-    const q = String(search.value ?? "").trim().toLowerCase();
+    const q = String(search.value ?? "")
+        .trim()
+        .toLowerCase();
     if (!q) return users.value;
 
     return users.value.filter((item) => {
@@ -53,7 +60,10 @@ const filteredUsers = computed(() => {
 
 const selectedUser = computed(() => {
     if (!selectedUserId.value) return null;
-    return users.value.find((user) => Number(user.id) === Number(selectedUserId.value)) ?? null;
+    return (
+        users.value.find((user) => Number(user.id) === Number(selectedUserId.value)) ??
+        null
+    );
 });
 
 const selectableOptions = computed(() =>
@@ -110,7 +120,10 @@ const fetchMapping = async (userId, keepSelectedEmployee = false) => {
             priority: "medium",
         });
 
-        const message = await parseError(error, "Nem sikerült lekérni a hozzárendeléseket.");
+        const message = await parseError(
+            error,
+            "Nem sikerült lekérni a hozzárendeléseket."
+        );
         toast.add({ severity: "error", summary: "Hiba", detail: message, life: 3500 });
     } finally {
         loading.value = false;
@@ -189,13 +202,16 @@ const removeEmployee = async (employee) => {
 
     actionLoading.value = true;
     try {
-        const response = await csrfFetch(`/admin/user-employees/${userId}/employees/${employeeId}`, {
-            method: "DELETE",
-            headers: {
-                Accept: "application/json",
-                "X-Requested-With": "XMLHttpRequest",
-            },
-        });
+        const response = await csrfFetch(
+            `/admin/user-employees/${userId}/employees/${employeeId}`,
+            {
+                method: "DELETE",
+                headers: {
+                    Accept: "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+            }
+        );
 
         if (!response.ok) {
             let message = `Eltávolítás sikertelen (HTTP ${response.status})`;
@@ -231,7 +247,9 @@ const removeEmployee = async (employee) => {
 
 const confirmRemove = (employee) => {
     confirm.require({
-        message: `Biztosan eltávolítod a kapcsolatot? (${employee?.name ?? "ismeretlen dolgozó"})`,
+        message: `Biztosan eltávolítod a kapcsolatot? (${
+            employee?.name ?? "ismeretlen dolgozó"
+        })`,
         header: "Megerősítés",
         icon: "pi pi-exclamation-triangle",
         rejectLabel: "Mégse",
@@ -249,7 +267,9 @@ const confirmRemove = (employee) => {
 
     <AuthenticatedLayout>
         <div class="p-6">
-            <div class="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div
+                class="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+            >
                 <h1 class="text-2xl font-semibold">{{ title }}</h1>
                 <Button
                     icon="pi pi-refresh"
@@ -292,23 +312,33 @@ const confirmRemove = (employee) => {
                     <div class="mb-3">
                         <h2 class="text-lg font-semibold">
                             Hozzárendelések
-                            <span v-if="selectedUser" class="text-sm font-normal text-surface-500">
+                            <span
+                                v-if="selectedUser"
+                                class="text-sm font-normal text-surface-500"
+                            >
                                 - {{ selectedUser.name }}
                             </span>
                         </h2>
                     </div>
 
-                    <div v-if="selectedUserId" class="mb-4 flex flex-col gap-2 md:flex-row md:items-end">
+                    <div
+                        v-if="selectedUserId"
+                        class="mb-4 flex flex-col gap-2 md:flex-row md:items-end"
+                    >
                         <div class="w-full md:flex-1">
-                            <label class="mb-1 block text-sm text-surface-600">Hozzárendelhető dolgozó</label>
-                            <Dropdown
+                            <label class="mb-1 block text-sm text-surface-600"
+                                >Hozzárendelhető dolgozó</label
+                            >
+                            <Select
                                 v-model="selectedEmployeeId"
                                 :options="selectableOptions"
                                 optionLabel="label"
                                 optionValue="value"
                                 placeholder="Válassz dolgozót"
                                 class="w-full"
-                                :disabled="actionLoading || loading || !selectableOptions.length"
+                                :disabled="
+                                    actionLoading || loading || !selectableOptions.length
+                                "
                             />
                         </div>
                         <Button
@@ -328,7 +358,11 @@ const confirmRemove = (employee) => {
                         <code>company_employee</code> kapcsolat és tenant scope.
                     </div>
 
-                    <DataTable :value="currentMapping" dataKey="id" :loading="loading || actionLoading">
+                    <DataTable
+                        :value="currentMapping"
+                        dataKey="id"
+                        :loading="loading || actionLoading"
+                    >
                         <template #empty>Nincs hozzárendelt dolgozó.</template>
 
                         <Column field="name" header="Dolgozó" />

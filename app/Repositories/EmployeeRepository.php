@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
+use App\Data\Employee\EmployeeLeaveProfileDTO;
 use App\Interfaces\EmployeeRepositoryInterface;
 use App\Models\Company;
 use App\Models\Employee;
@@ -227,6 +228,67 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
         $employee = Employee::query()->with('position:id,name')->findOrFail($id);
         
         return $employee;
+    }
+
+    public function findByIdInCompany(int $employeeId, int $companyId): ?Employee
+    {
+        $currentTenantId = TenantGroup::current()?->id;
+
+        /** @var Employee|null $employee */
+        $employee = Employee::query()
+            ->with('position:id,name')
+            ->whereKey($employeeId)
+            ->where('company_id', $companyId)
+            ->whereHas('company', function ($query) use ($companyId, $currentTenantId): void {
+                $query->whereKey($companyId)->where('active', true);
+
+                if (is_numeric($currentTenantId)) {
+                    $query->where('tenant_group_id', (int) $currentTenantId);
+                    return;
+                }
+
+                $query->whereRaw('1 = 0');
+            })
+            ->first();
+
+        return $employee;
+    }
+
+    public function findForLeaveEntitlement(int $employeeId): EmployeeLeaveProfileDTO
+    {
+        $currentTenantId = \App\Models\TenantGroup::current()?->id;
+
+        /** @var Employee $employee */
+        $employee = Employee::query()
+            ->select([
+                'employees.id',
+                'employees.company_id',
+                'employees.birth_date',
+                'employees.children_count',
+                'employees.disabled_children_count',
+                'employees.is_disabled',
+            ])
+            ->whereKey($employeeId)
+            ->whereHas('company', function ($query) use ($currentTenantId): void {
+                $query->where('companies.active', true);
+
+                if (is_numeric($currentTenantId)) {
+                    $query->where('companies.tenant_group_id', (int) $currentTenantId);
+                    return;
+                }
+
+                $query->whereRaw('1 = 0');
+            })
+            ->firstOrFail();
+
+        return new EmployeeLeaveProfileDTO(
+            employee_id: (int) $employee->id,
+            company_id: (int) $employee->company_id,
+            birth_date: $employee->birth_date?->toDateString(),
+            children_count: max(0, (int) $employee->children_count),
+            disabled_children_count: max(0, (int) $employee->disabled_children_count),
+            is_disabled: (bool) $employee->is_disabled,
+        );
     }
 
     /**

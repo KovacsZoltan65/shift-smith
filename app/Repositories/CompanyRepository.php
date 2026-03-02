@@ -297,6 +297,15 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
         );
     }
 
+    public function companyBelongsToActiveTenantGroup(int $companyId, int $tenantGroupId): bool
+    {
+        return Company::query()
+            ->whereKey($companyId)
+            ->where('active', true)
+            ->where('tenant_group_id', $tenantGroupId)
+            ->exists();
+    }
+
     /**
      * Új cég létrehozása.
      *

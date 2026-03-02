@@ -8,6 +8,7 @@ use App\Data\CompanySetting\EffectiveSettingData;
 use App\Interfaces\AppSettingRepositoryInterface;
 use App\Interfaces\CompanySettingRepositoryInterface;
 use App\Interfaces\UserSettingRepositoryInterface;
+use App\Repositories\SettingsRepository;
 use App\Services\Cache\CacheVersionService;
 
 class EffectiveSettingsResolverService
@@ -16,6 +17,7 @@ class EffectiveSettingsResolverService
         private readonly AppSettingRepositoryInterface $appSettings,
         private readonly CompanySettingRepositoryInterface $companySettings,
         private readonly UserSettingRepositoryInterface $userSettings,
+        private readonly SettingsRepository $settingsRepository,
         private readonly CacheService $cacheService,
         private readonly CacheVersionService $cacheVersionService,
     ) {
@@ -61,15 +63,9 @@ class EffectiveSettingsResolverService
     private function resolveMany(array $keys, int $companyId, ?int $userId): array
     {
         $allowLegacy = $this->legacyFallbackEnabled();
-        $appRows = [];
-        foreach ($keys as $key) {
-            $appRows[$key] = $this->appSettings->findByKey($key);
-        }
-
-        $companyRows = [];
-        foreach ($keys as $key) {
-            $companyRows[$key] = $this->companySettings->findByKeyInCompany($key, $companyId);
-        }
+        $metaRows = $this->settingsRepository->metaByKeys($keys);
+        $appValues = $this->appSettings->valuesByKeys($keys);
+        $companyValues = $this->companySettings->valuesByKeys($companyId, $keys);
 
         $userScopedRows = $userId !== null
             ? $this->userSettings->findManyByUserCompanyKeys($userId, $companyId, $keys)->keyBy('key')
@@ -82,8 +78,7 @@ class EffectiveSettingsResolverService
         foreach ($keys as $key) {
             $userScoped = $userScopedRows->get($key);
             $userLegacy = $userLegacyRows->get($key);
-            $company = $companyRows[$key];
-            $app = $appRows[$key];
+            $meta = $metaRows->get($key);
 
             $source = 'none';
             $value = null;
@@ -94,24 +89,22 @@ class EffectiveSettingsResolverService
             } elseif ($userLegacy !== null) {
                 $source = 'user_legacy';
                 $value = $userLegacy->value;
-            } elseif ($company !== null) {
+            } elseif (array_key_exists($key, $companyValues)) {
                 $source = 'company';
-                $value = $company->value;
-            } elseif ($app !== null) {
+                $value = $companyValues[$key];
+            } elseif (array_key_exists($key, $appValues)) {
                 $source = 'app';
-                $value = $app->value;
+                $value = $appValues[$key];
             }
-
-            $meta = $company ?? $app;
 
             $resolved[] = new EffectiveSettingData(
                 key: $key,
                 effective_value: $value,
                 source: $source,
-                type: $meta?->type,
-                group: $meta?->group,
-                label: $meta?->label,
-                description: $meta?->description,
+                type: $meta?->type !== null ? (string) $meta->type : null,
+                group: $meta?->group !== null ? (string) $meta->group : null,
+                label: $meta?->label !== null ? (string) $meta->label : null,
+                description: $meta?->description !== null ? (string) $meta->description : null,
                 company_id: $companyId,
                 user_id: $userId,
             );
@@ -122,8 +115,8 @@ class EffectiveSettingsResolverService
 
     private function legacyFallbackEnabled(): bool
     {
-        $flag = $this->appSettings->findByKey('settings.user_legacy_global_override_enabled');
+        $flag = $this->appSettings->valuesByKeys(['settings.user_legacy_global_override_enabled']);
 
-        return (bool) ($flag?->value ?? false);
+        return (bool) ($flag['settings.user_legacy_global_override_enabled'] ?? false);
     }
 }

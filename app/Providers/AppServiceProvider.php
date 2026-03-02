@@ -9,6 +9,8 @@ use App\Interfaces\CompanyRepositoryInterface;
 use App\Interfaces\CompanySettingRepositoryInterface;
 use App\Repositories\Dashboard\DashboardRepositoryInterface;
 use App\Interfaces\EmployeeRepositoryInterface;
+use App\Interfaces\EmployeeProfileRepositoryInterface;
+use App\Interfaces\LeaveBalanceRepositoryInterface;
 use App\Interfaces\EmployeeWorkPatternRepositoryInterface;
 use App\Interfaces\PositionRepositoryInterface;
 use App\Interfaces\UserRepositoryInterface;
@@ -34,6 +36,8 @@ use App\Repositories\CompanyRepository;
 use App\Repositories\CompanySettingRepository;
 use App\Repositories\Dashboard\DashboardRepository;
 use App\Repositories\EmployeeRepository;
+use App\Repositories\EmployeeProfileRepository;
+use App\Repositories\LeaveBalanceRepository;
 use App\Repositories\EmployeeWorkPatternRepository;
 use App\Repositories\PositionRepository;
 use App\Repositories\UserRepository;
@@ -46,6 +50,7 @@ use App\Repositories\WorkPatternRepository;
 use App\Repositories\WorkScheduleAssignmentRepository;
 use App\Repositories\WorkShiftAssignmentRepository;
 use App\Repositories\WorkShiftRepository;
+use App\Services\Settings\SettingsManager;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Grammars\PostgresGrammar;
 use Illuminate\Support\Arr;
@@ -98,6 +103,14 @@ class AppServiceProvider extends ServiceProvider
             EmployeeRepository::class
         );
         $this->app->bind(
+            EmployeeProfileRepositoryInterface::class,
+            EmployeeProfileRepository::class
+        );
+        $this->app->bind(
+            LeaveBalanceRepositoryInterface::class,
+            LeaveBalanceRepository::class
+        );
+        $this->app->bind(
             PositionRepositoryInterface::class,
             PositionRepository::class
         );
@@ -129,6 +142,7 @@ class AppServiceProvider extends ServiceProvider
             UserAssignmentRepositoryInterface::class,
             UserAssignmentRepository::class
         );
+        $this->app->singleton('settings.manager', SettingsManager::class);
     }
 
     /**

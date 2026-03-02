@@ -91,12 +91,6 @@ export const appMenuDefinition = [
         title: "Beállítások",
         items: [
             {
-                title: "Applikáció",
-                route: "settings.app",
-                key: "settings.app",
-                can: "settings.viewApp",
-            },
-            {
                 title: "App Settings",
                 route: "admin.app_settings.index",
                 key: "admin.app_settings.index",
@@ -113,18 +107,6 @@ export const appMenuDefinition = [
                 route: "admin.user_settings.index",
                 key: "admin.user_settings.index",
                 can: "user_settings.viewAny",
-            },
-            {
-                title: "Cég",
-                route: "settings.company",
-                key: "settings.company",
-                can: "settings.viewCompany",
-            },
-            {
-                title: "Személy",
-                route: "settings.user",
-                key: "settings.user",
-                can: "settings.viewUser",
             },
         ],
     },

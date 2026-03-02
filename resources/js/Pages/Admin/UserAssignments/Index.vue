@@ -18,6 +18,7 @@ import InputText from "primevue/inputtext";
 import Dialog from "primevue/dialog";
 import Message from "primevue/message";
 import Tag from "primevue/tag";
+import { Select } from "primevue";
 
 const props = defineProps({
     title: { type: String, default: "Felhasználó hozzárendelések" },
@@ -54,13 +55,18 @@ const selectableCompanies = computed(() =>
 );
 
 const selectedUserRow = computed(
-    () => users.value.find((item) => Number(item.id) === Number(selectedUserId.value ?? 0)) ?? null,
+    () =>
+        users.value.find(
+            (item) => Number(item.id) === Number(selectedUserId.value ?? 0)
+        ) ?? null
 );
 
 const dialogEmployeeOptions = computed(() =>
     Array.isArray(employeeDialogCompany.value?.selectable_employees)
         ? employeeDialogCompany.value.selectable_employees.map((employee) => ({
-              label: employee.email ? `${employee.name} (${employee.email})` : employee.name,
+              label: employee.email
+                  ? `${employee.name} (${employee.email})`
+                  : employee.name,
               value: Number(employee.id),
           }))
         : []
@@ -103,7 +109,9 @@ const applyUserPayload = (payload) => {
 
     if (employeeDialogCompany.value) {
         const nextCompany =
-            payload?.companies?.find((company) => Number(company.id) === Number(employeeDialogCompany.value.id)) ?? null;
+            payload?.companies?.find(
+                (company) => Number(company.id) === Number(employeeDialogCompany.value.id)
+            ) ?? null;
 
         if (!nextCompany) {
             resetDialogState();
@@ -162,7 +170,10 @@ const fetchUser = async (userId) => {
         toast.add({
             severity: "error",
             summary: "Hiba",
-            detail: await parseMessage(error, "A felhasználó hozzárendelései nem tölthetők be."),
+            detail: await parseMessage(
+                error,
+                "A felhasználó hozzárendelései nem tölthetők be."
+            ),
             life: 3500,
         });
     } finally {
@@ -190,12 +201,20 @@ const attachCompany = async () => {
     actionLoading.value = true;
 
     try {
-        const response = await UserAssignmentsService.attachCompany(selectedUserId.value, {
-            company_id: Number(companyToAttach.value),
-        });
+        const response = await UserAssignmentsService.attachCompany(
+            selectedUserId.value,
+            {
+                company_id: Number(companyToAttach.value),
+            }
+        );
 
         applyUserPayload(response?.data?.data ?? null);
-        toast.add({ severity: "success", summary: "Siker", detail: "Cég hozzárendelve.", life: 2500 });
+        toast.add({
+            severity: "success",
+            summary: "Siker",
+            detail: "Cég hozzárendelve.",
+            life: 2500,
+        });
     } catch (error) {
         await ErrorService.logClientError(error, {
             category: "user_assignments_company_attach_error",
@@ -216,9 +235,17 @@ const detachCompany = async (company) => {
     actionLoading.value = true;
 
     try {
-        const response = await UserAssignmentsService.detachCompany(selectedUserId.value, company.id);
+        const response = await UserAssignmentsService.detachCompany(
+            selectedUserId.value,
+            company.id
+        );
         applyUserPayload(response?.data?.data ?? null);
-        toast.add({ severity: "success", summary: "Siker", detail: "Cég eltávolítva.", life: 2500 });
+        toast.add({
+            severity: "success",
+            summary: "Siker",
+            detail: "Cég eltávolítva.",
+            life: 2500,
+        });
     } catch (error) {
         await ErrorService.logClientError(error, {
             category: "user_assignments_company_detach_error",
@@ -243,19 +270,33 @@ const openEmployeeDialog = (company) => {
 };
 
 const saveEmployeeAssignment = async () => {
-    if (!selectedUserId.value || !employeeDialogCompany.value?.id || !employeeSelection.value) return;
+    if (
+        !selectedUserId.value ||
+        !employeeDialogCompany.value?.id ||
+        !employeeSelection.value
+    )
+        return;
 
     actionLoading.value = true;
     employeeErrors.value = {};
 
     try {
-        const response = await UserAssignmentsService.assignEmployee(selectedUserId.value, employeeDialogCompany.value.id, {
-            employee_id: Number(employeeSelection.value),
-        });
+        const response = await UserAssignmentsService.assignEmployee(
+            selectedUserId.value,
+            employeeDialogCompany.value.id,
+            {
+                employee_id: Number(employeeSelection.value),
+            }
+        );
 
         applyUserPayload(response?.data?.data ?? null);
         employeeDialogVisible.value = false;
-        toast.add({ severity: "success", summary: "Siker", detail: "Dolgozó hozzárendelve.", life: 2500 });
+        toast.add({
+            severity: "success",
+            summary: "Siker",
+            detail: "Dolgozó hozzárendelve.",
+            life: 2500,
+        });
     } catch (error) {
         employeeErrors.value = UserAssignmentsService.extractErrors(error) ?? {};
         await ErrorService.logClientError(error, {
@@ -277,13 +318,21 @@ const removeEmployeeAssignment = async (company) => {
     actionLoading.value = true;
 
     try {
-        const response = await UserAssignmentsService.removeEmployee(selectedUserId.value, company.id);
+        const response = await UserAssignmentsService.removeEmployee(
+            selectedUserId.value,
+            company.id
+        );
         applyUserPayload(response?.data?.data ?? null);
         if (employeeDialogCompany.value?.id === company.id) {
             employeeSelection.value = null;
             employeeErrors.value = {};
         }
-        toast.add({ severity: "success", summary: "Siker", detail: "Dolgozó hozzárendelés törölve.", life: 2500 });
+        toast.add({
+            severity: "success",
+            summary: "Siker",
+            detail: "Dolgozó hozzárendelés törölve.",
+            life: 2500,
+        });
     } catch (error) {
         employeeErrors.value = UserAssignmentsService.extractErrors(error) ?? {};
         await ErrorService.logClientError(error, {
@@ -293,7 +342,10 @@ const removeEmployeeAssignment = async (company) => {
         toast.add({
             severity: "error",
             summary: "Hiba",
-            detail: await parseMessage(error, "A dolgozó hozzárendelés törlése sikertelen."),
+            detail: await parseMessage(
+                error,
+                "A dolgozó hozzárendelés törlése sikertelen."
+            ),
             life: 3500,
         });
     } finally {
@@ -350,10 +402,14 @@ onMounted(async () => {
 
     <AuthenticatedLayout>
         <div class="p-6">
-            <div class="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div
+                class="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+            >
                 <div>
                     <h1 class="text-2xl font-semibold">{{ title }}</h1>
-                    <p class="text-sm text-surface-500">TenantGroup-safe company és employee hozzárendelések.</p>
+                    <p class="text-sm text-surface-500">
+                        TenantGroup-safe company és employee hozzárendelések.
+                    </p>
                 </div>
                 <Button
                     icon="pi pi-refresh"
@@ -366,7 +422,9 @@ onMounted(async () => {
             </div>
 
             <div class="grid gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
-                <section class="rounded-xl border border-surface-200 bg-white p-4 shadow-sm">
+                <section
+                    class="rounded-xl border border-surface-200 bg-white p-4 shadow-sm"
+                >
                     <div class="mb-3 flex items-center justify-between gap-3">
                         <h2 class="text-lg font-semibold">Felhasználók</h2>
                         <Tag :value="String(usersMeta.total ?? 0)" severity="secondary" />
@@ -394,76 +452,124 @@ onMounted(async () => {
                             <template #body="{ data }">
                                 <div class="flex flex-col">
                                     <span class="font-medium">{{ data.name }}</span>
-                                    <span class="text-xs text-surface-500">{{ data.email }}</span>
+                                    <span class="text-xs text-surface-500">{{
+                                        data.email
+                                    }}</span>
                                 </div>
                             </template>
                         </Column>
 
                         <Column header="Role" style="width: 140px">
                             <template #body="{ data }">
-                                <Tag :value="userRoleLabel(data)" :severity="userRoleSeverity(data)" />
+                                <Tag
+                                    :value="userRoleLabel(data)"
+                                    :severity="userRoleSeverity(data)"
+                                />
                             </template>
                         </Column>
                     </DataTable>
                 </section>
 
-                <section class="rounded-xl border border-surface-200 bg-white p-4 shadow-sm">
-                    <div v-if="!selectedUser" class="flex min-h-[240px] items-center justify-center text-surface-500">
+                <section
+                    class="rounded-xl border border-surface-200 bg-white p-4 shadow-sm"
+                >
+                    <div
+                        v-if="!selectedUser"
+                        class="flex min-h-[240px] items-center justify-center text-surface-500"
+                    >
                         Válassz felhasználót a bal oldali listából.
                     </div>
 
                     <template v-else>
-                        <div class="mb-4 flex flex-col gap-3 border-b border-surface-100 pb-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div
+                            class="mb-4 flex flex-col gap-3 border-b border-surface-100 pb-4 lg:flex-row lg:items-start lg:justify-between"
+                        >
                             <div>
-                                <h2 class="text-lg font-semibold">{{ selectedUser.user_name }}</h2>
-                                <p class="text-sm text-surface-500">User ID: {{ selectedUser.user_id }}</p>
+                                <h2 class="text-lg font-semibold">
+                                    {{ selectedUser.user_name }}
+                                </h2>
+                                <p class="text-sm text-surface-500">
+                                    User ID: {{ selectedUser.user_id }}
+                                </p>
                             </div>
 
                             <div class="flex flex-wrap items-center gap-2">
-                                <Tag v-if="selectedUser.is_superadmin" value="superadmin" severity="contrast" />
+                                <Tag
+                                    v-if="selectedUser.is_superadmin"
+                                    value="superadmin"
+                                    severity="contrast"
+                                />
                                 <Tag v-else value="normal user" severity="secondary" />
                             </div>
                         </div>
 
-                        <Message v-if="selectedUser.read_only" severity="info" class="mb-4">
+                        <Message
+                            v-if="selectedUser.read_only"
+                            severity="info"
+                            class="mb-4"
+                        >
                             {{ selectedUser.read_only_reason }}
                         </Message>
 
-                        <div class="mb-6 rounded-xl border border-surface-100 bg-surface-50 p-4">
+                        <div
+                            class="mb-6 rounded-xl border border-surface-100 bg-surface-50 p-4"
+                        >
                             <div class="mb-3 flex items-center justify-between gap-3">
-                                <h3 class="text-base font-semibold">Company hozzárendelés</h3>
+                                <h3 class="text-base font-semibold">
+                                    Company hozzárendelés
+                                </h3>
                             </div>
 
                             <div class="flex flex-col gap-3 md:flex-row">
-                                <Dropdown
+                                <Select
                                     v-model="companyToAttach"
                                     :options="selectableCompanies"
                                     optionLabel="label"
                                     optionValue="value"
                                     placeholder="Válassz céget"
                                     class="md:flex-1"
-                                    :disabled="selectedUser.read_only || actionLoading || detailLoading || !selectableCompanies.length"
+                                    :disabled="
+                                        selectedUser.read_only ||
+                                        actionLoading ||
+                                        detailLoading ||
+                                        !selectableCompanies.length
+                                    "
                                 />
                                 <Button
                                     label="Hozzáadás"
                                     icon="pi pi-plus"
                                     :loading="actionLoading"
-                                    :disabled="selectedUser.read_only || !companyToAttach || detailLoading"
+                                    :disabled="
+                                        selectedUser.read_only ||
+                                        !companyToAttach ||
+                                        detailLoading
+                                    "
                                     @click="attachCompany"
                                 />
                             </div>
                         </div>
 
-                        <DataTable :value="selectedUser.companies ?? []" dataKey="id" :loading="detailLoading || actionLoading">
+                        <DataTable
+                            :value="selectedUser.companies ?? []"
+                            dataKey="id"
+                            :loading="detailLoading || actionLoading"
+                        >
                             <template #empty>Nincs company hozzárendelés.</template>
 
                             <Column field="name" header="Company" />
 
                             <Column header="Assigned employee">
                                 <template #body="{ data }">
-                                    <div v-if="data.assigned_employee" class="flex flex-col">
-                                        <span class="font-medium">{{ data.assigned_employee.name }}</span>
-                                        <span class="text-xs text-surface-500">{{ data.assigned_employee.email || "—" }}</span>
+                                    <div
+                                        v-if="data.assigned_employee"
+                                        class="flex flex-col"
+                                    >
+                                        <span class="font-medium">{{
+                                            data.assigned_employee.name
+                                        }}</span>
+                                        <span class="text-xs text-surface-500">{{
+                                            data.assigned_employee.email || "—"
+                                        }}</span>
                                     </div>
                                     <span v-else class="text-surface-500">—</span>
                                 </template>
@@ -477,7 +583,11 @@ onMounted(async () => {
                                             icon="pi pi-user-edit"
                                             severity="secondary"
                                             size="small"
-                                            :disabled="selectedUser.read_only || actionLoading || detailLoading"
+                                            :disabled="
+                                                selectedUser.read_only ||
+                                                actionLoading ||
+                                                detailLoading
+                                            "
                                             @click="openEmployeeDialog(data)"
                                         />
                                         <Button
@@ -485,7 +595,12 @@ onMounted(async () => {
                                             severity="warning"
                                             text
                                             rounded
-                                            :disabled="selectedUser.read_only || !data.assigned_employee || actionLoading || detailLoading"
+                                            :disabled="
+                                                selectedUser.read_only ||
+                                                !data.assigned_employee ||
+                                                actionLoading ||
+                                                detailLoading
+                                            "
                                             @click="confirmRemoveEmployee(data)"
                                         />
                                         <Button
@@ -493,7 +608,11 @@ onMounted(async () => {
                                             severity="danger"
                                             text
                                             rounded
-                                            :disabled="selectedUser.read_only || actionLoading || detailLoading"
+                                            :disabled="
+                                                selectedUser.read_only ||
+                                                actionLoading ||
+                                                detailLoading
+                                            "
                                             @click="confirmDetachCompany(data)"
                                         />
                                     </div>
@@ -513,7 +632,10 @@ onMounted(async () => {
             @hide="resetDialogState"
         >
             <div class="flex flex-col gap-4">
-                <div v-if="employeeDialogCompany" class="rounded border border-surface-200 bg-surface-50 p-3 text-sm">
+                <div
+                    v-if="employeeDialogCompany"
+                    class="rounded border border-surface-200 bg-surface-50 p-3 text-sm"
+                >
                     <div class="font-medium">{{ employeeDialogCompany.name }}</div>
                     <div class="text-surface-500">
                         Jelenlegi:
@@ -523,7 +645,7 @@ onMounted(async () => {
 
                 <div class="flex flex-col gap-2">
                     <label class="text-sm font-medium">Választható employee</label>
-                    <Dropdown
+                    <Select
                         v-model="employeeSelection"
                         :options="dialogEmployeeOptions"
                         optionLabel="label"
@@ -551,11 +673,18 @@ onMounted(async () => {
                         icon="pi pi-trash"
                         severity="danger"
                         text
-                        :disabled="!employeeDialogCompany?.assigned_employee || actionLoading"
+                        :disabled="
+                            !employeeDialogCompany?.assigned_employee || actionLoading
+                        "
                         @click="removeEmployeeAssignment(employeeDialogCompany)"
                     />
                     <div class="flex gap-2">
-                        <Button label="Mégse" severity="secondary" text @click="employeeDialogVisible = false" />
+                        <Button
+                            label="Mégse"
+                            severity="secondary"
+                            text
+                            @click="employeeDialogVisible = false"
+                        />
                         <Button
                             label="Mentés"
                             icon="pi pi-check"

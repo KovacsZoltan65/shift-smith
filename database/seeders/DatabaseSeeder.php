@@ -33,6 +33,8 @@ class DatabaseSeeder extends Seeder
             WorkShiftSeeder::class,
             WorkShiftAssignmentSeeder::class,
             WorkPatternSeeder::class,
+
+            LeaveCarryOverAppSettingsSeeder::class,
         ]);
 
         // Demo tenant explicit, opt-in seed:

@@ -22,6 +22,7 @@ import BulkDeleteModal from "./Partials/BulkDeleteModal.vue";
 import CreateModal from "./Partials/CreateModal.vue";
 import DeleteModal from "./Partials/DeleteModal.vue";
 import EditModal from "./Partials/EditModal.vue";
+import { Select } from "primevue";
 
 const props = defineProps({
     title: String,
@@ -38,7 +39,9 @@ const canUpdate = computed(() => has("user_settings.update"));
 const canDelete = computed(() => has("user_settings.delete"));
 const canDeleteAny = computed(() => has("user_settings.deleteAny"));
 const canManageOthers = computed(() => has("user_settings.manageOthers"));
-const companyName = computed(() => page.props.companyContext?.current_company?.name ?? "Company");
+const companyName = computed(
+    () => page.props.companyContext?.current_company?.name ?? "Company"
+);
 
 const createOpen = ref(false);
 const editOpen = ref(false);
@@ -64,7 +67,8 @@ const filters = ref({
     q: props.filter?.q ?? "",
     group: props.filter?.group ?? null,
     type: props.filter?.type ?? null,
-    user_id: props.filter?.user_id ?? props.targetUserId ?? page.props.auth?.user?.id ?? null,
+    user_id:
+        props.filter?.user_id ?? props.targetUserId ?? page.props.auth?.user?.id ?? null,
 });
 
 const lazy = ref({
@@ -109,7 +113,10 @@ const fetchUserSettings = async () => {
 
         rows.value = data?.items ?? [];
         totalRecords.value = Number(data?.meta?.total ?? 0);
-        groupOptions.value = (data?.options?.groups ?? []).map((value) => ({ label: value, value }));
+        groupOptions.value = (data?.options?.groups ?? []).map((value) => ({
+            label: value,
+            value,
+        }));
         lazy.value.page = Math.max(Number(data?.meta?.current_page ?? 1) - 1, 0);
         lazy.value.rows = Number(data?.meta?.per_page ?? lazy.value.rows);
         lazy.value.first = lazy.value.page * lazy.value.rows;
@@ -153,9 +160,12 @@ const onSort = (event) => {
     fetchUserSettings();
 };
 
-watch(() => filters.value.user_id, () => {
-    if (canManageOthers.value) applyFilters();
-});
+watch(
+    () => filters.value.user_id,
+    () => {
+        if (canManageOthers.value) applyFilters();
+    }
+);
 
 onMounted(async () => {
     await fetchUsers();
@@ -167,10 +177,29 @@ onMounted(async () => {
     <Head :title="title" />
     <Toast />
 
-    <CreateModal v-model="createOpen" :target-user-id="filters.user_id" @saved="handleSaved" />
-    <EditModal v-model="editOpen" :user-setting-id="selectedItem?.id ?? null" :target-user-id="filters.user_id" @saved="handleSaved" />
-    <DeleteModal v-model="deleteOpen" :item="selectedItem" :target-user-id="filters.user_id" @deleted="handleDeleted" />
-    <BulkDeleteModal v-model="bulkDeleteOpen" :items="selected" :target-user-id="filters.user_id" @deleted="handleDeleted" />
+    <CreateModal
+        v-model="createOpen"
+        :target-user-id="filters.user_id"
+        @saved="handleSaved"
+    />
+    <EditModal
+        v-model="editOpen"
+        :user-setting-id="selectedItem?.id ?? null"
+        :target-user-id="filters.user_id"
+        @saved="handleSaved"
+    />
+    <DeleteModal
+        v-model="deleteOpen"
+        :item="selectedItem"
+        :target-user-id="filters.user_id"
+        @deleted="handleDeleted"
+    />
+    <BulkDeleteModal
+        v-model="bulkDeleteOpen"
+        :items="selected"
+        :target-user-id="filters.user_id"
+        @deleted="handleDeleted"
+    />
 
     <AuthenticatedLayout>
         <div class="p-6">
@@ -182,14 +211,32 @@ onMounted(async () => {
             <Toolbar class="mb-4">
                 <template #start>
                     <div class="flex flex-wrap items-center gap-2">
-                        <Button v-if="canCreate" label="Új" icon="pi pi-plus" @click="createOpen = true" />
-                        <Button label="Frissítés" icon="pi pi-refresh" severity="secondary" :loading="loading" @click="fetchUserSettings" />
-                        <Button v-if="canDeleteAny" label="Bulk delete" icon="pi pi-trash" severity="danger" :disabled="!selected.length" @click="bulkDeleteOpen = true" />
+                        <Button
+                            v-if="canCreate"
+                            label="Új"
+                            icon="pi pi-plus"
+                            @click="createOpen = true"
+                        />
+                        <Button
+                            label="Frissítés"
+                            icon="pi pi-refresh"
+                            severity="secondary"
+                            :loading="loading"
+                            @click="fetchUserSettings"
+                        />
+                        <Button
+                            v-if="canDeleteAny"
+                            label="Bulk delete"
+                            icon="pi pi-trash"
+                            severity="danger"
+                            :disabled="!selected.length"
+                            @click="bulkDeleteOpen = true"
+                        />
                     </div>
                 </template>
                 <template #end>
                     <div class="flex flex-wrap items-center gap-2">
-                        <Dropdown
+                        <Select
                             v-if="canManageOthers"
                             v-model="filters.user_id"
                             :options="users"
@@ -198,14 +245,42 @@ onMounted(async () => {
                             placeholder="Felhasználó"
                             class="w-72"
                         />
-                        <InputText v-model="filters.q" placeholder="Keresés kulcs / label / leírás" class="w-72" @keyup.enter="applyFilters" />
-                        <Dropdown v-model="filters.group" :options="groupOptions" optionLabel="label" optionValue="value" placeholder="Csoport" showClear class="w-44" @change="applyFilters" />
-                        <Dropdown v-model="filters.type" :options="typeOptions" optionLabel="label" optionValue="value" placeholder="Típus" showClear class="w-36" @change="applyFilters" />
+                        <InputText
+                            v-model="filters.q"
+                            placeholder="Keresés kulcs / label / leírás"
+                            class="w-72"
+                            @keyup.enter="applyFilters"
+                        />
+                        <Select
+                            v-model="filters.group"
+                            :options="groupOptions"
+                            optionLabel="label"
+                            optionValue="value"
+                            placeholder="Csoport"
+                            showClear
+                            class="w-44"
+                            @change="applyFilters"
+                        />
+                        <Select
+                            v-model="filters.type"
+                            :options="typeOptions"
+                            optionLabel="label"
+                            optionValue="value"
+                            placeholder="Típus"
+                            showClear
+                            class="w-36"
+                            @change="applyFilters"
+                        />
                     </div>
                 </template>
             </Toolbar>
 
-            <div v-if="error" class="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">{{ error }}</div>
+            <div
+                v-if="error"
+                class="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+            >
+                {{ error }}
+            </div>
 
             <DataTable
                 v-model:selection="selected"
@@ -235,19 +310,43 @@ onMounted(async () => {
                 </Column>
                 <Column header="Érték">
                     <template #body="{ data }">
-                        <span class="font-mono text-sm">{{ data.value_preview || "-" }}</span>
+                        <span class="font-mono text-sm">{{
+                            data.value_preview || "-"
+                        }}</span>
                     </template>
                 </Column>
                 <Column field="updated_at" header="Frissítve" sortable>
                     <template #body="{ data }">
-                        {{ data.updated_at ? new Date(data.updated_at).toLocaleString() : "-" }}
+                        {{
+                            data.updated_at
+                                ? new Date(data.updated_at).toLocaleString()
+                                : "-"
+                        }}
                     </template>
                 </Column>
                 <Column header="" headerStyle="width: 12rem">
                     <template #body="{ data }">
                         <div class="flex justify-end gap-2">
-                            <Button v-if="canUpdate" size="small" severity="secondary" label="Szerkesztés" @click="selectedItem = data; editOpen = true" />
-                            <Button v-if="canDelete" size="small" severity="danger" label="Törlés" @click="selectedItem = data; deleteOpen = true" />
+                            <Button
+                                v-if="canUpdate"
+                                size="small"
+                                severity="secondary"
+                                label="Szerkesztés"
+                                @click="
+                                    selectedItem = data;
+                                    editOpen = true;
+                                "
+                            />
+                            <Button
+                                v-if="canDelete"
+                                size="small"
+                                severity="danger"
+                                label="Törlés"
+                                @click="
+                                    selectedItem = data;
+                                    deleteOpen = true;
+                                "
+                            />
                         </div>
                     </template>
                 </Column>

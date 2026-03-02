@@ -5,6 +5,7 @@ import Dropdown from "primevue/dropdown";
 import InputNumber from "primevue/inputnumber";
 import InputText from "primevue/inputtext";
 import Textarea from "primevue/textarea";
+import { Select } from "primevue";
 
 const props = defineProps({
     modelValue: { type: Object, required: true },
@@ -59,12 +60,14 @@ const onTypeChange = (type) => {
                     :modelValue="modelValue.key"
                     @update:modelValue="(value) => patch({ key: value })"
                 />
-                <div v-if="errors.key" class="mt-1 text-sm text-red-600">{{ errors.key }}</div>
+                <div v-if="errors.key" class="mt-1 text-sm text-red-600">
+                    {{ errors.key }}
+                </div>
             </div>
 
             <div>
                 <label class="mb-1 block text-sm font-medium">Típus</label>
-                <Dropdown
+                <Select
                     class="w-full"
                     :disabled="disabled"
                     :modelValue="modelValue.type"
@@ -73,7 +76,9 @@ const onTypeChange = (type) => {
                     optionValue="value"
                     @update:modelValue="onTypeChange"
                 />
-                <div v-if="errors.type" class="mt-1 text-sm text-red-600">{{ errors.type }}</div>
+                <div v-if="errors.type" class="mt-1 text-sm text-red-600">
+                    {{ errors.type }}
+                </div>
             </div>
         </div>
 
@@ -85,7 +90,9 @@ const onTypeChange = (type) => {
                 :modelValue="modelValue.group"
                 @update:modelValue="(value) => patch({ group: value })"
             />
-            <div v-if="errors.group" class="mt-1 text-sm text-red-600">{{ errors.group }}</div>
+            <div v-if="errors.group" class="mt-1 text-sm text-red-600">
+                {{ errors.group }}
+            </div>
         </div>
 
         <div>
@@ -96,7 +103,9 @@ const onTypeChange = (type) => {
                 :modelValue="modelValue.label"
                 @update:modelValue="(value) => patch({ label: value })"
             />
-            <div v-if="errors.label" class="mt-1 text-sm text-red-600">{{ errors.label }}</div>
+            <div v-if="errors.label" class="mt-1 text-sm text-red-600">
+                {{ errors.label }}
+            </div>
         </div>
 
         <div>
@@ -108,7 +117,9 @@ const onTypeChange = (type) => {
                 :modelValue="modelValue.description"
                 @update:modelValue="(value) => patch({ description: value })"
             />
-            <div v-if="errors.description" class="mt-1 text-sm text-red-600">{{ errors.description }}</div>
+            <div v-if="errors.description" class="mt-1 text-sm text-red-600">
+                {{ errors.description }}
+            </div>
         </div>
 
         <div>
@@ -131,7 +142,9 @@ const onTypeChange = (type) => {
                     :modelValue="Boolean(modelValue.value)"
                     @update:modelValue="(value) => patch({ value: Boolean(value) })"
                 />
-                <label for="app-setting-bool" class="text-sm text-gray-700">Igaz / hamis</label>
+                <label for="app-setting-bool" class="text-sm text-gray-700"
+                    >Igaz / hamis</label
+                >
             </div>
 
             <InputText
@@ -151,7 +164,9 @@ const onTypeChange = (type) => {
                 @update:modelValue="(value) => patch({ value })"
             />
 
-            <div v-if="errors.value" class="mt-1 text-sm text-red-600">{{ errors.value }}</div>
+            <div v-if="errors.value" class="mt-1 text-sm text-red-600">
+                {{ errors.value }}
+            </div>
         </div>
     </div>
 </template>

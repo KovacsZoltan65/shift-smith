@@ -132,6 +132,18 @@ class SettingsRepository
         return SettingsMeta::query()->where('key', $key)->first();
     }
 
+    /**
+     * @param list<string> $keys
+     * @return Collection<string, SettingsMeta>
+     */
+    public function metaByKeys(array $keys): Collection
+    {
+        return SettingsMeta::query()
+            ->whereIn('key', $keys)
+            ->get()
+            ->keyBy(static fn (SettingsMeta $meta): string => (string) $meta->key);
+    }
+
     public function saveAppValue(string $key, mixed $value, int $updatedBy): void
     {
         AppSetting::query()
