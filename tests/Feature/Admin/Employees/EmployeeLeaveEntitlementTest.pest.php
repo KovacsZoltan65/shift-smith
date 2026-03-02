@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\AppSetting;
 use App\Models\Company;
 use App\Models\Employee;
+use App\Models\EmployeeProfile;
 use App\Models\TenantGroup;
 use App\Services\Cache\CacheVersionService;
 use Spatie\Permission\PermissionRegistrar;
@@ -144,6 +145,11 @@ it('returns annual leave entitlement dto for the selected company employee', fun
 
     $employee = Employee::factory()->create([
         'company_id' => $company->id,
+    ]);
+
+    EmployeeProfile::factory()->create([
+        'company_id' => $company->id,
+        'employee_id' => $employee->id,
         'birth_date' => '1980-01-01',
         'children_count' => 2,
         'disabled_children_count' => 1,

@@ -21,7 +21,7 @@ const fieldError = (key) => {
     <div class="space-y-4">
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-                <label class="mb-1 block text-sm font-medium">Születési dátum</label>
+                <label class="mb-1 block text-sm font-medium">Születési dátum *</label>
                 <DatePicker
                     :model-value="modelValue.birth_date"
                     class="w-full"

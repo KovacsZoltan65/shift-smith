@@ -6,70 +6,49 @@ namespace App\Repositories;
 
 use App\Data\Employee\EmployeeLeaveProfileDTO;
 use App\Interfaces\EmployeeProfileRepositoryInterface;
-use App\Models\Employee;
+use App\Models\EmployeeProfile;
 
 final class EmployeeProfileRepository implements EmployeeProfileRepositoryInterface
 {
-    public function findByEmployeeInCompany(int $companyId, int $employeeId): EmployeeLeaveProfileDTO
+    public function findByEmployeeInCompany(int $companyId, int $employeeId): ?EmployeeLeaveProfileDTO
     {
-        /** @var Employee $employee */
-        $employee = $this->scopedEmployeeQuery($companyId, $employeeId)->firstOrFail();
+        /** @var EmployeeProfile|null $profile */
+        $profile = EmployeeProfile::query()
+            ->where('company_id', $companyId)
+            ->where('employee_id', $employeeId)
+            ->first();
 
-        return $this->toDto($employee);
+        return $profile instanceof EmployeeProfile ? $this->toDto($profile) : null;
     }
 
     public function upsertForEmployeeInCompany(int $companyId, int $employeeId, array $attributes): EmployeeLeaveProfileDTO
     {
-        /** @var Employee $employee */
-        $employee = $this->scopedEmployeeQuery($companyId, $employeeId)
-            ->lockForUpdate()
-            ->firstOrFail();
+        /** @var EmployeeProfile $profile */
+        $profile = EmployeeProfile::query()->updateOrCreate(
+            [
+                'company_id' => $companyId,
+                'employee_id' => $employeeId,
+            ],
+            [
+                'birth_date' => $attributes['birth_date'],
+                'children_count' => max(0, (int) $attributes['children_count']),
+                'disabled_children_count' => max(0, (int) $attributes['disabled_children_count']),
+                'is_disabled' => (bool) $attributes['is_disabled'],
+            ],
+        );
 
-        $employee->birth_date = $attributes['birth_date'] ?? null;
-        $employee->children_count = max(0, (int) $attributes['children_count']);
-        $employee->disabled_children_count = max(0, (int) $attributes['disabled_children_count']);
-        $employee->is_disabled = (bool) $attributes['is_disabled'];
-        $employee->save();
-
-        return $this->toDto($employee->refresh());
+        return $this->toDto($profile->refresh());
     }
 
-    private function scopedEmployeeQuery(int $companyId, int $employeeId): \Illuminate\Database\Eloquent\Builder
-    {
-        $tenantGroupId = \App\Models\TenantGroup::current()?->id;
-
-        return Employee::query()
-            ->select([
-                'employees.id',
-                'employees.company_id',
-                'employees.birth_date',
-                'employees.children_count',
-                'employees.disabled_children_count',
-                'employees.is_disabled',
-            ])
-            ->whereKey($employeeId)
-            ->where('employees.company_id', $companyId)
-            ->whereHas('company', function ($query) use ($companyId, $tenantGroupId): void {
-                $query->whereKey($companyId)->where('active', true);
-
-                if (is_numeric($tenantGroupId)) {
-                    $query->where('tenant_group_id', (int) $tenantGroupId);
-                    return;
-                }
-
-                $query->whereRaw('1 = 0');
-            });
-    }
-
-    private function toDto(Employee $employee): EmployeeLeaveProfileDTO
+    private function toDto(EmployeeProfile $profile): EmployeeLeaveProfileDTO
     {
         return new EmployeeLeaveProfileDTO(
-            employee_id: (int) $employee->id,
-            company_id: (int) $employee->company_id,
-            birth_date: $employee->birth_date?->toDateString(),
-            children_count: max(0, (int) $employee->children_count),
-            disabled_children_count: max(0, (int) $employee->disabled_children_count),
-            is_disabled: (bool) $employee->is_disabled,
+            employee_id: (int) $profile->employee_id,
+            company_id: (int) $profile->company_id,
+            birth_date: $profile->birth_date?->toDateString(),
+            children_count: max(0, (int) $profile->children_count),
+            disabled_children_count: max(0, (int) $profile->disabled_children_count),
+            is_disabled: (bool) $profile->is_disabled,
         );
     }
 }

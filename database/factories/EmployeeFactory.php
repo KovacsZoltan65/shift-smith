@@ -35,10 +35,6 @@ class EmployeeFactory extends Factory
             'position_id'=> $positionId,
             'phone'      => $this->faker->phoneNumber,
             'hired_at'   => $this->faker->date(),
-            'birth_date' => $this->faker->dateTimeBetween('-60 years', '-18 years')->format('Y-m-d'),
-            'children_count' => 0,
-            'disabled_children_count' => 0,
-            'is_disabled' => false,
         ];
     }
 }

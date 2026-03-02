@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Employees;
 
 use App\Data\Employee\EmployeeLeaveProfileDTO;
+use App\Interfaces\EmployeeRepositoryInterface;
 use App\Interfaces\EmployeeProfileRepositoryInterface;
 use App\Services\Cache\CacheVersionService;
 use App\Services\Company\CurrentCompanyResolver;
@@ -13,6 +14,7 @@ use DomainException;
 final class EmployeeLeaveProfileService
 {
     public function __construct(
+        private readonly EmployeeRepositoryInterface $employees,
         private readonly EmployeeProfileRepositoryInterface $profiles,
         private readonly CurrentCompanyResolver $currentCompanyResolver,
         private readonly CacheVersionService $cacheVersionService,
@@ -21,9 +23,18 @@ final class EmployeeLeaveProfileService
 
     public function show(int $employeeId): EmployeeLeaveProfileDTO
     {
-        return $this->profiles->findByEmployeeInCompany(
-            $this->requireCurrentCompanyId(),
-            $employeeId,
+        $companyId = $this->requireCurrentCompanyId();
+        $this->requireEmployeeInCurrentCompany($employeeId, $companyId);
+
+        $profile = $this->profiles->findByEmployeeInCompany($companyId, $employeeId);
+
+        return $profile ?? new EmployeeLeaveProfileDTO(
+            employee_id: $employeeId,
+            company_id: $companyId,
+            birth_date: null,
+            children_count: 0,
+            disabled_children_count: 0,
+            is_disabled: false,
         );
     }
 
@@ -38,6 +49,7 @@ final class EmployeeLeaveProfileService
     public function update(int $employeeId, array $attributes): EmployeeLeaveProfileDTO
     {
         $companyId = $this->requireCurrentCompanyId();
+        $this->requireEmployeeInCurrentCompany($employeeId, $companyId);
 
         if ((int) $attributes['disabled_children_count'] > (int) $attributes['children_count']) {
             throw new DomainException('A fogyatékos gyermekek száma nem lehet több az összes gyermek számánál.');
@@ -59,5 +71,14 @@ final class EmployeeLeaveProfileService
         }
 
         return $companyId;
+    }
+
+    private function requireEmployeeInCurrentCompany(int $employeeId, int $companyId): void
+    {
+        if ($this->employees->findByIdInCompany($employeeId, $companyId) !== null) {
+            return;
+        }
+
+        throw new DomainException('The employee is not available in the current company scope.');
     }
 }

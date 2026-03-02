@@ -21,7 +21,7 @@ final class UpdateEmployeeLeaveProfileRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'birth_date' => ['nullable', 'date'],
+            'birth_date' => ['required', 'date', 'before:today'],
             'children_count' => ['required', 'integer', 'min:0', 'max:20'],
             'disabled_children_count' => ['required', 'integer', 'min:0', 'max:20'],
             'is_disabled' => ['required', 'boolean'],

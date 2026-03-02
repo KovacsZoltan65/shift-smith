@@ -13,17 +13,18 @@ class AdminSeeder extends Seeder
         $email = config('seeding.admin_email', 'admin@shift-smith.com');
         $password = config('seeding.admin_password', 'admin');
 
-        $user = User::firstOrCreate(
+        $user = User::updateOrCreate(
             [
-                'email' => $email
+                'email' => $email,
             ],
             [
                 'name' => 'Admin',
                 'password' => Hash::make($password),
+                'email_verified_at' => now(),
             ]
         );
 
-        if(!$user->hasRole('admin')) {
+        if (! $user->hasRole('admin')) {
             $user->assignRole('admin');
         }
     }

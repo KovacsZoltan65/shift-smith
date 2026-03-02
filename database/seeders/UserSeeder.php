@@ -20,6 +20,7 @@ class UserSeeder extends Seeder
             [
                 'name' => 'User',
                 'password' => Hash::make($password),
+                'email_verified_at' => now(),
             ]
         );
 

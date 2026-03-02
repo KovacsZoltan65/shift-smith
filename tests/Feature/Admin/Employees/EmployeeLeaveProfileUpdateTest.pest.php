@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Company;
 use App\Models\Employee;
+use App\Models\EmployeeProfile;
 use App\Models\TenantGroup;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -55,6 +56,39 @@ it('validates leave profile payload', function (): void {
         ]);
 });
 
+it('returns 422 when birth_date is missing', function (): void {
+    [$tenant, $company] = $this->createTenantWithCompany();
+    $employee = Employee::factory()->create(['company_id' => $company->id]);
+    $user = $this->createAdminUser($company);
+
+    $tenant->makeCurrent();
+
+    $this->actingAsUserInCompany($user, $company)
+        ->putJson(route('employees.leave_profile.update', ['id' => $employee->id]), [
+            'children_count' => 0,
+            'disabled_children_count' => 0,
+            'is_disabled' => false,
+        ])->assertStatus(422)
+        ->assertJsonValidationErrors(['birth_date']);
+});
+
+it('returns 422 when birth_date is in the future', function (): void {
+    [$tenant, $company] = $this->createTenantWithCompany();
+    $employee = Employee::factory()->create(['company_id' => $company->id]);
+    $user = $this->createAdminUser($company);
+
+    $tenant->makeCurrent();
+
+    $this->actingAsUserInCompany($user, $company)
+        ->putJson(route('employees.leave_profile.update', ['id' => $employee->id]), [
+            'birth_date' => now()->addDay()->toDateString(),
+            'children_count' => 0,
+            'disabled_children_count' => 0,
+            'is_disabled' => false,
+        ])->assertStatus(422)
+        ->assertJsonValidationErrors(['birth_date']);
+});
+
 it('enforces current company scope on leave profile update', function (): void {
     $tenant = TenantGroup::factory()->create();
     $companyA = Company::factory()->create(['tenant_group_id' => $tenant->id]);
@@ -78,13 +112,7 @@ it('enforces current company scope on leave profile update', function (): void {
 
 it('upserts the leave profile on the employee record', function (): void {
     [$tenant, $company] = $this->createTenantWithCompany();
-    $employee = Employee::factory()->create([
-        'company_id' => $company->id,
-        'birth_date' => null,
-        'children_count' => 0,
-        'disabled_children_count' => 0,
-        'is_disabled' => false,
-    ]);
+    $employee = Employee::factory()->create(['company_id' => $company->id]);
     $user = $this->createAdminUser($company);
 
     $tenant->makeCurrent();
@@ -101,12 +129,35 @@ it('upserts the leave profile on the employee record', function (): void {
         ->assertJsonPath('data.disabled_children_count', 1)
         ->assertJsonPath('data.is_disabled', true);
 
-    $this->assertDatabaseHas('employees', [
-        'id' => $employee->id,
+    $this->assertDatabaseHas('employee_profiles', [
         'company_id' => $company->id,
+        'employee_id' => $employee->id,
         'birth_date' => '1992-03-04',
         'children_count' => 3,
         'disabled_children_count' => 1,
         'is_disabled' => 1,
+    ]);
+
+    $this->actingAsUserInCompany($user, $company)
+        ->putJson(route('employees.leave_profile.update', ['id' => $employee->id]), [
+            'birth_date' => '1991-02-03',
+            'children_count' => 1,
+            'disabled_children_count' => 0,
+            'is_disabled' => false,
+        ])->assertOk()
+        ->assertJsonPath('data.birth_date', '1991-02-03');
+
+    expect(EmployeeProfile::query()
+        ->where('company_id', $company->id)
+        ->where('employee_id', $employee->id)
+        ->count())->toBe(1);
+
+    $this->assertDatabaseHas('employee_profiles', [
+        'company_id' => $company->id,
+        'employee_id' => $employee->id,
+        'birth_date' => '1991-02-03',
+        'children_count' => 1,
+        'disabled_children_count' => 0,
+        'is_disabled' => 0,
     ]);
 });

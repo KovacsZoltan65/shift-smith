@@ -8,7 +8,7 @@ use App\Data\Employee\EmployeeLeaveProfileDTO;
 
 interface EmployeeProfileRepositoryInterface
 {
-    public function findByEmployeeInCompany(int $companyId, int $employeeId): EmployeeLeaveProfileDTO;
+    public function findByEmployeeInCompany(int $companyId, int $employeeId): ?EmployeeLeaveProfileDTO;
 
     /**
      * @param array{

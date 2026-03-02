@@ -45,6 +45,10 @@ final class EmployeeLeaveProfileController extends Controller
         try {
             $profile = $this->profiles->update($id, $request->validated());
         } catch (DomainException $exception) {
+            if (str_contains($exception->getMessage(), 'current company scope')) {
+                abort(Response::HTTP_NOT_FOUND, 'Dolgozó szabadság profil nem érhető el ebben a cég kontextusban.');
+            }
+
             return response()->json([
                 'message' => $exception->getMessage(),
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
