@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\PermissionController;
+use App\Http\Controllers\Admin\AppSettingController;
+use App\Http\Controllers\Admin\CompanySettingController;
+use App\Http\Controllers\Admin\UserSettingController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\RoleUsersController;
 use App\Http\Controllers\Admin\SettingsController;
@@ -164,6 +167,33 @@ Route::middleware(['auth', 'verified'])
         Route::put('/permissions/{id}', [PermissionController::class, 'update'])->whereNumber('id')->name('permissions.update')->middleware('throttle:30,1');
         Route::delete('/permissions/{id}', [PermissionController::class, 'destroy'])->whereNumber('id')->name('permissions.destroy')->middleware('throttle:20,1');
         Route::delete('/permissions/destroy_bulk', [PermissionController::class, 'destroyBulk'])->name('permissions.destroy_bulk')->middleware('throttle:10,1');
+
+        Route::get('/app-settings', [AppSettingController::class, 'index'])->name('app_settings.index')->middleware('throttle:60,1');
+        Route::get('/app-settings/fetch', [AppSettingController::class, 'fetch'])->name('app_settings.fetch')->middleware('throttle:60,1');
+        Route::get('/app-settings/{id}', [AppSettingController::class, 'show'])->whereNumber('id')->name('app_settings.show')->middleware('throttle:60,1');
+        Route::post('/app-settings', [AppSettingController::class, 'store'])->name('app_settings.store')->middleware('throttle:20,1');
+        Route::put('/app-settings/{id}', [AppSettingController::class, 'update'])->whereNumber('id')->name('app_settings.update')->middleware('throttle:30,1');
+        Route::delete('/app-settings/destroy-bulk', [AppSettingController::class, 'bulkDestroy'])->name('app_settings.destroy_bulk')->middleware('throttle:10,1');
+        Route::delete('/app-settings/{id}', [AppSettingController::class, 'destroy'])->whereNumber('id')->name('app_settings.destroy')->middleware('throttle:20,1');
+
+        Route::middleware(['ensure.company'])->group(function (): void {
+            Route::get('/company-settings', [CompanySettingController::class, 'index'])->name('company_settings.index')->middleware('throttle:60,1');
+            Route::get('/company-settings/fetch', [CompanySettingController::class, 'fetch'])->name('company_settings.fetch')->middleware('throttle:60,1');
+            Route::get('/company-settings/effective', [CompanySettingController::class, 'effective'])->name('company_settings.effective')->middleware('throttle:60,1');
+            Route::get('/company-settings/{id}', [CompanySettingController::class, 'show'])->whereNumber('id')->name('company_settings.show')->middleware('throttle:60,1');
+            Route::post('/company-settings', [CompanySettingController::class, 'store'])->name('company_settings.store')->middleware('throttle:20,1');
+            Route::put('/company-settings/{id}', [CompanySettingController::class, 'update'])->whereNumber('id')->name('company_settings.update')->middleware('throttle:30,1');
+            Route::delete('/company-settings/destroy-bulk', [CompanySettingController::class, 'bulkDestroy'])->name('company_settings.destroy_bulk')->middleware('throttle:10,1');
+            Route::delete('/company-settings/{id}', [CompanySettingController::class, 'destroy'])->whereNumber('id')->name('company_settings.destroy')->middleware('throttle:20,1');
+
+            Route::get('/user-settings', [UserSettingController::class, 'index'])->name('user_settings.index')->middleware('throttle:60,1');
+            Route::get('/user-settings/fetch', [UserSettingController::class, 'fetch'])->name('user_settings.fetch')->middleware('throttle:60,1');
+            Route::get('/user-settings/{id}', [UserSettingController::class, 'show'])->whereNumber('id')->name('user_settings.show')->middleware('throttle:60,1');
+            Route::post('/user-settings', [UserSettingController::class, 'store'])->name('user_settings.store')->middleware('throttle:20,1');
+            Route::put('/user-settings/{id}', [UserSettingController::class, 'update'])->whereNumber('id')->name('user_settings.update')->middleware('throttle:30,1');
+            Route::delete('/user-settings/destroy-bulk', [UserSettingController::class, 'bulkDestroy'])->name('user_settings.destroy_bulk')->middleware('throttle:10,1');
+            Route::delete('/user-settings/{id}', [UserSettingController::class, 'destroy'])->whereNumber('id')->name('user_settings.destroy')->middleware('throttle:20,1');
+        });
 
         // ---------------------------------------
         // USER <-> EMPLOYEE MAPPING

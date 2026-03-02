@@ -109,7 +109,7 @@ final class UserAssignmentService
             'selectable_companies' => $isSuperadmin
                 ? []
                 : $tenantCompanies
-                    ->reject(fn (Company $company): bool => in_array((int) $company->id, $attachedIds, true))
+                    ->reject(fn (Company $company): bool => \in_array((int) $company->id, $attachedIds, true))
                     ->map(static fn (Company $company): array => [
                         'id' => (int) $company->id,
                         'name' => (string) $company->name,

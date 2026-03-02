@@ -72,7 +72,7 @@ final class RoleUsersRepository
             return;
         }
 
-        $willKeepRole = in_array((int) $authUser->id, $nextUserIds, true);
+        $willKeepRole = \in_array((int) $authUser->id, $nextUserIds, true);
         if ($willKeepRole) {
             return;
         }

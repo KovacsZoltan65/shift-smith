@@ -2,14 +2,17 @@
 
 namespace App\Providers;
 
+use App\Interfaces\AppSettingRepositoryInterface;
 use App\Interfaces\Admin\PermissionRepositoryInterface;
 use App\Interfaces\Admin\RoleRepositoryInterface;
 use App\Interfaces\CompanyRepositoryInterface;
+use App\Interfaces\CompanySettingRepositoryInterface;
 use App\Repositories\Dashboard\DashboardRepositoryInterface;
 use App\Interfaces\EmployeeRepositoryInterface;
 use App\Interfaces\EmployeeWorkPatternRepositoryInterface;
 use App\Interfaces\PositionRepositoryInterface;
 use App\Interfaces\UserRepositoryInterface;
+use App\Interfaces\UserSettingRepositoryInterface;
 use App\Interfaces\WorkPatternRepositoryInterface;
 use App\Interfaces\WorkScheduleAssignmentRepositoryInterface;
 use App\Interfaces\WorkShiftAssignmentRepositoryInterface;
@@ -26,12 +29,15 @@ use App\Observers\EmployeeObserver;
 use App\Observers\UserEmployeeObserver;
 use App\Repositories\Admin\PermissionRepository;
 use App\Repositories\Admin\RoleRepository;
+use App\Repositories\AppSettingRepository;
 use App\Repositories\CompanyRepository;
+use App\Repositories\CompanySettingRepository;
 use App\Repositories\Dashboard\DashboardRepository;
 use App\Repositories\EmployeeRepository;
 use App\Repositories\EmployeeWorkPatternRepository;
 use App\Repositories\PositionRepository;
 use App\Repositories\UserRepository;
+use App\Repositories\UserSettingRepository;
 use App\Repositories\UserEmployeeRepository;
 use App\Repositories\UserEmployeeRepositoryInterface;
 use App\Repositories\UserAssignments\UserAssignmentRepository;
@@ -60,8 +66,20 @@ class AppServiceProvider extends ServiceProvider
             UserRepository::class
         );
         $this->app->bind(
+            UserSettingRepositoryInterface::class,
+            UserSettingRepository::class
+        );
+        $this->app->bind(
             CompanyRepositoryInterface::class, 
             CompanyRepository::class
+        );
+        $this->app->bind(
+            AppSettingRepositoryInterface::class,
+            AppSettingRepository::class
+        );
+        $this->app->bind(
+            CompanySettingRepositoryInterface::class,
+            CompanySettingRepository::class
         );
         $this->app->bind(
             DashboardRepositoryInterface::class,

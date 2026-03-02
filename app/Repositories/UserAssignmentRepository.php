@@ -133,7 +133,7 @@ final class UserAssignmentRepository
             return true;
         }
 
-        return in_array((int) $company->id, $this->accessibleCompanyIdsForActor($actor, $tenantGroupId), true);
+        return \in_array((int) $company->id, $this->accessibleCompanyIdsForActor($actor, $tenantGroupId), true);
     }
 
     public function userHasCompany(User $target, Company $company): bool

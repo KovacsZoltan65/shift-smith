@@ -470,7 +470,7 @@ class IntegrityAuditService
             ->all();
 
         $unknown = collect(MenuPermissions::collect())
-            ->reject(static fn (string $permission): bool => in_array($permission, $known, true))
+            ->reject(static fn (string $permission): bool => \in_array($permission, $known, true))
             ->values();
 
         return $this->makeCheck(

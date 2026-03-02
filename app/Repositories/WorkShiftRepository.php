@@ -39,7 +39,7 @@ final class WorkShiftRepository implements WorkShiftRepositoryInterface
         $companyId = $this->resolveTenantScopedCompanyId($companyId);
         $termRaw = trim((string) $request->input('search', ''));
         $term = $termRaw === '' ? null : mb_strtolower($termRaw, 'UTF-8');
-        $field = in_array((string) $request->input('field', ''), WorkShift::getSortable(), true)
+        $field = \in_array((string) $request->input('field', ''), WorkShift::getSortable(), true)
             ? (string) $request->input('field')
             : null;
         $direction = strtolower((string) $request->input('order', 'desc')) === 'asc' ? 'asc' : 'desc';

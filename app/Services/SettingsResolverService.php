@@ -29,9 +29,10 @@ class SettingsResolverService
     {
         $companyId = isset($context['company_id']) ? (int) $context['company_id'] : null;
         $userId = isset($context['user_id']) ? (int) $context['user_id'] : null;
+        $legacyUserFallback = (bool) ($this->repository->appValue('settings.user_legacy_global_override_enabled') ?? false);
 
         if ($userId !== null) {
-            $userValue = $this->repository->userValue($userId, $key);
+            $userValue = $this->repository->userValue($userId, $key, $companyId, $legacyUserFallback);
             if ($userValue !== null) {
                 return [
                     'key' => $key,
@@ -111,13 +112,25 @@ class SettingsResolverService
 
                 $app = $this->repository->appValuesByKeys($keys);
                 $company = $companyId !== null ? $this->repository->companyValuesByKeys($companyId, $keys) : [];
-                $user = $userId !== null ? $this->repository->userValuesByKeys($userId, $keys) : [];
+                $legacyUserFallback = (bool) ($this->repository->appValue('settings.user_legacy_global_override_enabled') ?? false);
+                $user = [];
+                $userLegacy = [];
+                if ($userId !== null && $companyId !== null) {
+                    $user = $this->repository->userValuesByKeysInCompany($userId, $companyId, $keys);
+                }
+                if ($userId !== null && $legacyUserFallback) {
+                    $userLegacy = $this->repository->userValuesByKeys($userId, $keys);
+                }
 
                 $out = [];
                 foreach ($metaRows as $meta) {
                     $k = (string) $meta->key;
                     if (array_key_exists($k, $user)) {
                         $out[$k] = $user[$k];
+                        continue;
+                    }
+                    if (array_key_exists($k, $userLegacy)) {
+                        $out[$k] = $userLegacy[$k];
                         continue;
                     }
                     if (array_key_exists($k, $company)) {
@@ -137,4 +150,3 @@ class SettingsResolverService
         );
     }
 }
-

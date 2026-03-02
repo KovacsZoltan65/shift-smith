@@ -45,7 +45,9 @@ class SettingsService
         $effectiveMap = $this->resolver->effectiveMap($companyId, $userId);
         $appValues = $this->repository->appValuesByKeys($keys);
         $companyValues = $companyId !== null ? $this->repository->companyValuesByKeys($companyId, $keys) : [];
-        $userValues = $userId !== null ? $this->repository->userValuesByKeys($userId, $keys) : [];
+            $userValues = ($userId !== null && $companyId !== null)
+                ? $this->repository->userValuesByKeysInCompany($userId, $companyId, $keys)
+                : [];
 
         $groups = [];
 
@@ -230,8 +232,8 @@ class SettingsService
             'company' => $companyId !== null
                 ? tap(true, fn () => $this->repository->deleteCompanyOverride($companyId, $key))
                 : false,
-            'user' => $userId !== null
-                ? tap(true, fn () => $this->repository->deleteUserOverride($userId, $key))
+                'user' => $userId !== null
+                ? tap(true, fn () => $this->repository->deleteUserOverride($userId, $companyId, $key))
                 : false,
             default => false,
         };
@@ -245,7 +247,7 @@ class SettingsService
                 ? tap(true, fn () => $this->repository->saveCompanyValue($companyId, $key, $value, $actorUserId))
                 : false,
             'user' => $userId !== null
-                ? tap(true, fn () => $this->repository->saveUserValue($userId, $key, $value, $actorUserId))
+                ? tap(true, fn () => $this->repository->saveUserValue($userId, $companyId, $key, $value, $actorUserId))
                 : false,
             default => false,
         };

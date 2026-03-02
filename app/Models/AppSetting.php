@@ -5,31 +5,68 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class AppSetting extends Model
 {
     /** @use HasFactory<\Illuminate\Database\Eloquent\Factories\Factory> */
     use HasFactory;
-    use SoftDeletes;
 
     protected $table = 'app_settings';
 
     protected $fillable = [
         'key',
         'value',
-        'updated_by',
+        'type',
+        'group',
+        'label',
+        'description',
     ];
 
     protected $casts = [
         'key' => 'string',
-        'updated_by' => 'int',
+        'type' => 'string',
+        'group' => 'string',
+        'label' => 'string',
+        'description' => 'string',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
-        'deleted_at' => 'datetime',
     ];
+
+    public const SORTABLE = [
+        'key',
+        'group',
+        'type',
+        'updated_at',
+        'created_at',
+    ];
+
+    public static function getTag(): string
+    {
+        return 'app_settings';
+    }
+
+    public static function getSortable(): array
+    {
+        return self::SORTABLE;
+    }
+
+    public function scopeSearch(Builder $query, ?string $term): Builder
+    {
+        $term = is_string($term) ? trim($term) : '';
+
+        if ($term === '') {
+            return $query;
+        }
+
+        return $query->where(function (Builder $builder) use ($term): void {
+            $builder->where('key', 'like', "%{$term}%")
+                ->orWhere('label', 'like', "%{$term}%")
+                ->orWhere('description', 'like', "%{$term}%");
+        });
+    }
 
     protected function value(): Attribute
     {

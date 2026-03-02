@@ -43,7 +43,7 @@ final class CompanyAccessService
 
     public function userHasCompanyAccess(User $user, int $companyId): bool
     {
-        return in_array($companyId, $this->accessibleCompanyIds($user), true);
+        return \in_array($companyId, $this->accessibleCompanyIds($user), true);
     }
 
     public function userCanAccessEmployee(User $user, Employee $employee): bool

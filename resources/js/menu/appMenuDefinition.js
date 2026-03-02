@@ -97,6 +97,24 @@ export const appMenuDefinition = [
                 can: "settings.viewApp",
             },
             {
+                title: "App Settings",
+                route: "admin.app_settings.index",
+                key: "admin.app_settings.index",
+                can: "app_settings.viewAny",
+            },
+            {
+                title: "Company Settings",
+                route: "admin.company_settings.index",
+                key: "admin.company_settings.index",
+                can: "company_settings.viewAny",
+            },
+            {
+                title: "User Settings",
+                route: "admin.user_settings.index",
+                key: "admin.user_settings.index",
+                can: "user_settings.viewAny",
+            },
+            {
                 title: "Cég",
                 route: "settings.company",
                 key: "settings.company",

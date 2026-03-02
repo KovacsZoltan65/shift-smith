@@ -43,7 +43,7 @@ class WorkPatternRepository extends BaseRepository implements WorkPatternReposit
         $companyId = (int) $request->integer('company_id');
         $termRaw = trim((string) $request->input('search', ''));
         $term = $termRaw === '' ? null : mb_strtolower($termRaw, 'UTF-8');
-        $field = in_array((string) $request->input('field', ''), WorkPattern::SORTABLE, true)
+        $field = \in_array((string) $request->input('field', ''), WorkPattern::SORTABLE, true)
             ? (string) $request->input('field')
             : null;
         $direction = strtolower((string) $request->input('order', 'asc')) === 'desc' ? 'desc' : 'asc';

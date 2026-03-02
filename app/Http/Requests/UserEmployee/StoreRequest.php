@@ -80,7 +80,7 @@ final class StoreRequest extends FormRequest
             $accessService = app(CompanyAccessService::class);
             $actorCompanyIds = $accessService->accessibleCompanyIds($actor);
 
-            if ($currentCompanyId > 0 && ! in_array($currentCompanyId, $actorCompanyIds, true)) {
+            if ($currentCompanyId > 0 && ! \in_array($currentCompanyId, $actorCompanyIds, true)) {
                 $validator->errors()->add('employee_id', 'Nincs jogosultságod a kiválasztott céghez.');
                 return;
             }

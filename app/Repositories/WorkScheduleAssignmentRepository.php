@@ -33,7 +33,7 @@ final class WorkScheduleAssignmentRepository implements WorkScheduleAssignmentRe
         $direction = strtolower((string) ($filters['order'] ?? 'desc')) === 'asc' ? 'asc' : 'desc';
         $allowedFields = ['id', 'date', 'employee_id', 'work_shift_id', 'work_schedule_id', 'created_at'];
 
-        if (! in_array($field, $allowedFields, true)) {
+        if (! \in_array($field, $allowedFields, true)) {
             $field = 'id';
         }
 

@@ -6,6 +6,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -18,18 +19,33 @@ class UserSetting extends Model
 
     protected $fillable = [
         'user_id',
+        'company_id',
         'key',
         'value',
+        'type',
+        'group',
+        'label',
+        'description',
         'updated_by',
     ];
 
     protected $casts = [
         'user_id' => 'int',
+        'company_id' => 'int',
         'updated_by' => 'int',
+        'type' => 'string',
+        'group' => 'string',
+        'label' => 'string',
+        'description' => 'string',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
+
+    public function scopeInScope(Builder $query, int $companyId, int $userId): Builder
+    {
+        return $query->where('company_id', $companyId)->where('user_id', $userId);
+    }
 
     protected function value(): Attribute
     {

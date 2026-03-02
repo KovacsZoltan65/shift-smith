@@ -69,6 +69,22 @@ class SettingsRepository
     {
         return UserSetting::query()
             ->where('user_id', $userId)
+            ->whereNull('company_id')
+            ->whereIn('key', $keys)
+            ->get(['key', 'value'])
+            ->mapWithKeys(static fn (UserSetting $row): array => [(string) $row->key => $row->value])
+            ->all();
+    }
+
+    /**
+     * @param list<string> $keys
+     * @return array<string,mixed>
+     */
+    public function userValuesByKeysInCompany(int $userId, int $companyId, array $keys): array
+    {
+        return UserSetting::query()
+            ->where('user_id', $userId)
+            ->where('company_id', $companyId)
             ->whereIn('key', $keys)
             ->get(['key', 'value'])
             ->mapWithKeys(static fn (UserSetting $row): array => [(string) $row->key => $row->value])
@@ -88,12 +104,27 @@ class SettingsRepository
             ->value('value');
     }
 
-    public function userValue(int $userId, string $key): mixed
+    public function userValue(int $userId, string $key, ?int $companyId = null, bool $allowLegacy = false): mixed
     {
-        return UserSetting::query()
+        $scoped = UserSetting::query()
             ->where('user_id', $userId)
+            ->when($companyId !== null, fn ($query) => $query->where('company_id', $companyId))
             ->where('key', $key)
             ->value('value');
+
+        if ($scoped !== null) {
+            return $scoped;
+        }
+
+        if ($allowLegacy) {
+            return UserSetting::query()
+                ->where('user_id', $userId)
+                ->whereNull('company_id')
+                ->where('key', $key)
+                ->value('value');
+        }
+
+        return null;
     }
 
     public function metaByKey(string $key): ?SettingsMeta
@@ -104,13 +135,12 @@ class SettingsRepository
     public function saveAppValue(string $key, mixed $value, int $updatedBy): void
     {
         AppSetting::query()
-            ->withTrashed()
             ->updateOrCreate(
                 ['key' => $key],
                 [
                     'value' => $value,
-                    'updated_by' => $updatedBy,
-                    'deleted_at' => null,
+                    'type' => $this->detectType($value),
+                    'group' => 'settings',
                 ]
             );
     }
@@ -129,12 +159,12 @@ class SettingsRepository
             );
     }
 
-    public function saveUserValue(int $userId, string $key, mixed $value, int $updatedBy): void
+    public function saveUserValue(int $userId, ?int $companyId, string $key, mixed $value, int $updatedBy): void
     {
         UserSetting::query()
             ->withTrashed()
             ->updateOrCreate(
-                ['user_id' => $userId, 'key' => $key],
+                ['user_id' => $userId, 'company_id' => $companyId, 'key' => $key],
                 [
                     'value' => $value,
                     'updated_by' => $updatedBy,
@@ -156,12 +186,22 @@ class SettingsRepository
             ->delete();
     }
 
-    public function deleteUserOverride(int $userId, string $key): void
+    public function deleteUserOverride(int $userId, ?int $companyId, string $key): void
     {
         UserSetting::query()
             ->where('user_id', $userId)
+            ->where('company_id', $companyId)
             ->where('key', $key)
             ->delete();
     }
-}
 
+    private function detectType(mixed $value): string
+    {
+        return match (true) {
+            is_int($value) => 'int',
+            is_bool($value) => 'bool',
+            is_string($value) => 'string',
+            default => 'json',
+        };
+    }
+}
