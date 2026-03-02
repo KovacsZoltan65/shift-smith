@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Interfaces;
 
-use App\Data\Employee\EmployeeLeaveProfileDTO;
+use App\Data\Employee\EmployeeLeaveEntitlementData;
 use App\Models\Employee;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
@@ -20,7 +20,7 @@ interface EmployeeRepositoryInterface
 
     public function findByIdInCompany(int $employeeId, int $companyId): ?Employee;
 
-    public function findForLeaveEntitlement(int $employeeId): EmployeeLeaveProfileDTO;
+    public function findLeaveEntitlementData(int $employeeId, int $companyId): EmployeeLeaveEntitlementData;
     
     public function getEmployeeByName(string $name): Employee;
 

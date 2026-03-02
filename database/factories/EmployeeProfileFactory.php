@@ -27,7 +27,6 @@ class EmployeeProfileFactory extends Factory
         return [
             'company_id' => $companyId,
             'employee_id' => (int) $employee->id,
-            'birth_date' => fake()->dateTimeBetween('-60 years', '-18 years')->format('Y-m-d'),
             'children_count' => $childrenCount,
             'disabled_children_count' => $disabledChildrenCount,
             'is_disabled' => fake()->boolean(15),

@@ -12,7 +12,6 @@ interface EmployeeProfileRepositoryInterface
 
     /**
      * @param array{
-     *   birth_date?: string|null,
      *   children_count:int,
      *   disabled_children_count:int,
      *   is_disabled:bool

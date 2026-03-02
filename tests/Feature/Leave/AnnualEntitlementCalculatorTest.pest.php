@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use App\Models\AppSetting;
 use App\Models\Employee;
-use App\Models\EmployeeProfile;
 use App\Services\Cache\CacheVersionService;
 use App\Services\Leave\LeaveEntitlementCalculator;
 
@@ -104,13 +103,12 @@ function seedAnnualEntitlementSettings(): void
 function leaveEmployee(array $attributes = []): Employee
 {
     $profileAttributes = [
-        'birth_date' => '2001-06-15',
         'children_count' => 0,
         'disabled_children_count' => 0,
         'is_disabled' => false,
     ];
 
-    foreach (['birth_date', 'children_count', 'disabled_children_count', 'is_disabled'] as $key) {
+    foreach (['children_count', 'disabled_children_count', 'is_disabled'] as $key) {
         if (array_key_exists($key, $attributes)) {
             $profileAttributes[$key] = $attributes[$key];
             unset($attributes[$key]);
@@ -119,7 +117,7 @@ function leaveEmployee(array $attributes = []): Employee
 
     $employee = Employee::factory()->create($attributes);
 
-    EmployeeProfile::factory()->create([
+    \App\Models\EmployeeProfile::factory()->create([
         'company_id' => (int) $employee->company_id,
         'employee_id' => (int) $employee->id,
         ...$profileAttributes,

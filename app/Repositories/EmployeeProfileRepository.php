@@ -30,7 +30,6 @@ final class EmployeeProfileRepository implements EmployeeProfileRepositoryInterf
                 'employee_id' => $employeeId,
             ],
             [
-                'birth_date' => $attributes['birth_date'],
                 'children_count' => max(0, (int) $attributes['children_count']),
                 'disabled_children_count' => max(0, (int) $attributes['disabled_children_count']),
                 'is_disabled' => (bool) $attributes['is_disabled'],
@@ -45,7 +44,6 @@ final class EmployeeProfileRepository implements EmployeeProfileRepositoryInterf
         return new EmployeeLeaveProfileDTO(
             employee_id: (int) $profile->employee_id,
             company_id: (int) $profile->company_id,
-            birth_date: $profile->birth_date?->toDateString(),
             children_count: max(0, (int) $profile->children_count),
             disabled_children_count: max(0, (int) $profile->disabled_children_count),
             is_disabled: (bool) $profile->is_disabled,

@@ -42,12 +42,12 @@ const form = ref({
     email: "",
     phone: "",
     position_id: null,
+    birth_date: null,
     hired_at: null,
     active: true,
 });
 
 const profileForm = ref({
-    birth_date: null,
     children_count: 0,
     disabled_children_count: 0,
     is_disabled: false,
@@ -67,11 +67,11 @@ const reset = () => {
         email: "",
         phone: "",
         position_id: null,
+        birth_date: null,
         hired_at: null,
         active: true,
     };
     profileForm.value = {
-        birth_date: null,
         children_count: 0,
         disabled_children_count: 0,
         is_disabled: false,
@@ -99,6 +99,7 @@ const fillFromEmployee = (emp) => {
         email: emp.email ?? "",
         phone: emp.phone ?? "",
         position_id: emp.position_id ?? null,
+        birth_date: parseDate(emp.birth_date ?? null),
         hired_at: parseDate(emp.hired_at),
         active: emp.active ?? true,
     };
@@ -106,7 +107,6 @@ const fillFromEmployee = (emp) => {
 
 const fillProfile = (profile) => {
     profileForm.value = {
-        birth_date: parseDate(profile?.birth_date ?? null),
         children_count: Number(profile?.children_count ?? 0),
         disabled_children_count: Number(profile?.disabled_children_count ?? 0),
         is_disabled: !!profile?.is_disabled,
@@ -186,6 +186,10 @@ watch(
 );
 
 const toPayload = () => {
+    const birthDate =
+        form.value.birth_date instanceof Date
+            ? form.value.birth_date.toISOString().slice(0, 10)
+            : null;
     const hiredAt =
         form.value.hired_at instanceof Date
             ? form.value.hired_at.toISOString().slice(0, 10)
@@ -198,6 +202,7 @@ const toPayload = () => {
         email: form.value.email?.trim() || null,
         phone: form.value.phone?.trim() || null,
         position_id: form.value.position_id ? Number(form.value.position_id) : null,
+        birth_date: birthDate,
         hired_at: hiredAt,
         active: !!form.value.active,
     };
@@ -263,13 +268,7 @@ const submit = async () => {
 };
 
 const toProfilePayload = () => {
-    const birthDate =
-        profileForm.value.birth_date instanceof Date
-            ? profileForm.value.birth_date.toISOString().slice(0, 10)
-            : null;
-
     return {
-        birth_date: birthDate,
         children_count: Number(profileForm.value.children_count ?? 0),
         disabled_children_count: Number(profileForm.value.disabled_children_count ?? 0),
         is_disabled: !!profileForm.value.is_disabled,

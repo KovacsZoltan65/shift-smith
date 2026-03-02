@@ -19,7 +19,6 @@ final class EmployeeProfile extends Model
     protected $fillable = [
         'company_id',
         'employee_id',
-        'birth_date',
         'children_count',
         'disabled_children_count',
         'is_disabled',
@@ -28,7 +27,6 @@ final class EmployeeProfile extends Model
     protected $casts = [
         'company_id' => 'int',
         'employee_id' => 'int',
-        'birth_date' => 'date',
         'children_count' => 'int',
         'disabled_children_count' => 'int',
         'is_disabled' => 'bool',

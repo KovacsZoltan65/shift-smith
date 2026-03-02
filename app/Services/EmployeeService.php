@@ -74,6 +74,7 @@ class EmployeeService
             'address' => $data->address,
             'position_id' => $data->position_id,
             'phone' => $data->phone,
+            'birth_date' => $data->birth_date,
             'hired_at' => $data->hired_at,
             'active' => $data->active,
         ]);
@@ -98,6 +99,7 @@ class EmployeeService
             'address' => $data->address,
             'position_id' => $data->position_id,
             'phone' => $data->phone,
+            'birth_date' => $data->birth_date,
             'hired_at' => $data->hired_at,
             'active' => $data->active,
         ], $id);

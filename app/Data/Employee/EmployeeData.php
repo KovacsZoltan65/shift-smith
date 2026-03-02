@@ -51,6 +51,9 @@ class EmployeeData extends Data
         #[Required, Email, Max(120), Unique('employees', 'email', null, new RouteParameterReference('id', null, true))]
         public string $email,
 
+        #[Required, DateFormat('Y-m-d')]
+        public string $birth_date,
+
         #[Nullable, StringType, Max(255)]
         public ?string $address = null,
 
@@ -86,6 +89,7 @@ class EmployeeData extends Data
             first_name: $employee->first_name,
             last_name: $employee->last_name,
             email: $employee->email,
+            birth_date: optional($employee->birth_date)?->format('Y-m-d') ?? '',
             address: $employee->address,
             position_id: $employee->position_id,
             phone: $employee->phone,

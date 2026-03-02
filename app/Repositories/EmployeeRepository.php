@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
-use App\Data\Employee\EmployeeLeaveProfileDTO;
-use App\Models\EmployeeProfile;
+use App\Data\Employee\EmployeeLeaveEntitlementData;
 use App\Interfaces\EmployeeRepositoryInterface;
 use App\Models\Company;
 use App\Models\Employee;
@@ -255,25 +254,14 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
         return $employee;
     }
 
-    public function findForLeaveEntitlement(int $employeeId): EmployeeLeaveProfileDTO
+    public function findLeaveEntitlementData(int $employeeId, int $companyId): EmployeeLeaveEntitlementData
     {
-        $currentTenantId = \App\Models\TenantGroup::current()?->id;
+        $currentTenantId = TenantGroup::current()?->id;
 
-        /** @var Employee|object $employee */
+        /** @var Employee $employee */
         $employee = Employee::query()
-            ->select([
-                'employees.id',
-                'employees.company_id',
-                'profiles.birth_date',
-                'profiles.children_count',
-                'profiles.disabled_children_count',
-                'profiles.is_disabled',
-            ])
-            ->leftJoin('employee_profiles as profiles', function ($join): void {
-                $join->on('profiles.employee_id', '=', 'employees.id')
-                    ->on('profiles.company_id', '=', 'employees.company_id');
-            })
             ->whereKey($employeeId)
+            ->where('company_id', $companyId)
             ->whereHas('company', function ($query) use ($currentTenantId): void {
                 $query->where('companies.active', true);
 
@@ -286,13 +274,10 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
             })
             ->firstOrFail();
 
-        return new EmployeeLeaveProfileDTO(
+        return new EmployeeLeaveEntitlementData(
             employee_id: (int) $employee->id,
             company_id: (int) $employee->company_id,
-            birth_date: is_string($employee->birth_date) ? $employee->birth_date : null,
-            children_count: max(0, (int) $employee->children_count),
-            disabled_children_count: max(0, (int) $employee->disabled_children_count),
-            is_disabled: (bool) $employee->is_disabled,
+            birth_date: $employee->birth_date?->toDateString(),
         );
     }
 

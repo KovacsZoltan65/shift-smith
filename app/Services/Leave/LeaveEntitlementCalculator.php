@@ -7,6 +7,7 @@ namespace App\Services\Leave;
 use App\Data\Employee\EmployeeLeaveProfileDTO;
 use App\Data\Leave\AnnualLeaveEntitlementResult;
 use App\Interfaces\EmployeeRepositoryInterface;
+use App\Interfaces\EmployeeProfileRepositoryInterface;
 use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
 use App\Services\Company\CurrentCompanyResolver;
@@ -19,6 +20,7 @@ final class LeaveEntitlementCalculator
 {
     public function __construct(
         private readonly EmployeeRepositoryInterface $employees,
+        private readonly EmployeeProfileRepositoryInterface $profiles,
         private readonly CurrentCompanyResolver $currentCompanyResolver,
         private readonly CacheService $cacheService,
         private readonly CacheVersionService $cacheVersionService,
@@ -50,29 +52,40 @@ final class LeaveEntitlementCalculator
             ]),
             callback: function () use ($companyId, $employeeId, $year): AnnualLeaveEntitlementResult {
                 try {
-                    $profile = $this->employees->findForLeaveEntitlement($employeeId);
+                    $employee = $this->employees->findLeaveEntitlementData($employeeId, $companyId);
                 } catch (ModelNotFoundException) {
                     throw new DomainException('The employee is not available in the current company scope.');
                 }
 
-                if ($profile->company_id !== $companyId) {
-                    throw new DomainException('The employee is not available in the current company scope.');
-                }
+                $profile = $this->profiles->findByEmployeeInCompany($companyId, $employeeId)
+                    ?? new EmployeeLeaveProfileDTO(
+                        employee_id: $employeeId,
+                        company_id: $companyId,
+                        children_count: 0,
+                        disabled_children_count: 0,
+                        is_disabled: false,
+                    );
 
-                return $this->buildResult($profile, $year);
+                return $this->buildResult($employee, $profile, $year);
             },
             ttl: $this->ttl(),
         );
     }
 
-    private function buildResult(EmployeeLeaveProfileDTO $profile, int $year): AnnualLeaveEntitlementResult
+    private function buildResult(
+        \App\Data\Employee\EmployeeLeaveEntitlementData $employee,
+        EmployeeLeaveProfileDTO $profile,
+        int $year
+    ): AnnualLeaveEntitlementResult
     {
-        $ageAtStartOfYear = $this->ageAtStartOfYear($profile->birth_date, $year);
+        $ageAtStartOfYear = $this->ageAtStartOfYear($employee->birth_date, $year);
 
         $baseMinutes = max(0, LeaveSettings::baseMinutes());
-        $ageBonusMinutes = LeaveSettings::ageBonusMinutes($ageAtStartOfYear);
+        $ageBonusMinutes = $employee->birth_date === null ? 0 : LeaveSettings::ageBonusMinutes($ageAtStartOfYear);
         $childBonusMinutes = $this->childBonusMinutes($profile);
-        $youthBonusMinutes = $ageAtStartOfYear < 18 ? max(0, Settings::getInt('leave.youth.extra_minutes', 0)) : 0;
+        $youthBonusMinutes = $employee->birth_date !== null && $ageAtStartOfYear < 18
+            ? max(0, Settings::getInt('leave.youth.extra_minutes', 0))
+            : 0;
         $disabilityBonusMinutes = $profile->is_disabled
             ? max(0, Settings::getInt('leave.disability.extra_minutes', 0))
             : 0;
@@ -86,8 +99,8 @@ final class LeaveEntitlementCalculator
         ];
 
         return new AnnualLeaveEntitlementResult(
-            employee_id: $profile->employee_id,
-            company_id: $profile->company_id,
+            employee_id: $employee->employee_id,
+            company_id: $employee->company_id,
             year: $year,
             base_minutes: $baseMinutes,
             age_bonus_minutes: $ageBonusMinutes,

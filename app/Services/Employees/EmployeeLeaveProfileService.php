@@ -31,7 +31,6 @@ final class EmployeeLeaveProfileService
         return $profile ?? new EmployeeLeaveProfileDTO(
             employee_id: $employeeId,
             company_id: $companyId,
-            birth_date: null,
             children_count: 0,
             disabled_children_count: 0,
             is_disabled: false,
@@ -40,7 +39,6 @@ final class EmployeeLeaveProfileService
 
     /**
      * @param array{
-     *   birth_date?: string|null,
      *   children_count:int,
      *   disabled_children_count:int,
      *   is_disabled:bool

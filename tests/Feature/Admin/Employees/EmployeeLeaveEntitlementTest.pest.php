@@ -145,12 +145,12 @@ it('returns annual leave entitlement dto for the selected company employee', fun
 
     $employee = Employee::factory()->create([
         'company_id' => $company->id,
+        'birth_date' => '1980-01-01',
     ]);
 
     EmployeeProfile::factory()->create([
         'company_id' => $company->id,
         'employee_id' => $employee->id,
-        'birth_date' => '1980-01-01',
         'children_count' => 2,
         'disabled_children_count' => 1,
         'is_disabled' => true,

@@ -20,6 +20,7 @@ class EmployeeIndexData extends Data
      * @param ?int $position_id Pozíció azonosító
      * @param ?string $position_name Pozíció
      * @param string $phone Telefonszám
+     * @param ?string $birth_date Születési dátum
      * @param string $hired_at Belépés dátuma
      * @param bool $active Aktív státusz
      */
@@ -33,6 +34,7 @@ class EmployeeIndexData extends Data
         public ?int $position_id,
         public ?string $position_name,
         public ?string $phone,
+        public ?string $birth_date,
         public ?string $hired_at,
         public bool $active,
 
@@ -58,6 +60,7 @@ class EmployeeIndexData extends Data
             position_id: $employee->position_id ? (int) $employee->position_id : null,
             position_name: $employee->position?->name,
             phone: $employee->phone,
+            birth_date: optional($employee->birth_date)?->format('Y-m-d'),
             hired_at: optional($employee->hired_at)?->format('Y-m-d'),
             active: (bool) $employee->active,
         );

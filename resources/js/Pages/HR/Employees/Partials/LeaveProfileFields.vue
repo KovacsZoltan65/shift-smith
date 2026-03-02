@@ -1,6 +1,5 @@
 <script setup>
 import Checkbox from "primevue/checkbox";
-import DatePicker from "primevue/datepicker";
 import InputNumber from "primevue/inputnumber";
 
 const props = defineProps({
@@ -20,21 +19,6 @@ const fieldError = (key) => {
 <template>
     <div class="space-y-4">
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-                <label class="mb-1 block text-sm font-medium">Születési dátum *</label>
-                <DatePicker
-                    :model-value="modelValue.birth_date"
-                    class="w-full"
-                    dateFormat="yy-mm-dd"
-                    showIcon
-                    :disabled="disabled"
-                    @update:model-value="emit('update:modelValue', { ...modelValue, birth_date: $event })"
-                />
-                <div v-if="fieldError('birth_date')" class="mt-1 text-sm text-red-600">
-                    {{ fieldError("birth_date") }}
-                </div>
-            </div>
-
             <div class="flex items-end gap-2">
                 <Checkbox
                     :model-value="modelValue.is_disabled"
