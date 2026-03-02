@@ -54,18 +54,18 @@ it('ment landlord app settinget és landlord cache verziót bumpol tenant kontex
 
     $this->actingAs($user)
         ->postJson(route('admin.app_settings.store'), [
-            'key' => 'autoplan.min_rest_hours',
+            'key' => 'autoplan.min_rest_minutes',
             'type' => 'int',
             'group' => 'autoplan',
             'label' => 'Minimum rest',
-            'description' => 'Hours between shifts',
-            'value' => 11,
+            'description' => 'Minutes between shifts',
+            'value' => 660,
         ])
         ->assertCreated()
-        ->assertJsonPath('data.key', 'autoplan.min_rest_hours');
+        ->assertJsonPath('data.key', 'autoplan.min_rest_minutes');
 
     $this->assertDatabaseHas('app_settings', [
-        'key' => 'autoplan.min_rest_hours',
+        'key' => 'autoplan.min_rest_minutes',
         'type' => 'int',
         'group' => 'autoplan',
     ]);

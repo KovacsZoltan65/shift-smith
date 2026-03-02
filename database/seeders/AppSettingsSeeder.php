@@ -11,12 +11,12 @@ class AppSettingsSeeder extends Seeder
     {
         $rows = [
             [
-                'key' => 'autoplan.min_rest_hours',
-                'value' => 11,
+                'key' => 'autoplan.min_rest_minutes',
+                'value' => 660,
                 'type' => 'int',
                 'group' => 'autoplan',
-                'label' => 'Minimális pihenőidő a műszakok között',
-                'description' => 'Két műszak között minimálisan előírt pihenőidő órákban.',
+                'label' => 'Minimum pihenőidő két műszak között (perc)',
+                'description' => 'A két egymást követő munkavégzés között elvárt minimális pihenőidő percekben.',
             ],
             [
                 'key' => 'autoplan.max_consecutive_days',
