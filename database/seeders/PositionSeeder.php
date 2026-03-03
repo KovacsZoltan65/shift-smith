@@ -20,6 +20,8 @@ class PositionSeeder extends Seeder
         $items = [
             ['name' => 'Gépkezelő', 'description' => null, 'active' => true],
             ['name' => 'Osztályvezető', 'description' => null, 'active' => true],
+            ['name' => 'Rakodó', 'description' => null, 'active' => true],
+            ['name' => 'Sofőr', 'description' => null, 'active' => true]
         ];
 
         Company::query()->each(function (Company $company) use ($items): void {
