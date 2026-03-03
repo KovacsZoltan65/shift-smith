@@ -1,11 +1,12 @@
 <script setup>
-import { computed, reactive, watch } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 import DatePicker from "primevue/datepicker";
 import InputText from "primevue/inputtext";
 import EmployeeSelector from "@/Components/Selectors/EmployeeSelector.vue";
 import LeaveTypeSelector from "@/Components/Selectors/LeaveTypeSelector.vue";
+import SickLeaveCategorySelector from "@/Components/Selectors/SickLeaveCategorySelector.vue";
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -25,12 +26,15 @@ const visible = computed({
 const form = reactive({
     employee_id: null,
     leave_type_id: null,
+    sick_leave_category_id: null,
     date_range: null,
     note: "",
 });
+const selectedLeaveType = ref(null);
 
 const isEdit = computed(() => Number(props.absence?.extendedProps?.absence_id ?? 0) > 0);
 const header = computed(() => (isEdit.value ? "Távollét módosítása" : "Távollét jelölése"));
+const isSickLeaveSelected = computed(() => selectedLeaveType.value?.category === "sick_leave");
 
 const toDate = (value) => {
     if (!value) return null;
@@ -52,23 +56,39 @@ watch(
         if (isEdit.value) {
             form.employee_id = Number(props.absence?.extendedProps?.employee_id ?? 0) || null;
             form.leave_type_id = Number(props.absence?.extendedProps?.leave_type_id ?? 0) || null;
+            form.sick_leave_category_id = Number(props.absence?.extendedProps?.sick_leave_category_id ?? 0) || null;
             form.date_range = [
                 toDate(props.absence?.start),
                 toDate(props.absence?.end ? new Date(new Date(props.absence.end).getTime() - 86400000) : props.absence?.start),
             ];
             form.note = String(props.absence?.extendedProps?.note ?? "");
+            selectedLeaveType.value = form.leave_type_id
+                ? {
+                    id: form.leave_type_id,
+                    name: String(props.absence?.extendedProps?.leave_type_name ?? ""),
+                    category: String(props.absence?.extendedProps?.category ?? ""),
+                }
+                : null;
             return;
         }
 
         form.employee_id = null;
         form.leave_type_id = null;
+        form.sick_leave_category_id = null;
         form.date_range = props.defaultRange?.from
             ? [toDate(props.defaultRange.from), toDate(props.defaultRange.to ?? props.defaultRange.from)]
             : null;
         form.note = "";
+        selectedLeaveType.value = null;
     },
     { immediate: true, deep: true },
 );
+
+watch(isSickLeaveSelected, (value) => {
+    if (!value) {
+        form.sick_leave_category_id = null;
+    }
+});
 
 const submit = () => {
     const range = Array.isArray(form.date_range) ? form.date_range : [form.date_range, form.date_range];
@@ -78,6 +98,9 @@ const submit = () => {
         payload: {
             employee_id: Number(form.employee_id ?? 0),
             leave_type_id: Number(form.leave_type_id ?? 0),
+            ...(isSickLeaveSelected.value && form.sick_leave_category_id
+                ? { sick_leave_category_id: Number(form.sick_leave_category_id) }
+                : {}),
             date_from: toYmd(range[0]),
             date_to: toYmd(range[1] ?? range[0]),
             note: form.note?.trim() || null,
@@ -100,7 +123,19 @@ const submitDelete = () => {
 
             <div>
                 <label class="mb-1 block text-sm">Szabadság típus</label>
-                <LeaveTypeSelector v-model="form.leave_type_id" :categories="['leave', 'sick_leave']" />
+                <LeaveTypeSelector
+                    v-model="form.leave_type_id"
+                    :categories="['leave', 'sick_leave']"
+                    @update:selectedOption="selectedLeaveType = $event"
+                />
+            </div>
+
+            <div v-if="isSickLeaveSelected">
+                <label class="mb-1 block text-sm">Betegszabadság kategória</label>
+                <SickLeaveCategorySelector
+                    v-model="form.sick_leave_category_id"
+                    :disabled="loading"
+                />
             </div>
 
             <div>

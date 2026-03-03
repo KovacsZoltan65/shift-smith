@@ -1,16 +1,16 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import { Select } from "primevue";
-import LeaveTypeService from "@/services/LeaveTypeService.js";
+import SickLeaveCategoryService from "@/services/SickLeaveCategoryService.js";
 
 const props = defineProps({
     modelValue: [String, Number, null],
-    activeOnly: { type: Boolean, default: true },
-    categories: { type: Array, default: () => ["leave", "sick_leave"] },
-    placeholder: { type: String, default: "Szabadság típus..." },
+    disabled: { type: Boolean, default: false },
+    placeholder: { type: String, default: "Betegszabadság kategória..." },
+    onlyActive: { type: Boolean, default: true },
 });
 
-const emit = defineEmits(["update:modelValue", "update:selectedOption"]);
+const emit = defineEmits(["update:modelValue"]);
 
 const options = ref([]);
 const loading = ref(false);
@@ -20,17 +20,12 @@ const model = computed({
     set: (value) => emit("update:modelValue", value),
 });
 
-const emitSelectedOption = () => {
-    const selected = options.value.find((option) => Number(option.id) === Number(model.value)) ?? null;
-    emit("update:selectedOption", selected);
-};
-
 const loadOptions = async () => {
     loading.value = true;
+
     try {
-        const { data } = await LeaveTypeService.selector({
-            active: props.activeOnly ? 1 : undefined,
-            category: props.categories,
+        const { data } = await SickLeaveCategoryService.selector({
+            only_active: props.onlyActive ? 1 : 0,
         });
 
         options.value = Array.isArray(data?.data) ? data.data : [];
@@ -38,14 +33,11 @@ const loadOptions = async () => {
         options.value = [];
     } finally {
         loading.value = false;
-        emitSelectedOption();
     }
 };
 
 onMounted(loadOptions);
-
-watch(() => [props.activeOnly, props.categories], loadOptions, { deep: true });
-watch(() => model.value, emitSelectedOption);
+watch(() => props.onlyActive, loadOptions);
 </script>
 
 <template>
@@ -57,7 +49,10 @@ watch(() => model.value, emitSelectedOption);
         :placeholder="placeholder"
         class="w-full"
         :loading="loading"
-        filter
+        :disabled="disabled"
+        :filter="options.length > 10"
         showClear
+        emptyMessage="Nincs elérhető kategória."
+        emptyFilterMessage="Nincs találat."
     />
 </template>

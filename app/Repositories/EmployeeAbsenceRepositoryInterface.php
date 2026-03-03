@@ -7,6 +7,7 @@ namespace App\Repositories;
 use App\Models\EmployeeAbsence;
 use App\Models\Employee;
 use App\Models\LeaveType;
+use App\Models\SickLeaveCategory;
 use Illuminate\Support\Collection;
 
 interface EmployeeAbsenceRepositoryInterface
@@ -24,4 +25,6 @@ interface EmployeeAbsenceRepositoryInterface
     public function findEmployeeForCompany(int $employeeId, int $companyId): Employee;
 
     public function findLeaveTypeForCompany(int $leaveTypeId, int $companyId): LeaveType;
+
+    public function findSickLeaveCategoryForCompany(int $categoryId, int $companyId): SickLeaveCategory;
 }

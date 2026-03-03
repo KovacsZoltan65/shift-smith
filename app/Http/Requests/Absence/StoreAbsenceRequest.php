@@ -22,6 +22,7 @@ class StoreAbsenceRequest extends FormRequest
         return [
             'employee_id' => ['required', 'integer', 'exists:employees,id'],
             'leave_type_id' => ['required', 'integer', 'exists:leave_types,id'],
+            'sick_leave_category_id' => ['nullable', 'integer', 'exists:sick_leave_categories,id'],
             'date_from' => ['required', 'date_format:Y-m-d'],
             'date_to' => ['required', 'date_format:Y-m-d', 'after_or_equal:date_from'],
             'note' => ['nullable', 'string', 'max:500'],

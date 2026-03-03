@@ -30,6 +30,7 @@ class AuthServiceProvider extends ServiceProvider
         \App\Models\CompanySetting::class => \App\Policies\CompanySettingPolicy::class,
         \App\Models\EmployeeAbsence::class => \App\Policies\EmployeeAbsencePolicy::class,
         \App\Models\LeaveType::class => \App\Policies\LeaveTypePolicy::class,
+        \App\Models\SickLeaveCategory::class => \App\Policies\SickLeaveCategoryPolicy::class,
         \App\Models\UserSetting::class => \App\Policies\UserSettingPolicy::class,
         \App\Models\UserEmployee::class => \App\Policies\UserEmployeePolicy::class,
         

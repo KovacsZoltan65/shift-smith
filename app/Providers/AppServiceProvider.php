@@ -42,6 +42,8 @@ use App\Repositories\EmployeeProfileRepository;
 use App\Repositories\LeaveBalanceRepository;
 use App\Repositories\LeaveTypeRepository;
 use App\Repositories\LeaveTypeRepositoryInterface;
+use App\Repositories\SickLeaveCategoryRepository;
+use App\Repositories\SickLeaveCategoryRepositoryInterface;
 use App\Repositories\EmployeeWorkPatternRepository;
 use App\Repositories\PositionRepository;
 use App\Repositories\UserRepository;
@@ -121,6 +123,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             LeaveTypeRepositoryInterface::class,
             LeaveTypeRepository::class
+        );
+        $this->app->bind(
+            SickLeaveCategoryRepositoryInterface::class,
+            SickLeaveCategoryRepository::class
         );
         $this->app->bind(
             PositionRepositoryInterface::class,

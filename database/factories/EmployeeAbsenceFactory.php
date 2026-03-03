@@ -27,6 +27,7 @@ class EmployeeAbsenceFactory extends Factory
             'company_id' => Company::factory(),
             'employee_id' => Employee::factory(),
             'leave_type_id' => LeaveType::factory(),
+            'sick_leave_category_id' => null,
             'date_from' => $dateFrom->format('Y-m-d'),
             'date_to' => $dateTo->format('Y-m-d'),
             'minutes_per_day' => 480,

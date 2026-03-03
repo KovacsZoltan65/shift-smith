@@ -88,6 +88,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'leave_types.create',
             'leave_types.update',
             'leave_types.delete',
+            'sick_leave_categories.viewAny',
             'absences.viewAny',
             'absences.create',
             'absences.update',

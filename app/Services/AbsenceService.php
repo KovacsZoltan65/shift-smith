@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Facades\Settings;
 use App\Models\EmployeeAbsence;
+use App\Models\LeaveType;
 use App\Repositories\EmployeeAbsenceRepositoryInterface;
 use App\Services\Cache\CacheVersionService;
 use Carbon\CarbonImmutable;
@@ -31,8 +32,8 @@ class AbsenceService
     public function store(int $companyId, int $userId, array $data): array
     {
         $this->repository->findEmployeeForCompany((int) $data['employee_id'], $companyId);
-        $this->repository->findLeaveTypeForCompany((int) $data['leave_type_id'], $companyId);
-        $absence = $this->repository->createForCompany($companyId, $this->normalizePayload($data, $userId));
+        $leaveType = $this->repository->findLeaveTypeForCompany((int) $data['leave_type_id'], $companyId);
+        $absence = $this->repository->createForCompany($companyId, $this->normalizePayload($data, $userId, true, $companyId, $leaveType));
         $this->invalidateCache($companyId);
 
         return $this->toArray($absence);
@@ -41,8 +42,8 @@ class AbsenceService
     public function update(int $companyId, int $id, int $userId, array $data): array
     {
         $this->repository->findEmployeeForCompany((int) $data['employee_id'], $companyId);
-        $this->repository->findLeaveTypeForCompany((int) $data['leave_type_id'], $companyId);
-        $absence = $this->repository->updateInCompany($id, $companyId, $this->normalizePayload($data, $userId, false));
+        $leaveType = $this->repository->findLeaveTypeForCompany((int) $data['leave_type_id'], $companyId);
+        $absence = $this->repository->updateInCompany($id, $companyId, $this->normalizePayload($data, $userId, false, $companyId, $leaveType));
         $this->invalidateCache($companyId);
 
         return $this->toArray($absence);
@@ -66,18 +67,20 @@ class AbsenceService
     }
 
     /**
-     * @param array{employee_id:int,leave_type_id:int,date_from:string,date_to:string,note?:?string,status?:?string} $data
+     * @param array{employee_id:int,leave_type_id:int,date_from:string,date_to:string,note?:?string,status?:?string,sick_leave_category_id?:int|null} $data
      */
-    private function normalizePayload(array $data, int $userId, bool $withCreator = true): array
+    private function normalizePayload(array $data, int $userId, bool $withCreator, int $companyId, LeaveType $leaveType): array
     {
         $dateFrom = CarbonImmutable::parse((string) $data['date_from'])->startOfDay();
         $dateTo = CarbonImmutable::parse((string) $data['date_to'])->startOfDay();
         $minutesPerDay = Settings::getInt('leave.minutes_per_day', 480);
         $dayCount = $dateFrom->diffInDays($dateTo) + 1;
+        $sickLeaveCategoryId = $this->resolveSickLeaveCategoryId($companyId, $leaveType, $data['sick_leave_category_id'] ?? null);
 
         $payload = [
             'employee_id' => (int) $data['employee_id'],
             'leave_type_id' => (int) $data['leave_type_id'],
+            'sick_leave_category_id' => $sickLeaveCategoryId,
             'date_from' => $dateFrom->toDateString(),
             'date_to' => $dateTo->toDateString(),
             'minutes_per_day' => $minutesPerDay,
@@ -109,6 +112,8 @@ class AbsenceService
             'leave_type_id' => (int) $absence->leave_type_id,
             'leave_type_name' => (string) ($absence->leaveType?->name ?? ''),
             'leave_type_category' => (string) ($absence->leaveType?->category ?? ''),
+            'sick_leave_category_id' => $absence->sick_leave_category_id !== null ? (int) $absence->sick_leave_category_id : null,
+            'sick_leave_category_name' => $absence->sickLeaveCategory?->name,
             'date_from' => $absence->date_from?->format('Y-m-d'),
             'date_to' => $absence->date_to?->format('Y-m-d'),
             'minutes_per_day' => (int) $absence->minutes_per_day,
@@ -156,6 +161,8 @@ class AbsenceService
                     'leave_type_id' => (int) $absence->leave_type_id,
                     'leave_type_name' => $typeName,
                     'category' => $category,
+                    'sick_leave_category_id' => $absence->sick_leave_category_id !== null ? (int) $absence->sick_leave_category_id : null,
+                    'sick_leave_category_name' => $absence->sickLeaveCategory?->name,
                     'minutes_per_day' => (int) $absence->minutes_per_day,
                     'total_minutes' => (int) $absence->total_minutes,
                     'note' => $absence->note,
@@ -174,5 +181,20 @@ class AbsenceService
     {
         $this->cacheVersionService->bump("absences:{$companyId}:calendar");
         $this->cacheVersionService->bump("absences:{$companyId}:show");
+    }
+
+    private function resolveSickLeaveCategoryId(int $companyId, LeaveType $leaveType, mixed $rawCategoryId): ?int
+    {
+        if ($leaveType->category !== LeaveType::CATEGORY_SICK_LEAVE) {
+            return null;
+        }
+
+        if ($rawCategoryId === null || $rawCategoryId === '') {
+            return null;
+        }
+
+        $category = $this->repository->findSickLeaveCategoryForCompany((int) $rawCategoryId, $companyId);
+
+        return (int) $category->id;
     }
 }

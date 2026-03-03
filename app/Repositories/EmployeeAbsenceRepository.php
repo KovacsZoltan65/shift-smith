@@ -7,6 +7,7 @@ namespace App\Repositories;
 use App\Models\EmployeeAbsence;
 use App\Models\Employee;
 use App\Models\LeaveType;
+use App\Models\SickLeaveCategory;
 use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
 use Illuminate\Support\Collection;
@@ -40,6 +41,7 @@ class EmployeeAbsenceRepository implements EmployeeAbsenceRepositoryInterface
                     ->with([
                         'employee:id,company_id,first_name,last_name',
                         'leaveType:id,company_id,code,name,category,affects_leave_balance,requires_approval,active',
+                        'sickLeaveCategory:id,company_id,name,code,active',
                     ])
                     ->inCompany($companyId)
                     ->whereDate('date_from', '<=', (string) $filters['date_to'])
@@ -65,7 +67,7 @@ class EmployeeAbsenceRepository implements EmployeeAbsenceRepositoryInterface
             tag: "absences:{$companyId}",
             key: 'v'.$version.':'.$id,
             callback: static fn (): ?EmployeeAbsence => EmployeeAbsence::query()
-                ->with(['employee', 'leaveType', 'creator'])
+                ->with(['employee', 'leaveType', 'sickLeaveCategory', 'creator'])
                 ->inCompany($companyId)
                 ->find($id),
             ttl: (int) config('cache.ttl_fetch', 60),
@@ -82,7 +84,7 @@ class EmployeeAbsenceRepository implements EmployeeAbsenceRepositoryInterface
             'company_id' => $companyId,
         ]);
 
-        return $absence->refresh()->load(['employee', 'leaveType', 'creator']);
+        return $absence->refresh()->load(['employee', 'leaveType', 'sickLeaveCategory', 'creator']);
     }
 
     public function updateInCompany(int $id, int $companyId, array $data): EmployeeAbsence
@@ -91,7 +93,7 @@ class EmployeeAbsenceRepository implements EmployeeAbsenceRepositoryInterface
         $absence->fill($data);
         $absence->save();
 
-        return $absence->refresh()->load(['employee', 'leaveType', 'creator']);
+        return $absence->refresh()->load(['employee', 'leaveType', 'sickLeaveCategory', 'creator']);
     }
 
     public function deleteInCompany(int $id, int $companyId): void
@@ -118,6 +120,16 @@ class EmployeeAbsenceRepository implements EmployeeAbsenceRepositoryInterface
             ->findOrFail($leaveTypeId);
 
         return $leaveType;
+    }
+
+    public function findSickLeaveCategoryForCompany(int $categoryId, int $companyId): SickLeaveCategory
+    {
+        /** @var SickLeaveCategory $category */
+        $category = SickLeaveCategory::query()
+            ->inCompany($companyId)
+            ->findOrFail($categoryId);
+
+        return $category;
     }
 
     private function findRequired(int $id, int $companyId): EmployeeAbsence

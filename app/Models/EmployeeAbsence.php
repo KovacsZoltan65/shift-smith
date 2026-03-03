@@ -19,6 +19,7 @@ class EmployeeAbsence extends Model
         'company_id',
         'employee_id',
         'leave_type_id',
+        'sick_leave_category_id',
         'date_from',
         'date_to',
         'minutes_per_day',
@@ -32,6 +33,7 @@ class EmployeeAbsence extends Model
         'company_id' => 'int',
         'employee_id' => 'int',
         'leave_type_id' => 'int',
+        'sick_leave_category_id' => 'int',
         'minutes_per_day' => 'int',
         'total_minutes' => 'int',
         'created_by' => 'int',
@@ -60,6 +62,11 @@ class EmployeeAbsence extends Model
     public function leaveType(): BelongsTo
     {
         return $this->belongsTo(LeaveType::class);
+    }
+
+    public function sickLeaveCategory(): BelongsTo
+    {
+        return $this->belongsTo(SickLeaveCategory::class);
     }
 
     public function creator(): BelongsTo
