@@ -6,6 +6,16 @@ vi.mock("@inertiajs/vue3", () => ({
     Head: { template: "<div />" },
 }));
 
+vi.mock("@primevue/core/api", () => ({
+    FilterMatchMode: {
+        CONTAINS: "contains",
+        EQUALS: "equals",
+    },
+    FilterOperator: {
+        AND: "and",
+    },
+}));
+
 const toastAdd = vi.fn();
 vi.mock("primevue/usetoast", () => ({
     useToast: () => ({ add: toastAdd }),
@@ -44,15 +54,43 @@ const stubs = {
     InputText: {
         props: ["modelValue"],
         emits: ["update:modelValue", "input"],
-        template: `<input :value="modelValue" @input="$emit('update:modelValue', $event.target.value);$emit('input',$event)" />`,
+        template: `<input v-bind="$attrs" :value="modelValue" @input="$emit('update:modelValue', $event.target.value);$emit('input',$event)" />`,
     },
     DataTable: {
-        props: ["value"],
-        template: `<div><div v-for="r in (value ?? [])" :key="r.id">{{ r.name }}</div><slot /></div>`,
+        inheritAttrs: true,
+        props: ["value", "filters", "globalFilterFields"],
+        computed: {
+            filteredRows() {
+                const rows = this.value ?? [];
+                const globalValue = String(this.filters?.global?.value ?? "").trim().toLowerCase();
+
+                if (!globalValue) {
+                    return rows;
+                }
+
+                const fields = this.globalFilterFields ?? [];
+
+                return rows.filter((row) =>
+                    fields.some((field) => String(row?.[field] ?? "").toLowerCase().includes(globalValue)),
+                );
+            },
+        },
+        template: `
+            <div v-bind="$attrs">
+                <slot name="header" />
+                <div v-for="r in filteredRows" :key="r.id" class="work-pattern-row">{{ r.name }}</div>
+                <slot />
+            </div>
+        `,
     },
     Column: { template: "<div><slot /></div>" },
     Menu: { template: "<div />" },
     Tag: { props: ["value"], template: "<span>{{ value }}</span>" },
+    Select: {
+        props: ["modelValue", "options"],
+        emits: ["update:modelValue"],
+        template: `<select :value="modelValue" @change="$emit('update:modelValue', $event.target.value)" />`,
+    },
     CompanySelector: {
         props: ["modelValue"],
         emits: ["update:modelValue"],
@@ -192,5 +230,16 @@ describe("WorkPatterns CRUD (Index.vue)", () => {
         await flushPromises();
 
         expect(globalThis.fetch).toHaveBeenCalled();
+    });
+
+    it("global search a DataTable filters.global state-re van kotve", async () => {
+        const wrapper = mount(Index, { props: { filter: { company_id: 1 } }, global: { stubs } });
+        await flushPromises();
+
+        const search = wrapper.find('[data-testid="work-patterns-search"]');
+        await search.setValue("zaka");
+        await flushPromises();
+
+        expect(wrapper.vm.filters.global.value).toBe("zaka");
     });
 });

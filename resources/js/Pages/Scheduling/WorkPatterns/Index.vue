@@ -1,7 +1,8 @@
 <script setup>
 import { Head } from "@inertiajs/vue3";
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
+import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
 import Button from "primevue/button";
 import Column from "primevue/column";
 import Checkbox from "primevue/checkbox";
@@ -9,6 +10,7 @@ import ConfirmDialog from "primevue/confirmdialog";
 import DataTable from "primevue/datatable";
 import InputText from "primevue/inputtext";
 import Menu from "primevue/menu";
+import Select from "primevue/select";
 import Toast from "primevue/toast";
 import { useConfirm } from "primevue/useconfirm";
 import { useToast } from "primevue/usetoast";
@@ -19,6 +21,7 @@ import EmployeeAssignModal from "@/Pages/Scheduling/WorkPatterns/EmployeeAssignM
 import EmployeesModal from "@/Pages/Scheduling/WorkPatterns/EmployeesModal.vue";
 import { csrfFetch } from "@/lib/csrfFetch";
 import { usePermissions } from "@/composables/usePermissions";
+import { IconField, InputIcon } from "primevue";
 
 const { has } = usePermissions();
 
@@ -47,25 +50,80 @@ const employeesWorkPattern = ref(null);
 const loading = ref(false);
 const actionLoading = ref(false);
 const error = ref(null);
+const dt = ref(null);
 
 const rows = ref([]);
-const totalRecords = ref(0);
 const selected = ref([]);
 
 const companyId = ref(props.filter?.company_id ?? null);
-const search = ref(props.filter?.search ?? "");
-let searchTimer = null;
-
-const lazy = ref({
-    first: 0,
-    rows: 10,
-    page: 0,
-    sortField: props.filter?.field || "name",
-    sortOrder: (props.filter?.order || "asc") === "asc" ? 1 : -1,
-});
-
 const rowMenu = ref();
 const rowMenuModel = ref([]);
+const globalFilterFields = [
+    "name",
+    "daily_work_minutes",
+    "break_minutes",
+    "employees_count",
+    "active",
+];
+
+const booleanOptions = [
+    { label: "Aktiv", value: true },
+    { label: "Inaktiv", value: false },
+];
+
+const createInitialFilters = () => ({
+    global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    name: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+    },
+    daily_work_minutes: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }],
+    },
+    break_minutes: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }],
+    },
+    active: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }],
+    },
+});
+
+const filters = ref(createInitialFilters());
+
+const initFilters = () => {
+    filters.value = createInitialFilters();
+};
+
+const clearFilter = () => {
+    initFilters();
+    dt.value?.clearFilter?.();
+};
+
+const hasActiveFilters = computed(() => {
+    const currentFilters = filters.value ?? {};
+
+    return Object.values(currentFilters).some((entry) => {
+        if (!entry || typeof entry !== "object") {
+            return false;
+        }
+
+        if ("value" in entry) {
+            return entry.value !== null && entry.value !== "";
+        }
+
+        if (Array.isArray(entry.constraints)) {
+            return entry.constraints.some(
+                (constraint) =>
+                    constraint?.value !== null && constraint?.value !== "",
+            );
+        }
+
+        return false;
+    });
+});
 
 const openCreate = () => {
     createOpen.value = true;
@@ -124,32 +182,25 @@ const onSaved = async (message = "Mentve.") => {
     employeesOpen.value = false;
     selected.value = [];
     await fetchWorkPatterns();
-    toast.add({ severity: "success", summary: "Siker", detail: message, life: 2500 });
-};
-
-const onSearchInput = () => {
-    if (searchTimer) clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => {
-        lazy.value.first = 0;
-        lazy.value.page = 0;
-        fetchWorkPatterns();
-    }, 300);
+    toast.add({
+        severity: "success",
+        summary: "Siker",
+        detail: message,
+        life: 2500,
+    });
 };
 
 const onCompanyChanged = () => {
-    lazy.value.first = 0;
-    lazy.value.page = 0;
+    initFilters();
     fetchWorkPatterns();
 };
 
 const buildQuery = () => {
-    const order = lazy.value.sortOrder === 1 ? "asc" : "desc";
     const q = {
-        page: lazy.value.page + 1,
-        per_page: lazy.value.rows,
-        field: lazy.value.sortField,
-        order,
-        search: search.value?.trim() || "",
+        page: 1,
+        per_page: 100,
+        field: "name",
+        order: "asc",
         company_id: companyId.value || "",
     };
 
@@ -163,7 +214,6 @@ const buildQuery = () => {
 const fetchWorkPatterns = async () => {
     if (!companyId.value) {
         rows.value = [];
-        totalRecords.value = 0;
         return;
     }
 
@@ -172,34 +222,23 @@ const fetchWorkPatterns = async () => {
 
     try {
         const res = await fetch(`/work-patterns/fetch?${buildQuery()}`, {
-            headers: { "X-Requested-With": "XMLHttpRequest", Accept: "application/json" },
+            headers: {
+                "X-Requested-With": "XMLHttpRequest",
+                Accept: "application/json",
+            },
         });
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const json = await res.json();
-        rows.value = Array.isArray(json?.data) ? json.data : json?.data?.data ?? [];
-        totalRecords.value = Number(json?.meta?.total ?? 0);
+        rows.value = Array.isArray(json?.data)
+            ? json.data
+            : (json?.data?.data ?? []);
     } catch (e) {
         error.value = e?.message || "Ismeretlen hiba";
     } finally {
         loading.value = false;
     }
-};
-
-const onPage = (event) => {
-    lazy.value.first = event.first;
-    lazy.value.rows = event.rows;
-    lazy.value.page = event.page;
-    fetchWorkPatterns();
-};
-
-const onSort = (event) => {
-    lazy.value.sortField = event.sortField;
-    lazy.value.sortOrder = event.sortOrder;
-    lazy.value.first = 0;
-    lazy.value.page = 0;
-    fetchWorkPatterns();
 };
 
 const confirmDeleteOne = (row) => {
@@ -229,14 +268,26 @@ const deleteOne = async (id) => {
 
         if (!res.ok) {
             const body = await res.json().catch(() => ({}));
-            throw new Error(body?.message || `Törlés sikertelen (HTTP ${res.status})`);
+            throw new Error(
+                body?.message || `Törlés sikertelen (HTTP ${res.status})`,
+            );
         }
 
         selected.value = selected.value.filter((x) => x.id !== id);
-        toast.add({ severity: "success", summary: "Siker", detail: "Munkarend törölve", life: 2500 });
+        toast.add({
+            severity: "success",
+            summary: "Siker",
+            detail: "Munkarend törölve",
+            life: 2500,
+        });
         await fetchWorkPatterns();
     } catch (e) {
-        toast.add({ severity: "error", summary: "Hiba", detail: e?.message || "Ismeretlen hiba", life: 3500 });
+        toast.add({
+            severity: "error",
+            summary: "Hiba",
+            detail: e?.message || "Ismeretlen hiba",
+            life: 3500,
+        });
     } finally {
         actionLoading.value = false;
     }
@@ -262,13 +313,18 @@ const bulkDelete = async (ids) => {
     try {
         const res = await csrfFetch("/work-patterns/destroy_bulk", {
             method: "DELETE",
-            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+            },
             body: JSON.stringify({ ids, company_id: Number(companyId.value) }),
         });
 
         if (!res.ok) {
             const body = await res.json().catch(() => ({}));
-            throw new Error(body?.message || `Bulk törlés sikertelen (HTTP ${res.status})`);
+            throw new Error(
+                body?.message || `Bulk törlés sikertelen (HTTP ${res.status})`,
+            );
         }
 
         selected.value = [];
@@ -280,7 +336,12 @@ const bulkDelete = async (ids) => {
         });
         await fetchWorkPatterns();
     } catch (e) {
-        toast.add({ severity: "error", summary: "Hiba", detail: e?.message || "Ismeretlen hiba", life: 3500 });
+        toast.add({
+            severity: "error",
+            summary: "Hiba",
+            detail: e?.message || "Ismeretlen hiba",
+            life: 3500,
+        });
     } finally {
         actionLoading.value = false;
     }
@@ -308,26 +369,44 @@ const toggleActive = async (row, value) => {
 
         const res = await csrfFetch(`/work-patterns/${row.id}`, {
             method: "PUT",
-            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+            },
             body: JSON.stringify(payload),
         });
 
         if (!res.ok) {
             const body = await res.json().catch(() => ({}));
-            throw new Error(body?.message || `Aktiválás sikertelen (HTTP ${res.status})`);
+            throw new Error(
+                body?.message || `Aktiválás sikertelen (HTTP ${res.status})`,
+            );
         }
 
         row.active = !!value;
-        toast.add({ severity: "success", summary: "Siker", detail: "Státusz frissítve", life: 2000 });
+        toast.add({
+            severity: "success",
+            summary: "Siker",
+            detail: "Státusz frissítve",
+            life: 2000,
+        });
     } catch (e) {
-        toast.add({ severity: "error", summary: "Hiba", detail: e?.message || "Ismeretlen hiba", life: 3500 });
+        toast.add({
+            severity: "error",
+            summary: "Hiba",
+            detail: e?.message || "Ismeretlen hiba",
+            life: 3500,
+        });
         await fetchWorkPatterns();
     } finally {
         actionLoading.value = false;
     }
 };
 
-onMounted(fetchWorkPatterns);
+onMounted(() => {
+    initFilters();
+    fetchWorkPatterns();
+});
 </script>
 
 <template>
@@ -363,8 +442,8 @@ onMounted(fetchWorkPatterns);
     />
 
     <AuthenticatedLayout>
-        <div class="p-6">
-            <div class="mb-4 flex items-center justify-between gap-3">
+        <div class="space-y-4 p-6">
+            <div class="flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-3 flex-wrap">
                     <h1 class="text-2xl font-semibold">{{ title }}</h1>
 
@@ -393,7 +472,9 @@ onMounted(fetchWorkPatterns);
                         icon="pi pi-trash"
                         severity="danger"
                         size="small"
-                        :disabled="!selected?.length || loading || actionLoading"
+                        :disabled="
+                            !selected?.length || loading || actionLoading
+                        "
                         :loading="actionLoading"
                         @click="confirmBulkDelete"
                     />
@@ -410,16 +491,6 @@ onMounted(fetchWorkPatterns);
                         />
                     </div>
                 </div>
-
-                <span class="p-input-icon-left">
-                    <i class="pi pi-search" />
-                    <InputText
-                        v-model="search"
-                        placeholder="Keresés..."
-                        class="w-64"
-                        @input="onSearchInput"
-                    />
-                </span>
             </div>
 
             <div v-if="error" class="mb-3 border p-3">
@@ -430,37 +501,128 @@ onMounted(fetchWorkPatterns);
             <Menu ref="rowMenu" :model="rowMenuModel" popup />
 
             <DataTable
+                ref="dt"
                 v-model:selection="selected"
+                v-model:filters="filters"
                 :value="rows"
                 dataKey="id"
-                lazy
                 paginator
-                :rows="lazy.rows"
-                :first="lazy.first"
-                :totalRecords="totalRecords"
+                :rows="10"
                 :rowsPerPageOptions="[10, 25, 50, 100]"
                 :loading="loading || actionLoading"
-                sortMode="single"
-                :sortField="lazy.sortField"
-                :sortOrder="lazy.sortOrder"
-                @page="onPage"
-                @sort="onSort"
+                sortMode="multiple"
+                removableSort
+                filterDisplay="menu"
+                :globalFilterFields="globalFilterFields"
                 selectionMode="multiple"
             >
+                <template #header>
+                    <div class="flex justify-between">
+                        <Button
+                            type="button"
+                            icon="pi pi-filter-slash"
+                            label="Clear"
+                            variant="outlined"
+                            @click="clearFilter()"
+                        />
+                        <IconField>
+                            <InputIcon>
+                                <i class="pi pi-search" />
+                            </InputIcon>
+                            <InputText
+                                v-model="filters['global'].value"
+                                placeholder="Keyword Search"
+                            />
+                        </IconField>
+                    </div>
+                    <!--<div class="flex flex-wrap items-center justify-between gap-3">
+                        <Button
+                            type="button"
+                            icon="pi pi-filter-slash"
+                            label="Szurok torlese"
+                            severity="secondary"
+                            size="small"
+                            :disabled="!hasActiveFilters"
+                            data-testid="work-patterns-clear-filters"
+                            @click="clearFilters"
+                        />
+                        <span class="p-input-icon-left">
+                            <i class="pi pi-search" />
+                            <InputText
+                                v-model="filters.global.value"
+                                placeholder="Kereses..."
+                                class="w-64"
+                                data-testid="work-patterns-search"
+                            />
+                        </span>
+                    </div>-->
+                </template>
+
                 <template #empty>Nincs találat.</template>
 
                 <Column selectionMode="multiple" headerStyle="width: 3rem" />
                 <Column field="id" header="ID" sortable style="width: 90px" />
-                <Column field="name" header="Név" sortable />
-
-                <Column field="daily_work_minutes" header="Napi perc" sortable />
-                <Column field="break_minutes" header="Szünet perc" sortable />
-                <Column header="Core idő">
-                    <template #body="{ data }">
-                        {{ formatCore(data.core_start_time, data.core_end_time) }}
+                <Column
+                    field="name"
+                    filterField="name"
+                    header="Név"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
+                    <template #filter="{ filterModel }">
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            placeholder="Nev keresese"
+                        />
                     </template>
                 </Column>
-                <Column field="employees_count" header="Dolgozók száma" style="width: 150px">
+
+                <Column
+                    field="daily_work_minutes"
+                    filterField="daily_work_minutes"
+                    header="Napi perc"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
+                    <template #filter="{ filterModel }">
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            placeholder="Napi perc"
+                        />
+                    </template>
+                </Column>
+                <Column
+                    field="break_minutes"
+                    filterField="break_minutes"
+                    header="Szünet perc"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
+                    <template #filter="{ filterModel }">
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            placeholder="Szunet perc"
+                        />
+                    </template>
+                </Column>
+                <Column header="Core idő">
+                    <template #body="{ data }">
+                        {{
+                            formatCore(data.core_start_time, data.core_end_time)
+                        }}
+                    </template>
+                </Column>
+                <Column
+                    field="employees_count"
+                    header="Dolgozók száma"
+                    style="width: 150px"
+                >
                     <template #body="{ data }">
                         <!-- A darabszám kattintható: részletes dolgozólista modal megnyitása. -->
                         <Button
@@ -473,7 +635,16 @@ onMounted(fetchWorkPatterns);
                     </template>
                 </Column>
 
-                <Column field="active" header="Aktív" sortable style="width: 120px">
+                <Column
+                    field="active"
+                    filterField="active"
+                    header="Aktív"
+                    filter
+                    sortable
+                    dataType="boolean"
+                    style="width: 120px"
+                    :showFilterMatchModes="false"
+                >
                     <template #body="{ data }">
                         <Checkbox
                             :modelValue="!!data.active"
@@ -482,9 +653,24 @@ onMounted(fetchWorkPatterns);
                             @update:modelValue="(v) => toggleActive(data, !!v)"
                         />
                     </template>
+                    <template #filter="{ filterModel }">
+                        <Select
+                            v-model="filterModel.value"
+                            :options="booleanOptions"
+                            optionLabel="label"
+                            optionValue="value"
+                            class="w-full"
+                            showClear
+                            placeholder="Statusz"
+                        />
+                    </template>
                 </Column>
 
-                <Column header="Műveletek" headerStyle="width: 3rem" bodyStyle="white-space: nowrap;">
+                <Column
+                    header="Műveletek"
+                    headerStyle="width: 3rem"
+                    bodyStyle="white-space: nowrap;"
+                >
                     <template #body="{ data }">
                         <div class="flex gap-2 justify-end">
                             <Button

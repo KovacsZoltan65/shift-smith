@@ -20,6 +20,7 @@ import Select from "primevue/select";
 import Tag from "primevue/tag";
 import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
+import { IconField, InputIcon } from "primevue";
 
 const props = defineProps({
     title: { type: String, default: "Szabadsag tipusok" },
@@ -78,7 +79,7 @@ const initFilters = () => {
     filters.value = createInitialFilters();
 };
 
-const clearFilters = () => {
+const clearFilter = () => {
     initFilters();
     dt.value?.clearFilter?.();
 };
@@ -96,7 +97,10 @@ const hasActiveFilters = computed(() => {
         }
 
         if (Array.isArray(entry.constraints)) {
-            return entry.constraints.some((constraint) => constraint?.value !== null && constraint?.value !== "");
+            return entry.constraints.some(
+                (constraint) =>
+                    constraint?.value !== null && constraint?.value !== "",
+            );
         }
 
         return false;
@@ -104,11 +108,14 @@ const hasActiveFilters = computed(() => {
 });
 
 const categoryLabel = (value) =>
-    categoryOptions.value.find((option) => option.code === value)?.name ?? value;
+    categoryOptions.value.find((option) => option.code === value)?.name ??
+    value;
 
 const loadCategoryOptions = async () => {
     try {
-        const { data } = await LeaveCategoryService.selector({ only_active: 0 });
+        const { data } = await LeaveCategoryService.selector({
+            only_active: 0,
+        });
         categoryOptions.value = Array.isArray(data?.data) ? data.data : [];
     } catch (_) {
         categoryOptions.value = [];
@@ -266,7 +273,25 @@ onMounted(async () => {
                 :globalFilterFields="globalFilterFields"
             >
                 <template #header>
-                    <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex justify-between">
+                        <Button
+                            type="button"
+                            icon="pi pi-filter-slash"
+                            label="Clear"
+                            variant="outlined"
+                            @click="clearFilter()"
+                        />
+                        <IconField>
+                            <InputIcon>
+                                <i class="pi pi-search" />
+                            </InputIcon>
+                            <InputText
+                                v-model="filters['global'].value"
+                                placeholder="Keyword Search"
+                            />
+                        </IconField>
+                    </div>
+                    <!--<div class="flex flex-wrap items-center justify-between gap-3">
                         <Button
                             type="button"
                             icon="pi pi-filter-slash"
@@ -286,7 +311,7 @@ onMounted(async () => {
                                 data-testid="leave-types-search"
                             />
                         </span>
-                    </div>
+                    </div>-->
                 </template>
 
                 <template #empty>Nincs talalat.</template>
@@ -335,7 +360,10 @@ onMounted(async () => {
                     :showFilterMatchModes="false"
                 >
                     <template #body="{ data }">
-                        <Tag :value="categoryLabel(data.category)" severity="info" />
+                        <Tag
+                            :value="categoryLabel(data.category)"
+                            severity="info"
+                        />
                     </template>
                     <template #filter="{ filterModel }">
                         <Select
@@ -350,11 +378,19 @@ onMounted(async () => {
                     </template>
                 </Column>
 
-                <Column field="affects_leave_balance" header="Keretet csokkenti" sortable>
+                <Column
+                    field="affects_leave_balance"
+                    header="Keretet csokkenti"
+                    sortable
+                >
                     <template #body="{ data }">
                         <Tag
                             :value="data.affects_leave_balance ? 'Igen' : 'Nem'"
-                            :severity="data.affects_leave_balance ? 'success' : 'secondary'"
+                            :severity="
+                                data.affects_leave_balance
+                                    ? 'success'
+                                    : 'secondary'
+                            "
                         />
                     </template>
                 </Column>
@@ -363,7 +399,9 @@ onMounted(async () => {
                     <template #body="{ data }">
                         <Tag
                             :value="data.requires_approval ? 'Kotelezo' : 'Nem'"
-                            :severity="data.requires_approval ? 'warning' : 'secondary'"
+                            :severity="
+                                data.requires_approval ? 'warning' : 'secondary'
+                            "
                         />
                     </template>
                 </Column>
