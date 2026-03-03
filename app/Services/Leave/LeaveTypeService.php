@@ -8,6 +8,7 @@ use App\Models\LeaveType;
 use App\Repositories\LeaveTypeRepositoryInterface;
 use App\Services\Cache\CacheVersionService;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Str;
 
 class LeaveTypeService
 {
@@ -65,7 +66,10 @@ class LeaveTypeService
 
     public function store(int $companyId, array $data): array
     {
-        $leaveType = $this->repository->createForCompany($companyId, $this->normalizePayload($data));
+        $normalized = $this->normalizeStorePayload($data);
+        $normalized['code'] = $this->generateUniqueCode($companyId, $normalized['name']);
+
+        $leaveType = $this->repository->createForCompany($companyId, $normalized);
         $this->invalidateCache($companyId);
 
         return $this->toArray($leaveType);
@@ -73,18 +77,19 @@ class LeaveTypeService
 
     public function update(int $companyId, int $id, array $data): array
     {
-        $normalized = $this->normalizePayload($data);
         $existing = $this->repository->findByIdInCompany($id, $companyId);
 
         if (! $existing instanceof LeaveType) {
             abort(404, 'A szabadsag tipus nem talalhato.');
         }
 
-        if ($existing->code !== $normalized['code']) {
+        if (array_key_exists('code', $data) && trim((string) $data['code']) !== $existing->code) {
             throw ValidationException::withMessages([
                 'code' => 'A kód nem módosítható.',
             ]);
         }
+
+        $normalized = $this->normalizeUpdatePayload($data, $existing->code);
 
         $hasChanges = $existing->name !== $normalized['name']
             || $existing->category !== $normalized['category']
@@ -108,16 +113,42 @@ class LeaveTypeService
         $this->invalidateCache($companyId);
     }
 
-    private function normalizePayload(array $data): array
+    private function normalizeStorePayload(array $data): array
     {
         return [
-            'code' => trim((string) $data['code']),
             'name' => trim((string) $data['name']),
             'category' => trim((string) $data['category']),
             'affects_leave_balance' => (bool) $data['affects_leave_balance'],
             'requires_approval' => (bool) $data['requires_approval'],
             'active' => (bool) $data['active'],
         ];
+    }
+
+    private function normalizeUpdatePayload(array $data, string $code): array
+    {
+        return [
+            'code' => $code,
+            'name' => trim((string) $data['name']),
+            'category' => trim((string) $data['category']),
+            'affects_leave_balance' => (bool) $data['affects_leave_balance'],
+            'requires_approval' => (bool) $data['requires_approval'],
+            'active' => (bool) $data['active'],
+        ];
+    }
+
+    private function generateUniqueCode(int $companyId, string $name): string
+    {
+        $slug = Str::slug($name, '_');
+        $base = 'lt_'.($slug !== '' ? $slug : 'leave_type');
+        $candidate = $base;
+        $suffix = 2;
+
+        while ($this->repository->existsByCodeInCompany($companyId, $candidate)) {
+            $candidate = "{$base}_{$suffix}";
+            $suffix++;
+        }
+
+        return $candidate;
     }
 
     private function invalidateCache(int $companyId): void

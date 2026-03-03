@@ -6,8 +6,6 @@ namespace App\Http\Requests\LeaveType;
 
 use App\Models\LeaveType;
 use App\Policies\LeaveTypePolicy;
-use Illuminate\Validation\Rule;
-
 class UpdateLeaveTypeRequest extends StoreLeaveTypeRequest
 {
     public function authorize(): bool
@@ -17,22 +15,23 @@ class UpdateLeaveTypeRequest extends StoreLeaveTypeRequest
 
     public function rules(): array
     {
-        $id = (int) $this->route('id');
-
         return [
-            'code' => [
-                'required',
-                'string',
-                'max:50',
-                Rule::unique('leave_types', 'code')
-                    ->ignore($id, 'id')
-                    ->where(fn ($query) => $query->where('company_id', $this->currentCompanyId())),
-            ],
             'name' => ['required', 'string', 'max:150'],
             'category' => ['required', 'string', 'in:'.implode(',', LeaveType::getCategories())],
             'affects_leave_balance' => ['required', 'boolean'],
             'requires_approval' => ['required', 'boolean'],
             'active' => ['required', 'boolean'],
         ];
+    }
+
+    public function validatedPayload(): array
+    {
+        $payload = $this->validated();
+
+        if ($this->has('code')) {
+            $payload['code'] = $this->input('code');
+        }
+
+        return $payload;
     }
 }

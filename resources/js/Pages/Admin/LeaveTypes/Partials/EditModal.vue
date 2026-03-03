@@ -24,7 +24,6 @@ const loading = ref(false);
 const saving = ref(false);
 const errors = ref({});
 const form = ref({
-    code: "",
     name: "",
     category: "leave",
     affects_leave_balance: true,
@@ -104,7 +103,13 @@ const submit = async () => {
     errors.value = {};
 
     try {
-        await LeaveTypeService.update(id, form.value);
+        await LeaveTypeService.update(id, {
+            name: String(form.value.name ?? "").trim(),
+            category: form.value.category,
+            affects_leave_balance: !!form.value.affects_leave_balance,
+            requires_approval: !!form.value.requires_approval,
+            active: !!form.value.active,
+        });
         emit("saved", "Szabadsag tipus frissitve.");
         close();
     } catch (error) {

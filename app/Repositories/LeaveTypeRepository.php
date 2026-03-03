@@ -98,6 +98,14 @@ class LeaveTypeRepository implements LeaveTypeRepositoryInterface
         );
     }
 
+    public function existsByCodeInCompany(int $companyId, string $code): bool
+    {
+        return LeaveType::withTrashed()
+            ->where('company_id', $companyId)
+            ->where('code', $code)
+            ->exists();
+    }
+
     public function findByIdInCompany(int $id, int $companyId): ?LeaveType
     {
         $version = $this->cacheVersionService->get($this->versionNamespace($companyId, 'show'));

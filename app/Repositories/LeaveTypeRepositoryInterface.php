@@ -13,6 +13,8 @@ interface LeaveTypeRepositoryInterface
 
     public function selectorForCompany(int $companyId, array $filters): array;
 
+    public function existsByCodeInCompany(int $companyId, string $code): bool;
+
     public function findByIdInCompany(int $id, int $companyId): ?LeaveType;
 
     public function createForCompany(int $companyId, array $data): LeaveType;

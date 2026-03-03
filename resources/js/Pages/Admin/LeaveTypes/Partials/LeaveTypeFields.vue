@@ -12,8 +12,6 @@ const props = defineProps({
 
 const emit = defineEmits(["update:modelValue"]);
 
-const form = props.modelValue;
-
 const categories = [
     { label: "Szabadsag", value: "leave" },
     { label: "Betegszabadsag", value: "sick_leave" },
@@ -21,7 +19,7 @@ const categories = [
     { label: "Fizetes nelkuli tavollet", value: "unpaid_absence" },
 ];
 
-const set = (key, value) => emit("update:modelValue", { ...form, [key]: value });
+const set = (key, value) => emit("update:modelValue", { ...(props.modelValue ?? {}), [key]: value });
 </script>
 
 <template>
@@ -30,21 +28,21 @@ const set = (key, value) => emit("update:modelValue", { ...form, [key]: value })
             <label class="mb-1 block text-sm">Kod</label>
             <InputText
                 class="w-full"
-                :modelValue="form.code"
-                :readonly="isEdit"
-                :disabled="disabled"
-                :title="isEdit ? 'A kód rendszerazonosító, nem módosítható.' : null"
+                :modelValue="modelValue?.code ?? 'Automatikusan generalodik'"
+                readonly
+                :disabled="disabled || !isEdit"
+                title="A kód rendszerazonosító, automatikusan generálódik."
                 data-testid="leave-type-code"
-                @update:modelValue="(value) => set('code', String(value ?? '').trimStart())"
             />
             <div v-if="errors?.code" class="mt-1 text-sm text-red-600">{{ errors.code }}</div>
+            <div class="mt-1 text-xs text-slate-500">A kodot a rendszer a nev alapjan generalja.</div>
         </div>
 
         <div>
             <label class="mb-1 block text-sm">Nev</label>
             <InputText
                 class="w-full"
-                :modelValue="form.name"
+                :modelValue="modelValue?.name ?? ''"
                 :disabled="disabled"
                 data-testid="leave-type-name"
                 @update:modelValue="(value) => set('name', String(value ?? '').trimStart())"
@@ -55,7 +53,7 @@ const set = (key, value) => emit("update:modelValue", { ...form, [key]: value })
         <div class="md:col-span-2">
             <label class="mb-1 block text-sm">Kategoria</label>
             <Select
-                :modelValue="form.category"
+                :modelValue="modelValue?.category ?? 'leave'"
                 :options="categories"
                 optionLabel="label"
                 optionValue="value"
@@ -72,7 +70,7 @@ const set = (key, value) => emit("update:modelValue", { ...form, [key]: value })
         <label class="flex items-center gap-2 text-sm">
             <Checkbox
                 inputId="leave-type-affects"
-                :modelValue="!!form.affects_leave_balance"
+                :modelValue="!!modelValue?.affects_leave_balance"
                 binary
                 :disabled="disabled"
                 data-testid="leave-type-affects"
@@ -84,7 +82,7 @@ const set = (key, value) => emit("update:modelValue", { ...form, [key]: value })
         <label class="flex items-center gap-2 text-sm">
             <Checkbox
                 inputId="leave-type-approval"
-                :modelValue="!!form.requires_approval"
+                :modelValue="!!modelValue?.requires_approval"
                 binary
                 :disabled="disabled"
                 data-testid="leave-type-approval"
@@ -96,7 +94,7 @@ const set = (key, value) => emit("update:modelValue", { ...form, [key]: value })
         <label class="flex items-center gap-2 text-sm">
             <Checkbox
                 inputId="leave-type-active"
-                :modelValue="!!form.active"
+                :modelValue="!!modelValue?.active"
                 binary
                 :disabled="disabled"
                 data-testid="leave-type-active"

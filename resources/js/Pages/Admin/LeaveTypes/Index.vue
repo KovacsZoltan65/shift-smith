@@ -13,6 +13,7 @@ import Button from "primevue/button";
 import Column from "primevue/column";
 import DataTable from "primevue/datatable";
 import InputText from "primevue/inputtext";
+import Menu from "primevue/menu";
 import MultiSelect from "primevue/multiselect";
 import Select from "primevue/select";
 import Tag from "primevue/tag";
@@ -30,6 +31,7 @@ const toast = useToast();
 const canCreate = computed(() => has("leave_types.create"));
 const canUpdate = computed(() => has("leave_types.update"));
 const canDelete = computed(() => has("leave_types.delete"));
+const canAnyRowAction = computed(() => canUpdate.value || canDelete.value);
 
 const rows = ref([]);
 const totalRecords = ref(0);
@@ -61,6 +63,8 @@ const editOpen = ref(false);
 const deleteOpen = ref(false);
 const editTarget = ref(null);
 const deleteTarget = ref(null);
+const rowMenu = ref();
+const rowMenuModel = ref([]);
 
 let searchTimer = null;
 
@@ -161,6 +165,25 @@ const openDeleteModal = (row) => {
     deleteOpen.value = true;
 };
 
+const openRowMenu = (event, row) => {
+    rowMenuModel.value = [
+        {
+            label: "Szerkesztes",
+            icon: "pi pi-pencil",
+            disabled: loading.value || !canUpdate.value,
+            command: () => openEditModal(row),
+        },
+        {
+            label: "Torles",
+            icon: "pi pi-trash",
+            disabled: loading.value || !canDelete.value,
+            command: () => openDeleteModal(row),
+        },
+    ];
+
+    rowMenu.value.toggle(event);
+};
+
 const onSaved = async (message) => {
     createOpen.value = false;
     editOpen.value = false;
@@ -250,6 +273,8 @@ onMounted(fetchRows);
                 </div>
             </div>
 
+            <Menu v-if="canAnyRowAction" ref="rowMenu" :model="rowMenuModel" popup />
+
             <DataTable
                 :value="rows"
                 dataKey="id"
@@ -296,29 +321,18 @@ onMounted(fetchRows);
                         <Tag :value="data.active ? 'Aktiv' : 'Inaktiv'" :severity="data.active ? 'success' : 'danger'" />
                     </template>
                 </Column>
-                <Column header="Muveletek" bodyStyle="white-space: nowrap;">
+                <Column v-if="canAnyRowAction" header="Muveletek" bodyStyle="white-space: nowrap;">
                     <template #body="{ data }">
                         <div class="flex justify-end gap-2">
                             <Button
-                                v-if="canUpdate"
-                                icon="pi pi-pencil"
+                                icon="pi pi-ellipsis-v"
+                                severity="secondary"
                                 text
                                 rounded
                                 size="small"
                                 :disabled="loading"
-                                data-testid="leave-types-edit"
-                                @click="openEditModal(data)"
-                            />
-                            <Button
-                                v-if="canDelete"
-                                icon="pi pi-trash"
-                                text
-                                rounded
-                                severity="danger"
-                                size="small"
-                                :disabled="loading"
-                                data-testid="leave-types-delete"
-                                @click="openDeleteModal(data)"
+                                data-testid="leave-types-actions"
+                                @click="openRowMenu($event, data)"
                             />
                         </div>
                     </template>

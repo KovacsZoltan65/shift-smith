@@ -57,6 +57,7 @@ const stubs = {
         template: `<div data-testid="datatable"><div v-for="row in (value ?? [])" :key="row.id">{{ row.name }}</div><slot /></div>`,
     },
     Column: { template: "<div><slot /></div>" },
+    Menu: { template: "<div />" },
     Tag: { props: ["value"], template: "<span>{{ value }}</span>" },
     MultiSelect: {
         inheritAttrs: true,
@@ -121,6 +122,9 @@ describe("LeaveTypes CRUD", () => {
         await flushPromises();
 
         expect(LeaveTypeService.store).toHaveBeenCalled();
+        expect(LeaveTypeService.store).toHaveBeenCalledWith(
+            expect.not.objectContaining({ code: expect.anything() }),
+        );
         expect(LeaveTypeService.fetch).toHaveBeenCalledTimes(2);
         expect(toastAdd).toHaveBeenCalledWith(expect.objectContaining({ severity: "success" }));
     });

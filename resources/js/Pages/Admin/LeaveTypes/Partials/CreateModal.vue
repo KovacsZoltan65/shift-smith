@@ -21,12 +21,17 @@ const open = computed({
 
 const saving = ref(false);
 const errors = ref({});
-const form = ref({});
+const form = ref({
+    name: "",
+    category: "leave",
+    affects_leave_balance: true,
+    requires_approval: true,
+    active: true,
+});
 
 const reset = () => {
     errors.value = {};
     form.value = {
-        code: "",
         name: "",
         category: "leave",
         affects_leave_balance: true,
@@ -53,7 +58,13 @@ const submit = async () => {
     errors.value = {};
 
     try {
-        await LeaveTypeService.store(form.value);
+        await LeaveTypeService.store({
+            name: String(form.value.name ?? "").trim(),
+            category: form.value.category,
+            affects_leave_balance: !!form.value.affects_leave_balance,
+            requires_approval: !!form.value.requires_approval,
+            active: !!form.value.active,
+        });
         emit("saved", "Szabadsag tipus letrehozva.");
         close();
     } catch (error) {

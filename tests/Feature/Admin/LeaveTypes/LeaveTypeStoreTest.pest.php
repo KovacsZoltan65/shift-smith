@@ -20,7 +20,6 @@ it('permission nelkul nem hozhat letre leave type rekordot', function (): void {
 
     $this->actingAsUserInCompany($user, $company)
         ->postJson(route('admin.leave_types.store'), [
-            'code' => 'annual',
             'name' => 'Szabadsag',
             'category' => 'leave',
             'affects_leave_balance' => true,
@@ -30,70 +29,77 @@ it('permission nelkul nem hozhat letre leave type rekordot', function (): void {
         ->assertForbidden();
 });
 
-it('validalja az egyedi code mezot company scope-ban', function (): void {
+it('code nelkul is letrehozza a rekordot es general egy company-scope egyedi kodot', function (): void {
     [$tenant, $company] = $this->createTenantWithCompany();
     $user = $this->createAdminUser($company);
 
-    LeaveType::query()->create([
-        'company_id' => $company->id,
-        'code' => 'annual',
-        'name' => 'Szabadsag',
-        'category' => 'leave',
-        'affects_leave_balance' => true,
-        'requires_approval' => true,
-        'active' => true,
-    ]);
-
-    $this->actingAsUserInCompany($user, $company)
+    $response = $this->actingAsUserInCompany($user, $company)
         ->postJson(route('admin.leave_types.store'), [
-            'code' => 'annual',
-            'name' => 'Masik nev',
-            'category' => 'leave',
-            'affects_leave_balance' => true,
+            'name' => 'Fizetes nelkuli tavollet',
+            'category' => 'unpaid_absence',
+            'affects_leave_balance' => false,
             'requires_approval' => true,
             'active' => true,
         ])
-        ->assertUnprocessable()
-        ->assertJsonValidationErrors(['code']);
+        ->assertCreated()
+        ->assertJsonPath('data.company_id', $company->id);
+
+    expect($response->json('data.code'))->toBe('lt_fizetes_nelkuli_tavollet');
+
+    $this->assertDatabaseHas('leave_types', [
+        'company_id' => $company->id,
+        'code' => 'lt_fizetes_nelkuli_tavollet',
+        'category' => 'unpaid_absence',
+    ]);
 });
 
-it('letrehozza a rekordot a current company scope-ban', function (): void {
+it('ugyanazzal a nevvel ket create kulonbozo suffixelt kodot general', function (): void {
     [$tenant, $company] = $this->createTenantWithCompany();
     $user = $this->createAdminUser($company);
 
-    $this->actingAsUserInCompany($user, $company)
+    $first = $this->actingAsUserInCompany($user, $company)
         ->postJson(route('admin.leave_types.store'), [
-            'code' => 'annual',
             'name' => 'Szabadsag',
             'category' => 'leave',
             'affects_leave_balance' => true,
             'requires_approval' => true,
             'active' => true,
         ])
-        ->assertCreated()
-        ->assertJsonPath('data.company_id', $company->id)
-        ->assertJsonPath('data.code', 'annual');
+        ->assertCreated();
+
+    $second = $this->actingAsUserInCompany($user, $company)
+        ->postJson(route('admin.leave_types.store'), [
+            'name' => 'Szabadsag',
+            'category' => 'leave',
+            'affects_leave_balance' => true,
+            'requires_approval' => true,
+            'active' => true,
+        ])
+        ->assertCreated();
+
+    expect($first->json('data.code'))->toBe('lt_szabadsag');
+    expect($second->json('data.code'))->toBe('lt_szabadsag_2');
 
     $this->assertDatabaseHas('leave_types', [
         'company_id' => $company->id,
-        'code' => 'annual',
+        'code' => 'lt_szabadsag',
+        'category' => 'leave',
+    ]);
+
+    $this->assertDatabaseHas('leave_types', [
+        'company_id' => $company->id,
+        'code' => 'lt_szabadsag_2',
         'category' => 'leave',
     ]);
 });
 
-it('azonos code masik companyban letrehozhato', function (): void {
+it('azonos nev masik companyban is ugyanazt az alap kodot kaphatja', function (): void {
     [$tenant, $companyA] = $this->createTenantWithCompany();
     [, $companyB] = $this->createTenantWithCompany([], ['tenant_group_id' => $tenant->id]);
     $user = $this->createAdminUser($companyA);
 
-    LeaveType::factory()->create([
-        'company_id' => $companyB->id,
-        'code' => 'annual',
-    ]);
-
     $this->actingAsUserInCompany($user, $companyA)
         ->postJson(route('admin.leave_types.store'), [
-            'code' => 'annual',
             'name' => 'Szabadsag',
             'category' => 'leave',
             'affects_leave_balance' => true,
@@ -101,6 +107,19 @@ it('azonos code masik companyban letrehozhato', function (): void {
             'active' => true,
         ])
         ->assertCreated()
-        ->assertJsonPath('data.company_id', $companyA->id)
-        ->assertJsonPath('data.code', 'annual');
+        ->assertJsonPath('data.code', 'lt_szabadsag');
+
+    $otherUser = $this->createAdminUser($companyB);
+
+    $this->actingAsUserInCompany($otherUser, $companyB)
+        ->postJson(route('admin.leave_types.store'), [
+            'name' => 'Szabadsag',
+            'category' => 'leave',
+            'affects_leave_balance' => true,
+            'requires_approval' => true,
+            'active' => true,
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.company_id', $companyB->id)
+        ->assertJsonPath('data.code', 'lt_szabadsag');
 });
