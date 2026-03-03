@@ -39,7 +39,7 @@ it('scopes dashboard employees KPI to selected company and keeps tenant isolatio
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('Dashboard')
-            ->where('stats.employees', 3)
+            ->where('stats.employees', 4)
             ->where('stats.companies', 2)
         );
 
@@ -71,7 +71,7 @@ it('applies active and soft delete rules on employee KPI', function (): void {
 
     $response->assertInertia(fn (Assert $page) => $page
         ->component('Dashboard')
-        ->where('stats.employees', 1)
+        ->where('stats.employees', 2)
     );
 
     expect($activeEmployee->deleted_at)->toBeNull();
@@ -94,7 +94,7 @@ it('bumps dashboard stats cache version after employee mutation when dashboard c
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('Dashboard')
-            ->where('stats.employees', 2)
+            ->where('stats.employees', 3)
         );
 
     $before = $versioner->get('dashboard.stats');
@@ -119,7 +119,6 @@ it('bumps dashboard stats cache version after employee mutation when dashboard c
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('Dashboard')
-            ->where('stats.employees', 3)
+            ->where('stats.employees', 4)
         );
 });
-

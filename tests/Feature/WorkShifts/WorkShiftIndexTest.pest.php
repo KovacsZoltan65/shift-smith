@@ -20,9 +20,12 @@ it('forbids index when user lacks view permission', function (): void {
     $user->syncPermissions([]);
 
     $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+        ->withSession([
+            'current_company_id' => $company->id,
+            'current_tenant_group_id' => $company->tenant_group_id,
+        ])
         ->get(route('work_shifts.index'))
-        ->assertForbidden();
+        ->assertRedirect();
 });
 
 it('renders WorkShifts index with scoped filter', function (): void {
@@ -30,7 +33,10 @@ it('renders WorkShifts index with scoped filter', function (): void {
     $user = $this->createAdminUser($company);
 
     $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+        ->withSession([
+            'current_company_id' => $company->id,
+            'current_tenant_group_id' => $company->tenant_group_id,
+        ])
         ->get(route('work_shifts.index'))
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page

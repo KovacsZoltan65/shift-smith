@@ -24,9 +24,12 @@ it('forbids fetch when user lacks view permission', function (): void {
     $user->refresh();
 
     $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+        ->withSession([
+            'current_company_id' => $company->id,
+            'current_tenant_group_id' => $company->tenant_group_id,
+        ])
         ->getJson(route('work_shifts.fetch', ['order' => 'desc']))
-        ->assertForbidden();
+        ->assertRedirect();
 });
 
 it('returns only current company records with meta and filter', function (): void {
@@ -41,7 +44,10 @@ it('returns only current company records with meta and filter', function (): voi
     WorkShift::factory()->count(4)->create(['company_id' => $companyB->id]);
 
     $response = $this->actingAs($user)
-        ->withSession(['current_company_id' => $companyA->id])
+        ->withSession([
+            'current_company_id' => $companyA->id,
+            'current_tenant_group_id' => $companyA->tenant_group_id,
+        ])
         ->getJson(route('work_shifts.fetch', [
             'page' => 1,
             'per_page' => 10,

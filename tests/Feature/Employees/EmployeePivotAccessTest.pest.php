@@ -31,8 +31,8 @@ it('employee fetch returns only employees mapped to selected company through piv
     $user = $this->createAdminUser($companyA);
     UserEmployee::query()->where('user_id', $user->id)->delete();
     UserEmployee::query()->updateOrCreate(
-        ['user_id' => $user->id, 'employee_id' => $employeeA->id],
-        ['active' => true]
+        ['user_id' => $user->id, 'company_id' => $companyA->id],
+        ['employee_id' => $employeeA->id, 'active' => true]
     );
 
     $tenant->makeCurrent();
@@ -61,8 +61,8 @@ it('employee read is forbidden when permission is missing even with pivot relati
     $user = $this->createAdminUser($company);
     UserEmployee::query()->where('user_id', $user->id)->delete();
     UserEmployee::query()->updateOrCreate(
-        ['user_id' => $user->id, 'employee_id' => $employee->id],
-        ['active' => true]
+        ['user_id' => $user->id, 'company_id' => $company->id],
+        ['employee_id' => $employee->id, 'active' => true]
     );
 
     $user->syncRoles([]);
@@ -98,8 +98,8 @@ it('employee read is forbidden without pivot relation even when permission exist
     $user = $this->createAdminUser($companyA);
     UserEmployee::query()->where('user_id', $user->id)->delete();
     UserEmployee::query()->updateOrCreate(
-        ['user_id' => $user->id, 'employee_id' => $employeeA->id],
-        ['active' => true]
+        ['user_id' => $user->id, 'company_id' => $companyA->id],
+        ['employee_id' => $employeeA->id, 'active' => true]
     );
 
     $tenant->makeCurrent();

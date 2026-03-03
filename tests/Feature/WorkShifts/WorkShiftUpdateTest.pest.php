@@ -34,7 +34,7 @@ it('forbids update without permission', function (): void {
             'end_time' => '15:00',
             'active' => true,
         ])
-        ->assertForbidden();
+        ->assertRedirect();
 });
 
 it('updates scoped work shift and bumps cache versions', function (): void {

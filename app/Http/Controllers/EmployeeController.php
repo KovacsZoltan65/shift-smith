@@ -243,18 +243,12 @@ class EmployeeController extends Controller
      */
     public function destroy(int $id): JsonResponse
     {
-        try {
-            $employee = $this->service->getEmployee($id);
-            $this->authorize('delete', $employee);
-            
-            $deleted = $this->service->destroy($id);
+        $employee = $this->service->getEmployee($id);
+        $this->authorize('delete', $employee);
 
-            return response()->json($deleted, Response::HTTP_OK);
-        } catch(Throwable $th) {
-            return response()->json([
-                'message' => 'Törlés sikertelen.',
-            ], Response::HTTP_INTERNAL_SERVER_ERROR);
-        }
+        $deleted = $this->service->destroy($id);
+
+        return response()->json($deleted, Response::HTTP_OK);
     }
     
     /**

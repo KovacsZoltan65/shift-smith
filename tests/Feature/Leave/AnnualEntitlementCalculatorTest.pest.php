@@ -173,11 +173,13 @@ it('adds child bonus based on children count and disabled child extra', function
 
     $twoChildren = leaveEmployee([
         'company_id' => $company->id,
+        'birth_date' => '2001-01-01',
         'children_count' => 2,
     ]);
     $threeChildren = leaveEmployee([
         'company_id' => $company->id,
         'email' => fake()->unique()->safeEmail(),
+        'birth_date' => '2001-01-01',
         'children_count' => 3,
         'disabled_children_count' => 1,
     ]);
@@ -219,6 +221,7 @@ it('adds disability bonus for disabled employees', function (): void {
 
     $employee = leaveEmployee([
         'company_id' => $company->id,
+        'birth_date' => '2001-01-01',
         'is_disabled' => true,
     ]);
 

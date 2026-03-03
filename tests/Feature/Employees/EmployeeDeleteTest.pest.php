@@ -11,14 +11,18 @@ beforeEach(function (): void {
 });
 
 it('törli az alkalmazottat', function (): void {
-    $user = $this->createAdminUser();
+    $company = Company::factory()->create();
+    $user = $this->createAdminUser($company);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
-    $company = Company::factory()->create();
     $employee = Employee::factory()->create(['company_id' => $company->id]);
 
     $this->actingAs($user)
+        ->withSession([
+            'current_company_id' => (int) $company->id,
+            'current_tenant_group_id' => (int) $company->tenant_group_id,
+        ])
         ->deleteJson(route('employees.destroy', $employee->id))
         ->assertOk();
 

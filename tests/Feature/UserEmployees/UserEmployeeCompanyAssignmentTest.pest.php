@@ -52,8 +52,8 @@ it('replaces the employee assignment for the same user and company', function ()
 
     /** @var UserAssignmentService $service */
     $service = app(UserAssignmentService::class);
-    $service->assignEmployee($actor, $target, $company, $employeeOne);
-    $service->assignEmployee($actor, $target, $company, $employeeTwo);
+    $service->assignEmployee($actor, $target, $company, (int) $employeeOne->id);
+    $service->assignEmployee($actor, $target, $company, (int) $employeeTwo->id);
 
     $this->assertDatabaseMissing('user_employee', [
         'user_id' => (int) $target->id,

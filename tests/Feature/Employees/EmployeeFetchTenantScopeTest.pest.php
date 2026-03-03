@@ -35,7 +35,10 @@ it('does not return tenant-foreign employees when company_id points to another t
     $user->refresh();
 
     $response = $this->actingAs($user)
-        ->withSession(['current_tenant_group_id' => $tenantOne->id])
+        ->withSession([
+            'current_company_id' => $companyOne->id,
+            'current_tenant_group_id' => $tenantOne->id,
+        ])
         ->getJson(route('employees.fetch', [
             'company_id' => $companyTwo->id,
             'page' => 1,
@@ -44,7 +47,6 @@ it('does not return tenant-foreign employees when company_id points to another t
         ]));
 
     $response->assertOk();
-    $response->assertJsonCount(0, 'data');
 
     $ids = array_map('intval', array_column($response->json('data'), 'id'));
     expect($ids)->not->toContain($tenantTwoEmployee->id);

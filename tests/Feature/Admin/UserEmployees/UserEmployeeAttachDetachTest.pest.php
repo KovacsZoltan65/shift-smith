@@ -41,34 +41,38 @@ it('attaches and detaches employee mapping for a user in current tenant', functi
 
     $adminUser = $this->createAdminUser($companyA);
     $adminUser->givePermissionTo([
-        'user_employees.viewAny',
-        'user_employees.create',
-        'user_employees.delete',
+        'user_assignments.viewAny',
+        'user_assignments.update',
     ]);
 
     $targetUser = User::factory()->create();
     $targetUser->companies()->syncWithoutDetaching([$companyA->id]);
 
     $this->actingAsUserInCompany($adminUser, $companyA)
-        ->postJson(route('admin.user_employees.store', ['user' => $targetUser->id]), [
+        ->postJson(route('admin.user_assignments.employee.assign', [
+            'user' => $targetUser->id,
+            'company' => $companyA->id,
+        ]), [
             'employee_id' => $e1->id,
         ])
         ->assertOk();
 
     $this->assertDatabaseHas('user_employee', [
         'user_id' => (int) $targetUser->id,
+        'company_id' => (int) $companyA->id,
         'employee_id' => (int) $e1->id,
     ]);
 
     $this->actingAsUserInCompany($adminUser, $companyA)
-        ->deleteJson(route('admin.user_employees.destroy', [
+        ->deleteJson(route('admin.user_assignments.employee.destroy', [
             'user' => $targetUser->id,
-            'employee' => $e1->id,
+            'company' => $companyA->id,
         ]))
         ->assertOk();
 
     $this->assertDatabaseMissing('user_employee', [
         'user_id' => (int) $targetUser->id,
+        'company_id' => (int) $companyA->id,
         'employee_id' => (int) $e1->id,
     ]);
 });
@@ -91,19 +95,23 @@ it('rejects cross-tenant employee attach', function (): void {
     );
 
     $adminUser = $this->createAdminUser($companyA);
-    $adminUser->givePermissionTo(['user_employees.create']);
+    $adminUser->givePermissionTo(['user_assignments.update']);
 
     $targetUser = User::factory()->create();
     $targetUser->companies()->syncWithoutDetaching([$companyA->id]);
 
     $this->actingAsUserInCompany($adminUser, $companyA)
-        ->postJson(route('admin.user_employees.store', ['user' => $targetUser->id]), [
+        ->postJson(route('admin.user_assignments.employee.assign', [
+            'user' => $targetUser->id,
+            'company' => $companyA->id,
+        ]), [
             'employee_id' => $eX->id,
         ])
         ->assertStatus(422);
 
     $this->assertDatabaseMissing('user_employee', [
         'user_id' => (int) $targetUser->id,
+        'company_id' => (int) $companyA->id,
         'employee_id' => (int) $eX->id,
     ]);
 });
@@ -121,7 +129,7 @@ it('returns 403 when permission is missing', function (): void {
     $adminUser = $this->createAdminUser($companyA);
     /** @var Role $adminRole */
     $adminRole = Role::findByName('admin', 'web');
-    $adminRole->revokePermissionTo('user_employees.create');
+    $adminRole->revokePermissionTo('user_assignments.update');
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $adminUser->refresh();
 
@@ -129,7 +137,10 @@ it('returns 403 when permission is missing', function (): void {
     $targetUser->companies()->syncWithoutDetaching([$companyA->id]);
 
     $this->actingAsUserInCompany($adminUser, $companyA)
-        ->postJson(route('admin.user_employees.store', ['user' => $targetUser->id]), [
+        ->postJson(route('admin.user_assignments.employee.assign', [
+            'user' => $targetUser->id,
+            'company' => $companyA->id,
+        ]), [
             'employee_id' => $employee->id,
         ])
         ->assertForbidden();
@@ -153,9 +164,8 @@ it('bumps selector cache version after attach and detach', function (): void {
 
     $adminUser = $this->createAdminUser($companyA);
     $adminUser->givePermissionTo([
-        'user_employees.create',
-        'user_employees.delete',
-        'user_employees.viewAny',
+        'user_assignments.viewAny',
+        'user_assignments.update',
     ]);
 
     $targetUser = User::factory()->create();
@@ -167,7 +177,10 @@ it('bumps selector cache version after attach and detach', function (): void {
     $versionBeforeAttach = $versions->get($namespace);
 
     $this->actingAsUserInCompany($adminUser, $companyA)
-        ->postJson(route('admin.user_employees.store', ['user' => $targetUser->id]), [
+        ->postJson(route('admin.user_assignments.employee.assign', [
+            'user' => $targetUser->id,
+            'company' => $companyA->id,
+        ]), [
             'employee_id' => $employee->id,
         ])
         ->assertOk();
@@ -176,9 +189,9 @@ it('bumps selector cache version after attach and detach', function (): void {
     expect($versionAfterAttach)->toBeGreaterThan($versionBeforeAttach);
 
     $this->actingAsUserInCompany($adminUser, $companyA)
-        ->deleteJson(route('admin.user_employees.destroy', [
+        ->deleteJson(route('admin.user_assignments.employee.destroy', [
             'user' => $targetUser->id,
-            'employee' => $employee->id,
+            'company' => $companyA->id,
         ]))
         ->assertOk();
 

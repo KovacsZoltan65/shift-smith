@@ -35,12 +35,12 @@ it('megtagadja a listázást jogosultság nélkül', function (): void {
 });
 
 it('csak a kiválasztott dolgozó hozzárendeléseit adja vissza', function (): void {
-    $user = $this->createAdminUser();
+    $company = Company::factory()->create();
+    $user = $this->createAdminUser($company);
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
-    $company = Company::factory()->create();
     $employee = Employee::factory()->create(['company_id' => $company->id]);
     $other = Employee::factory()->create(['company_id' => $company->id]);
 
@@ -59,7 +59,8 @@ it('csak a kiválasztott dolgozó hozzárendeléseit adja vissza', function (): 
         'work_pattern_id' => $pattern2->id,
     ]);
 
-    $resp = $this->actingAs($user)->getJson(route('employee_work_patterns.index', ['employee' => $employee->id]));
+    $resp = $this->actingAsUserInCompany($user, $company)
+        ->getJson(route('employee_work_patterns.index', ['employee' => $employee->id]));
 
     $resp->assertOk()->assertJsonStructure(['message', 'data']);
     expect($resp->json('data'))->toHaveCount(1);

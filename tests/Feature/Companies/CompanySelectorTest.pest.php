@@ -6,7 +6,6 @@ use App\Models\Company;
 use App\Models\CompanyEmployee;
 use App\Models\Employee;
 use App\Models\TenantGroup;
-use App\Models\UserEmployee;
 
 beforeEach(function (): void {
     $this->seedRolesAndPermissions();
@@ -25,9 +24,7 @@ it('selector returns only active companies ordered by name', function (): void {
     CompanyEmployee::query()->updateOrCreate(['company_id' => $inactive->id, 'employee_id' => $e1->id], ['active' => true]);
 
     $user = $this->createAdminUser($activeA);
-    UserEmployee::query()->where('user_id', $user->id)->delete();
-    UserEmployee::query()->updateOrCreate(['user_id' => $user->id, 'employee_id' => $e1->id], ['active' => true]);
-    UserEmployee::query()->updateOrCreate(['user_id' => $user->id, 'employee_id' => $e2->id], ['active' => true]);
+    $user->companies()->syncWithoutDetaching([$activeB->id]);
 
     $tenant->makeCurrent();
     $resp = $this->actingAs($user)->withSession([
@@ -71,8 +68,6 @@ it('selector can filter only companies with employees', function (): void {
     CompanyEmployee::query()->updateOrCreate(['company_id' => $withEmployees->id, 'employee_id' => $e1->id], ['active' => true]);
 
     $user = $this->createAdminUser($withEmployees);
-    UserEmployee::query()->where('user_id', $user->id)->delete();
-    UserEmployee::query()->updateOrCreate(['user_id' => $user->id, 'employee_id' => $e1->id], ['active' => true]);
 
     $tenant->makeCurrent();
     $resp = $this->actingAs($user)->withSession([

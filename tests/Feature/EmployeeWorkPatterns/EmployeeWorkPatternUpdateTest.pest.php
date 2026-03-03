@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\Company;
+use App\Models\CompanyEmployee;
 use App\Models\Employee;
 use App\Models\EmployeeWorkPattern;
 use App\Models\WorkPattern;
@@ -13,14 +14,18 @@ beforeEach(function (): void {
 });
 
 it('update esetén tiltja az átfedő időszakot', function (): void {
-    $user = $this->createAdminUser();
+    $company = Company::factory()->create();
+    $user = $this->createAdminUser($company);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
-    $company = Company::factory()->create();
     $employee = Employee::factory()->create(['company_id' => $company->id]);
     $patternA = WorkPattern::factory()->create(['company_id' => $company->id]);
     $patternB = WorkPattern::factory()->create(['company_id' => $company->id]);
+    CompanyEmployee::query()->updateOrCreate(
+        ['company_id' => $company->id, 'employee_id' => $employee->id],
+        ['active' => true]
+    );
 
     $first = EmployeeWorkPattern::factory()->create([
         'company_id' => $company->id,
@@ -39,6 +44,10 @@ it('update esetén tiltja az átfedő időszakot', function (): void {
     ]);
 
     $this->actingAs($user)
+        ->withSession([
+            'current_company_id' => (int) $company->id,
+            'current_tenant_group_id' => (int) $company->tenant_group_id,
+        ])
         ->putJson(route('employee_work_patterns.update', [
             'employee' => $employee->id,
             'id' => $first->id,

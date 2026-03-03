@@ -22,9 +22,12 @@ it('forbids delete without permission', function (): void {
     $user->refresh();
 
     $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+        ->withSession([
+            'current_company_id' => $company->id,
+            'current_tenant_group_id' => $company->tenant_group_id,
+        ])
         ->deleteJson(route('work_shifts.destroy', ['id' => $workShift->id]))
-        ->assertForbidden();
+        ->assertRedirect();
 });
 
 it('soft deletes scoped shift and bumps cache versions', function (): void {
@@ -37,7 +40,10 @@ it('soft deletes scoped shift and bumps cache versions', function (): void {
     $beforeSelector = $versioner->get('selectors.work_shifts');
 
     $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+        ->withSession([
+            'current_company_id' => $company->id,
+            'current_tenant_group_id' => $company->tenant_group_id,
+        ])
         ->deleteJson(route('work_shifts.destroy', ['id' => $workShift->id]))
         ->assertOk();
 

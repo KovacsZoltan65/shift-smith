@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\Company;
+use App\Models\CompanyEmployee;
 use App\Models\Employee;
 use App\Models\EmployeeWorkPattern;
 use App\Models\User;
@@ -32,10 +33,14 @@ it('megtagadja a hozzárendelést jogosultság nélkül', function (): void {
 });
 
 it('validálja a dátum logikát és az átfedést', function (): void {
-    $user = $this->createAdminUser();
     $company = Company::factory()->create();
+    $user = $this->createAdminUser($company);
     $employee = Employee::factory()->create(['company_id' => $company->id]);
     $pattern = WorkPattern::factory()->create(['company_id' => $company->id]);
+    CompanyEmployee::query()->updateOrCreate(
+        ['company_id' => $company->id, 'employee_id' => $employee->id],
+        ['active' => true]
+    );
 
     EmployeeWorkPattern::factory()->create([
         'company_id' => $company->id,
@@ -45,7 +50,7 @@ it('validálja a dátum logikát és az átfedést', function (): void {
         'date_to' => '2026-12-31',
     ]);
 
-    $this->actingAs($user)
+    $this->actingAsUserInCompany($user, $company)
         ->postJson(route('employee_work_patterns.assign', ['employee' => $employee->id]), [
             'work_pattern_id' => $pattern->id,
             'date_from' => '2026-05-01',
@@ -54,7 +59,7 @@ it('validálja a dátum logikát és az átfedést', function (): void {
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['date_to']);
 
-    $this->actingAs($user)
+    $this->actingAsUserInCompany($user, $company)
         ->postJson(route('employee_work_patterns.assign', ['employee' => $employee->id]), [
             'work_pattern_id' => $pattern->id,
             'date_from' => '2026-06-01',
@@ -65,15 +70,18 @@ it('validálja a dátum logikát és az átfedést', function (): void {
 });
 
 it('megakadályozza a más company-hoz tartozó munkarend hozzárendelését', function (): void {
-    $user = $this->createAdminUser();
-
     $c1 = Company::factory()->create();
     $c2 = Company::factory()->create();
+    $user = $this->createAdminUser($c1);
 
     $employee = Employee::factory()->create(['company_id' => $c1->id]);
     $pattern = WorkPattern::factory()->create(['company_id' => $c2->id]);
+    CompanyEmployee::query()->updateOrCreate(
+        ['company_id' => $c1->id, 'employee_id' => $employee->id],
+        ['active' => true]
+    );
 
-    $this->actingAs($user)
+    $this->actingAsUserInCompany($user, $c1)
         ->postJson(route('employee_work_patterns.assign', ['employee' => $employee->id]), [
             'work_pattern_id' => $pattern->id,
             'date_from' => '2026-01-01',
@@ -83,19 +91,23 @@ it('megakadályozza a más company-hoz tartozó munkarend hozzárendelését', f
 });
 
 it('létrehozza a hozzárendelést és bumpolja a cache verziót', function (): void {
-    $user = $this->createAdminUser();
+    $company = Company::factory()->create();
+    $user = $this->createAdminUser($company);
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
-    $company = Company::factory()->create();
     $employee = Employee::factory()->create(['company_id' => $company->id]);
     $pattern = WorkPattern::factory()->create(['company_id' => $company->id]);
+    CompanyEmployee::query()->updateOrCreate(
+        ['company_id' => $company->id, 'employee_id' => $employee->id],
+        ['active' => true]
+    );
 
     $versioner = app(CacheVersionService::class);
     Cache::forever("v:company:{$company->id}:employee_work_patterns", 1);
 
-    $this->actingAs($user)
+    $this->actingAsUserInCompany($user, $company)
         ->postJson(route('employee_work_patterns.assign', ['employee' => $employee->id]), [
             'work_pattern_id' => $pattern->id,
             'date_from' => '2026-01-01',

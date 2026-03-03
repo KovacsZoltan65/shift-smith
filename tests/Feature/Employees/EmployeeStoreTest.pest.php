@@ -57,6 +57,7 @@ it('allows admin to store employee and bumps cache versions', function (): void 
     ])->only(['company_id', 'first_name', 'last_name', 'email', 'phone', 'position_id', 'hired_at', 'active']);
 
     $payload['address'] = 'Teszt utca 1.';
+    $payload['birth_date'] = '1990-01-01';
     $payload['hired_at'] = '2026-02-01';
 
     $this->actingAs($user)

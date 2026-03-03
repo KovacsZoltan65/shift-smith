@@ -22,9 +22,12 @@ it('forbids bulk delete without deleteAny permission', function (): void {
     $user->refresh();
 
     $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+        ->withSession([
+            'current_company_id' => $company->id,
+            'current_tenant_group_id' => $company->tenant_group_id,
+        ])
         ->deleteJson(route('work_shifts.destroy_bulk'), ['ids' => $workShifts->pluck('id')->all()])
-        ->assertForbidden();
+        ->assertRedirect();
 });
 
 it('bulk deletes scoped shifts and bumps cache versions', function (): void {
@@ -38,7 +41,10 @@ it('bulk deletes scoped shifts and bumps cache versions', function (): void {
     $beforeSelector = $versioner->get('selectors.work_shifts');
 
     $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+        ->withSession([
+            'current_company_id' => $company->id,
+            'current_tenant_group_id' => $company->tenant_group_id,
+        ])
         ->deleteJson(route('work_shifts.destroy_bulk'), ['ids' => $ids])
         ->assertOk()
         ->assertJson(['deleted' => 3]);

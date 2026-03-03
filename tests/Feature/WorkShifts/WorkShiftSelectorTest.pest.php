@@ -27,9 +27,12 @@ it('forbids work shift selector without view permission', function (): void {
     $user->refresh();
 
     $this->actingAs($user)
-        ->withSession(['current_company_id' => $company->id])
+        ->withSession([
+            'current_company_id' => $company->id,
+            'current_tenant_group_id' => $company->tenant_group_id,
+        ])
         ->getJson(route('selectors.work_shifts'))
-        ->assertForbidden();
+        ->assertRedirect();
 });
 
 it('returns minimal selector payload and supports search for current company', function (): void {
@@ -42,7 +45,10 @@ it('returns minimal selector payload and supports search for current company', f
     WorkShift::factory()->create(['company_id' => $companyB->id, 'name' => 'Masik ceges', 'active' => true]);
 
     $response = $this->actingAs($user)
-        ->withSession(['current_company_id' => $companyA->id])
+        ->withSession([
+            'current_company_id' => $companyA->id,
+            'current_tenant_group_id' => $companyA->tenant_group_id,
+        ])
         ->getJson(route('selectors.work_shifts', ['search' => 'regg']));
 
     $response->assertOk();

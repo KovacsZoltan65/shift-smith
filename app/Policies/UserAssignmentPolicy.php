@@ -18,12 +18,12 @@ final class UserAssignmentPolicy extends BasePolicy
 
     public function viewAny(User $user): bool
     {
-        return $this->hasManagementRole($user) && $user->can(self::PERM_VIEW_ANY);
+        return $this->hasManagementRole($user) && $user->hasPermissionTo(self::PERM_VIEW_ANY);
     }
 
     public function update(User $user): bool
     {
-        return $this->hasManagementRole($user) && $user->can(self::PERM_UPDATE);
+        return $this->hasManagementRole($user) && $user->hasPermissionTo(self::PERM_UPDATE);
     }
 
     private function hasManagementRole(User $user): bool

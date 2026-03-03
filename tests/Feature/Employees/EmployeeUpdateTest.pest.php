@@ -81,6 +81,7 @@ it('updates employee and bumps caches; company selector bumps only when company_
             'last_name'  => $employee->last_name,
             'email'      => 'emp@test.hu',
             'address'    => 'Frissített cím 1.',
+            'birth_date' => '1990-01-01',
             'position_id'=> $positionA->id,
             'active'     => true,
         ])
@@ -100,6 +101,7 @@ it('updates employee and bumps caches; company selector bumps only when company_
             'last_name'  => $employee->last_name,
             'email'      => 'emp@test.hu',
             'address'    => 'Frissített cím 2.',
+            'birth_date' => '1990-01-01',
             'position_id'=> $positionB->id,
             'active'     => true,
         ])
