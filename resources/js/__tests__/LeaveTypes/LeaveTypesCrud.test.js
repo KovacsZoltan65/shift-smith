@@ -9,6 +9,16 @@ vi.mock("@inertiajs/vue3", () => ({
     Head: { template: "<div />" },
 }));
 
+vi.mock("@primevue/core/api", () => ({
+    FilterMatchMode: {
+        CONTAINS: "contains",
+        EQUALS: "equals",
+    },
+    FilterOperator: {
+        AND: "and",
+    },
+}));
+
 const toastAdd = vi.fn();
 vi.mock("primevue/usetoast", () => ({
     useToast: () => ({ add: toastAdd }),
@@ -35,6 +45,15 @@ const items = [
         requires_approval: true,
         active: true,
     },
+    {
+        id: 2,
+        code: "sick_leave",
+        name: "Betegszabadsag",
+        category: "sick_leave",
+        affects_leave_balance: false,
+        requires_approval: true,
+        active: false,
+    },
 ];
 
 const stubs = {
@@ -53,8 +72,24 @@ const stubs = {
         template: `<input v-bind="$attrs" :value="modelValue" @input="$emit('update:modelValue', $event.target.value); $emit('input', $event)" />`,
     },
     DataTable: {
-        props: ["value"],
-        template: `<div data-testid="datatable"><div v-for="row in (value ?? [])" :key="row.id">{{ row.name }}</div><slot /></div>`,
+        props: ["value", "filters", "globalFilterFields"],
+        computed: {
+            filteredRows() {
+                const rows = this.value ?? [];
+                const globalValue = String(this.filters?.global?.value ?? "").trim().toLowerCase();
+
+                if (!globalValue) {
+                    return rows;
+                }
+
+                const fields = this.globalFilterFields ?? [];
+
+                return rows.filter((row) =>
+                    fields.some((field) => String(row?.[field] ?? "").toLowerCase().includes(globalValue)),
+                );
+            },
+        },
+        template: `<div data-testid="datatable"><div v-for="row in filteredRows" :key="row.id">{{ row.code }} {{ row.name }}</div><slot /></div>`,
     },
     Column: { template: "<div><slot /></div>" },
     Menu: { template: "<div />" },
@@ -177,5 +212,21 @@ describe("LeaveTypes CRUD", () => {
         expect(wrapper.find('[data-testid="leave-types-create"]').exists()).toBe(false);
 
         __allow.add("leave_types.create");
+    });
+
+    it("global search a DataTable filters state-en szuri a listat", async () => {
+        const wrapper = mount(Index, {
+            props: { filter: {} },
+            global: { stubs },
+        });
+
+        await flushPromises();
+
+        const search = wrapper.find('[data-testid="leave-types-search"]');
+        await search.setValue("beteg");
+        await flushPromises();
+
+        expect(wrapper.text()).toContain("Betegszabadsag");
+        expect(wrapper.text()).not.toContain("annual");
     });
 });
