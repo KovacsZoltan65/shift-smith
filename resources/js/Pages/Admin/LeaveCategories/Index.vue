@@ -1,14 +1,12 @@
 <script setup>
 import { Head } from "@inertiajs/vue3";
 import { computed, onMounted, ref } from "vue";
-
 import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
-import CreateModal from "@/Pages/Admin/LeaveTypes/Partials/CreateModal.vue";
-import DeleteModal from "@/Pages/Admin/LeaveTypes/Partials/DeleteModal.vue";
-import EditModal from "@/Pages/Admin/LeaveTypes/Partials/EditModal.vue";
+import CreateModal from "@/Pages/Admin/LeaveCategories/Partials/CreateModal.vue";
+import DeleteModal from "@/Pages/Admin/LeaveCategories/Partials/DeleteModal.vue";
+import EditModal from "@/Pages/Admin/LeaveCategories/Partials/EditModal.vue";
 import LeaveCategoryService from "@/services/LeaveCategoryService.js";
-import LeaveTypeService from "@/services/LeaveTypeService.js";
 import { usePermissions } from "@/composables/usePermissions";
 
 import Button from "primevue/button";
@@ -22,16 +20,16 @@ import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
 
 const props = defineProps({
-    title: { type: String, default: "Szabadsag tipusok" },
+    title: { type: String, default: "Szabadsag kategoriak" },
     filter: { type: Object, default: () => ({}) },
 });
 
 const { has } = usePermissions();
 const toast = useToast();
 
-const canCreate = computed(() => has("leave_types.create"));
-const canUpdate = computed(() => has("leave_types.update"));
-const canDelete = computed(() => has("leave_types.delete"));
+const canCreate = computed(() => has("leave_categories.create"));
+const canUpdate = computed(() => has("leave_categories.update"));
+const canDelete = computed(() => has("leave_categories.delete"));
 const canAnyRowAction = computed(() => canUpdate.value || canDelete.value);
 
 const rows = ref([]);
@@ -44,32 +42,19 @@ const editTarget = ref(null);
 const deleteTarget = ref(null);
 const rowMenu = ref();
 const rowMenuModel = ref([]);
-const categoryOptions = ref([]);
-const globalFilterFields = ["code", "name", "category"];
+const globalFilterFields = ["code", "name", "description"];
 
 const booleanOptions = [
-    { label: "Igen", value: true },
-    { label: "Nem", value: false },
+    { label: "Aktiv", value: true },
+    { label: "Inaktiv", value: false },
 ];
 
 const createInitialFilters = () => ({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    code: {
-        operator: FilterOperator.AND,
-        constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
-    },
-    name: {
-        operator: FilterOperator.AND,
-        constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
-    },
-    category: {
-        operator: FilterOperator.AND,
-        constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }],
-    },
-    active: {
-        operator: FilterOperator.AND,
-        constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }],
-    },
+    code: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }] },
+    name: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }] },
+    description: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }] },
+    active: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }] },
 });
 
 const filters = ref(createInitialFilters());
@@ -87,14 +72,8 @@ const hasActiveFilters = computed(() => {
     const currentFilters = filters.value ?? {};
 
     return Object.values(currentFilters).some((entry) => {
-        if (!entry || typeof entry !== "object") {
-            return false;
-        }
-
-        if ("value" in entry) {
-            return entry.value !== null && entry.value !== "";
-        }
-
+        if (!entry || typeof entry !== "object") return false;
+        if ("value" in entry) return entry.value !== null && entry.value !== "";
         if (Array.isArray(entry.constraints)) {
             return entry.constraints.some((constraint) => constraint?.value !== null && constraint?.value !== "");
         }
@@ -103,25 +82,13 @@ const hasActiveFilters = computed(() => {
     });
 });
 
-const categoryLabel = (value) =>
-    categoryOptions.value.find((option) => option.code === value)?.name ?? value;
-
-const loadCategoryOptions = async () => {
-    try {
-        const { data } = await LeaveCategoryService.selector({ only_active: 0 });
-        categoryOptions.value = Array.isArray(data?.data) ? data.data : [];
-    } catch (_) {
-        categoryOptions.value = [];
-    }
-};
-
 const fetchRows = async () => {
     loading.value = true;
 
     try {
-        const { data } = await LeaveTypeService.fetch({
+        const { data } = await LeaveCategoryService.fetch({
             perPage: 100,
-            sortBy: "name",
+            sortBy: "order_index",
             sortDir: "asc",
         });
 
@@ -130,10 +97,7 @@ const fetchRows = async () => {
         toast.add({
             severity: "error",
             summary: "Hiba",
-            detail:
-                error?.response?.data?.message ??
-                error?.message ??
-                "Lista betoltese sikertelen.",
+            detail: error?.response?.data?.message ?? error?.message ?? "Lista betoltese sikertelen.",
             life: 3500,
         });
     } finally {
@@ -185,10 +149,9 @@ const onSaved = async (message) => {
     });
 };
 
-onMounted(async () => {
+onMounted(() => {
     initFilters();
-    await loadCategoryOptions();
-    await fetchRows();
+    fetchRows();
 });
 </script>
 
@@ -197,25 +160,9 @@ onMounted(async () => {
 
     <Toast />
 
-    <CreateModal
-        v-model="createOpen"
-        :canCreate="canCreate"
-        :categoryOptions="categoryOptions"
-        @saved="onSaved"
-    />
-    <EditModal
-        v-model="editOpen"
-        :leaveType="editTarget"
-        :canUpdate="canUpdate"
-        :categoryOptions="categoryOptions"
-        @saved="onSaved"
-    />
-    <DeleteModal
-        v-model="deleteOpen"
-        :leaveType="deleteTarget"
-        :canDelete="canDelete"
-        @deleted="onSaved"
-    />
+    <CreateModal v-model="createOpen" :canCreate="canCreate" @saved="onSaved" />
+    <EditModal v-model="editOpen" :category="editTarget" :canUpdate="canUpdate" @saved="onSaved" />
+    <DeleteModal v-model="deleteOpen" :category="deleteTarget" :canDelete="canDelete" @deleted="onSaved" />
 
     <AuthenticatedLayout>
         <div class="space-y-4 p-6">
@@ -225,10 +172,10 @@ onMounted(async () => {
 
                     <Button
                         v-if="canCreate"
-                        label="Uj tipus"
+                        label="Uj kategoria"
                         icon="pi pi-plus"
                         size="small"
-                        data-testid="leave-types-create"
+                        data-testid="leave-categories-create"
                         @click="createOpen = true"
                     />
 
@@ -238,18 +185,13 @@ onMounted(async () => {
                         severity="secondary"
                         size="small"
                         :loading="loading"
-                        data-testid="leave-types-refresh"
+                        data-testid="leave-categories-refresh"
                         @click="fetchRows"
                     />
                 </div>
             </div>
 
-            <Menu
-                v-if="canAnyRowAction"
-                ref="rowMenu"
-                :model="rowMenuModel"
-                popup
-            />
+            <Menu v-if="canAnyRowAction" ref="rowMenu" :model="rowMenuModel" popup />
 
             <DataTable
                 ref="dt"
@@ -274,7 +216,7 @@ onMounted(async () => {
                             severity="secondary"
                             size="small"
                             :disabled="!hasActiveFilters"
-                            data-testid="leave-types-clear-filters"
+                            data-testid="leave-categories-clear-filters"
                             @click="clearFilters"
                         />
                         <span class="p-input-icon-left">
@@ -283,7 +225,7 @@ onMounted(async () => {
                                 v-model="filters.global.value"
                                 class="w-72"
                                 placeholder="Kereses..."
-                                data-testid="leave-types-search"
+                                data-testid="leave-categories-search"
                             />
                         </span>
                     </div>
@@ -292,81 +234,28 @@ onMounted(async () => {
                 <template #empty>Nincs talalat.</template>
                 <template #loading>Betoltes...</template>
 
-                <Column
-                    field="code"
-                    filterField="code"
-                    header="Kod"
-                    filter
-                    sortable
-                    :showFilterMatchModes="false"
-                >
+                <Column field="code" filterField="code" header="Kod" filter sortable :showFilterMatchModes="false">
                     <template #filter="{ filterModel }">
-                        <InputText
-                            v-model="filterModel.value"
-                            class="w-full"
-                            placeholder="Kod keresese"
-                        />
+                        <InputText v-model="filterModel.value" class="w-full" placeholder="Kod keresese" />
                     </template>
                 </Column>
 
-                <Column
-                    field="name"
-                    filterField="name"
-                    header="Nev"
-                    filter
-                    sortable
-                    :showFilterMatchModes="false"
-                >
+                <Column field="name" filterField="name" header="Nev" filter sortable :showFilterMatchModes="false">
                     <template #filter="{ filterModel }">
-                        <InputText
-                            v-model="filterModel.value"
-                            class="w-full"
-                            placeholder="Nev keresese"
-                        />
+                        <InputText v-model="filterModel.value" class="w-full" placeholder="Nev keresese" />
                     </template>
                 </Column>
 
-                <Column
-                    field="category"
-                    filterField="category"
-                    header="Kategoria"
-                    filter
-                    sortable
-                    :showFilterMatchModes="false"
-                >
+                <Column field="description" filterField="description" header="Leiras" filter sortable :showFilterMatchModes="false">
                     <template #body="{ data }">
-                        <Tag :value="categoryLabel(data.category)" severity="info" />
+                        <span class="text-sm text-slate-700">{{ data.description || "-" }}</span>
                     </template>
                     <template #filter="{ filterModel }">
-                        <Select
-                            v-model="filterModel.value"
-                            :options="categoryOptions"
-                            optionLabel="name"
-                            optionValue="code"
-                            class="w-full"
-                            showClear
-                            placeholder="Kategoria"
-                        />
+                        <InputText v-model="filterModel.value" class="w-full" placeholder="Leiras keresese" />
                     </template>
                 </Column>
 
-                <Column field="affects_leave_balance" header="Keretet csokkenti" sortable>
-                    <template #body="{ data }">
-                        <Tag
-                            :value="data.affects_leave_balance ? 'Igen' : 'Nem'"
-                            :severity="data.affects_leave_balance ? 'success' : 'secondary'"
-                        />
-                    </template>
-                </Column>
-
-                <Column field="requires_approval" header="Jovahagyas" sortable>
-                    <template #body="{ data }">
-                        <Tag
-                            :value="data.requires_approval ? 'Kotelezo' : 'Nem'"
-                            :severity="data.requires_approval ? 'warning' : 'secondary'"
-                        />
-                    </template>
-                </Column>
+                <Column field="order_index" header="Sorrend" sortable />
 
                 <Column
                     field="active"
@@ -378,10 +267,7 @@ onMounted(async () => {
                     :showFilterMatchModes="false"
                 >
                     <template #body="{ data }">
-                        <Tag
-                            :value="data.active ? 'Aktiv' : 'Inaktiv'"
-                            :severity="data.active ? 'success' : 'danger'"
-                        />
+                        <Tag :value="data.active ? 'Aktiv' : 'Inaktiv'" :severity="data.active ? 'success' : 'danger'" />
                     </template>
                     <template #filter="{ filterModel }">
                         <Select
@@ -396,11 +282,7 @@ onMounted(async () => {
                     </template>
                 </Column>
 
-                <Column
-                    v-if="canAnyRowAction"
-                    header="Muveletek"
-                    bodyStyle="white-space: nowrap;"
-                >
+                <Column v-if="canAnyRowAction" header="Muveletek" bodyStyle="white-space: nowrap;">
                     <template #body="{ data }">
                         <div class="flex justify-end gap-2">
                             <Button
@@ -410,7 +292,7 @@ onMounted(async () => {
                                 rounded
                                 size="small"
                                 :disabled="loading"
-                                data-testid="leave-types-actions"
+                                data-testid="leave-categories-actions"
                                 @click="openRowMenu($event, data)"
                             />
                         </div>

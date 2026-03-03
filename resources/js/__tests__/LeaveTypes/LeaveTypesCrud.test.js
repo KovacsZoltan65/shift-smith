@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
 
 import Index from "@/Pages/Admin/LeaveTypes/Index.vue";
+import LeaveCategoryService from "@/services/LeaveCategoryService.js";
 import LeaveTypeService from "@/services/LeaveTypeService.js";
 import { usePermissions } from "@/composables/usePermissions";
 
@@ -35,6 +36,12 @@ vi.mock("@/services/LeaveTypeService.js", () => ({
     },
 }));
 
+vi.mock("@/services/LeaveCategoryService.js", () => ({
+    default: {
+        selector: vi.fn(),
+    },
+}));
+
 const items = [
     {
         id: 1,
@@ -54,6 +61,13 @@ const items = [
         requires_approval: true,
         active: false,
     },
+];
+
+const categoryOptions = [
+    { code: "leave", name: "Szabadsag", active: true },
+    { code: "sick_leave", name: "Betegszabadsag", active: true },
+    { code: "paid_absence", name: "Fizetett tavollet", active: true },
+    { code: "unpaid_absence", name: "Fizetes nelkuli tavollet", active: true },
 ];
 
 const stubs = {
@@ -89,7 +103,13 @@ const stubs = {
                 );
             },
         },
-        template: `<div data-testid="datatable"><div v-for="row in filteredRows" :key="row.id">{{ row.code }} {{ row.name }}</div><slot /></div>`,
+        template: `
+            <div data-testid="datatable">
+                <slot name="header" />
+                <div v-for="row in filteredRows" :key="row.id">{{ row.code }} {{ row.name }}</div>
+                <slot />
+            </div>
+        `,
     },
     Column: { template: "<div><slot /></div>" },
     Menu: { template: "<div />" },
@@ -129,6 +149,7 @@ describe("LeaveTypes CRUD", () => {
         LeaveTypeService.store.mockResolvedValue({ data: { data: items[0] } });
         LeaveTypeService.update.mockResolvedValue({ data: { data: items[0] } });
         LeaveTypeService.destroy.mockResolvedValue({ data: { deleted: true } });
+        LeaveCategoryService.selector.mockResolvedValue({ data: { data: categoryOptions } });
     });
 
     it("onMounted fetch utan rendereli a listat", async () => {
@@ -140,6 +161,7 @@ describe("LeaveTypes CRUD", () => {
         await flushPromises();
 
         expect(LeaveTypeService.fetch).toHaveBeenCalled();
+        expect(LeaveCategoryService.selector).toHaveBeenCalled();
         expect(wrapper.find('[data-testid="datatable"]').exists()).toBe(true);
         expect(wrapper.text()).toContain("Szabadsag");
     });

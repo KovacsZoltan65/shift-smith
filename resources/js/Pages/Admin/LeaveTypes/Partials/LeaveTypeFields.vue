@@ -8,16 +8,10 @@ const props = defineProps({
     errors: { type: Object, default: () => ({}) },
     disabled: { type: Boolean, default: false },
     isEdit: { type: Boolean, default: false },
+    categoryOptions: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(["update:modelValue"]);
-
-const categories = [
-    { label: "Szabadsag", value: "leave" },
-    { label: "Betegszabadsag", value: "sick_leave" },
-    { label: "Fizetett tavollet", value: "paid_absence" },
-    { label: "Fizetes nelkuli tavollet", value: "unpaid_absence" },
-];
 
 const set = (key, value) => emit("update:modelValue", { ...(props.modelValue ?? {}), [key]: value });
 </script>
@@ -54,9 +48,9 @@ const set = (key, value) => emit("update:modelValue", { ...(props.modelValue ?? 
             <label class="mb-1 block text-sm">Kategoria</label>
             <Select
                 :modelValue="modelValue?.category ?? 'leave'"
-                :options="categories"
-                optionLabel="label"
-                optionValue="value"
+                :options="categoryOptions"
+                optionLabel="name"
+                optionValue="code"
                 class="w-full"
                 :disabled="disabled"
                 data-testid="leave-type-category"

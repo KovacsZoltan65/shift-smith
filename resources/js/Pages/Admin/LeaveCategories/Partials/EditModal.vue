@@ -1,17 +1,14 @@
 <script setup>
 import { computed, ref, watch } from "vue";
-
 import Button from "primevue/button";
 import Dialog from "primevue/dialog";
-
-import LeaveTypeFields from "@/Pages/Admin/LeaveTypes/Partials/LeaveTypeFields.vue";
-import LeaveTypeService from "@/services/LeaveTypeService.js";
+import LeaveCategoryFields from "@/Pages/Admin/LeaveCategories/Partials/LeaveCategoryFields.vue";
+import LeaveCategoryService from "@/services/LeaveCategoryService.js";
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
-    leaveType: { type: Object, default: null },
+    category: { type: Object, default: null },
     canUpdate: { type: Boolean, default: false },
-    categoryOptions: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(["update:modelValue", "saved"]);
@@ -25,11 +22,11 @@ const loading = ref(false);
 const saving = ref(false);
 const errors = ref({});
 const form = ref({
+    code: "",
     name: "",
-    category: "leave",
-    affects_leave_balance: true,
-    requires_approval: true,
+    description: "",
     active: true,
+    order_index: 0,
 });
 
 const reset = () => {
@@ -39,10 +36,9 @@ const reset = () => {
     form.value = {
         code: "",
         name: "",
-        category: "leave",
-        affects_leave_balance: true,
-        requires_approval: true,
+        description: "",
         active: true,
+        order_index: 0,
     };
 };
 
@@ -55,16 +51,15 @@ const load = async (id) => {
     errors.value = {};
 
     try {
-        const { data } = await LeaveTypeService.show(id);
+        const { data } = await LeaveCategoryService.show(id);
         const row = data?.data ?? {};
 
         form.value = {
             code: row.code ?? "",
             name: row.name ?? "",
-            category: row.category ?? "leave",
-            affects_leave_balance: !!row.affects_leave_balance,
-            requires_approval: !!row.requires_approval,
+            description: row.description ?? "",
             active: !!row.active,
+            order_index: Number(row.order_index ?? 0),
         };
     } catch (error) {
         errors.value = {
@@ -75,28 +70,25 @@ const load = async (id) => {
     }
 };
 
-watch(
-    () => props.modelValue,
-    async (isOpen) => {
-        if (!isOpen) {
-            reset();
-            return;
-        }
+watch(() => props.modelValue, async (isOpen) => {
+    if (!isOpen) {
+        reset();
+        return;
+    }
 
-        const id = Number(props.leaveType?.id ?? 0);
-        if (!id) {
-            errors.value = { _global: "Nincs kivalasztott szabadsag tipus." };
-            return;
-        }
+    const id = Number(props.category?.id ?? 0);
+    if (!id) {
+        errors.value = { _global: "Nincs kivalasztott szabadsag kategoria." };
+        return;
+    }
 
-        await load(id);
-    },
-);
+    await load(id);
+});
 
 const submit = async () => {
-    const id = Number(props.leaveType?.id ?? 0);
+    const id = Number(props.category?.id ?? 0);
     if (!id) {
-        errors.value = { _global: "Nincs kivalasztott szabadsag tipus." };
+        errors.value = { _global: "Nincs kivalasztott szabadsag kategoria." };
         return;
     }
 
@@ -104,17 +96,16 @@ const submit = async () => {
     errors.value = {};
 
     try {
-        await LeaveTypeService.update(id, {
+        await LeaveCategoryService.update(id, {
             name: String(form.value.name ?? "").trim(),
-            category: form.value.category,
-            affects_leave_balance: !!form.value.affects_leave_balance,
-            requires_approval: !!form.value.requires_approval,
+            description: String(form.value.description ?? "").trim() || null,
             active: !!form.value.active,
+            order_index: Number(form.value.order_index ?? 0),
         });
-        emit("saved", "Szabadsag tipus frissitve.");
+        emit("saved", "Szabadsag kategoria frissitve.");
         close();
     } catch (error) {
-        errors.value = LeaveTypeService.extractErrors(error) ?? {
+        errors.value = LeaveCategoryService.extractErrors(error) ?? {
             _global: error?.response?.data?.message ?? error?.message ?? "Mentes sikertelen.",
         };
     } finally {
@@ -127,7 +118,7 @@ const submit = async () => {
     <Dialog
         v-model:visible="open"
         modal
-        header="Szabadsag tipus szerkesztese"
+        header="Szabadsag kategoria szerkesztese"
         :style="{ width: '42rem' }"
         :closable="!saving"
         :dismissableMask="!saving"
@@ -136,13 +127,7 @@ const submit = async () => {
         <div v-if="loading" class="text-sm text-slate-500">Betoltes...</div>
 
         <template v-else>
-            <LeaveTypeFields
-                v-model="form"
-                :errors="errors"
-                :disabled="saving"
-                :isEdit="true"
-                :categoryOptions="categoryOptions"
-            />
+            <LeaveCategoryFields v-model="form" :errors="errors" :disabled="saving" :isEdit="true" />
             <div v-if="errors?._global" class="mt-3 text-sm text-red-600">{{ errors._global }}</div>
         </template>
 
@@ -154,7 +139,7 @@ const submit = async () => {
                     icon="pi pi-check"
                     :loading="saving"
                     :disabled="saving || loading || !canUpdate"
-                    data-testid="leave-type-edit-save"
+                    data-testid="leave-category-edit-save"
                     @click="submit"
                 />
             </div>

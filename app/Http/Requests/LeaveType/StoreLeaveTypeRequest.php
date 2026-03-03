@@ -8,6 +8,8 @@ use App\Http\Requests\LeaveType\Concerns\ResolvesCurrentCompany;
 use App\Models\LeaveType;
 use App\Policies\LeaveTypePolicy;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
 class StoreLeaveTypeRequest extends FormRequest
 {
     use ResolvesCurrentCompany;
@@ -21,7 +23,14 @@ class StoreLeaveTypeRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:150'],
-            'category' => ['required', 'string', 'in:'.implode(',', LeaveType::getCategories())],
+            'category' => [
+                'required',
+                'string',
+                Rule::exists('leave_categories', 'code')->where(fn ($query) => $query
+                    ->where('company_id', $this->currentCompanyId())
+                    ->where('active', true)
+                    ->whereNull('deleted_at')),
+            ],
             'affects_leave_balance' => ['required', 'boolean'],
             'requires_approval' => ['required', 'boolean'],
             'active' => ['required', 'boolean'],

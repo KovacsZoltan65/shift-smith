@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\AppSettingController;
 use App\Http\Controllers\Admin\AbsenceController;
 use App\Http\Controllers\Admin\CompanySettingController;
+use App\Http\Controllers\Admin\LeaveCategoryController;
 use App\Http\Controllers\Admin\LeaveTypeController;
 use App\Http\Controllers\Admin\SickLeaveCategoryController;
 use App\Http\Controllers\Admin\UserSettingController;
@@ -188,6 +189,14 @@ Route::middleware(['auth', 'verified'])
             Route::get('/leave-types/{id}', [LeaveTypeController::class, 'show'])->whereNumber('id')->name('leave_types.show')->middleware('throttle:60,1');
             Route::put('/leave-types/{id}', [LeaveTypeController::class, 'update'])->whereNumber('id')->name('leave_types.update')->middleware('throttle:30,1');
             Route::delete('/leave-types/{id}', [LeaveTypeController::class, 'destroy'])->whereNumber('id')->name('leave_types.destroy')->middleware('throttle:20,1');
+
+            Route::get('/leave-categories', [LeaveCategoryController::class, 'index'])->name('leave_categories.index')->middleware('throttle:60,1');
+            Route::get('/leave-categories/fetch', [LeaveCategoryController::class, 'fetch'])->name('leave_categories.fetch')->middleware('throttle:60,1');
+            Route::get('/leave-categories/selector', [LeaveCategoryController::class, 'selector'])->name('leave_categories.selector')->middleware('throttle:120,1');
+            Route::post('/leave-categories', [LeaveCategoryController::class, 'store'])->name('leave_categories.store')->middleware('throttle:20,1');
+            Route::get('/leave-categories/{id}', [LeaveCategoryController::class, 'show'])->whereNumber('id')->name('leave_categories.show')->middleware('throttle:60,1');
+            Route::put('/leave-categories/{id}', [LeaveCategoryController::class, 'update'])->whereNumber('id')->name('leave_categories.update')->middleware('throttle:30,1');
+            Route::delete('/leave-categories/{id}', [LeaveCategoryController::class, 'destroy'])->whereNumber('id')->name('leave_categories.destroy')->middleware('throttle:20,1');
 
             Route::get('/sick-leave-categories', [SickLeaveCategoryController::class, 'index'])->name('sick_leave_categories.index')->middleware('throttle:60,1');
             Route::get('/sick-leave-categories/fetch', [SickLeaveCategoryController::class, 'fetch'])->name('sick_leave_categories.fetch')->middleware('throttle:60,1');

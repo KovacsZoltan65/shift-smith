@@ -2,15 +2,33 @@
 
 declare(strict_types=1);
 
+use App\Models\LeaveCategory;
 use App\Models\LeaveType;
 
 beforeEach(function (): void {
     $this->seedRolesAndPermissions();
+
+    $this->seedLeaveCategories = function ($company): void {
+        foreach ([
+            ['code' => 'leave', 'name' => 'Szabadsag'],
+            ['code' => 'sick_leave', 'name' => 'Betegszabadsag'],
+            ['code' => 'paid_absence', 'name' => 'Fizetett tavollet'],
+            ['code' => 'unpaid_absence', 'name' => 'Fizetes nelkuli tavollet'],
+        ] as $index => $item) {
+            LeaveCategory::factory()->create([
+                'company_id' => $company->id,
+                'code' => $item['code'],
+                'name' => $item['name'],
+                'order_index' => ($index + 1) * 10,
+            ]);
+        }
+    };
 });
 
 it('422 validation hibat ad ha update soran modositani akarjak a kodot', function (): void {
     [$tenant, $company] = $this->createTenantWithCompany();
     $user = $this->createAdminUser($company);
+    ($this->seedLeaveCategories)($company);
     $leaveType = LeaveType::factory()->create([
         'company_id' => $company->id,
         'code' => 'annual_leave',
@@ -40,6 +58,7 @@ it('422 validation hibat ad ha update soran modositani akarjak a kodot', functio
 it('sikeresen frissiti a nevet valtozatlan kod mellett', function (): void {
     [$tenant, $company] = $this->createTenantWithCompany();
     $user = $this->createAdminUser($company);
+    ($this->seedLeaveCategories)($company);
     $leaveType = LeaveType::factory()->create([
         'company_id' => $company->id,
         'code' => 'annual_leave',
@@ -69,6 +88,7 @@ it('sikeresen frissiti a nevet valtozatlan kod mellett', function (): void {
 it('sikeresen frissiti az active flaget valtozatlan kod mellett', function (): void {
     [$tenant, $company] = $this->createTenantWithCompany();
     $user = $this->createAdminUser($company);
+    ($this->seedLeaveCategories)($company);
     $leaveType = LeaveType::factory()->create([
         'company_id' => $company->id,
         'code' => 'annual_leave',
@@ -98,6 +118,7 @@ it('mas company rekordjat tovabbra sem tudja modositani', function (): void {
     [$tenantA, $companyA] = $this->createTenantWithCompany();
     [$tenantB, $companyB] = $this->createTenantWithCompany();
     $user = $this->createAdminUser($companyA);
+    ($this->seedLeaveCategories)($companyA);
     $foreign = LeaveType::factory()->create([
         'company_id' => $companyB->id,
         'code' => 'annual_leave',

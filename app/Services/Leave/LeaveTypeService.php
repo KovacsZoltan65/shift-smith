@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Leave;
 
 use App\Models\LeaveType;
+use App\Repositories\LeaveCategoryRepositoryInterface;
 use App\Repositories\LeaveTypeRepositoryInterface;
 use App\Services\Cache\CacheVersionService;
 use Illuminate\Validation\ValidationException;
@@ -13,6 +14,7 @@ use Illuminate\Support\Str;
 class LeaveTypeService
 {
     public function __construct(
+        private readonly LeaveCategoryRepositoryInterface $leaveCategoryRepository,
         private readonly LeaveTypeRepositoryInterface $repository,
         private readonly CacheVersionService $cacheVersionService,
     ) {
@@ -43,7 +45,13 @@ class LeaveTypeService
                 'perPage' => (int) ($filters['perPage'] ?? 10),
             ],
             'options' => [
-                'categories' => $this->repository->categories($companyId),
+                'categories' => $this->leaveCategoryRepository->listForSelector($companyId, true)
+                    ->map(static fn ($category): array => [
+                        'code' => (string) $category->code,
+                        'name' => (string) $category->name,
+                    ])
+                    ->values()
+                    ->all(),
             ],
         ];
     }
