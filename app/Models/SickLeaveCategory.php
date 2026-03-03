@@ -16,26 +16,56 @@ class SickLeaveCategory extends Model
     use HasFactory;
     use SoftDeletes;
 
+    public const SORTABLE = [
+        'code',
+        'name',
+        'active',
+        'order_index',
+        'updated_at',
+        'created_at',
+    ];
+
     protected $fillable = [
         'company_id',
         'code',
         'name',
-        'order_index',
+        'description',
         'active',
+        'order_index',
     ];
 
     protected $casts = [
         'company_id' => 'int',
-        'order_index' => 'int',
         'active' => 'bool',
+        'order_index' => 'int',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
 
+    public static function getSortable(): array
+    {
+        return self::SORTABLE;
+    }
+
     public function scopeInCompany(Builder $query, int $companyId): Builder
     {
         return $query->where('company_id', $companyId);
+    }
+
+    public function scopeSearch(Builder $query, ?string $term): Builder
+    {
+        $term = is_string($term) ? trim($term) : '';
+
+        if ($term === '') {
+            return $query;
+        }
+
+        return $query->where(function (Builder $builder) use ($term): void {
+            $builder->where('code', 'like', "%{$term}%")
+                ->orWhere('name', 'like', "%{$term}%")
+                ->orWhere('description', 'like', "%{$term}%");
+        });
     }
 
     public function company(): BelongsTo

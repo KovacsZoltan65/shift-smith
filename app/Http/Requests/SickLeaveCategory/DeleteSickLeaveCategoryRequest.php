@@ -9,24 +9,17 @@ use App\Models\SickLeaveCategory;
 use App\Policies\SickLeaveCategoryPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 
-class SelectorRequest extends FormRequest
+class DeleteSickLeaveCategoryRequest extends FormRequest
 {
     use ResolvesCurrentCompany;
 
     public function authorize(): bool
     {
-        return $this->user()?->can(SickLeaveCategoryPolicy::PERM_VIEW_ANY, SickLeaveCategory::class) ?? false;
+        return $this->user()?->can(SickLeaveCategoryPolicy::PERM_DELETE, SickLeaveCategory::class) ?? false;
     }
 
     public function rules(): array
     {
-        return [
-            'only_active' => ['nullable', 'boolean'],
-        ];
-    }
-
-    public function onlyActive(): bool
-    {
-        return $this->boolean('only_active', true);
+        return [];
     }
 }

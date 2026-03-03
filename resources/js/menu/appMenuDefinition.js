@@ -91,6 +91,12 @@ export const appMenuDefinition = [
                 key: "admin.leave_types.index",
                 can: "leave_types.viewAny",
             },
+            {
+                title: "Betegszabadság kategóriák",
+                route: "admin.sick_leave_categories.index",
+                key: "admin.sick_leave_categories.index",
+                can: "sick_leave_categories.viewAny",
+            },
         ],
     },
     {

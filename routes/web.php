@@ -184,11 +184,18 @@ Route::middleware(['auth', 'verified'])
             Route::get('/leave-types', [LeaveTypeController::class, 'index'])->name('leave_types.index')->middleware('throttle:60,1');
             Route::get('/leave-types/fetch', [LeaveTypeController::class, 'fetch'])->name('leave_types.fetch')->middleware('throttle:60,1');
             Route::get('/leave-types/selector', [LeaveTypeController::class, 'selector'])->name('leave_types.selector')->middleware('throttle:120,1');
-            Route::get('/sick-leave-categories/selector', [SickLeaveCategoryController::class, 'selector'])->name('sick_leave_categories.selector')->middleware('throttle:120,1');
             Route::post('/leave-types', [LeaveTypeController::class, 'store'])->name('leave_types.store')->middleware('throttle:20,1');
             Route::get('/leave-types/{id}', [LeaveTypeController::class, 'show'])->whereNumber('id')->name('leave_types.show')->middleware('throttle:60,1');
             Route::put('/leave-types/{id}', [LeaveTypeController::class, 'update'])->whereNumber('id')->name('leave_types.update')->middleware('throttle:30,1');
             Route::delete('/leave-types/{id}', [LeaveTypeController::class, 'destroy'])->whereNumber('id')->name('leave_types.destroy')->middleware('throttle:20,1');
+
+            Route::get('/sick-leave-categories', [SickLeaveCategoryController::class, 'index'])->name('sick_leave_categories.index')->middleware('throttle:60,1');
+            Route::get('/sick-leave-categories/fetch', [SickLeaveCategoryController::class, 'fetch'])->name('sick_leave_categories.fetch')->middleware('throttle:60,1');
+            Route::get('/sick-leave-categories/selector', [SickLeaveCategoryController::class, 'selector'])->name('sick_leave_categories.selector')->middleware('throttle:120,1');
+            Route::post('/sick-leave-categories', [SickLeaveCategoryController::class, 'store'])->name('sick_leave_categories.store')->middleware('throttle:20,1');
+            Route::get('/sick-leave-categories/{id}', [SickLeaveCategoryController::class, 'show'])->whereNumber('id')->name('sick_leave_categories.show')->middleware('throttle:60,1');
+            Route::put('/sick-leave-categories/{id}', [SickLeaveCategoryController::class, 'update'])->whereNumber('id')->name('sick_leave_categories.update')->middleware('throttle:30,1');
+            Route::delete('/sick-leave-categories/{id}', [SickLeaveCategoryController::class, 'destroy'])->whereNumber('id')->name('sick_leave_categories.destroy')->middleware('throttle:20,1');
 
             Route::get('/absences/fetch', [AbsenceController::class, 'fetch'])->name('absences.fetch')->middleware('throttle:60,1');
             Route::post('/absences', [AbsenceController::class, 'store'])->name('absences.store')->middleware('throttle:20,1');

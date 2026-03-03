@@ -34,6 +34,7 @@ class DatabaseSeeder extends Seeder
             WorkShiftAssignmentSeeder::class,
             WorkPatternSeeder::class,
 
+            SickLeaveCategoriesSeeder::class,
             LeaveCarryOverAppSettingsSeeder::class,
             LeaveTypesSeeder::class,
         ]);

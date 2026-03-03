@@ -19,8 +19,9 @@ class SickLeaveCategoryFactory extends Factory
     {
         return [
             'company_id' => Company::factory(),
-            'code' => 'slc_'.fake()->unique()->lexify('??????'),
+            'code' => fake()->unique()->lexify('????????'),
             'name' => fake()->unique()->words(2, true),
+            'description' => fake()->sentence(),
             'order_index' => fake()->numberBetween(1, 20),
             'active' => true,
         ];

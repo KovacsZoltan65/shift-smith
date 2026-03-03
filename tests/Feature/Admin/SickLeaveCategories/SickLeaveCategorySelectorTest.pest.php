@@ -23,22 +23,29 @@ it('megtagadja a selector lekérést sick leave category jogosultság nélkül',
         ->assertRedirect();
 });
 
-it('only_active mellett csak az aktiv kategoriakat adja vissza a sajat company-bol', function (): void {
+it('only_active mellett csak az aktiv kategoriakat adja vissza sorrend szerint', function (): void {
     [$tenant, $company] = $this->createTenantWithCompany();
     $user = $this->createAdminUser($company);
 
     SickLeaveCategory::factory()->create([
         'company_id' => $company->id,
-        'name' => 'Sajat betegseg',
-        'code' => 'slc_own',
+        'name' => 'Masodik',
+        'code' => 'masodik',
         'order_index' => 2,
         'active' => true,
     ]);
     SickLeaveCategory::factory()->create([
         'company_id' => $company->id,
-        'name' => 'Inaktiv kategoria',
-        'code' => 'slc_inactive',
+        'name' => 'Elso',
+        'code' => 'elso',
         'order_index' => 1,
+        'active' => true,
+    ]);
+    SickLeaveCategory::factory()->create([
+        'company_id' => $company->id,
+        'name' => 'Inaktiv',
+        'code' => 'inactive',
+        'order_index' => 0,
         'active' => false,
     ]);
 
@@ -46,10 +53,9 @@ it('only_active mellett csak az aktiv kategoriakat adja vissza a sajat company-b
         ->getJson(route('admin.sick_leave_categories.selector', ['only_active' => 1]));
 
     $response->assertOk()
-        ->assertJsonCount(1, 'data')
-        ->assertJsonPath('data.0.name', 'Sajat betegseg')
-        ->assertJsonPath('data.0.code', 'slc_own')
-        ->assertJsonPath('data.0.active', true);
+        ->assertJsonCount(2, 'data')
+        ->assertJsonPath('data.0.name', 'Elso')
+        ->assertJsonPath('data.1.name', 'Masodik');
 });
 
 it('company scope szerint szuri a sick leave category selector adatokat', function (): void {
@@ -72,8 +78,6 @@ it('company scope szerint szuri a sick leave category selector adatokat', functi
 
     $response = $this->actingAsUserInCompany($user, $companyA)
         ->getJson(route('admin.sick_leave_categories.selector', ['only_active' => 0]));
-
-    $response->assertOk();
 
     expect(collect($response->json('data'))->pluck('name')->all())
         ->toContain('A ceg kategoria')

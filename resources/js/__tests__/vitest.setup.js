@@ -73,6 +73,10 @@ const allow = new Set([
     "leave_types.create",
     "leave_types.update",
     "leave_types.delete",
+    "sick_leave_categories.viewAny",
+    "sick_leave_categories.create",
+    "sick_leave_categories.update",
+    "sick_leave_categories.delete",
 
     // EmployeeWorkPatterns
     "employee_work_patterns.view",
