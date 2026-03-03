@@ -67,6 +67,13 @@ const allow = new Set([
     "work_patterns.delete",
     "work_patterns.deleteAny",
 
+    // LeaveTypes
+    "leave_types.view",
+    "leave_types.viewAny",
+    "leave_types.create",
+    "leave_types.update",
+    "leave_types.delete",
+
     // EmployeeWorkPatterns
     "employee_work_patterns.view",
     "employee_work_patterns.assign",

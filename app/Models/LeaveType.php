@@ -15,6 +15,18 @@ class LeaveType extends Model
     use HasFactory;
     use SoftDeletes;
 
+    public const CATEGORY_LEAVE = 'leave';
+    public const CATEGORY_SICK_LEAVE = 'sick_leave';
+    public const CATEGORY_PAID_ABSENCE = 'paid_absence';
+    public const CATEGORY_UNPAID_ABSENCE = 'unpaid_absence';
+
+    public const CATEGORIES = [
+        self::CATEGORY_LEAVE,
+        self::CATEGORY_SICK_LEAVE,
+        self::CATEGORY_PAID_ABSENCE,
+        self::CATEGORY_UNPAID_ABSENCE,
+    ];
+
     protected $fillable = [
         'company_id',
         'code',
@@ -47,6 +59,11 @@ class LeaveType extends Model
     public static function getSortable(): array
     {
         return self::SORTABLE;
+    }
+
+    public static function getCategories(): array
+    {
+        return self::CATEGORIES;
     }
 
     public function company(): BelongsTo

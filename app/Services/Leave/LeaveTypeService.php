@@ -7,6 +7,7 @@ namespace App\Services\Leave;
 use App\Models\LeaveType;
 use App\Repositories\LeaveTypeRepositoryInterface;
 use App\Services\Cache\CacheVersionService;
+use Illuminate\Validation\ValidationException;
 
 class LeaveTypeService
 {
@@ -19,6 +20,9 @@ class LeaveTypeService
     public function fetch(int $companyId, array $filters): array
     {
         $paginator = $this->repository->paginateForCompany($companyId, $filters);
+        $categoryFilter = isset($filters['category']) && is_array($filters['category'])
+            ? array_values($filters['category'])
+            : null;
 
         return [
             'items' => array_map([$this, 'toArray'], $paginator->items()),
@@ -30,7 +34,7 @@ class LeaveTypeService
             ],
             'filters' => [
                 'q' => $filters['q'] ?? null,
-                'category' => $filters['category'] ?? null,
+                'category' => $categoryFilter,
                 'active' => $filters['active'] ?? null,
                 'sortBy' => $filters['sortBy'] ?? 'name',
                 'sortDir' => $filters['sortDir'] ?? 'asc',
@@ -41,6 +45,11 @@ class LeaveTypeService
                 'categories' => $this->repository->categories($companyId),
             ],
         ];
+    }
+
+    public function selector(int $companyId, array $filters): array
+    {
+        return $this->repository->selectorForCompany($companyId, $filters);
     }
 
     public function show(int $companyId, int $id): array
@@ -64,7 +73,30 @@ class LeaveTypeService
 
     public function update(int $companyId, int $id, array $data): array
     {
-        $leaveType = $this->repository->updateInCompany($id, $companyId, $this->normalizePayload($data));
+        $normalized = $this->normalizePayload($data);
+        $existing = $this->repository->findByIdInCompany($id, $companyId);
+
+        if (! $existing instanceof LeaveType) {
+            abort(404, 'A szabadsag tipus nem talalhato.');
+        }
+
+        if ($existing->code !== $normalized['code']) {
+            throw ValidationException::withMessages([
+                'code' => 'A kód nem módosítható.',
+            ]);
+        }
+
+        $hasChanges = $existing->name !== $normalized['name']
+            || $existing->category !== $normalized['category']
+            || (bool) $existing->affects_leave_balance !== $normalized['affects_leave_balance']
+            || (bool) $existing->requires_approval !== $normalized['requires_approval']
+            || (bool) $existing->active !== $normalized['active'];
+
+        if (! $hasChanges) {
+            return $this->toArray($existing);
+        }
+
+        $leaveType = $this->repository->updateInCompany($id, $companyId, $normalized);
         $this->invalidateCache($companyId);
 
         return $this->toArray($leaveType);
@@ -90,9 +122,10 @@ class LeaveTypeService
 
     private function invalidateCache(int $companyId): void
     {
-        $this->cacheVersionService->bump("leave_types:{$companyId}:fetch");
-        $this->cacheVersionService->bump("leave_types:{$companyId}:show");
-        $this->cacheVersionService->bump("leave_types:{$companyId}:options");
+        $this->cacheVersionService->bump("leave_types:company:{$companyId}:fetch");
+        $this->cacheVersionService->bump("leave_types:company:{$companyId}:show");
+        $this->cacheVersionService->bump("leave_types:company:{$companyId}:options");
+        $this->cacheVersionService->bump("leave_types:company:{$companyId}:selector");
     }
 
     private function toArray(LeaveType $leaveType): array

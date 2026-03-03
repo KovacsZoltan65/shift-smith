@@ -23,19 +23,12 @@ const model = computed({
 const loadOptions = async () => {
     loading.value = true;
     try {
-        const { data } = await LeaveTypeService.fetch({
+        const { data } = await LeaveTypeService.selector({
             active: props.activeOnly ? 1 : undefined,
-            perPage: 100,
+            category: props.categories,
         });
 
-        const rows = Array.isArray(data?.items) ? data.items : [];
-        options.value = rows.filter((row) => {
-            if (!Array.isArray(props.categories) || props.categories.length === 0) {
-                return true;
-            }
-
-            return props.categories.includes(String(row.category));
-        });
+        options.value = Array.isArray(data?.data) ? data.data : [];
     } catch (_) {
         options.value = [];
     } finally {

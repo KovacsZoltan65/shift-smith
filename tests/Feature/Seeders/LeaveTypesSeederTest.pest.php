@@ -25,7 +25,7 @@ it('seedeli a betegszabadsagot ugy hogy nem csokkenti a leave balance-t', functi
 
     $this->assertDatabaseHas('leave_types', [
         'company_id' => $company->id,
-        'code' => 'sick',
+        'code' => 'sick_leave',
         'category' => 'sick_leave',
         'affects_leave_balance' => false,
     ]);

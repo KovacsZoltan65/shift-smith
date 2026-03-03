@@ -11,6 +11,8 @@ interface LeaveTypeRepositoryInterface
 {
     public function paginateForCompany(int $companyId, array $filters): LengthAwarePaginator;
 
+    public function selectorForCompany(int $companyId, array $filters): array;
+
     public function findByIdInCompany(int $id, int $companyId): ?LeaveType;
 
     public function createForCompany(int $companyId, array $data): LeaveType;

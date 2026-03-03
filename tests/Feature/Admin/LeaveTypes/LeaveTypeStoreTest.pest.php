@@ -80,3 +80,27 @@ it('letrehozza a rekordot a current company scope-ban', function (): void {
         'category' => 'leave',
     ]);
 });
+
+it('azonos code masik companyban letrehozhato', function (): void {
+    [$tenant, $companyA] = $this->createTenantWithCompany();
+    [, $companyB] = $this->createTenantWithCompany([], ['tenant_group_id' => $tenant->id]);
+    $user = $this->createAdminUser($companyA);
+
+    LeaveType::factory()->create([
+        'company_id' => $companyB->id,
+        'code' => 'annual',
+    ]);
+
+    $this->actingAsUserInCompany($user, $companyA)
+        ->postJson(route('admin.leave_types.store'), [
+            'code' => 'annual',
+            'name' => 'Szabadsag',
+            'category' => 'leave',
+            'affects_leave_balance' => true,
+            'requires_approval' => true,
+            'active' => true,
+        ])
+        ->assertCreated()
+        ->assertJsonPath('data.company_id', $companyA->id)
+        ->assertJsonPath('data.code', 'annual');
+});

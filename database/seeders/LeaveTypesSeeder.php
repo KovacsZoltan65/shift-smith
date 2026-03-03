@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Models\Company;
+use App\Models\LeaveType;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 final class LeaveTypesSeeder extends Seeder
 {
@@ -80,7 +80,7 @@ final class LeaveTypesSeeder extends Seeder
 
         Company::query()->each(function (Company $company) use ($defaultTypes) {
             foreach ($defaultTypes as $type) {
-                DB::table('leave_types')->updateOrInsert(
+                LeaveType::query()->updateOrCreate(
                     [
                         'company_id' => $company->id,
                         'code' => $type['code'],

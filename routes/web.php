@@ -182,6 +182,7 @@ Route::middleware(['auth', 'verified'])
         Route::middleware(['ensure.company'])->group(function (): void {
             Route::get('/leave-types', [LeaveTypeController::class, 'index'])->name('leave_types.index')->middleware('throttle:60,1');
             Route::get('/leave-types/fetch', [LeaveTypeController::class, 'fetch'])->name('leave_types.fetch')->middleware('throttle:60,1');
+            Route::get('/leave-types/selector', [LeaveTypeController::class, 'selector'])->name('leave_types.selector')->middleware('throttle:120,1');
             Route::post('/leave-types', [LeaveTypeController::class, 'store'])->name('leave_types.store')->middleware('throttle:20,1');
             Route::get('/leave-types/{id}', [LeaveTypeController::class, 'show'])->whereNumber('id')->name('leave_types.show')->middleware('throttle:60,1');
             Route::put('/leave-types/{id}', [LeaveTypeController::class, 'update'])->whereNumber('id')->name('leave_types.update')->middleware('throttle:30,1');

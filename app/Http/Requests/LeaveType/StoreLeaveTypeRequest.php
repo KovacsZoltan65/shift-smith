@@ -31,7 +31,7 @@ class StoreLeaveTypeRequest extends FormRequest
                 ),
             ],
             'name' => ['required', 'string', 'max:150'],
-            'category' => ['required', 'string', 'in:leave,sick_leave,paid_absence,unpaid_absence'],
+            'category' => ['required', 'string', 'in:'.implode(',', LeaveType::getCategories())],
             'affects_leave_balance' => ['required', 'boolean'],
             'requires_approval' => ['required', 'boolean'],
             'active' => ['required', 'boolean'],

@@ -35,24 +35,24 @@ class LeaveTypeRepository implements LeaveTypeRepositoryInterface
             'page' => $page,
             'perPage' => $perPage,
             'q' => $this->normalizeString($filters['q'] ?? null),
-            'category' => $this->normalizeString($filters['category'] ?? null),
+            'category' => $this->normalizeCategoryFilter($filters['category'] ?? null),
             'active' => $this->normalizeBool($filters['active'] ?? null),
             'sortBy' => $sortBy,
             'sortDir' => $sortDir,
         ];
 
-        $version = $this->cacheVersionService->get("leave_types:{$companyId}:fetch");
+        $version = $this->cacheVersionService->get($this->versionNamespace($companyId, 'fetch'));
         $key = 'v'.$version.':'.hash('sha256', json_encode($normalized, JSON_THROW_ON_ERROR));
 
         /** @var LengthAwarePaginator<int, LeaveType> */
         return $this->cacheService->remember(
-            tag: "leave_types:{$companyId}",
+            tag: $this->cacheTag($companyId),
             key: $key,
             callback: function () use ($companyId, $normalized, $page, $perPage): LengthAwarePaginator {
                 return LeaveType::query()
                     ->inCompany($companyId)
                     ->search($normalized['q'])
-                    ->when($normalized['category'] !== null, fn ($query) => $query->where('category', $normalized['category']))
+                    ->when($normalized['category'] !== null, fn ($query) => $query->whereIn('category', $normalized['category']))
                     ->when($normalized['active'] !== null, fn ($query) => $query->where('active', $normalized['active']))
                     ->orderBy($normalized['sortBy'], $normalized['sortDir'])
                     ->orderBy('id')
@@ -62,13 +62,49 @@ class LeaveTypeRepository implements LeaveTypeRepositoryInterface
         );
     }
 
+    public function selectorForCompany(int $companyId, array $filters): array
+    {
+        $normalized = [
+            'companyId' => $companyId,
+            'category' => $this->normalizeCategoryFilter($filters['category'] ?? null),
+            'active' => $this->normalizeBool($filters['active'] ?? true),
+        ];
+
+        $version = $this->cacheVersionService->get($this->versionNamespace($companyId, 'selector'));
+        $key = 'v'.$version.':'.hash('sha256', json_encode($normalized, JSON_THROW_ON_ERROR));
+
+        /** @var list<array{id:int,code:string,name:string,category:string,active:bool}> */
+        return $this->cacheService->remember(
+            tag: $this->cacheTag($companyId),
+            key: $key,
+            callback: static function () use ($companyId, $normalized): array {
+                return LeaveType::query()
+                    ->inCompany($companyId)
+                    ->when($normalized['category'] !== null, fn ($query) => $query->whereIn('category', $normalized['category']))
+                    ->when($normalized['active'] !== null, fn ($query) => $query->where('active', $normalized['active']))
+                    ->orderBy('name')
+                    ->orderBy('id')
+                    ->get(['id', 'code', 'name', 'category', 'active'])
+                    ->map(static fn (LeaveType $leaveType): array => [
+                        'id' => (int) $leaveType->id,
+                        'code' => (string) $leaveType->code,
+                        'name' => (string) $leaveType->name,
+                        'category' => (string) $leaveType->category,
+                        'active' => (bool) $leaveType->active,
+                    ])
+                    ->all();
+            },
+            ttl: (int) config('cache.ttl_fetch', 300),
+        );
+    }
+
     public function findByIdInCompany(int $id, int $companyId): ?LeaveType
     {
-        $version = $this->cacheVersionService->get("leave_types:{$companyId}:show");
+        $version = $this->cacheVersionService->get($this->versionNamespace($companyId, 'show'));
 
         /** @var LeaveType|null $leaveType */
         $leaveType = $this->cacheService->remember(
-            tag: "leave_types:{$companyId}",
+            tag: $this->cacheTag($companyId),
             key: 'v'.$version.':'.$id,
             callback: static fn (): ?LeaveType => LeaveType::query()->inCompany($companyId)->find($id),
             ttl: (int) config('cache.ttl_fetch', 60),
@@ -105,11 +141,11 @@ class LeaveTypeRepository implements LeaveTypeRepositoryInterface
 
     public function categories(int $companyId): array
     {
-        $version = $this->cacheVersionService->get("leave_types:{$companyId}:options");
+        $version = $this->cacheVersionService->get($this->versionNamespace($companyId, 'options'));
 
         /** @var list<string> */
         return $this->cacheService->remember(
-            tag: "leave_types:{$companyId}",
+            tag: $this->cacheTag($companyId),
             key: 'v'.$version.':categories',
             callback: static function () use ($companyId): array {
                 return LeaveType::query()
@@ -137,6 +173,16 @@ class LeaveTypeRepository implements LeaveTypeRepositoryInterface
         throw new NotFoundHttpException('A szabadsag tipus nem talalhato a kivalasztott company scope-ban.');
     }
 
+    private function cacheTag(int $companyId): string
+    {
+        return "leave_types:company:{$companyId}";
+    }
+
+    private function versionNamespace(int $companyId, string $segment): string
+    {
+        return "leave_types:company:{$companyId}:{$segment}";
+    }
+
     private function normalizeString(mixed $value): ?string
     {
         if (! is_string($value)) {
@@ -146,6 +192,22 @@ class LeaveTypeRepository implements LeaveTypeRepositoryInterface
         $value = trim($value);
 
         return $value === '' ? null : $value;
+    }
+
+    private function normalizeCategoryFilter(mixed $value): ?array
+    {
+        $items = is_array($value) ? $value : (is_string($value) ? [$value] : []);
+        $items = array_values(array_filter(array_map(function (mixed $item): ?string {
+            if (! is_string($item)) {
+                return null;
+            }
+
+            $normalized = trim($item);
+
+            return $normalized === '' ? null : $normalized;
+        }, $items)));
+
+        return $items === [] ? null : $items;
     }
 
     private function normalizeBool(mixed $value): ?bool

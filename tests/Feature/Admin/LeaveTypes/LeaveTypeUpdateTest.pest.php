@@ -59,3 +59,25 @@ it('nem frissiti masik company rekordjat', function (): void {
         ])
         ->assertNotFound();
 });
+
+it('update-nel ignore-olja a sajat rekord unique code ellenorzeset', function (): void {
+    [$tenant, $company] = $this->createTenantWithCompany();
+    $user = $this->createAdminUser($company);
+    $leaveType = LeaveType::factory()->create([
+        'company_id' => $company->id,
+        'code' => 'annual',
+    ]);
+
+    $this->actingAsUserInCompany($user, $company)
+        ->putJson(route('admin.leave_types.update', $leaveType->id), [
+            'code' => 'annual',
+            'name' => 'Azonos kod marad',
+            'category' => 'leave',
+            'affects_leave_balance' => true,
+            'requires_approval' => false,
+            'active' => true,
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.code', 'annual')
+        ->assertJsonPath('data.name', 'Azonos kod marad');
+});

@@ -49,6 +49,16 @@ class LeaveTypeController extends Controller
         ], Response::HTTP_OK);
     }
 
+    public function selector(FetchLeaveTypeRequest $request): JsonResponse
+    {
+        $this->authorize(LeaveTypePolicy::PERM_VIEW_ANY, LeaveType::class);
+
+        return response()->json([
+            'message' => 'Leave type selector sikeresen lekerve.',
+            'data' => $this->service->selector($request->currentCompanyId(), $request->validatedFilters()),
+        ], Response::HTTP_OK);
+    }
+
     public function show(int $id, FetchLeaveTypeRequest $request): JsonResponse
     {
         $this->authorize(LeaveTypePolicy::PERM_VIEW, LeaveType::class);
