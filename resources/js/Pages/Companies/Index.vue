@@ -26,32 +26,14 @@ import { IconField, InputIcon } from "primevue";
 const { has } = usePermissions();
 
 const props = defineProps({
-    title: String,
-    filter: Object,
-    endpointBase: {
-        type: String,
-        default: "/companies",
-    },
-    permissionPrefix: {
-        type: String,
-        default: "companies",
-    },
-    hqBadge: {
-        type: String,
-        default: "",
-    },
-    fetchRouteName: {
-        type: String,
-        default: "",
-    },
-    detailRouteName: {
-        type: String,
-        default: "",
-    },
-    forbiddenRedirectRouteName: {
-        type: String,
-        default: "",
-    },
+    title: { type: String, default: "Cégek" },
+    filter: { type: Object, default: () => ({}) },
+    endpointBase: { type: String, default: "/companies" },
+    permissionPrefix: { type: String, default: "companies" },
+    hqBadge: { type: String, default: "" },
+    fetchRouteName: { type: String, default: "" },
+    detailRouteName: { type: String, default: "" },
+    forbiddenRedirectRouteName: { type: String, default: "" },
 });
 
 const canCreate = computed(() => has(`${props.permissionPrefix}.create`));

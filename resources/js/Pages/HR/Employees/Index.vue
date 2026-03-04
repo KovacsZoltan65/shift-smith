@@ -28,19 +28,29 @@ const page = usePage();
 
 import { usePermissions } from "@/composables/usePermissions";
 import { IconField, InputIcon } from "primevue";
-const { has } = usePermissions();
-const canCreate = has("employees.create");
-const canUpdate = has("employees.update");
-const canDelete = has("employees.delete");
-const canViewEmployeeWorkPatterns = has("employee_work_patterns.view");
-const canAssignEmployeeWorkPatterns = has("employee_work_patterns.assign");
-const canUnassignEmployeeWorkPatterns = has("employee_work_patterns.unassign");
 
 const props = defineProps({
     title: { type: String, default: "Dolgozók" },
     filter: { type: Object, default: () => ({}) },
-    default_company_id: { type: [Number, String, null], default: null }, // backend index adja
+    default_company_id: { type: [Number, String, null], default: null },
+    endpointBase: { type: String, default: "/employees" },
+    permissionPrefix: { type: String, default: "employees" },
+    permissionPrefix2: { type: String, default: "employee_work_patterns" },
+    hqBadge: { type: String, default: "" },
+    fetchRouteName: { type: String, default: "" },
+    detailRouteName: { type: String, default: "" },
+    forbiddenRedirectRouteName: { type: String, default: "" },
 });
+
+const { has } = usePermissions();
+const canCreate = has(`${props.permissionPrefix}.create`);
+const canUpdate = has(`${props.permissionPrefix}.update`);
+const canDelete = has(`${props.permissionPrefix}.delete`);
+const canViewEmployeeWorkPatterns = has(`${props.permissionPrefix2}.view`);
+const canAssignEmployeeWorkPatterns = has(`${props.permissionPrefix2}.assign`);
+const canUnassignEmployeeWorkPatterns = has(
+    `${props.permissionPrefix2}.unassign`,
+);
 
 const toast = useToast();
 const confirm = useConfirm();
@@ -234,7 +244,7 @@ const fetchEmployees = async () => {
     error.value = null;
 
     try {
-        const res = await fetch(`/employees/fetch?${buildQuery()}`, {
+        const res = await fetch(`${props.endpoint}/fetch${buildQuery()}`, {
             headers: { "X-Requested-With": "XMLHttpRequest" },
         });
 
@@ -272,7 +282,7 @@ const deleteOne = async (id) => {
     actionLoading.value = true;
 
     try {
-        const res = await csrfFetch(`/employees/${id}`, {
+        const res = await csrfFetch(`${props.endpoint}/${id}`, {
             method: "DELETE",
             headers: {
                 "X-Requested-With": "XMLHttpRequest",
@@ -330,7 +340,7 @@ const bulkDelete = async (ids) => {
     actionLoading.value = true;
 
     try {
-        const res = await csrfFetch(`/employees/destroy_bulk`, {
+        const res = await csrfFetch(`${props.endpoint}/destroy_bulk`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -376,7 +386,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <Head title="Dolgozók" />
+    <Head :title="props.title" />
 
     <Toast />
     <ConfirmDialog />
@@ -409,6 +419,12 @@ onMounted(() => {
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-3 flex-wrap">
                     <h1 class="text-2xl font-semibold">{{ title }}</h1>
+                    <span
+                        v-if="hqBadge"
+                        class="inline-flex items-center rounded bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700"
+                    >
+                        {{ hqBadge }}
+                    </span>
 
                     <!-- CREATE -->
                     <Button
