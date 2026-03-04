@@ -84,6 +84,18 @@ const canAbsencePlanner = computed(() => !!props.permissions?.absencePlanner);
 const selectedSchedule = computed(() =>
     props.schedules.find((x) => Number(x.id) === Number(scheduleId.value)) ?? null
 );
+const scheduleOptions = computed(() =>
+    (props.schedules ?? []).map((row) => {
+        const from = row?.date_from ? ` ${row.date_from}` : "";
+        const to = row?.date_to ? ` - ${row.date_to}` : "";
+        const status = row?.status === "published" ? " [publikált]" : " [draft]";
+
+        return {
+            label: `${row?.name ?? "Beosztás"}${from}${to}${status}`,
+            value: Number(row?.id ?? 0),
+        };
+    })
+);
 
 const monthOptions = [
     { label: "Január", value: 1 },
@@ -205,12 +217,18 @@ const plannerModeEnabled = computed(() => {
     return (
         canPlanner.value &&
         plannerMode.value &&
+        !!scheduleId.value &&
         selectedPeriodEditable.value &&
         selectedSchedule.value?.status !== "published"
     );
 });
 
+const plannerSwitchDisabled = computed(() => {
+    return !scheduleId.value || !selectedPeriodEditable.value || selectedSchedule.value?.status === "published";
+});
+
 const plannerDisabledReason = computed(() => {
+    if (!scheduleId.value) return "Válassz beosztást a planner mód használatához.";
     if (!canPlanner.value) return "Nincs tervezési jogosultság.";
     if (selectedSchedule.value?.status === "published") {
         return "A kiválasztott beosztás publikált, ezért nem szerkeszthető. Válassz draft státuszú beosztást.";
@@ -789,6 +807,16 @@ watch(
     { immediate: true },
 );
 
+watch(
+    plannerSwitchDisabled,
+    (disabled) => {
+        if (disabled) {
+            plannerMode.value = false;
+        }
+    },
+    { immediate: true },
+);
+
 onMounted(async () => {
     await loadSelectors();
     await loadEvents();
@@ -840,6 +868,18 @@ onMounted(async () => {
     <AuthenticatedLayout>
         <div class="space-y-4 p-6">
             <div class="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4">
+                <div class="min-w-80">
+                    <label class="mb-1 block text-xs text-slate-600">Beosztás</label>
+                    <Select
+                        v-model="scheduleId"
+                        :options="scheduleOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        class="w-full"
+                        placeholder="Beosztás kiválasztása"
+                    />
+                </div>
+
                 <div>
                     <label class="mb-1 block text-xs text-slate-600">Nézet</label>
                     <SelectButton
@@ -975,12 +1015,12 @@ onMounted(async () => {
                     <span class="text-sm">Planner mód</span>
                     <ToggleSwitch
                         v-model="plannerMode"
-                        :disabled="!selectedPeriodEditable || selectedSchedule?.status === 'published'"
+                        :disabled="plannerSwitchDisabled"
                     />
                 </div>
 
                 <div
-                    v-if="canPlanner && plannerMode && plannerDisabledReason"
+                    v-if="canPlanner && plannerDisabledReason"
                     class="text-xs text-amber-700"
                 >
                     {{ plannerDisabledReason }}
