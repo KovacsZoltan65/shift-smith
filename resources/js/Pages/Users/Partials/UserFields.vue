@@ -1,6 +1,7 @@
 <script setup>
 import InputText from "primevue/inputtext";
-import Dropdown from "primevue/dropdown";
+import Select from "primevue/select";
+import { watch } from "vue";
 
 const props = defineProps({
     modelValue: { type: Object, required: true }, // { name, email, company_id }
@@ -14,6 +15,19 @@ const emit = defineEmits(["update:modelValue"]);
 const set = (key, val) => {
     emit("update:modelValue", { ...props.modelValue, [key]: val });
 };
+
+watch(
+    () => [props.companies, props.modelValue?.company_id],
+    ([companies, companyId]) => {
+        if (companyId || !Array.isArray(companies) || companies.length === 0) return;
+
+        const fallback = Number(companies[0]?.value ?? 0) || null;
+        if (fallback) {
+            set("company_id", fallback);
+        }
+    },
+    { immediate: true, deep: true },
+);
 </script>
 
 <template>

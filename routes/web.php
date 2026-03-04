@@ -254,7 +254,7 @@ Route::middleware(['auth', 'verified'])
  * ======================================
  * Felhasználók kezelése
  */
-Route::middleware(['auth', 'verified'])
+Route::middleware(['auth', 'verified', 'ensure.company'])
         ->prefix('users')->as('users.')->controller(UserController::class)->group(function () {
         // INDEX - olvasási műveletek
         Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
@@ -278,7 +278,7 @@ Route::middleware(['auth', 'verified'])
         Route::post('/{user}/password-reset', 'sendPasswordReset')->name('send_password_reset')->middleware('throttle:5,1');
     });
 
-Route::middleware(['auth', 'verified'])
+Route::middleware(['auth', 'verified', 'ensure.company'])
     ->prefix('admin/users')
     ->name('admin.users.')
     ->group(function (): void {
