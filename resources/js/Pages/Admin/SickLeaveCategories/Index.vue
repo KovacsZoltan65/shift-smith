@@ -18,6 +18,7 @@ import Select from "primevue/select";
 import Tag from "primevue/tag";
 import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
+import { IconField, InputIcon } from "primevue";
 
 const props = defineProps({
     title: { type: String, default: "Betegszabadsag kategoriak" },
@@ -97,7 +98,10 @@ const hasActiveFilters = computed(() => {
         }
 
         if (Array.isArray(entry.constraints)) {
-            return entry.constraints.some((constraint) => constraint?.value !== null && constraint?.value !== "");
+            return entry.constraints.some(
+                (constraint) =>
+                    constraint?.value !== null && constraint?.value !== "",
+            );
         }
 
         return false;
@@ -119,7 +123,10 @@ const fetchRows = async () => {
         toast.add({
             severity: "error",
             summary: "Hiba",
-            detail: error?.response?.data?.message ?? error?.message ?? "Lista betoltese sikertelen.",
+            detail:
+                error?.response?.data?.message ??
+                error?.message ??
+                "Lista betoltese sikertelen.",
             life: 3500,
         });
     } finally {
@@ -245,26 +252,23 @@ onMounted(() => {
                 :globalFilterFields="globalFilterFields"
             >
                 <template #header>
-                    <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex justify-between">
                         <Button
                             type="button"
                             icon="pi pi-filter-slash"
-                            label="Szurok torlese"
-                            severity="secondary"
-                            size="small"
-                            :disabled="!hasActiveFilters"
-                            data-testid="sick-leave-categories-clear-filters"
-                            @click="clearFilters"
+                            label="Clear"
+                            variant="outlined"
+                            @click="clearFilters()"
                         />
-                        <span class="p-input-icon-left">
-                            <i class="pi pi-search" />
+                        <IconField>
+                            <InputIcon>
+                                <i class="pi pi-search" />
+                            </InputIcon>
                             <InputText
-                                v-model="filters.global.value"
-                                class="w-72"
-                                placeholder="Kereses..."
-                                data-testid="sick-leave-categories-search"
+                                v-model="filters['global'].value"
+                                placeholder="Keyword Search"
                             />
-                        </span>
+                        </IconField>
                     </div>
                 </template>
 
@@ -317,7 +321,9 @@ onMounted(() => {
                     :filterMenuStyle="{ width: '18rem' }"
                 >
                     <template #body="{ data }">
-                        <span class="text-sm text-slate-700">{{ data.description || "-" }}</span>
+                        <span class="text-sm text-slate-700">{{
+                            data.description || "-"
+                        }}</span>
                     </template>
                     <template #filter="{ filterModel }">
                         <InputText

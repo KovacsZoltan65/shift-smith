@@ -1,6 +1,7 @@
 <script setup>
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { Head, usePage } from "@inertiajs/vue3";
+import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 
@@ -13,6 +14,7 @@ import { useConfirm } from "primevue/useconfirm";
 import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
 import Menu from "primevue/menu";
+import Select from "primevue/select";
 
 import CreateModal from "@/Pages/HR/Employees/CreateModal.vue";
 import EditModal from "@/Pages/HR/Employees/EditModal.vue";
@@ -25,6 +27,7 @@ import { toYmd } from "@/helpers/functions.js";
 const page = usePage();
 
 import { usePermissions } from "@/composables/usePermissions";
+import { IconField, InputIcon } from "primevue";
 const { has } = usePermissions();
 const canCreate = has("employees.create");
 const canUpdate = has("employees.update");
@@ -51,9 +54,9 @@ const selectedEmployeeForWorkPattern = ref(null);
 const loading = ref(false);
 const actionLoading = ref(false);
 const error = ref(null);
+const dt = ref(null);
 
 const rows = ref([]);
-const totalRecords = ref(0);
 
 // checkbox selection
 const selected = ref([]);
@@ -92,24 +95,69 @@ const openRowMenu = (event, row) => {
 };
 // ------------------------
 
-// lazy state (Companies/Users minta)
-const lazy = ref({
-    first: 0,
-    rows: 10,
-    page: 0,
-    sortField: "name",
-    sortOrder: 1,
-});
-
-const search = ref(props.filter?.search ?? "");
-
 const companyId = ref(
     page.props?.companyContext?.current_company_id ??
         props.filter?.company_id ??
-        (props.default_company_id ? Number(props.default_company_id) : null)
+        (props.default_company_id ? Number(props.default_company_id) : null),
 );
+const globalFilterFields = [
+    "name",
+    "first_name",
+    "last_name",
+    "position_name",
+    "email",
+    "phone",
+    "active",
+];
+const booleanOptions = [
+    { label: "Igen", value: true },
+    { label: "Nem", value: false },
+];
+const createInitialFilters = () => ({
+    global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    name: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+    },
+    email: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+    },
+    phone: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+    },
+    active: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }],
+    },
+});
+const filters = ref(createInitialFilters());
 
-let t = null;
+const initFilters = () => {
+    filters.value = createInitialFilters();
+};
+
+const clearFilters = () => {
+    initFilters();
+    dt.value?.clearFilter?.();
+};
+
+const hasActiveFilters = computed(() => {
+    const currentFilters = filters.value ?? {};
+
+    return Object.values(currentFilters).some((entry) => {
+        if (!entry || typeof entry !== "object") return false;
+        if ("value" in entry) return entry.value !== null && entry.value !== "";
+        if (Array.isArray(entry.constraints)) {
+            return entry.constraints.some(
+                (constraint) =>
+                    constraint?.value !== null && constraint?.value !== "",
+            );
+        }
+        return false;
+    });
+});
 
 const openCreate = () => {
     createOpen.value = true;
@@ -132,28 +180,20 @@ const onSaved = async (msg = "Mentve.") => {
 
     selected.value = [];
     await fetchEmployees();
-    toast.add({ severity: "success", summary: "Siker", detail: msg, life: 2000 });
-};
-
-const onSearchInput = () => {
-    if (t) clearTimeout(t);
-    t = setTimeout(() => {
-        lazy.value.first = 0;
-        lazy.value.page = 0;
-        fetchEmployees();
-    }, 300);
+    toast.add({
+        severity: "success",
+        summary: "Siker",
+        detail: msg,
+        life: 2000,
+    });
 };
 
 const buildQuery = () => {
-    const order = lazy.value.sortOrder === 1 ? "asc" : "desc";
-
     const q = {
-        ...(props.filter ?? {}),
-        page: lazy.value.page + 1,
-        per_page: lazy.value.rows,
-        field: lazy.value.sortField,
-        order,
-        search: search.value?.trim() || "",
+        page: 1,
+        per_page: 100,
+        field: "name",
+        order: "asc",
         company_id: companyId.value || "",
     };
 
@@ -204,27 +244,11 @@ const fetchEmployees = async () => {
         const out = normalizeFetchPayload(json);
 
         rows.value = out.rows;
-        totalRecords.value = out.total;
     } catch (e) {
         error.value = e?.message || "Ismeretlen hiba";
     } finally {
         loading.value = false;
     }
-};
-
-const onPage = (event) => {
-    lazy.value.first = event.first;
-    lazy.value.rows = event.rows;
-    lazy.value.page = event.page;
-    fetchEmployees();
-};
-
-const onSort = (event) => {
-    lazy.value.sortField = event.sortField;
-    lazy.value.sortOrder = event.sortOrder;
-    lazy.value.first = 0;
-    lazy.value.page = 0;
-    fetchEmployees();
 };
 
 const confirmDeleteOne = (row) => {
@@ -345,7 +369,10 @@ const bulkDelete = async (ids) => {
     }
 };
 
-onMounted(fetchEmployees);
+onMounted(() => {
+    initFilters();
+    fetchEmployees();
+});
 </script>
 
 <template>
@@ -378,8 +405,8 @@ onMounted(fetchEmployees);
     />
 
     <AuthenticatedLayout>
-        <div class="p-6">
-            <div class="mb-4 flex items-center justify-between gap-3">
+        <div class="space-y-4 p-6">
+            <div class="flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-3 flex-wrap">
                     <h1 class="text-2xl font-semibold">{{ title }}</h1>
 
@@ -413,7 +440,9 @@ onMounted(fetchEmployees);
                         icon="pi pi-trash"
                         severity="danger"
                         size="small"
-                        :disabled="!selected?.length || actionLoading || loading"
+                        :disabled="
+                            !selected?.length || actionLoading || loading
+                        "
                         :loading="actionLoading"
                         @click="confirmBulkDelete"
                         data-testid="employees-bulk-delete"
@@ -423,16 +452,6 @@ onMounted(fetchEmployees);
                         Kijelölve: <b>{{ selected.length }}</b>
                     </div>
                 </div>
-
-                <span class="p-input-icon-left">
-                    <i class="pi pi-search" />
-                    <InputText
-                        v-model="search"
-                        placeholder="Keresés..."
-                        class="w-64"
-                        @input="onSearchInput"
-                    />
-                </span>
             </div>
 
             <div v-if="error" class="mb-3 border p-3">
@@ -443,31 +462,58 @@ onMounted(fetchEmployees);
             <Menu ref="rowMenu" :model="rowMenuModel" popup />
 
             <DataTable
+                ref="dt"
                 v-model:selection="selected"
+                v-model:filters="filters"
                 :value="rows"
                 dataKey="id"
-                lazy
                 paginator
-                :rows="lazy.rows"
-                :first="lazy.first"
-                :totalRecords="totalRecords"
+                :rows="10"
                 :rowsPerPageOptions="[10, 25, 50, 100]"
                 :loading="loading || actionLoading"
-                sortMode="single"
-                :sortField="lazy.sortField"
-                :sortOrder="lazy.sortOrder"
-                @page="onPage"
-                @sort="onSort"
+                sortMode="multiple"
+                removableSort
+                filterDisplay="menu"
+                :globalFilterFields="globalFilterFields"
                 selectionMode="multiple"
             >
-                <template #empty> Nincs találat. </template>
+                <template #header>
+                    <div class="flex justify-between">
+                        <Button
+                            type="button"
+                            icon="pi pi-filter-slash"
+                            label="Clear"
+                            variant="outlined"
+                            @click="clearFilters()"
+                        />
+                        <IconField>
+                            <InputIcon>
+                                <i class="pi pi-search" />
+                            </InputIcon>
+                            <InputText
+                                v-model="filters['global'].value"
+                                placeholder="Keyword Search"
+                            />
+                        </IconField>
+                    </div>
+                </template>
+
+                <template #empty>Nincs talalat.</template>
+                <template #loading>Betoltes...</template>
 
                 <!-- checkbox oszlop -->
                 <Column selectionMode="multiple" headerStyle="width: 3rem" />
 
                 <Column field="id" header="ID" sortable style="width: 90px" />
 
-                <Column field="name" header="Név" sortable>
+                <Column
+                    field="name"
+                    filterField="name"
+                    header="Név"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
                     <template #body="{ data }">
                         <div class="font-medium">
                             {{
@@ -475,19 +521,60 @@ onMounted(fetchEmployees);
                                 `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim()
                             }}
                         </div>
-                        <div v-if="data.position_name" class="text-xs text-gray-500">
+                        <div
+                            v-if="data.position_name"
+                            class="text-xs text-gray-500"
+                        >
                             {{ data.position_name }}
                         </div>
                     </template>
+                    <template #filter="{ filterModel }">
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            placeholder="Nev keresese"
+                        />
+                    </template>
                 </Column>
 
-                <Column field="email" header="Email" sortable />
-                <Column field="phone" header="Telefon" sortable />
+                <Column
+                    field="email"
+                    filterField="email"
+                    header="Email"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
+                    <template #filter="{ filterModel }">
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            placeholder="Email keresese"
+                        />
+                    </template>
+                </Column>
+                <Column
+                    field="phone"
+                    filterField="phone"
+                    header="Telefon"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
+                    <template #filter="{ filterModel }">
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            placeholder="Telefon keresese"
+                        />
+                    </template>
+                </Column>
 
                 <!-- BELÉPÉS -->
-                <Column 
-                    field="hired_at" 
-                    header="Belépés" sortable 
+                <Column
+                    field="hired_at"
+                    header="Belépés"
+                    sortable
                     style="width: 140px"
                 >
                     <template #body="{ data }">
@@ -497,7 +584,16 @@ onMounted(fetchEmployees);
                     </template>
                 </Column>
 
-                <Column field="active" header="Aktív" sortable style="width: 120px">
+                <Column
+                    field="active"
+                    filterField="active"
+                    header="Aktív"
+                    filter
+                    sortable
+                    style="width: 120px"
+                    dataType="boolean"
+                    :showFilterMatchModes="false"
+                >
                     <template #body="{ data }">
                         <span
                             class="inline-flex items-center rounded px-2 py-1 text-xs"
@@ -509,6 +605,17 @@ onMounted(fetchEmployees);
                         >
                             {{ data.active ? "Igen" : "Nem" }}
                         </span>
+                    </template>
+                    <template #filter="{ filterModel }">
+                        <Select
+                            v-model="filterModel.value"
+                            :options="booleanOptions"
+                            optionLabel="label"
+                            optionValue="value"
+                            class="w-full"
+                            showClear
+                            placeholder="Statusz"
+                        />
                     </template>
                 </Column>
 

@@ -1,6 +1,7 @@
 <script setup>
 import { Head, usePage } from "@inertiajs/vue3";
 import { computed, onMounted, ref, watch } from "vue";
+import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import UserService from "@/services/UserService.js";
@@ -11,18 +12,17 @@ import Badge from "primevue/badge";
 import Button from "primevue/button";
 import Column from "primevue/column";
 import DataTable from "primevue/datatable";
-import Dropdown from "primevue/dropdown";
 import InputText from "primevue/inputtext";
 import Tag from "primevue/tag";
 import Toast from "primevue/toast";
-import Toolbar from "primevue/toolbar";
 import { useToast } from "primevue/usetoast";
 
 import BulkDeleteModal from "./Partials/BulkDeleteModal.vue";
 import CreateModal from "./Partials/CreateModal.vue";
 import DeleteModal from "./Partials/DeleteModal.vue";
 import EditModal from "./Partials/EditModal.vue";
-import { Select } from "primevue";
+import Select from "primevue/select";
+import { IconField, InputIcon } from "primevue";
 
 const props = defineProps({
     title: String,
@@ -40,7 +40,7 @@ const canDelete = computed(() => has("user_settings.delete"));
 const canDeleteAny = computed(() => has("user_settings.deleteAny"));
 const canManageOthers = computed(() => has("user_settings.manageOthers"));
 const companyName = computed(
-    () => page.props.companyContext?.current_company?.name ?? "Company"
+    () => page.props.companyContext?.current_company?.name ?? "Company",
 );
 
 const createOpen = ref(false);
@@ -51,10 +51,10 @@ const selected = ref([]);
 const selectedItem = ref(null);
 const loading = ref(false);
 const rows = ref([]);
-const totalRecords = ref(0);
 const error = ref("");
 const users = ref([]);
 const groupOptions = ref([]);
+const dt = ref(null);
 
 const typeOptions = [
     { label: "int", value: "int" },
@@ -63,23 +63,65 @@ const typeOptions = [
     { label: "json", value: "json" },
 ];
 
+const selectedUserId = ref(
+    props.filter?.user_id ??
+        props.targetUserId ??
+        page.props.auth?.user?.id ??
+        null,
+);
+const globalFilterFields = ["key", "group", "type", "value_preview"];
 const filters = ref({
-    q: props.filter?.q ?? "",
-    group: props.filter?.group ?? null,
-    type: props.filter?.type ?? null,
-    user_id:
-        props.filter?.user_id ?? props.targetUserId ?? page.props.auth?.user?.id ?? null,
+    global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    key: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+    },
+    group: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }],
+    },
+    type: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }],
+    },
 });
 
-const lazy = ref({
-    first: 0,
-    rows: Number(props.filter?.perPage ?? 10),
-    page: Math.max(Number(props.filter?.page ?? 1) - 1, 0),
-    sortField: props.filter?.sortBy ?? "key",
-    sortOrder: props.filter?.sortDir === "desc" ? -1 : 1,
-});
+const initFilters = () => {
+    filters.value = {
+        global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+        key: {
+            operator: FilterOperator.AND,
+            constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+        },
+        group: {
+            operator: FilterOperator.AND,
+            constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }],
+        },
+        type: {
+            operator: FilterOperator.AND,
+            constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }],
+        },
+    };
+};
 
-lazy.value.first = lazy.value.page * lazy.value.rows;
+const clearFilters = () => {
+    initFilters();
+    dt.value?.clearFilter?.();
+};
+
+const hasActiveFilters = computed(() => {
+    const currentFilters = filters.value ?? {};
+    return Object.values(currentFilters).some((entry) => {
+        if (!entry || typeof entry !== "object") return false;
+        if ("value" in entry) return entry.value !== null && entry.value !== "";
+        if (Array.isArray(entry.constraints))
+            return entry.constraints.some(
+                (constraint) =>
+                    constraint?.value !== null && constraint?.value !== "",
+            );
+        return false;
+    });
+});
 
 const fetchUsers = async () => {
     if (!canManageOthers.value) return;
@@ -101,27 +143,21 @@ const fetchUserSettings = async () => {
 
     try {
         const { data } = await UserSettingsService.fetch({
-            q: filters.value.q?.trim() || undefined,
-            group: filters.value.group || undefined,
-            type: filters.value.type || undefined,
-            user_id: filters.value.user_id || undefined,
-            page: lazy.value.page + 1,
-            perPage: lazy.value.rows,
-            sortBy: lazy.value.sortField,
-            sortDir: lazy.value.sortOrder === 1 ? "asc" : "desc",
+            user_id: selectedUserId.value || undefined,
+            page: 1,
+            perPage: 100,
+            sortBy: "key",
+            sortDir: "asc",
         });
 
         rows.value = data?.items ?? [];
-        totalRecords.value = Number(data?.meta?.total ?? 0);
         groupOptions.value = (data?.options?.groups ?? []).map((value) => ({
             label: value,
             value,
         }));
-        lazy.value.page = Math.max(Number(data?.meta?.current_page ?? 1) - 1, 0);
-        lazy.value.rows = Number(data?.meta?.per_page ?? lazy.value.rows);
-        lazy.value.first = lazy.value.page * lazy.value.rows;
     } catch (err) {
-        error.value = err?.response?.data?.message ?? err?.message ?? "Betöltési hiba";
+        error.value =
+            err?.response?.data?.message ?? err?.message ?? "Betöltési hiba";
     } finally {
         loading.value = false;
     }
@@ -129,45 +165,35 @@ const fetchUserSettings = async () => {
 
 const handleSaved = async (message) => {
     await fetchUserSettings();
-    toast.add({ severity: "success", summary: "Siker", detail: message, life: 2500 });
+    toast.add({
+        severity: "success",
+        summary: "Siker",
+        detail: message,
+        life: 2500,
+    });
 };
 
 const handleDeleted = async (message) => {
     selected.value = [];
     selectedItem.value = null;
     await fetchUserSettings();
-    toast.add({ severity: "success", summary: "Siker", detail: message, life: 2500 });
-};
-
-const applyFilters = () => {
-    lazy.value.page = 0;
-    lazy.value.first = 0;
-    fetchUserSettings();
-};
-
-const onPage = (event) => {
-    lazy.value.first = event.first;
-    lazy.value.rows = event.rows;
-    lazy.value.page = event.page;
-    fetchUserSettings();
-};
-
-const onSort = (event) => {
-    lazy.value.sortField = event.sortField;
-    lazy.value.sortOrder = event.sortOrder;
-    lazy.value.first = 0;
-    lazy.value.page = 0;
-    fetchUserSettings();
+    toast.add({
+        severity: "success",
+        summary: "Siker",
+        detail: message,
+        life: 2500,
+    });
 };
 
 watch(
-    () => filters.value.user_id,
+    () => selectedUserId.value,
     () => {
-        if (canManageOthers.value) applyFilters();
-    }
+        if (canManageOthers.value) fetchUserSettings();
+    },
 );
 
 onMounted(async () => {
+    initFilters();
     await fetchUsers();
     await fetchUserSettings();
 });
@@ -179,101 +205,67 @@ onMounted(async () => {
 
     <CreateModal
         v-model="createOpen"
-        :target-user-id="filters.user_id"
+        :target-user-id="selectedUserId"
         @saved="handleSaved"
     />
     <EditModal
         v-model="editOpen"
         :user-setting-id="selectedItem?.id ?? null"
-        :target-user-id="filters.user_id"
+        :target-user-id="selectedUserId"
         @saved="handleSaved"
     />
     <DeleteModal
         v-model="deleteOpen"
         :item="selectedItem"
-        :target-user-id="filters.user_id"
+        :target-user-id="selectedUserId"
         @deleted="handleDeleted"
     />
     <BulkDeleteModal
         v-model="bulkDeleteOpen"
         :items="selected"
-        :target-user-id="filters.user_id"
+        :target-user-id="selectedUserId"
         @deleted="handleDeleted"
     />
 
     <AuthenticatedLayout>
-        <div class="p-6">
+        <div class="space-y-4 p-6">
             <div class="mb-4 flex items-center gap-3">
                 <h1 class="text-2xl font-semibold">{{ title }}</h1>
                 <Badge :value="companyName" severity="contrast" />
             </div>
 
-            <Toolbar class="mb-4">
-                <template #start>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <Button
-                            v-if="canCreate"
-                            label="Új"
-                            icon="pi pi-plus"
-                            @click="createOpen = true"
-                        />
-                        <Button
-                            label="Frissítés"
-                            icon="pi pi-refresh"
-                            severity="secondary"
-                            :loading="loading"
-                            @click="fetchUserSettings"
-                        />
-                        <Button
-                            v-if="canDeleteAny"
-                            label="Bulk delete"
-                            icon="pi pi-trash"
-                            severity="danger"
-                            :disabled="!selected.length"
-                            @click="bulkDeleteOpen = true"
-                        />
-                    </div>
-                </template>
-                <template #end>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <Select
-                            v-if="canManageOthers"
-                            v-model="filters.user_id"
-                            :options="users"
-                            optionLabel="label"
-                            optionValue="value"
-                            placeholder="Felhasználó"
-                            class="w-72"
-                        />
-                        <InputText
-                            v-model="filters.q"
-                            placeholder="Keresés kulcs / label / leírás"
-                            class="w-72"
-                            @keyup.enter="applyFilters"
-                        />
-                        <Select
-                            v-model="filters.group"
-                            :options="groupOptions"
-                            optionLabel="label"
-                            optionValue="value"
-                            placeholder="Csoport"
-                            showClear
-                            class="w-44"
-                            @change="applyFilters"
-                        />
-                        <Select
-                            v-model="filters.type"
-                            :options="typeOptions"
-                            optionLabel="label"
-                            optionValue="value"
-                            placeholder="Típus"
-                            showClear
-                            class="w-36"
-                            @change="applyFilters"
-                        />
-                    </div>
-                </template>
-            </Toolbar>
+            <div class="flex flex-wrap items-center gap-2">
+                <Button
+                    v-if="canCreate"
+                    label="Új"
+                    icon="pi pi-plus"
+                    @click="createOpen = true"
+                />
+                <Button
+                    label="Frissítés"
+                    icon="pi pi-refresh"
+                    severity="secondary"
+                    :loading="loading"
+                    @click="fetchUserSettings"
+                />
+                <Button
+                    v-if="canDeleteAny"
+                    label="Bulk delete"
+                    icon="pi pi-trash"
+                    severity="danger"
+                    :disabled="!selected.length"
+                    @click="bulkDeleteOpen = true"
+                />
+                <Select
+                    v-if="canManageOthers"
+                    v-model="selectedUserId"
+                    :options="users"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Felhasználó"
+                    class="w-72"
+                />
+            </div>
 
             <div
                 v-if="error"
@@ -283,29 +275,100 @@ onMounted(async () => {
             </div>
 
             <DataTable
+                ref="dt"
                 v-model:selection="selected"
+                v-model:filters="filters"
                 :value="rows"
                 dataKey="id"
-                lazy
                 paginator
-                :rows="lazy.rows"
-                :first="lazy.first"
-                :totalRecords="totalRecords"
+                :rows="10"
                 :rowsPerPageOptions="[10, 25, 50, 100]"
                 :loading="loading"
-                sortMode="single"
-                :sortField="lazy.sortField"
-                :sortOrder="lazy.sortOrder"
+                sortMode="multiple"
+                removableSort
+                filterDisplay="menu"
+                :globalFilterFields="globalFilterFields"
                 responsiveLayout="scroll"
-                @page="onPage"
-                @sort="onSort"
             >
+                <template #header>
+                    <div class="flex justify-between">
+                        <Button
+                            type="button"
+                            icon="pi pi-filter-slash"
+                            label="Clear"
+                            variant="outlined"
+                            @click="clearFilters()"
+                        />
+                        <IconField>
+                            <InputIcon>
+                                <i class="pi pi-search" />
+                            </InputIcon>
+                            <InputText
+                                v-model="filters['global'].value"
+                                placeholder="Keyword Search"
+                            />
+                        </IconField>
+                    </div>
+                </template>
+
                 <Column selectionMode="multiple" headerStyle="width: 3rem" />
-                <Column field="key" header="Kulcs" sortable />
-                <Column field="group" header="Csoport" sortable />
-                <Column field="type" header="Típus" sortable>
+                <Column
+                    field="key"
+                    filterField="key"
+                    header="Kulcs"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
+                    <template #filter="{ filterModel }">
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            placeholder="Kulcs keresese"
+                        />
+                    </template>
+                </Column>
+                <Column
+                    field="group"
+                    filterField="group"
+                    header="Csoport"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
+                    <template #filter="{ filterModel }">
+                        <Select
+                            v-model="filterModel.value"
+                            :options="groupOptions"
+                            optionLabel="label"
+                            optionValue="value"
+                            class="w-full"
+                            showClear
+                            placeholder="Csoport"
+                        />
+                    </template>
+                </Column>
+                <Column
+                    field="type"
+                    filterField="type"
+                    header="Típus"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
                     <template #body="{ data }">
                         <Tag :value="data.type" severity="info" />
+                    </template>
+                    <template #filter="{ filterModel }">
+                        <Select
+                            v-model="filterModel.value"
+                            :options="typeOptions"
+                            optionLabel="label"
+                            optionValue="value"
+                            class="w-full"
+                            showClear
+                            placeholder="Tipus"
+                        />
                     </template>
                 </Column>
                 <Column header="Érték">

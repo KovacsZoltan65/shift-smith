@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { Head } from "@inertiajs/vue3";
+import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 
@@ -25,6 +26,7 @@ import RoleService from "@/services/Auth/RoleService.js";
 import UserService from "@/services/UserService.js";
 
 import { usePermissions } from "@/composables/usePermissions";
+import { IconField, InputIcon } from "primevue";
 const { has } = usePermissions();
 const canCreate = has("roles.create");
 const canUpdate = has("roles.update");
@@ -52,27 +54,55 @@ const usersModalLoading = ref(false);
 const error = ref(null);
 
 const rows = ref([]);
-const totalRecords = ref(0);
 const selected = ref([]);
+const dt = ref(null);
 
 const rowMenu = ref();
 const rowMenuModel = ref([]);
 
-const lazy = ref({
-    first: 0,
-    rows: 10,
-    page: 0,
-    sortField: "name",
-    sortOrder: 1,
+const globalFilterFields = ["name", "guard_name", "users_count"];
+const createInitialFilters = () => ({
+    global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    name: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+    },
+    guard_name: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+    },
 });
+const filters = ref(createInitialFilters());
 
-const search = ref(props.filter?.search ?? "");
-let t = null;
+const initFilters = () => {
+    filters.value = createInitialFilters();
+};
+
+const clearFilters = () => {
+    initFilters();
+    dt.value?.clearFilter?.();
+};
+
+const hasActiveFilters = computed(() => {
+    const currentFilters = filters.value ?? {};
+    return Object.values(currentFilters).some((entry) => {
+        if (!entry || typeof entry !== "object") return false;
+        if ("value" in entry) return entry.value !== null && entry.value !== "";
+        if (Array.isArray(entry.constraints))
+            return entry.constraints.some(
+                (constraint) =>
+                    constraint?.value !== null && constraint?.value !== "",
+            );
+        return false;
+    });
+});
 
 const usersModalSummary = computed(() => {
     if (!usersModalRole.value) return "";
 
-    const count = Array.isArray(usersModalSelectedIds.value) ? usersModalSelectedIds.value.length : 0;
+    const count = Array.isArray(usersModalSelectedIds.value)
+        ? usersModalSelectedIds.value.length
+        : 0;
     return `${count} felhasználó kijelölve`;
 });
 
@@ -129,35 +159,12 @@ const openEditModal = (row) => {
 const onSaved = async (msg = "Mentve.") => {
     selected.value = [];
     await fetchRoles();
-    toast.add({ severity: "success", summary: "Siker", detail: msg, life: 2000 });
-};
-
-const onSearchInput = () => {
-    if (t) clearTimeout(t);
-    t = setTimeout(() => {
-        lazy.value.first = 0;
-        lazy.value.page = 0;
-        fetchRoles();
-    }, 300);
-};
-
-const buildQuery = () => {
-    const order = lazy.value.sortOrder === 1 ? "asc" : "desc";
-
-    const q = {
-        ...(props.filter ?? {}),
-        page: lazy.value.page + 1,
-        per_page: lazy.value.rows,
-        field: lazy.value.sortField,
-        order,
-        search: search.value?.trim() || "",
-    };
-
-    Object.keys(q).forEach((k) => {
-        if (q[k] === null || q[k] === undefined || q[k] === "") delete q[k];
+    toast.add({
+        severity: "success",
+        summary: "Siker",
+        detail: msg,
+        life: 2000,
     });
-
-    return q;
 };
 
 const fetchRoles = async () => {
@@ -165,34 +172,24 @@ const fetchRoles = async () => {
     error.value = null;
 
     try {
-        const response = await RoleService.getRoles(buildQuery());
+        const response = await RoleService.getRoles({
+            page: 1,
+            per_page: 100,
+            field: "name",
+            order: "asc",
+        });
         const json = response?.data ?? {};
 
-        const items = Array.isArray(json?.data) ? json.data : json?.data?.data ?? [];
+        const items = Array.isArray(json?.data)
+            ? json.data
+            : (json?.data?.data ?? []);
         rows.value = items;
-        totalRecords.value = json?.meta?.total ?? 0;
     } catch (e) {
         error.value = e?.message || "Ismeretlen hiba";
         rows.value = [];
-        totalRecords.value = 0;
     } finally {
         loading.value = false;
     }
-};
-
-const onPage = (event) => {
-    lazy.value.first = event.first;
-    lazy.value.rows = event.rows;
-    lazy.value.page = event.page;
-    fetchRoles();
-};
-
-const onSort = (event) => {
-    lazy.value.sortField = event.sortField;
-    lazy.value.sortOrder = event.sortOrder;
-    lazy.value.first = 0;
-    lazy.value.page = 0;
-    fetchRoles();
 };
 
 const userOptionLabel = (user) => {
@@ -204,7 +201,9 @@ const ensureUserOptions = async () => {
     if (userOptions.value.length) return;
 
     const response = await UserService.fetchUsersToSelect();
-    const items = Array.isArray(response?.data) ? response.data : response?.data?.data ?? [];
+    const items = Array.isArray(response?.data)
+        ? response.data
+        : (response?.data?.data ?? []);
 
     userOptions.value = items.map((user) => ({
         label: userOptionLabel(user),
@@ -238,7 +237,8 @@ const openUsersModal = async (row) => {
         toast.add({
             severity: "error",
             summary: "Hiba",
-            detail: e?.message || "Nem sikerült a role felhasználóit betölteni.",
+            detail:
+                e?.message || "Nem sikerült a role felhasználóit betölteni.",
             life: 3500,
         });
     } finally {
@@ -276,7 +276,10 @@ const saveUsersModal = async () => {
         toast.add({
             severity: "error",
             summary: "Hiba",
-            detail: e?.response?.data?.message || e?.message || "A mentés sikertelen.",
+            detail:
+                e?.response?.data?.message ||
+                e?.message ||
+                "A mentés sikertelen.",
             life: 3500,
         });
     } finally {
@@ -396,7 +399,10 @@ const bulkDelete = async (ids) => {
     }
 };
 
-onMounted(fetchRoles);
+onMounted(() => {
+    initFilters();
+    fetchRoles();
+});
 </script>
 
 <template>
@@ -415,9 +421,9 @@ onMounted(fetchRoles);
     />
 
     <AuthenticatedLayout>
-        <div class="p-6">
-            <div class="mb-4 flex items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
+        <div class="space-y-4 p-6">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3 flex-wrap">
                     <h1 class="text-2xl font-semibold">{{ title }}</h1>
 
                     <Button
@@ -435,7 +441,9 @@ onMounted(fetchRoles);
                         icon="pi pi-trash"
                         severity="danger"
                         size="small"
-                        :disabled="!selected?.length || actionLoading || loading"
+                        :disabled="
+                            !selected?.length || actionLoading || loading
+                        "
                         :loading="actionLoading"
                         @click="confirmBulkDelete"
                     />
@@ -444,16 +452,6 @@ onMounted(fetchRoles);
                         Kijelölve: <b>{{ selected.length }}</b>
                     </div>
                 </div>
-
-                <span class="p-input-icon-left">
-                    <i class="pi pi-search" />
-                    <InputText
-                        v-model="search"
-                        placeholder="Keresés..."
-                        class="w-64"
-                        @input="onSearchInput"
-                    />
-                </span>
             </div>
 
             <div v-if="error" class="mb-3 border p-3">
@@ -464,34 +462,89 @@ onMounted(fetchRoles);
             <Menu ref="rowMenu" :model="rowMenuModel" popup />
 
             <DataTable
+                ref="dt"
                 v-model:selection="selected"
+                v-model:filters="filters"
                 :value="rows"
                 dataKey="id"
-                lazy
                 paginator
-                :rows="lazy.rows"
-                :first="lazy.first"
-                :totalRecords="totalRecords"
+                :rows="10"
                 :rowsPerPageOptions="[10, 25, 50, 100]"
                 :loading="loading || actionLoading || usersModalLoading"
-                sortMode="single"
-                :sortField="lazy.sortField"
-                :sortOrder="lazy.sortOrder"
-                @page="onPage"
-                @sort="onSort"
+                sortMode="multiple"
+                removableSort
+                filterDisplay="menu"
+                :globalFilterFields="globalFilterFields"
                 selectionMode="multiple"
             >
-                <template #empty> Nincs találat. </template>
+                <template #header>
+                    <div class="flex justify-between">
+                        <Button
+                            type="button"
+                            icon="pi pi-filter-slash"
+                            label="Clear"
+                            variant="outlined"
+                            @click="clearFilters()"
+                        />
+                        <IconField>
+                            <InputIcon>
+                                <i class="pi pi-search" />
+                            </InputIcon>
+                            <InputText
+                                v-model="filters['global'].value"
+                                placeholder="Keyword Search"
+                            />
+                        </IconField>
+                    </div>
+                </template>
+
+                <template #empty>Nincs talalat.</template>
+                <template #loading>Betoltes...</template>
 
                 <Column selectionMode="multiple" headerStyle="width: 3rem" />
                 <Column field="id" header="ID" sortable style="width: 90px" />
-                <Column field="name" header="Név" sortable />
-                <Column field="guard_name" header="Guard" sortable style="width: 140px">
+                <Column
+                    field="name"
+                    filterField="name"
+                    header="Név"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
+                    <template #filter="{ filterModel }">
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            placeholder="Nev keresese"
+                        />
+                    </template>
+                </Column>
+                <Column
+                    field="guard_name"
+                    filterField="guard_name"
+                    header="Guard"
+                    filter
+                    sortable
+                    style="width: 140px"
+                    :showFilterMatchModes="false"
+                >
                     <template #body="{ data }">
                         <Tag :value="data.guard_name" />
                     </template>
+                    <template #filter="{ filterModel }">
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            placeholder="Guard keresese"
+                        />
+                    </template>
                 </Column>
-                <Column field="users_count" header="Users" sortable style="width: 140px">
+                <Column
+                    field="users_count"
+                    header="Users"
+                    sortable
+                    style="width: 140px"
+                >
                     <template #body="{ data }">
                         <Button
                             class="p-0"
@@ -503,7 +556,12 @@ onMounted(fetchRoles);
                         </Button>
                     </template>
                 </Column>
-                <Column field="created_at" header="Létrehozva" sortable style="width: 220px" />
+                <Column
+                    field="created_at"
+                    header="Létrehozva"
+                    sortable
+                    style="width: 220px"
+                />
 
                 <Column
                     header="Műveletek"
@@ -539,11 +597,15 @@ onMounted(fetchRoles);
             <div class="space-y-4">
                 <div>
                     <div class="font-medium">{{ usersModalRole?.name }}</div>
-                    <div class="text-sm text-slate-500">{{ usersModalSummary }}</div>
+                    <div class="text-sm text-slate-500">
+                        {{ usersModalSummary }}
+                    </div>
                 </div>
 
                 <div class="space-y-2">
-                    <label class="block text-sm font-medium text-slate-700">Felhasználók</label>
+                    <label class="block text-sm font-medium text-slate-700"
+                        >Felhasználók</label
+                    >
                     <MultiSelect
                         v-model="usersModalSelectedIds"
                         :options="userOptions"
@@ -561,7 +623,13 @@ onMounted(fetchRoles);
 
             <template #footer>
                 <div class="flex justify-end gap-2">
-                    <Button label="Mégse" severity="secondary" text :disabled="usersModalLoading" @click="closeUsersModal" />
+                    <Button
+                        label="Mégse"
+                        severity="secondary"
+                        text
+                        :disabled="usersModalLoading"
+                        @click="closeUsersModal"
+                    />
                     <Button
                         label="Mentés"
                         icon="pi pi-check"

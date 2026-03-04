@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { router, Head, usePage } from "@inertiajs/vue3";
+import { Head, usePage } from "@inertiajs/vue3";
+import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 
@@ -14,7 +15,7 @@ import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
 import Menu from "primevue/menu";
 import Dialog from "primevue/dialog";
-import Dropdown from "primevue/dropdown";
+import Select from "primevue/select";
 import Tag from "primevue/tag";
 
 import CreateModal from "@/Pages/Users/CreateModal.vue";
@@ -25,6 +26,7 @@ import RoleService from "@/services/Auth/RoleService.js";
 import CompanyService from "@/services/CompanyService.js";
 import { csrfFetch } from "@/lib/csrfFetch";
 import { usePermissions } from "@/composables/usePermissions";
+import { IconField, InputIcon } from "primevue";
 
 const page = usePage();
 const { has } = usePermissions();
@@ -53,35 +55,73 @@ const roleLoading = ref(false);
 const error = ref(null);
 
 const rows = ref([]);
-const totalRecords = ref(0);
 const selected = ref([]);
 const companyOptions = ref([]);
+const dt = ref(null);
 
 const authUserId = computed(() => Number(page.props.auth?.user?.id ?? 0));
 const canManageUserRoles = computed(() => has("users.assignRoles"));
 const defaultCompanyId = computed(
-    () => Number(page.props.companyContext?.current_company_id ?? 0) || null
+    () => Number(page.props.companyContext?.current_company_id ?? 0) || null,
 );
 
 const rowMenu = ref();
 const rowMenuModel = ref([]);
-
-const lazy = ref({
-    first: 0,
-    rows: 10,
-    page: 0,
-    sortField: "name",
-    sortOrder: 1,
+const globalFilterFields = ["name", "email", "primary_role_name", "guard_name"];
+const booleanOptions = [
+    { label: "Igen", value: true },
+    { label: "Nem", value: false },
+];
+const createInitialFilters = () => ({
+    global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    name: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+    },
+    email: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+    },
+    primary_role_name: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+    },
 });
+const filters = ref(createInitialFilters());
 
-const search = ref(props.filter?.search ?? "");
-let t = null;
+const initFilters = () => {
+    filters.value = createInitialFilters();
+};
+
+const clearFilters = () => {
+    initFilters();
+    dt.value?.clearFilter?.();
+};
+
+const hasActiveFilters = computed(() => {
+    const currentFilters = filters.value ?? {};
+
+    return Object.values(currentFilters).some((entry) => {
+        if (!entry || typeof entry !== "object") return false;
+        if ("value" in entry) return entry.value !== null && entry.value !== "";
+        if (Array.isArray(entry.constraints)) {
+            return entry.constraints.some(
+                (constraint) =>
+                    constraint?.value !== null && constraint?.value !== "",
+            );
+        }
+
+        return false;
+    });
+});
 
 const isSelf = (row) => Number(row?.id ?? 0) === authUserId.value;
 
 const roleLabel = (row) =>
     row?.primary_role_name ||
-    (Array.isArray(row?.roles) && row.roles.length ? row.roles[0]?.name : null) ||
+    (Array.isArray(row?.roles) && row.roles.length
+        ? row.roles[0]?.name
+        : null) ||
     "—";
 
 const roleSeverity = (roleName) => {
@@ -127,7 +167,12 @@ const openCreate = () => {
 const onSaved = async () => {
     selected.value = [];
     await fetchUsers();
-    toast.add({ severity: "success", summary: "Siker", detail: "Mentve.", life: 2000 });
+    toast.add({
+        severity: "success",
+        summary: "Siker",
+        detail: "Mentve.",
+        life: 2000,
+    });
 };
 
 const openEditModal = (row) => {
@@ -146,7 +191,7 @@ const ensureRolesLoaded = async () => {
     const response = await RoleService.getToSelect();
     const items = Array.isArray(response?.data)
         ? response.data
-        : response?.data?.data ?? [];
+        : (response?.data?.data ?? []);
 
     roles.value = items.map((role) => ({
         label: role.name,
@@ -166,7 +211,9 @@ const openRoleModal = async (row) => {
 
         const currentRole =
             roles.value.find((role) => role.name === roleLabel(row)) ??
-            roles.value.find((role) => role.value === Number(row?.role_id ?? 0)) ??
+            roles.value.find(
+                (role) => role.value === Number(row?.role_id ?? 0),
+            ) ??
             null;
 
         selectedRoleId.value = currentRole?.value ?? null;
@@ -197,7 +244,7 @@ const saveRole = async () => {
     try {
         await UserService.updatePrimaryRole(
             Number(roleUser.value.id),
-            Number(selectedRoleId.value)
+            Number(selectedRoleId.value),
         );
 
         closeRoleModal();
@@ -221,48 +268,23 @@ const saveRole = async () => {
     }
 };
 
-const onSearchInput = () => {
-    if (t) clearTimeout(t);
-    t = setTimeout(() => {
-        lazy.value.first = 0;
-        lazy.value.page = 0;
-        fetchUsers();
-    }, 300);
-};
-
-const buildQuery = () => {
-    const order = lazy.value.sortOrder === 1 ? "asc" : "desc";
-
-    const q = {
-        ...(props.filter ?? {}),
-        page: lazy.value.page + 1,
-        per_page: lazy.value.rows,
-        field: lazy.value.sortField,
-        order,
-        search: search.value?.trim() || "",
-    };
-
-    Object.keys(q).forEach((k) => {
-        if (q[k] === null || q[k] === undefined || q[k] === "") delete q[k];
-    });
-
-    return q;
-};
-
 const fetchUsers = async () => {
     loading.value = true;
     error.value = null;
 
     try {
-        const response = await UserService.fetchUsers(buildQuery());
+        const response = await UserService.fetchUsers({
+            page: 1,
+            per_page: 100,
+            field: "name",
+            order: "asc",
+        });
         const json = response?.data ?? {};
 
         rows.value = Array.isArray(json?.data) ? json.data : [];
-        totalRecords.value = json?.meta?.total ?? 0;
     } catch (e) {
         error.value = e?.message || "Ismeretlen hiba";
         rows.value = [];
-        totalRecords.value = 0;
     } finally {
         loading.value = false;
     }
@@ -273,7 +295,7 @@ const fetchCompanyOptions = async () => {
         const response = await CompanyService.getToSelect();
         const items = Array.isArray(response?.data)
             ? response.data
-            : response?.data?.data ?? [];
+            : (response?.data?.data ?? []);
 
         companyOptions.value = items.map((company) => ({
             label: company.name,
@@ -287,21 +309,6 @@ const fetchCompanyOptions = async () => {
             life: 3500,
         });
     }
-};
-
-const onPage = (event) => {
-    lazy.value.first = event.first;
-    lazy.value.rows = event.rows;
-    lazy.value.page = event.page;
-    fetchUsers();
-};
-
-const onSort = (event) => {
-    lazy.value.sortField = event.sortField;
-    lazy.value.sortOrder = event.sortOrder;
-    lazy.value.first = 0;
-    lazy.value.page = 0;
-    fetchUsers();
 };
 
 const formatDate = (value) => {
@@ -436,11 +443,8 @@ const confirmBulkDelete = () => {
     });
 };
 
-const goEdit = (row) => {
-    router.visit(`/users/${row.id}/edit`);
-};
-
 onMounted(async () => {
+    initFilters();
     await Promise.all([fetchUsers(), fetchCompanyOptions()]);
 });
 </script>
@@ -463,12 +467,16 @@ onMounted(async () => {
         :companies="companyOptions"
         @saved="onSaved"
     />
-    <PasswordResetModal v-model="pwOpen" :user="pwUser" @sent="onPasswordResetSent" />
+    <PasswordResetModal
+        v-model="pwOpen"
+        :user="pwUser"
+        @sent="onPasswordResetSent"
+    />
 
     <AuthenticatedLayout>
-        <div class="p-6">
-            <div class="mb-4 flex items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
+        <div class="space-y-4 p-6">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3 flex-wrap">
                     <h1 class="text-2xl font-semibold">{{ title }}</h1>
 
                     <Button
@@ -483,7 +491,9 @@ onMounted(async () => {
                         icon="pi pi-trash"
                         severity="danger"
                         size="small"
-                        :disabled="!selected?.length || actionLoading || loading"
+                        :disabled="
+                            !selected?.length || actionLoading || loading
+                        "
                         :loading="actionLoading"
                         @click="confirmBulkDelete"
                     />
@@ -492,16 +502,6 @@ onMounted(async () => {
                         Kijelölve: <b>{{ selected.length }}</b>
                     </div>
                 </div>
-
-                <span class="p-input-icon-left">
-                    <i class="pi pi-search" />
-                    <InputText
-                        v-model="search"
-                        placeholder="Keresés..."
-                        class="w-64"
-                        @input="onSearchInput"
-                    />
-                </span>
             </div>
 
             <div v-if="error" class="mb-3 border p-3">
@@ -512,24 +512,44 @@ onMounted(async () => {
             <Menu ref="rowMenu" :model="rowMenuModel" popup />
 
             <DataTable
+                ref="dt"
                 v-model:selection="selected"
                 :rowSelectable="(row) => !isSelf(row)"
+                v-model:filters="filters"
                 :value="rows"
                 dataKey="id"
-                lazy
                 paginator
-                :rows="lazy.rows"
-                :first="lazy.first"
-                :totalRecords="totalRecords"
                 :rowsPerPageOptions="[10, 25, 50, 100]"
+                :rows="10"
                 :loading="loading || actionLoading || roleLoading"
-                sortMode="single"
-                :sortField="lazy.sortField"
-                :sortOrder="lazy.sortOrder"
-                @page="onPage"
-                @sort="onSort"
+                sortMode="multiple"
+                removableSort
+                filterDisplay="menu"
+                :globalFilterFields="globalFilterFields"
             >
-                <template #empty> Nincs találat. </template>
+                <template #header>
+                    <div class="flex justify-between">
+                        <Button
+                            type="button"
+                            icon="pi pi-filter-slash"
+                            label="Clear"
+                            variant="outlined"
+                            @click="clearFilters()"
+                        />
+                        <IconField>
+                            <InputIcon>
+                                <i class="pi pi-search" />
+                            </InputIcon>
+                            <InputText
+                                v-model="filters['global'].value"
+                                placeholder="Keyword Search"
+                            />
+                        </IconField>
+                    </div>
+                </template>
+
+                <template #empty>Nincs talalat.</template>
+                <template #loading>Betoltes...</template>
 
                 <Column
                     selectionMode="multiple"
@@ -538,9 +558,46 @@ onMounted(async () => {
                 />
 
                 <Column field="id" header="ID" sortable style="width: 90px" />
-                <Column field="name" header="Név" sortable />
-                <Column field="email" header="Email" sortable />
-                <Column field="primary_role_name" header="Role" style="width: 180px">
+                <Column
+                    field="name"
+                    filterField="name"
+                    header="Név"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
+                    <template #filter="{ filterModel }">
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            placeholder="Nev keresese"
+                        />
+                    </template>
+                </Column>
+                <Column
+                    field="email"
+                    filterField="email"
+                    header="Email"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
+                    <template #filter="{ filterModel }">
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            placeholder="Email keresese"
+                        />
+                    </template>
+                </Column>
+                <Column
+                    field="primary_role_name"
+                    filterField="primary_role_name"
+                    header="Role"
+                    filter
+                    :showFilterMatchModes="false"
+                    style="width: 180px"
+                >
                     <template #body="{ data }">
                         <button
                             type="button"
@@ -558,6 +615,13 @@ onMounted(async () => {
                                 :severity="roleSeverity(roleLabel(data))"
                             />
                         </button>
+                    </template>
+                    <template #filter="{ filterModel }">
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            placeholder="Role keresese"
+                        />
                     </template>
                 </Column>
                 <Column field="created_at" header="Létrehozva" sortable>
@@ -601,11 +665,15 @@ onMounted(async () => {
                 <div>
                     <div class="text-sm text-slate-500">Felhasználó</div>
                     <div class="font-medium">{{ roleUser?.name }}</div>
-                    <div class="text-sm text-slate-500">{{ roleUser?.email }}</div>
+                    <div class="text-sm text-slate-500">
+                        {{ roleUser?.email }}
+                    </div>
                 </div>
 
                 <div class="space-y-2">
-                    <label class="block text-sm font-medium text-slate-700">Role</label>
+                    <label class="block text-sm font-medium text-slate-700"
+                        >Role</label
+                    >
                     <Select
                         v-model="selectedRoleId"
                         :options="roles"

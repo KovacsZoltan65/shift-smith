@@ -1,6 +1,7 @@
 <script setup>
 import { Head } from "@inertiajs/vue3";
 import { computed, onMounted, ref } from "vue";
+import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 
@@ -10,6 +11,7 @@ import ConfirmDialog from "primevue/confirmdialog";
 import DataTable from "primevue/datatable";
 import InputText from "primevue/inputtext";
 import Menu from "primevue/menu";
+import Select from "primevue/select";
 import Toast from "primevue/toast";
 import { useConfirm } from "primevue/useconfirm";
 import { useToast } from "primevue/usetoast";
@@ -20,6 +22,7 @@ import AssignmentModal from "@/Pages/WorkShifts/AssignmentModal.vue";
 
 import WorkShiftService from "@/services/WorkShiftService.js";
 import { usePermissions } from "@/composables/usePermissions";
+import { IconField, InputIcon } from "primevue";
 
 const { has } = usePermissions();
 
@@ -32,7 +35,9 @@ const canCreate = computed(() => has("work_shifts.create"));
 const canUpdate = computed(() => has("work_shifts.update"));
 const canDelete = computed(() => has("work_shifts.delete"));
 const canAssignEmployee = computed(() => has("work_shifts.update"));
-const canAnyRowAction = computed(() => canUpdate.value || canDelete.value || canAssignEmployee.value);
+const canAnyRowAction = computed(
+    () => canUpdate.value || canDelete.value || canAssignEmployee.value,
+);
 
 const toast = useToast();
 const confirm = useConfirm();
@@ -46,25 +51,71 @@ const assignmentShift = ref(null);
 const loading = ref(false);
 const actionLoading = ref(false);
 const error = ref(null);
+const dt = ref(null);
 
 const rows = ref([]);
-const totalRecords = ref(0);
 const selected = ref([]);
 
 const rowMenu = ref();
 const rowMenuModel = ref([]);
 
-const lazy = ref({
-    first: 0,
-    rows: Number(props.filter?.per_page ?? 10),
-    page: Math.max(Number(props.filter?.page ?? 1) - 1, 0),
-    sortField: props.filter?.field ?? "id",
-    sortOrder: props.filter?.order === "asc" ? 1 : -1,
+const globalFilterFields = [
+    "name",
+    "start_time",
+    "end_time",
+    "work_time_minutes",
+    "break_minutes",
+    "active",
+];
+const booleanOptions = [
+    { label: "Igen", value: true },
+    { label: "Nem", value: false },
+];
+const createInitialFilters = () => ({
+    global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    name: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+    },
+    start_time: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+    },
+    end_time: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+    },
+    active: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }],
+    },
 });
-lazy.value.first = lazy.value.page * lazy.value.rows;
+const filters = ref(createInitialFilters());
 
-const search = ref(props.filter?.search ?? "");
-let t = null;
+const initFilters = () => {
+    filters.value = createInitialFilters();
+};
+
+const clearFilters = () => {
+    initFilters();
+    dt.value?.clearFilter?.();
+};
+
+const hasActiveFilters = computed(() => {
+    const currentFilters = filters.value ?? {};
+
+    return Object.values(currentFilters).some((entry) => {
+        if (!entry || typeof entry !== "object") return false;
+        if ("value" in entry) return entry.value !== null && entry.value !== "";
+        if (Array.isArray(entry.constraints)) {
+            return entry.constraints.some(
+                (constraint) =>
+                    constraint?.value !== null && constraint?.value !== "",
+            );
+        }
+        return false;
+    });
+});
 
 const formatCreatedAt = (value) => {
     if (!value) return "-";
@@ -98,27 +149,20 @@ const openAssignmentModal = (row) => {
 const onSaved = async (msg = "Mentve.") => {
     selected.value = [];
     await fetchWorkShifts();
-    toast.add({ severity: "success", summary: "Siker", detail: msg, life: 2000 });
-};
-
-const onSearchInput = () => {
-    if (t) clearTimeout(t);
-    t = setTimeout(() => {
-        lazy.value.first = 0;
-        lazy.value.page = 0;
-        fetchWorkShifts();
-    }, 300);
+    toast.add({
+        severity: "success",
+        summary: "Siker",
+        detail: msg,
+        life: 2000,
+    });
 };
 
 const buildParams = () => {
-    const order = lazy.value.sortOrder === 1 ? "asc" : "desc";
-
     const params = {
-        page: lazy.value.page + 1,
-        per_page: lazy.value.rows,
-        field: lazy.value.sortField,
-        order,
-        search: search.value?.trim() || undefined,
+        page: 1,
+        per_page: 100,
+        field: "name",
+        order: "asc",
     };
 
     Object.keys(params).forEach((k) => {
@@ -130,17 +174,6 @@ const buildParams = () => {
     return params;
 };
 
-const syncPagination = (meta) => {
-    const currentPage = Number(meta?.current_page ?? lazy.value.page + 1);
-    const perPage = Number(meta?.per_page ?? lazy.value.rows);
-    const total = Number(meta?.total ?? 0);
-
-    lazy.value.page = Math.max(currentPage - 1, 0);
-    lazy.value.rows = perPage > 0 ? perPage : lazy.value.rows;
-    lazy.value.first = lazy.value.page * lazy.value.rows;
-    totalRecords.value = total;
-};
-
 const fetchWorkShifts = async () => {
     loading.value = true;
     error.value = null;
@@ -148,27 +181,12 @@ const fetchWorkShifts = async () => {
     try {
         const { data } = await WorkShiftService.getWorkShifts(buildParams());
         rows.value = Array.isArray(data?.data) ? data.data : [];
-        syncPagination(data?.meta ?? {});
     } catch (e) {
-        error.value = e?.response?.data?.message || e?.message || "Ismeretlen hiba";
+        error.value =
+            e?.response?.data?.message || e?.message || "Ismeretlen hiba";
     } finally {
         loading.value = false;
     }
-};
-
-const onPage = (event) => {
-    lazy.value.first = event.first;
-    lazy.value.rows = event.rows;
-    lazy.value.page = event.page;
-    fetchWorkShifts();
-};
-
-const onSort = (event) => {
-    lazy.value.sortField = event.sortField;
-    lazy.value.sortOrder = event.sortOrder;
-    lazy.value.first = 0;
-    lazy.value.page = 0;
-    fetchWorkShifts();
 };
 
 const openRowMenu = (event, row) => {
@@ -227,7 +245,8 @@ const deleteOne = async (id) => {
         toast.add({
             severity: "error",
             summary: "Hiba",
-            detail: e?.response?.data?.message || e?.message || "Ismeretlen hiba",
+            detail:
+                e?.response?.data?.message || e?.message || "Ismeretlen hiba",
             life: 3500,
         });
     } finally {
@@ -269,7 +288,8 @@ const bulkDelete = async (ids) => {
         toast.add({
             severity: "error",
             summary: "Hiba",
-            detail: e?.response?.data?.message || e?.message || "Ismeretlen hiba",
+            detail:
+                e?.response?.data?.message || e?.message || "Ismeretlen hiba",
             life: 3500,
         });
     } finally {
@@ -277,7 +297,10 @@ const bulkDelete = async (ids) => {
     }
 };
 
-onMounted(fetchWorkShifts);
+onMounted(() => {
+    initFilters();
+    fetchWorkShifts();
+});
 </script>
 
 <template>
@@ -303,9 +326,9 @@ onMounted(fetchWorkShifts);
     />
 
     <AuthenticatedLayout>
-        <div class="p-6">
-            <div class="mb-4 flex items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
+        <div class="space-y-4 p-6">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3 flex-wrap">
                     <h1 class="text-2xl font-semibold">{{ title }}</h1>
 
                     <Button
@@ -334,7 +357,9 @@ onMounted(fetchWorkShifts);
                         icon="pi pi-trash"
                         severity="danger"
                         size="small"
-                        :disabled="!selected?.length || actionLoading || loading"
+                        :disabled="
+                            !selected?.length || actionLoading || loading
+                        "
                         :loading="actionLoading"
                         @click="confirmBulkDelete"
                         data-testid="work_shifts-bulk-delete"
@@ -344,16 +369,6 @@ onMounted(fetchWorkShifts);
                         Kijelölve: <b>{{ selected.length }}</b>
                     </div>
                 </div>
-
-                <span class="p-input-icon-left">
-                    <i class="pi pi-search" />
-                    <InputText
-                        v-model="search"
-                        placeholder="Keresés..."
-                        class="w-64"
-                        @input="onSearchInput"
-                    />
-                </span>
             </div>
 
             <div v-if="error" class="mb-3 border p-3">
@@ -361,41 +376,137 @@ onMounted(fetchWorkShifts);
                 <div class="text-sm">{{ error }}</div>
             </div>
 
-            <Menu v-if="canAnyRowAction" ref="rowMenu" :model="rowMenuModel" popup />
+            <Menu
+                v-if="canAnyRowAction"
+                ref="rowMenu"
+                :model="rowMenuModel"
+                popup
+            />
 
             <DataTable
+                ref="dt"
                 v-model:selection="selected"
+                v-model:filters="filters"
                 :value="rows"
                 dataKey="id"
-                lazy
                 paginator
-                :rows="lazy.rows"
-                :first="lazy.first"
-                :totalRecords="totalRecords"
+                :rows="10"
                 :rowsPerPageOptions="[10, 25, 50, 100]"
                 :loading="loading || actionLoading"
-                sortMode="single"
-                :sortField="lazy.sortField"
-                :sortOrder="lazy.sortOrder"
-                @page="onPage"
-                @sort="onSort"
+                sortMode="multiple"
+                removableSort
+                filterDisplay="menu"
+                :globalFilterFields="globalFilterFields"
                 selectionMode="multiple"
             >
-                <template #empty>Nincs találat.</template>
+                <template #header>
+                    <div class="flex justify-between">
+                        <Button
+                            type="button"
+                            icon="pi pi-filter-slash"
+                            label="Clear"
+                            variant="outlined"
+                            @click="clearFilters()"
+                        />
+                        <IconField>
+                            <InputIcon>
+                                <i class="pi pi-search" />
+                            </InputIcon>
+                            <InputText
+                                v-model="filters['global'].value"
+                                placeholder="Keyword Search"
+                            />
+                        </IconField>
+                    </div>
+                </template>
+
+                <template #empty>Nincs talalat.</template>
+                <template #loading>Betoltes...</template>
 
                 <Column selectionMode="multiple" headerStyle="width: 3rem" />
                 <Column field="id" header="ID" sortable style="width: 90px" />
-                <Column field="name" header="Név" sortable />
-                <Column field="start_time" header="Kezdés" sortable style="width: 120px" />
-                <Column field="end_time" header="Vége" sortable style="width: 120px" />
-                <Column field="work_time_minutes" header="Munkaidő" sortable style="width: 130px" />
-                <Column field="break_minutes" header="Szünet" sortable style="width: 120px" />
-                <Column field="created_at" header="Létrehozva" sortable style="width: 190px">
+                <Column
+                    field="name"
+                    filterField="name"
+                    header="Név"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
+                    <template #filter="{ filterModel }">
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            placeholder="Nev keresese"
+                        />
+                    </template>
+                </Column>
+                <Column
+                    field="start_time"
+                    filterField="start_time"
+                    header="Kezdés"
+                    filter
+                    sortable
+                    style="width: 120px"
+                    :showFilterMatchModes="false"
+                >
+                    <template #filter="{ filterModel }">
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            placeholder="Kezdes"
+                        />
+                    </template>
+                </Column>
+                <Column
+                    field="end_time"
+                    filterField="end_time"
+                    header="Vége"
+                    filter
+                    sortable
+                    style="width: 120px"
+                    :showFilterMatchModes="false"
+                >
+                    <template #filter="{ filterModel }">
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            placeholder="Vege"
+                        />
+                    </template>
+                </Column>
+                <Column
+                    field="work_time_minutes"
+                    header="Munkaidő"
+                    sortable
+                    style="width: 130px"
+                />
+                <Column
+                    field="break_minutes"
+                    header="Szünet"
+                    sortable
+                    style="width: 120px"
+                />
+                <Column
+                    field="created_at"
+                    header="Létrehozva"
+                    sortable
+                    style="width: 190px"
+                >
                     <template #body="{ data }">
                         {{ formatCreatedAt(data.created_at) }}
                     </template>
                 </Column>
-                <Column field="active" header="Aktív" sortable style="width: 120px">
+                <Column
+                    field="active"
+                    filterField="active"
+                    header="Aktív"
+                    filter
+                    sortable
+                    style="width: 120px"
+                    dataType="boolean"
+                    :showFilterMatchModes="false"
+                >
                     <template #body="{ data }">
                         <span
                             class="inline-flex items-center rounded px-2 py-1 text-xs"
@@ -407,6 +518,17 @@ onMounted(fetchWorkShifts);
                         >
                             {{ data.active ? "Igen" : "Nem" }}
                         </span>
+                    </template>
+                    <template #filter="{ filterModel }">
+                        <Select
+                            v-model="filterModel.value"
+                            :options="booleanOptions"
+                            optionLabel="label"
+                            optionValue="value"
+                            class="w-full"
+                            showClear
+                            placeholder="Statusz"
+                        />
                     </template>
                 </Column>
 

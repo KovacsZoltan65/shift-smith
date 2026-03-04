@@ -1,6 +1,7 @@
 <script setup>
 import { Head } from "@inertiajs/vue3";
 import { computed, onMounted, ref } from "vue";
+import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 
@@ -10,6 +11,7 @@ import ConfirmDialog from "primevue/confirmdialog";
 import DataTable from "primevue/datatable";
 import InputText from "primevue/inputtext";
 import Menu from "primevue/menu";
+import Select from "primevue/select";
 import Toast from "primevue/toast";
 import { useConfirm } from "primevue/useconfirm";
 import { useToast } from "primevue/usetoast";
@@ -20,6 +22,7 @@ import EditModal from "@/Pages/Companies/EditModal.vue";
 import { csrfFetch } from "@/lib/csrfFetch";
 
 import { usePermissions } from "@/composables/usePermissions";
+import { IconField, InputIcon } from "primevue";
 const { has } = usePermissions();
 
 const props = defineProps({
@@ -67,9 +70,9 @@ const loading = ref(false);
 const actionLoading = ref(false);
 const error = ref(null);
 const forbiddenHandled = ref(false);
+const dt = ref(null);
 
 const rows = ref([]);
-const totalRecords = ref(0);
 
 // checkbox selection
 const selected = ref([]);
@@ -103,17 +106,56 @@ const openRowMenu = (event, row) => {
 // ------------------------
 
 // lazy state (Users minta)
-const lazy = ref({
-    first: 0,
-    rows: Number(props.filter?.per_page ?? 10),
-    page: Math.max(Number(props.filter?.page ?? 1) - 1, 0),
-    sortField: props.filter?.field ?? "id",
-    sortOrder: props.filter?.order === "asc" ? 1 : -1,
+const globalFilterFields = ["name", "email", "phone", "active"];
+const booleanOptions = [
+    { label: "Igen", value: true },
+    { label: "Nem", value: false },
+];
+const createInitialFilters = () => ({
+    global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    name: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+    },
+    email: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+    },
+    phone: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+    },
+    active: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }],
+    },
 });
-lazy.value.first = lazy.value.page * lazy.value.rows;
+const filters = ref(createInitialFilters());
 
-const search = ref(props.filter?.search ?? "");
-let t = null;
+const initFilters = () => {
+    filters.value = createInitialFilters();
+};
+
+const clearFilters = () => {
+    initFilters();
+    dt.value?.clearFilter?.();
+};
+
+const hasActiveFilters = computed(() => {
+    const currentFilters = filters.value ?? {};
+
+    return Object.values(currentFilters).some((entry) => {
+        if (!entry || typeof entry !== "object") return false;
+        if ("value" in entry) return entry.value !== null && entry.value !== "";
+        if (Array.isArray(entry.constraints)) {
+            return entry.constraints.some(
+                (constraint) =>
+                    constraint?.value !== null && constraint?.value !== "",
+            );
+        }
+        return false;
+    });
+});
 
 const openCreate = () => {
     createOpen.value = true;
@@ -127,52 +169,27 @@ const openEditModal = (row) => {
 const onSaved = async (msg = "Mentve.") => {
     selected.value = [];
     await fetchCompanies();
-    toast.add({ severity: "success", summary: "Siker", detail: msg, life: 2000 });
-};
-
-const onSearchInput = () => {
-    if (t) clearTimeout(t);
-    t = setTimeout(() => {
-        lazy.value.first = 0;
-        lazy.value.page = 0;
-        fetchCompanies();
-    }, 300);
-};
-
-const buildQuery = () => {
-    const order = lazy.value.sortOrder === 1 ? "asc" : "desc";
-
-    const q = {
-        ...(props.filter ?? {}),
-        page: lazy.value.page + 1,
-        per_page: lazy.value.rows,
-        field: lazy.value.sortField,
-        order,
-        search: search.value?.trim() || "",
-    };
-
-    Object.keys(q).forEach((k) => {
-        if (q[k] === null || q[k] === undefined || q[k] === "") delete q[k];
+    toast.add({
+        severity: "success",
+        summary: "Siker",
+        detail: msg,
+        life: 2000,
     });
-
-    return new URLSearchParams(q).toString();
 };
 
 const fetchUrl = () => {
     const query = {
-        ...(props.filter ?? {}),
-        page: lazy.value.page + 1,
-        per_page: lazy.value.rows,
-        field: lazy.value.sortField,
-        order: lazy.value.sortOrder === 1 ? "asc" : "desc",
-        search: search.value?.trim() || undefined,
+        page: 1,
+        per_page: 100,
+        field: "name",
+        order: "asc",
     };
 
     if (props.fetchRouteName) {
         return route(props.fetchRouteName, query);
     }
 
-    return `${props.endpointBase}/fetch?${buildQuery()}`;
+    return `${props.endpointBase}/fetch?${new URLSearchParams(query).toString()}`;
 };
 
 const resolveDetailUrl = (id) => {
@@ -181,17 +198,6 @@ const resolveDetailUrl = (id) => {
     }
 
     return `${props.endpointBase}/${id}`;
-};
-
-const syncPaginationFromMeta = (meta) => {
-    const currentPage = Number(meta?.current_page ?? lazy.value.page + 1);
-    const perPage = Number(meta?.per_page ?? lazy.value.rows);
-    const total = Number(meta?.total ?? 0);
-
-    lazy.value.page = Math.max(currentPage - 1, 0);
-    lazy.value.rows = perPage > 0 ? perPage : lazy.value.rows;
-    lazy.value.first = lazy.value.page * lazy.value.rows;
-    totalRecords.value = total;
 };
 
 const handleForbidden = () => {
@@ -240,27 +246,11 @@ const fetchCompanies = async () => {
             : (json?.data?.data ?? []);
 
         rows.value = items;
-        syncPaginationFromMeta(json?.meta ?? {});
     } catch (e) {
         error.value = e?.message || "Ismeretlen hiba";
     } finally {
         loading.value = false;
     }
-};
-
-const onPage = (event) => {
-    lazy.value.first = event.first;
-    lazy.value.rows = event.rows;
-    lazy.value.page = event.page;
-    fetchCompanies();
-};
-
-const onSort = (event) => {
-    lazy.value.sortField = event.sortField;
-    lazy.value.sortOrder = event.sortOrder;
-    lazy.value.first = 0;
-    lazy.value.page = 0;
-    fetchCompanies();
 };
 
 const confirmDeleteOne = (row) => {
@@ -376,7 +366,10 @@ const bulkDelete = async (ids) => {
     }
 };
 
-onMounted(fetchCompanies);
+onMounted(() => {
+    initFilters();
+    fetchCompanies();
+});
 </script>
 
 <template>
@@ -397,9 +390,9 @@ onMounted(fetchCompanies);
     />
 
     <AuthenticatedLayout>
-        <div class="p-6">
-            <div class="mb-4 flex items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
+        <div class="space-y-4 p-6">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3 flex-wrap">
                     <h1 class="text-2xl font-semibold">{{ title }}</h1>
                     <span
                         v-if="hqBadge"
@@ -437,7 +430,9 @@ onMounted(fetchCompanies);
                         icon="pi pi-trash"
                         severity="danger"
                         size="small"
-                        :disabled="!selected?.length || actionLoading || loading"
+                        :disabled="
+                            !selected?.length || actionLoading || loading
+                        "
                         :loading="actionLoading"
                         @click="confirmBulkDelete"
                         data-testid="companies-bulk-delete"
@@ -447,16 +442,6 @@ onMounted(fetchCompanies);
                         Kijelölve: <b>{{ selected.length }}</b>
                     </div>
                 </div>
-
-                <span class="p-input-icon-left">
-                    <i class="pi pi-search" />
-                    <InputText
-                        v-model="search"
-                        placeholder="Keresés..."
-                        class="w-64"
-                        @input="onSearchInput"
-                    />
-                </span>
             </div>
 
             <div v-if="error" class="mb-3 border p-3">
@@ -464,36 +449,115 @@ onMounted(fetchCompanies);
                 <div class="text-sm">{{ error }}</div>
             </div>
 
-            <Menu v-if="canAnyRowAction" ref="rowMenu" :model="rowMenuModel" popup />
+            <Menu
+                v-if="canAnyRowAction"
+                ref="rowMenu"
+                :model="rowMenuModel"
+                popup
+            />
 
             <DataTable
+                ref="dt"
                 v-model:selection="selected"
+                v-model:filters="filters"
                 :value="rows"
                 dataKey="id"
-                lazy
                 paginator
-                :rows="lazy.rows"
-                :first="lazy.first"
-                :totalRecords="totalRecords"
+                :rows="10"
                 :rowsPerPageOptions="[10, 25, 50, 100]"
                 :loading="loading || actionLoading"
-                sortMode="single"
-                :sortField="lazy.sortField"
-                :sortOrder="lazy.sortOrder"
-                @page="onPage"
-                @sort="onSort"
+                sortMode="multiple"
+                removableSort
+                filterDisplay="menu"
+                :globalFilterFields="globalFilterFields"
                 selectionMode="multiple"
             >
-                <template #empty> Nincs találat. </template>
+                <template #header>
+                    <div class="flex justify-between">
+                        <Button
+                            type="button"
+                            icon="pi pi-filter-slash"
+                            label="Clear"
+                            variant="outlined"
+                            @click="clearFilters()"
+                        />
+                        <IconField>
+                            <InputIcon>
+                                <i class="pi pi-search" />
+                            </InputIcon>
+                            <InputText
+                                v-model="filters['global'].value"
+                                placeholder="Keyword Search"
+                            />
+                        </IconField>
+                    </div>
+                </template>
+
+                <template #empty>Nincs talalat.</template>
+                <template #loading>Betoltes...</template>
 
                 <!-- checkbox oszlop -->
                 <Column selectionMode="multiple" headerStyle="width: 3rem" />
 
                 <Column field="id" header="ID" sortable style="width: 90px" />
-                <Column field="name" header="Név" sortable />
-                <Column field="email" header="Email" sortable />
-                <Column field="phone" header="Telefon" sortable />
-                <Column field="active" header="Aktív" sortable style="width: 120px">
+                <Column
+                    field="name"
+                    filterField="name"
+                    header="Név"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
+                    <template #filter="{ filterModel }">
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            placeholder="Nev keresese"
+                        />
+                    </template>
+                </Column>
+                <Column
+                    field="email"
+                    filterField="email"
+                    header="Email"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
+                    <template #filter="{ filterModel }">
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            placeholder="Email keresese"
+                        />
+                    </template>
+                </Column>
+                <Column
+                    field="phone"
+                    filterField="phone"
+                    header="Telefon"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
+                    <template #filter="{ filterModel }">
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            placeholder="Telefon keresese"
+                        />
+                    </template>
+                </Column>
+                <Column
+                    field="active"
+                    filterField="active"
+                    header="Aktív"
+                    filter
+                    sortable
+                    style="width: 120px"
+                    dataType="boolean"
+                    :showFilterMatchModes="false"
+                >
                     <template #body="{ data }">
                         <span
                             class="inline-flex items-center rounded px-2 py-1 text-xs"
@@ -505,6 +569,17 @@ onMounted(fetchCompanies);
                         >
                             {{ data.active ? "Igen" : "Nem" }}
                         </span>
+                    </template>
+                    <template #filter="{ filterModel }">
+                        <Select
+                            v-model="filterModel.value"
+                            :options="booleanOptions"
+                            optionLabel="label"
+                            optionValue="value"
+                            class="w-full"
+                            showClear
+                            placeholder="Statusz"
+                        />
                     </template>
                 </Column>
 

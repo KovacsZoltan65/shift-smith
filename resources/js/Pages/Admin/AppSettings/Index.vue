@@ -1,6 +1,7 @@
 <script setup>
 import { Head } from "@inertiajs/vue3";
 import { computed, onMounted, ref } from "vue";
+import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import AppSettingsService from "@/services/AppSettingsService.js";
@@ -10,18 +11,17 @@ import Badge from "primevue/badge";
 import Button from "primevue/button";
 import Column from "primevue/column";
 import DataTable from "primevue/datatable";
-import Dropdown from "primevue/dropdown";
 import InputText from "primevue/inputtext";
 import Tag from "primevue/tag";
 import Toast from "primevue/toast";
-import Toolbar from "primevue/toolbar";
 import { useToast } from "primevue/usetoast";
 
 import BulkDeleteModal from "./Partials/BulkDeleteModal.vue";
 import CreateModal from "./Partials/CreateModal.vue";
 import DeleteModal from "./Partials/DeleteModal.vue";
 import EditModal from "./Partials/EditModal.vue";
-import { Select } from "primevue";
+import Select from "primevue/select";
+import { IconField, InputIcon } from "primevue";
 
 const props = defineProps({
     title: String,
@@ -45,8 +45,8 @@ const selected = ref([]);
 const selectedItem = ref(null);
 const loading = ref(false);
 const rows = ref([]);
-const totalRecords = ref(0);
 const error = ref("");
+const dt = ref(null);
 
 const groupOptions = ref([]);
 const typeOptions = ref([
@@ -56,21 +56,46 @@ const typeOptions = ref([
     { label: "json", value: "json" },
 ]);
 
-const filters = ref({
-    q: props.filter?.q ?? "",
-    group: props.filter?.group ?? null,
-    type: props.filter?.type ?? null,
+const globalFilterFields = ["label", "key", "group", "type", "value_preview"];
+const createInitialFilters = () => ({
+    global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    label: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+    },
+    group: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }],
+    },
+    type: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }],
+    },
 });
+const filters = ref(createInitialFilters());
 
-const lazy = ref({
-    first: 0,
-    rows: Number(props.filter?.perPage ?? 10),
-    page: Math.max(Number(props.filter?.page ?? 1) - 1, 0),
-    sortField: props.filter?.sortBy ?? "key",
-    sortOrder: props.filter?.sortDir === "desc" ? -1 : 1,
+const initFilters = () => {
+    filters.value = createInitialFilters();
+};
+
+const clearFilters = () => {
+    initFilters();
+    dt.value?.clearFilter?.();
+};
+
+const hasActiveFilters = computed(() => {
+    const currentFilters = filters.value ?? {};
+    return Object.values(currentFilters).some((entry) => {
+        if (!entry || typeof entry !== "object") return false;
+        if ("value" in entry) return entry.value !== null && entry.value !== "";
+        if (Array.isArray(entry.constraints))
+            return entry.constraints.some(
+                (constraint) =>
+                    constraint?.value !== null && constraint?.value !== "",
+            );
+        return false;
+    });
 });
-
-lazy.value.first = lazy.value.page * lazy.value.rows;
 
 const fetchAppSettings = async () => {
     loading.value = true;
@@ -78,27 +103,20 @@ const fetchAppSettings = async () => {
 
     try {
         const { data } = await AppSettingsService.fetch({
-            q: filters.value.q?.trim() || undefined,
-            group: filters.value.group || undefined,
-            type: filters.value.type || undefined,
-            page: lazy.value.page + 1,
-            perPage: lazy.value.rows,
-            sortBy: lazy.value.sortField,
-            sortDir: lazy.value.sortOrder === 1 ? "asc" : "desc",
+            page: 1,
+            perPage: 100,
+            sortBy: "key",
+            sortDir: "asc",
         });
 
         rows.value = data?.items ?? [];
-        totalRecords.value = Number(data?.meta?.total ?? 0);
         groupOptions.value = (data?.options?.groups ?? []).map((value) => ({
             label: value,
             value,
         }));
-
-        lazy.value.page = Math.max(Number(data?.meta?.current_page ?? 1) - 1, 0);
-        lazy.value.rows = Number(data?.meta?.per_page ?? lazy.value.rows);
-        lazy.value.first = lazy.value.page * lazy.value.rows;
     } catch (err) {
-        error.value = err?.response?.data?.message ?? err?.message ?? "Betöltési hiba";
+        error.value =
+            err?.response?.data?.message ?? err?.message ?? "Betöltési hiba";
     } finally {
         loading.value = false;
     }
@@ -106,14 +124,24 @@ const fetchAppSettings = async () => {
 
 const handleSaved = async (message) => {
     await fetchAppSettings();
-    toast.add({ severity: "success", summary: "Siker", detail: message, life: 2500 });
+    toast.add({
+        severity: "success",
+        summary: "Siker",
+        detail: message,
+        life: 2500,
+    });
 };
 
 const handleDeleted = async (message) => {
     selected.value = [];
     selectedItem.value = null;
     await fetchAppSettings();
-    toast.add({ severity: "success", summary: "Siker", detail: message, life: 2500 });
+    toast.add({
+        severity: "success",
+        summary: "Siker",
+        detail: message,
+        life: 2500,
+    });
 };
 
 const openEdit = (row) => {
@@ -136,28 +164,10 @@ const typeSeverity = (type) => {
     return "secondary";
 };
 
-const onPage = (event) => {
-    lazy.value.first = event.first;
-    lazy.value.rows = event.rows;
-    lazy.value.page = event.page;
+onMounted(() => {
+    initFilters();
     fetchAppSettings();
-};
-
-const onSort = (event) => {
-    lazy.value.sortField = event.sortField;
-    lazy.value.sortOrder = event.sortOrder;
-    lazy.value.first = 0;
-    lazy.value.page = 0;
-    fetchAppSettings();
-};
-
-const applyFilters = () => {
-    lazy.value.page = 0;
-    lazy.value.first = 0;
-    fetchAppSettings();
-};
-
-onMounted(fetchAppSettings);
+});
 </script>
 
 <template>
@@ -171,7 +181,11 @@ onMounted(fetchAppSettings);
         :app-setting-id="selectedItem?.id ?? null"
         @saved="handleSaved"
     />
-    <DeleteModal v-model="deleteOpen" :item="selectedItem" @deleted="handleDeleted" />
+    <DeleteModal
+        v-model="deleteOpen"
+        :item="selectedItem"
+        @deleted="handleDeleted"
+    />
     <BulkDeleteModal
         v-model="bulkDeleteOpen"
         :items="selected"
@@ -179,7 +193,7 @@ onMounted(fetchAppSettings);
     />
 
     <AuthenticatedLayout>
-        <div class="p-6">
+        <div class="space-y-4 p-6">
             <div class="mb-4 flex items-center justify-between gap-3">
                 <div class="flex items-center gap-3">
                     <h1 class="text-2xl font-semibold">{{ title }}</h1>
@@ -187,64 +201,29 @@ onMounted(fetchAppSettings);
                 </div>
             </div>
 
-            <Toolbar class="mb-4">
-                <template #start>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <Button
-                            v-if="canCreate"
-                            label="Új"
-                            icon="pi pi-plus"
-                            @click="createOpen = true"
-                        />
-                        <Button
-                            label="Frissítés"
-                            icon="pi pi-refresh"
-                            severity="secondary"
-                            :loading="loading"
-                            @click="fetchAppSettings"
-                        />
-                        <Button
-                            v-if="canDeleteAny"
-                            label="Bulk delete"
-                            icon="pi pi-trash"
-                            severity="danger"
-                            :disabled="!selected.length"
-                            @click="bulkDeleteOpen = true"
-                        />
-                    </div>
-                </template>
-
-                <template #end>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <InputText
-                            v-model="filters.q"
-                            placeholder="Keresés kulcs / label / leírás"
-                            class="w-72"
-                            @keyup.enter="applyFilters"
-                        />
-                        <Select
-                            v-model="filters.group"
-                            :options="groupOptions"
-                            optionLabel="label"
-                            optionValue="value"
-                            placeholder="Csoport"
-                            showClear
-                            class="w-48"
-                            @change="applyFilters"
-                        />
-                        <Select
-                            v-model="filters.type"
-                            :options="typeOptions"
-                            optionLabel="label"
-                            optionValue="value"
-                            placeholder="Típus"
-                            showClear
-                            class="w-40"
-                            @change="applyFilters"
-                        />
-                    </div>
-                </template>
-            </Toolbar>
+            <div class="flex flex-wrap items-center gap-2">
+                <Button
+                    v-if="canCreate"
+                    label="Új"
+                    icon="pi pi-plus"
+                    @click="createOpen = true"
+                />
+                <Button
+                    label="Frissítés"
+                    icon="pi pi-refresh"
+                    severity="secondary"
+                    :loading="loading"
+                    @click="fetchAppSettings"
+                />
+                <Button
+                    v-if="canDeleteAny"
+                    label="Bulk delete"
+                    icon="pi pi-trash"
+                    severity="danger"
+                    :disabled="!selected.length"
+                    @click="bulkDeleteOpen = true"
+                />
+            </div>
 
             <div
                 v-if="error"
@@ -254,34 +233,110 @@ onMounted(fetchAppSettings);
             </div>
 
             <DataTable
+                ref="dt"
                 v-model:selection="selected"
+                v-model:filters="filters"
                 :value="rows"
                 dataKey="id"
-                lazy
                 paginator
-                :rows="lazy.rows"
-                :first="lazy.first"
-                :totalRecords="totalRecords"
+                :rows="10"
                 :rowsPerPageOptions="[10, 25, 50, 100]"
                 :loading="loading"
-                sortMode="single"
-                :sortField="lazy.sortField"
-                :sortOrder="lazy.sortOrder"
+                sortMode="multiple"
+                removableSort
+                filterDisplay="menu"
+                :globalFilterFields="globalFilterFields"
                 responsiveLayout="scroll"
-                @page="onPage"
-                @sort="onSort"
             >
+                <template #header>
+                    <div class="flex justify-between">
+                        <Button
+                            type="button"
+                            icon="pi pi-filter-slash"
+                            label="Clear"
+                            variant="outlined"
+                            @click="clearFilters()"
+                        />
+                        <IconField>
+                            <InputIcon>
+                                <i class="pi pi-search" />
+                            </InputIcon>
+                            <InputText
+                                v-model="filters['global'].value"
+                                placeholder="Keyword Search"
+                            />
+                        </IconField>
+                    </div>
+                </template>
+
+                <template #empty>Nincs talalat.</template>
+                <template #loading>Betoltes...</template>
+
                 <Column selectionMode="multiple" headerStyle="width: 3rem" />
 
-                <Column field="label" header="Megnevezés" sortable>
+                <Column
+                    field="label"
+                    filterField="label"
+                    header="Megnevezés"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
                     <template #body="{ data }">
                         {{ data.label || data.key }}
                     </template>
+                    <template #filter="{ filterModel }">
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            placeholder="Megnevezes keresese"
+                        />
+                    </template>
                 </Column>
-                <Column field="group" header="Csoport" sortable />
-                <Column field="type" header="Típus" sortable>
+                <Column
+                    field="group"
+                    filterField="group"
+                    header="Csoport"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
+                    <template #filter="{ filterModel }">
+                        <Select
+                            v-model="filterModel.value"
+                            :options="groupOptions"
+                            optionLabel="label"
+                            optionValue="value"
+                            class="w-full"
+                            showClear
+                            placeholder="Csoport"
+                        />
+                    </template>
+                </Column>
+                <Column
+                    field="type"
+                    filterField="type"
+                    header="Típus"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
                     <template #body="{ data }">
-                        <Tag :value="data.type" :severity="typeSeverity(data.type)" />
+                        <Tag
+                            :value="data.type"
+                            :severity="typeSeverity(data.type)"
+                        />
+                    </template>
+                    <template #filter="{ filterModel }">
+                        <Select
+                            v-model="filterModel.value"
+                            :options="typeOptions"
+                            optionLabel="label"
+                            optionValue="value"
+                            class="w-full"
+                            showClear
+                            placeholder="Tipus"
+                        />
                     </template>
                 </Column>
                 <Column header="Érték">

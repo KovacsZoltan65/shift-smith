@@ -79,7 +79,7 @@ const initFilters = () => {
     filters.value = createInitialFilters();
 };
 
-const clearFilter = () => {
+const clearFilters = () => {
     initFilters();
     dt.value?.clearFilter?.();
 };
@@ -279,7 +279,7 @@ onMounted(async () => {
                             icon="pi pi-filter-slash"
                             label="Clear"
                             variant="outlined"
-                            @click="clearFilter()"
+                            @click="clearFilters()"
                         />
                         <IconField>
                             <InputIcon>
@@ -291,27 +291,6 @@ onMounted(async () => {
                             />
                         </IconField>
                     </div>
-                    <!--<div class="flex flex-wrap items-center justify-between gap-3">
-                        <Button
-                            type="button"
-                            icon="pi pi-filter-slash"
-                            label="Szurok torlese"
-                            severity="secondary"
-                            size="small"
-                            :disabled="!hasActiveFilters"
-                            data-testid="leave-types-clear-filters"
-                            @click="clearFilters"
-                        />
-                        <span class="p-input-icon-left">
-                            <i class="pi pi-search" />
-                            <InputText
-                                v-model="filters.global.value"
-                                class="w-72"
-                                placeholder="Kereses..."
-                                data-testid="leave-types-search"
-                            />
-                        </span>
-                    </div>-->
                 </template>
 
                 <template #empty>Nincs talalat.</template>
