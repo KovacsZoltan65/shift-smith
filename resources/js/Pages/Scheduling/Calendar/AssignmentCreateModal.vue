@@ -12,6 +12,7 @@ const props = defineProps({
     scheduleId: { type: Number, required: true },
     defaultDate: { type: String, default: null },
     loading: { type: Boolean, default: false },
+    disabled: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(["update:modelValue", "submit"]);
@@ -60,23 +61,23 @@ const submit = () => {
         <div class="grid grid-cols-1 gap-3">
             <div>
                 <label class="mb-1 block text-sm">Dolgozó</label>
-                <EmployeeSelector v-model="form.employee_id" :companyId="companyId" />
+                <EmployeeSelector v-model="form.employee_id" :companyId="companyId" :disabled="disabled" />
             </div>
 
             <div>
                 <label class="mb-1 block text-sm">Műszak</label>
-                <WorkShiftSelector v-model="form.work_shift_id" :companyId="companyId" />
+                <WorkShiftSelector v-model="form.work_shift_id" :companyId="companyId" :disabled="disabled" />
             </div>
 
             <div>
                 <label class="mb-1 block text-sm">Dátum</label>
-                <DatePicker v-model="form.date" dateFormat="yy-mm-dd" showIcon class="w-full" />
+                <DatePicker v-model="form.date" dateFormat="yy-mm-dd" showIcon class="w-full" :disabled="disabled" />
             </div>
         </div>
 
         <template #footer>
-            <Button label="Mégse" severity="secondary" :disabled="loading" @click="visible = false" />
-            <Button label="Mentés" icon="pi pi-check" :loading="loading" @click="submit" />
+            <Button label="Mégse" severity="secondary" :disabled="loading || disabled" @click="visible = false" />
+            <Button label="Mentés" icon="pi pi-check" :loading="loading" :disabled="disabled" @click="submit" />
         </template>
     </Dialog>
 </template>

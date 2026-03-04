@@ -124,6 +124,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'user_employees.delete',
             'user_assignments.viewAny',
             'user_assignments.update',
+            'month_closures.viewAny',
+            'month_closures.close',
+            'month_closures.reopen',
         ];
 
         /**

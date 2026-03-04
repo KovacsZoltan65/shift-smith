@@ -11,6 +11,7 @@ const props = defineProps({
     scheduleId: { type: Number, required: true },
     selectedDates: { type: Array, default: () => [] },
     loading: { type: Boolean, default: false },
+    disabled: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(["update:modelValue", "submit"]);
@@ -65,12 +66,12 @@ const submit = () => {
 
             <div>
                 <label class="mb-1 block text-sm">Műszak</label>
-                <WorkShiftSelector v-model="form.work_shift_id" :companyId="companyId" />
+                <WorkShiftSelector v-model="form.work_shift_id" :companyId="companyId" :disabled="disabled" />
             </div>
 
             <div>
                 <label class="mb-1 block text-sm">Dolgozók hozzáadása</label>
-                <EmployeeSelector :companyId="companyId" @update:modelValue="addEmployee" />
+                <EmployeeSelector :companyId="companyId" :disabled="disabled" @update:modelValue="addEmployee" />
             </div>
 
             <div class="flex flex-wrap gap-2">
@@ -80,14 +81,14 @@ const submit = () => {
                     class="inline-flex items-center gap-1 rounded bg-sky-100 px-2 py-1 text-xs text-sky-800"
                 >
                     #{{ id }}
-                    <button type="button" class="font-bold" @click="removeEmployee(id)">x</button>
+                    <button type="button" class="font-bold" :disabled="disabled" @click="removeEmployee(id)">x</button>
                 </span>
             </div>
         </div>
 
         <template #footer>
-            <Button label="Mégse" severity="secondary" :disabled="loading" @click="visible = false" />
-            <Button label="Mentés" icon="pi pi-check" :loading="loading" @click="submit" />
+            <Button label="Mégse" severity="secondary" :disabled="loading || disabled" @click="visible = false" />
+            <Button label="Mentés" icon="pi pi-check" :loading="loading" :disabled="disabled" @click="submit" />
         </template>
     </Dialog>
 </template>

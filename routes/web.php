@@ -28,6 +28,7 @@ use App\Http\Controllers\WorkScheduleAssignmentController;
 use App\Http\Controllers\WorkShiftAssignmentController;
 use App\Http\Controllers\WorkShiftController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\MonthClosureController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -464,6 +465,14 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
     ->group(function (): void {
         Route::get('/scheduling/calendar', 'calendar')->name('scheduling.calendar')->middleware('throttle:60,1');
         Route::get('/scheduling/calendar/feed', 'feed')->name('scheduling.calendar.feed')->middleware('throttle:120,1');
+    });
+
+Route::middleware(['auth', 'verified', 'ensure.company'])
+    ->prefix('scheduling/month-closures')
+    ->controller(MonthClosureController::class)
+    ->group(function (): void {
+        Route::post('/', 'store')->name('scheduling.month_closures.store')->middleware('throttle:20,1');
+        Route::delete('/{id}', 'destroy')->whereNumber('id')->name('scheduling.month_closures.destroy')->middleware('throttle:20,1');
     });
 
 Route::middleware(['auth', 'verified', 'ensure.company'])

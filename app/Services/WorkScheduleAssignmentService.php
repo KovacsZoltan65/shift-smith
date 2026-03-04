@@ -26,7 +26,8 @@ class WorkScheduleAssignmentService
         private readonly WorkScheduleRepositoryInterface $workScheduleRepository,
         private readonly CacheService $cacheService,
         private readonly CacheVersionService $cacheVersionService,
-        private readonly TenantContext $tenantContext
+        private readonly TenantContext $tenantContext,
+        private readonly MonthClosureService $monthClosureService,
     ) {}
 
     /**
@@ -119,7 +120,7 @@ class WorkScheduleAssignmentService
         $shift = $this->repository->findShiftForCompany($companyId, (int) $payload['work_shift_id']);
         $date = (string) $payload['date'];
 
-        $this->guardDateWritable($date);
+        $this->guardDateWritable($companyId, $date);
         $this->validateUniqueEmployeeDate($companyId, (int) $employee->id, $date);
 
         $row = $this->repository->store($companyId, [
@@ -142,7 +143,7 @@ class WorkScheduleAssignmentService
         $shift = $this->repository->findShiftForCompany($companyId, (int) $payload['work_shift_id']);
         $date = (string) $payload['date'];
 
-        $this->guardDateWritable($date);
+        $this->guardDateWritable($companyId, $date);
         $this->validateUniqueEmployeeDate($companyId, (int) $employee->id, $date, (int) $existing->id);
 
         $row = $this->repository->update($existing, [
@@ -160,7 +161,8 @@ class WorkScheduleAssignmentService
         $assignment = $this->repository->findOrFailScoped($id, $companyId);
         $schedule = $this->repository->findScheduleForCompany($companyId, (int) $assignment->work_schedule_id);
         $this->guardPlannerWritable($schedule);
-        $this->guardDateWritable((string) $assignment->date->format('Y-m-d'));
+        $assignmentDate = (string) $assignment->date->format('Y-m-d');
+        $this->guardDateWritable($companyId, $assignmentDate);
 
         return $this->repository->delete($assignment);
     }
@@ -187,7 +189,7 @@ class WorkScheduleAssignmentService
         }
 
         foreach ($dates as $date) {
-            $this->guardDateWritable($date);
+            $this->guardDateWritable($companyId, $date);
         }
 
         $rows = $this->repository->bulkUpsert(
@@ -249,11 +251,15 @@ class WorkScheduleAssignmentService
         }
     }
 
-    private function guardDateWritable(string $date): void
+    private function guardDateWritable(int $companyId, string $date): void
     {
-        $selectedDate = CarbonImmutable::parse($date)->startOfDay();
-        if ($selectedDate->lessThan(CarbonImmutable::today())) {
-            throw new AuthorizationException('Múltbeli nap nem módosítható.');
+        $this->monthClosureService->assertMonthEditableOrFail($companyId, $date);
+
+        $selectedMonthKey = CarbonImmutable::parse($date)->format('Y-m');
+        $currentMonthKey = CarbonImmutable::today()->format('Y-m');
+
+        if ($selectedMonthKey < $currentMonthKey) {
+            throw new AuthorizationException('Múltbeli hónap nem módosítható.');
         }
     }
 
