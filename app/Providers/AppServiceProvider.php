@@ -16,6 +16,7 @@ use App\Interfaces\PositionRepositoryInterface;
 use App\Interfaces\UserRepositoryInterface;
 use App\Interfaces\UserSettingRepositoryInterface;
 use App\Interfaces\WorkPatternRepositoryInterface;
+use App\Interfaces\WorkScheduleRepositoryInterface;
 use App\Interfaces\WorkScheduleAssignmentRepositoryInterface;
 use App\Interfaces\WorkShiftAssignmentRepositoryInterface;
 use App\Interfaces\WorkShiftRepositoryInterface;
@@ -55,6 +56,7 @@ use App\Repositories\UserEmployeeRepositoryInterface;
 use App\Repositories\UserAssignments\UserAssignmentRepository;
 use App\Repositories\UserAssignments\UserAssignmentRepositoryInterface;
 use App\Repositories\WorkPatternRepository;
+use App\Repositories\WorkScheduleRepository;
 use App\Repositories\WorkScheduleAssignmentRepository;
 use App\Repositories\WorkShiftAssignmentRepository;
 use App\Repositories\WorkShiftRepository;
@@ -149,6 +151,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             WorkScheduleAssignmentRepositoryInterface::class,
             WorkScheduleAssignmentRepository::class
+        );
+        $this->app->bind(
+            WorkScheduleRepositoryInterface::class,
+            WorkScheduleRepository::class
         );
         $this->app->bind(
             WorkPatternRepositoryInterface::class,
