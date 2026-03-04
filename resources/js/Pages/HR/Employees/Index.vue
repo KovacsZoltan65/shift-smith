@@ -27,7 +27,6 @@ import { toYmd } from "@/helpers/functions.js";
 const page = usePage();
 
 import { usePermissions } from "@/composables/usePermissions";
-import { IconField, InputIcon } from "primevue";
 
 const props = defineProps({
     title: { type: String, default: "Dolgozók" },
@@ -244,7 +243,7 @@ const fetchEmployees = async () => {
     error.value = null;
 
     try {
-        const res = await fetch(`${props.endpoint}/fetch${buildQuery()}`, {
+        const res = await fetch(`${props.endpointBase}/fetch?${buildQuery()}`, {
             headers: { "X-Requested-With": "XMLHttpRequest" },
         });
 
@@ -282,7 +281,7 @@ const deleteOne = async (id) => {
     actionLoading.value = true;
 
     try {
-        const res = await csrfFetch(`${props.endpoint}/${id}`, {
+        const res = await csrfFetch(`${props.endpointBase}/${id}`, {
             method: "DELETE",
             headers: {
                 "X-Requested-With": "XMLHttpRequest",
@@ -340,7 +339,7 @@ const bulkDelete = async (ids) => {
     actionLoading.value = true;
 
     try {
-        const res = await csrfFetch(`${props.endpoint}/destroy_bulk`, {
+        const res = await csrfFetch(`${props.endpointBase}/destroy_bulk`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -491,7 +490,6 @@ onMounted(() => {
                 removableSort
                 filterDisplay="menu"
                 :globalFilterFields="globalFilterFields"
-                selectionMode="multiple"
             >
                 <template #header>
                     <div class="flex justify-between">

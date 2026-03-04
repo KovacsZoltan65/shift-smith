@@ -59,6 +59,7 @@ final class WorkShiftRepository implements WorkShiftRepositoryInterface
         ): LengthAwarePaginator {
             $query = WorkShift::query()
                 ->with(['breaks' => static fn ($q) => $q->orderBy('id')])
+                ->withCount('assignments as employees_count')
                 ->where('company_id', $companyId)
                 ->when($onlyActive !== null, fn ($q) => $q->where('active', $onlyActive))
                 ->when($term, fn ($q) => $q->whereRaw('LOWER(name) like ?', ["%{$term}%"]))

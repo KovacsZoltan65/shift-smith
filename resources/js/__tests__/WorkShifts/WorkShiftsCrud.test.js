@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import Index from "@/Pages/WorkShifts/Index.vue";
+import EmployeesModal from "@/Pages/WorkShifts/EmployeesModal.vue";
 import { usePermissions } from "@/composables/usePermissions";
 
 import {
@@ -14,12 +15,15 @@ vi.mock("@inertiajs/vue3", () => ({
     Head: { template: "<div />" },
 }));
 
-const { toastAdd, workShiftServiceMock } = vi.hoisted(() => ({
+const { toastAdd, workShiftServiceMock, workShiftAssignmentServiceMock } = vi.hoisted(() => ({
     toastAdd: vi.fn(),
     workShiftServiceMock: {
         getWorkShifts: vi.fn(),
         deleteWorkShift: vi.fn(),
         deleteWorkShifts: vi.fn(),
+    },
+    workShiftAssignmentServiceMock: {
+        list: vi.fn(),
     },
 }));
 
@@ -40,6 +44,10 @@ vi.mock("@/services/WorkShiftService.js", () => ({
     default: workShiftServiceMock,
 }));
 
+vi.mock("@/services/WorkShiftAssignmentService", () => ({
+    default: workShiftAssignmentServiceMock,
+}));
+
 const rows = [
     {
         id: 1,
@@ -48,6 +56,7 @@ const rows = [
         end_time: "14:00",
         work_time_minutes: 480,
         break_minutes: 30,
+        employees_count: 3,
         active: true,
     },
     {
@@ -57,6 +66,7 @@ const rows = [
         end_time: "22:00",
         work_time_minutes: 480,
         break_minutes: 30,
+        employees_count: 1,
         active: true,
     },
 ];
@@ -86,6 +96,10 @@ const stubs = createPrimeCrudStubs({
         emits: ["update:modelValue"],
         template: `<div v-if="modelValue" data-testid="assignment-modal" />`,
     },
+    EmployeesModal: {
+        props: ["modelValue", "workShift"],
+        template: `<div v-if="modelValue" data-testid="employees-modal">{{ workShift?.name }}</div>`,
+    },
 });
 
 describe("WorkShifts CRUD (Index.vue)", () => {
@@ -106,6 +120,21 @@ describe("WorkShifts CRUD (Index.vue)", () => {
         workShiftServiceMock.deleteWorkShift.mockResolvedValue({ data: {} });
         workShiftServiceMock.deleteWorkShifts.mockResolvedValue({
             data: { deleted: 2 },
+        });
+        workShiftAssignmentServiceMock.list.mockResolvedValue({
+            data: {
+                data: [
+                    {
+                        id: 10,
+                        employee_id: 100,
+                        employee_name: "Teszt Elek",
+                        work_pattern_name: "Altalanos",
+                        work_schedule_name: "",
+                        date: "2026-03-04",
+                        created_at: "2026-03-04 08:00:00",
+                    },
+                ],
+            },
         });
     });
 
@@ -204,5 +233,45 @@ describe("WorkShifts CRUD (Index.vue)", () => {
 
         __allow.add("work_shifts.create");
         __allow.add("work_shifts.delete");
+    });
+});
+
+describe("WorkShifts EmployeesModal", () => {
+    it("megnyitaskor betolti a hozzarendelt dolgozok listajat", async () => {
+        const wrapper = mountPrimeVue(EmployeesModal, {
+            props: {
+                modelValue: false,
+                workShift: {
+                    id: 1,
+                    name: "Reggeli műszak",
+                },
+            },
+            global: {
+                stubs: {
+                    ...createPrimeCrudStubs(),
+                    Dialog: {
+                        props: ["visible"],
+                        template: `<div v-if="visible"><slot /></div>`,
+                    },
+                    DataTable: {
+                        props: ["value"],
+                        template: `
+                            <div data-testid="datatable">
+                                <div v-for="row in (value ?? [])" :key="row.id" class="row">
+                                    <span>{{ row.employee_name ?? row.name ?? row.id }}</span>
+                                </div>
+                                <slot />
+                            </div>
+                        `,
+                    },
+                },
+            },
+        });
+
+        await wrapper.setProps({ modelValue: true });
+        await flushUi();
+
+        expect(workShiftAssignmentServiceMock.list).toHaveBeenCalledWith(1);
+        expect(wrapper.text()).toContain("Teszt Elek");
     });
 });

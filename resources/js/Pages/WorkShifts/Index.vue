@@ -19,10 +19,10 @@ import { useToast } from "primevue/usetoast";
 import CreateModal from "@/Pages/WorkShifts/CreateModal.vue";
 import EditModal from "@/Pages/WorkShifts/EditModal.vue";
 import AssignmentModal from "@/Pages/WorkShifts/AssignmentModal.vue";
+import EmployeesModal from "@/Pages/WorkShifts/EmployeesModal.vue";
 
 import WorkShiftService from "@/services/WorkShiftService.js";
 import { usePermissions } from "@/composables/usePermissions";
-import { IconField, InputIcon } from "primevue";
 
 const { has } = usePermissions();
 
@@ -47,6 +47,8 @@ const editOpen = ref(false);
 const editShift = ref(null);
 const assignmentOpen = ref(false);
 const assignmentShift = ref(null);
+const employeesOpen = ref(false);
+const employeesShift = ref(null);
 
 const loading = ref(false);
 const actionLoading = ref(false);
@@ -65,6 +67,7 @@ const globalFilterFields = [
     "end_time",
     "work_time_minutes",
     "break_minutes",
+    "employees_count",
     "active",
 ];
 const booleanOptions = [
@@ -144,6 +147,11 @@ const openEditModal = (row) => {
 const openAssignmentModal = (row) => {
     assignmentShift.value = row;
     assignmentOpen.value = true;
+};
+
+const openEmployeesModal = (row) => {
+    employeesShift.value = row;
+    employeesOpen.value = true;
 };
 
 const onSaved = async (msg = "Mentve.") => {
@@ -325,6 +333,11 @@ onMounted(() => {
         :canDelete="canAssignEmployee"
     />
 
+    <EmployeesModal
+        v-model="employeesOpen"
+        :workShift="employeesShift"
+    />
+
     <AuthenticatedLayout>
         <div class="space-y-4 p-6">
             <div class="flex flex-wrap items-center justify-between gap-3">
@@ -397,7 +410,6 @@ onMounted(() => {
                 removableSort
                 filterDisplay="menu"
                 :globalFilterFields="globalFilterFields"
-                selectionMode="multiple"
             >
                 <template #header>
                     <div class="flex justify-between">
@@ -408,15 +420,13 @@ onMounted(() => {
                             variant="outlined"
                             @click="clearFilters()"
                         />
-                        <IconField>
-                            <InputIcon>
-                                <i class="pi pi-search" />
-                            </InputIcon>
+                        <span class="p-input-icon-left">
+                            <i class="pi pi-search" />
                             <InputText
-                                v-model="filters['global'].value"
-                                placeholder="Keyword Search"
+                                v-model="filters.global.value"
+                                placeholder="Kereses..."
                             />
-                        </IconField>
+                        </span>
                     </div>
                 </template>
 
@@ -487,6 +497,22 @@ onMounted(() => {
                     sortable
                     style="width: 120px"
                 />
+                <Column
+                    field="employees_count"
+                    header="Dolgozók"
+                    sortable
+                    style="width: 130px"
+                >
+                    <template #body="{ data }">
+                        <Button
+                            :label="String(data.employees_count ?? 0)"
+                            text
+                            size="small"
+                            class="p-0"
+                            @click="openEmployeesModal(data)"
+                        />
+                    </template>
+                </Column>
                 <Column
                     field="created_at"
                     header="Létrehozva"

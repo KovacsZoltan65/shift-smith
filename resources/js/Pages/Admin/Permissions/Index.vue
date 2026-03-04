@@ -404,7 +404,6 @@ onMounted(() => {
                 removableSort
                 filterDisplay="menu"
                 :globalFilterFields="globalFilterFields"
-                selectionMode="multiple"
             >
                 <template #header>
                     <div class="flex justify-between">
