@@ -11,6 +11,7 @@ use App\Models\WorkSchedule;
 use App\Services\Cache\CacheNamespaces;
 use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
+use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -183,8 +184,12 @@ final class WorkScheduleRepository implements WorkScheduleRepositoryInterface
                     'id' => (int) $schedule->id,
                     'company_id' => (int) $schedule->company_id,
                     'name' => (string) $schedule->name,
-                    'date_from' => (string) $schedule->date_from?->format('Y-m-d'),
-                    'date_to' => (string) $schedule->date_to?->format('Y-m-d'),
+                    'date_from' => $schedule->date_from instanceof CarbonInterface
+                        ? $schedule->date_from->format('Y-m-d')
+                        : (string) $schedule->date_from,
+                    'date_to' => $schedule->date_to instanceof CarbonInterface
+                        ? $schedule->date_to->format('Y-m-d')
+                        : (string) $schedule->date_to,
                     'status' => (string) $schedule->status,
                 ])
                 ->values()

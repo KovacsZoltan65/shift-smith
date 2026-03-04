@@ -4,6 +4,7 @@ import Button from "primevue/button";
 import Dialog from "primevue/dialog";
 import WorkScheduleFields from "@/Pages/Scheduling/WorkSchedules/Partials/WorkScheduleFields.vue";
 import WorkScheduleService from "@/services/WorkScheduleService";
+import { csrfFetch } from "@/lib/csrfFetch";
 
 const props = defineProps({
     modelValue: { type: Boolean, default: false },
@@ -99,27 +100,42 @@ const submit = async () => {
     errors.value = {};
 
     try {
-        await WorkScheduleService.updateWorkSchedule(id, {
-            company_id: Number(form.value.company_id ?? 0),
-            name: form.value.name,
-            date_from: form.value.date_from,
-            date_to: form.value.date_to,
-            status: form.value.status,
+        const response = await csrfFetch(`/work-schedules/${id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                "X-Requested-With": "XMLHttpRequest",
+            },
+            body: JSON.stringify({
+                company_id: Number(form.value.company_id ?? 0),
+                name: form.value.name,
+                date_from: form.value.date_from,
+                date_to: form.value.date_to,
+                status: form.value.status,
+            }),
         });
+
+        if (response.status === 422) {
+            const body = await response.json().catch(() => ({}));
+            const bag = body?.errors ?? {};
+            errors.value = Object.fromEntries(
+                Object.entries(bag).map(([key, value]) => [
+                    key,
+                    Array.isArray(value) ? value[0] : String(value),
+                ]),
+            );
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error(`Mentés sikertelen (HTTP ${response.status})`);
+        }
 
         emit("saved", "Munkabeosztás frissítve.");
         close();
     } catch (error) {
-        errors.value = Object.fromEntries(
-            Object.entries(WorkScheduleService.extractErrors(error) ?? {}).map(([key, value]) => [
-                key,
-                Array.isArray(value) ? value[0] : String(value),
-            ]),
-        );
-
-        if (!Object.keys(errors.value).length) {
-            errors.value._global = error?.message ?? "Mentés sikertelen.";
-        }
+        errors.value._global = error?.message ?? "Mentés sikertelen.";
     } finally {
         saving.value = false;
     }

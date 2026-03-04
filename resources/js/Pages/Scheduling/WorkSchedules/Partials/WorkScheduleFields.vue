@@ -1,4 +1,5 @@
 <script setup>
+import DatePicker from "primevue/datepicker";
 import InputText from "primevue/inputtext";
 import Select from "primevue/select";
 
@@ -18,6 +19,43 @@ const statusOptions = [
 ];
 
 const set = (key, value) => emit("update:modelValue", { ...form, [key]: value });
+
+const toDateValue = (value) => {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+
+    const date = new Date(`${value}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const toYmd = (value) => {
+    if (typeof value === "string") {
+        const trimmed = value.trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+            return trimmed;
+        }
+
+        const parsed = new Date(trimmed);
+        if (!Number.isNaN(parsed.getTime())) {
+            const year = parsed.getFullYear();
+            const month = String(parsed.getMonth() + 1).padStart(2, "0");
+            const day = String(parsed.getDate()).padStart(2, "0");
+            return `${year}-${month}-${day}`;
+        }
+
+        return "";
+    }
+
+    if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
+        return "";
+    }
+
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, "0");
+    const day = String(value.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+};
 </script>
 
 <template>
@@ -37,12 +75,13 @@ const set = (key, value) => emit("update:modelValue", { ...form, [key]: value })
 
         <div>
             <label class="mb-1 block text-sm">Kezdő dátum</label>
-            <InputText
+            <DatePicker
                 class="w-full"
-                type="date"
-                :modelValue="form.date_from"
+                :modelValue="toDateValue(form.date_from)"
+                showIcon
+                dateFormat="yy-mm-dd"
                 :disabled="disabled"
-                @update:modelValue="(value) => set('date_from', value)"
+                @update:modelValue="(value) => set('date_from', toYmd(value))"
             />
             <div v-if="errors?.date_from" class="mt-1 text-sm text-red-600">
                 {{ errors.date_from }}
@@ -51,12 +90,13 @@ const set = (key, value) => emit("update:modelValue", { ...form, [key]: value })
 
         <div>
             <label class="mb-1 block text-sm">Záró dátum</label>
-            <InputText
+            <DatePicker
                 class="w-full"
-                type="date"
-                :modelValue="form.date_to"
+                :modelValue="toDateValue(form.date_to)"
+                showIcon
+                dateFormat="yy-mm-dd"
                 :disabled="disabled"
-                @update:modelValue="(value) => set('date_to', value)"
+                @update:modelValue="(value) => set('date_to', toYmd(value))"
             />
             <div v-if="errors?.date_to" class="mt-1 text-sm text-red-600">
                 {{ errors.date_to }}

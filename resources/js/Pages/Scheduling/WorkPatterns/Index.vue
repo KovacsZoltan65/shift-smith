@@ -447,6 +447,14 @@ onMounted(() => {
                 <div class="flex items-center gap-3 flex-wrap">
                     <h1 class="text-2xl font-semibold">{{ title }}</h1>
 
+                    <span
+                        v-if="hqBadge"
+                        class="inline-flex items-center rounded bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700"
+                    >
+                        {{ hqBadge }}
+                    </span>
+
+                    <!-- CREATE -->
                     <Button
                         v-if="canCreate"
                         label="Új munkarend"
@@ -456,6 +464,7 @@ onMounted(() => {
                         @click="openCreate"
                     />
 
+                    <!-- FRISSÍTÉS -->
                     <Button
                         label="Frissítés"
                         icon="pi pi-refresh"
@@ -466,6 +475,7 @@ onMounted(() => {
                         @click="fetchWorkPatterns"
                     />
 
+                    <!-- BULK DELETE -->
                     <Button
                         v-if="canBulkDelete"
                         label="Kijelöltek törlése"
@@ -534,27 +544,6 @@ onMounted(() => {
                             />
                         </IconField>
                     </div>
-                    <!--<div class="flex flex-wrap items-center justify-between gap-3">
-                        <Button
-                            type="button"
-                            icon="pi pi-filter-slash"
-                            label="Szurok torlese"
-                            severity="secondary"
-                            size="small"
-                            :disabled="!hasActiveFilters"
-                            data-testid="work-patterns-clear-filters"
-                            @click="clearFilters"
-                        />
-                        <span class="p-input-icon-left">
-                            <i class="pi pi-search" />
-                            <InputText
-                                v-model="filters.global.value"
-                                placeholder="Kereses..."
-                                class="w-64"
-                                data-testid="work-patterns-search"
-                            />
-                        </span>
-                    </div>-->
                 </template>
 
                 <template #empty>Nincs találat.</template>

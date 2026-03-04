@@ -19,6 +19,7 @@ import EditModal from "@/Pages/Scheduling/WorkSchedules/EditModal.vue";
 import { usePermissions } from "@/composables/usePermissions";
 import WorkScheduleService from "@/services/WorkScheduleService";
 import { toYmd } from "@/helpers/functions.js";
+import { IconField, InputIcon } from "primevue";
 
 const { has } = usePermissions();
 
@@ -55,7 +56,13 @@ const statusOptions = [
     { label: "Publikált", value: "published" },
 ];
 
-const globalFilterFields = ["name", "date_from", "date_to", "status", "assignments_count"];
+const globalFilterFields = [
+    "name",
+    "date_from",
+    "date_to",
+    "status",
+    "assignments_count",
+];
 
 const createInitialFilters = () => ({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -94,7 +101,8 @@ const hasActiveFilters = computed(() =>
         if ("value" in entry) return entry.value !== null && entry.value !== "";
         if (Array.isArray(entry.constraints)) {
             return entry.constraints.some(
-                (constraint) => constraint?.value !== null && constraint?.value !== "",
+                (constraint) =>
+                    constraint?.value !== null && constraint?.value !== "",
             );
         }
         return false;
@@ -141,7 +149,9 @@ const fetchWorkSchedules = async () => {
             company_id: companyId.value,
         });
 
-        rows.value = Array.isArray(response?.data?.data) ? response.data.data : [];
+        rows.value = Array.isArray(response?.data?.data)
+            ? response.data.data
+            : [];
     } catch (err) {
         error.value = err?.message ?? "Betöltési hiba.";
         rows.value = [];
@@ -184,7 +194,10 @@ const confirmDeleteOne = (row) => {
 const deleteOne = async (id) => {
     actionLoading.value = true;
     try {
-        await WorkScheduleService.deleteWorkSchedule(id, Number(companyId.value));
+        await WorkScheduleService.deleteWorkSchedule(
+            id,
+            Number(companyId.value),
+        );
         await onSaved("Munkabeosztás törölve.");
     } catch (err) {
         toast.add({
@@ -216,7 +229,10 @@ const confirmBulkDelete = () => {
 const deleteMany = async (ids) => {
     actionLoading.value = true;
     try {
-        await WorkScheduleService.deleteWorkSchedules(ids, Number(companyId.value));
+        await WorkScheduleService.deleteWorkSchedules(
+            ids,
+            Number(companyId.value),
+        );
         await onSaved("Kijelölt munkabeosztások törölve.");
     } catch (err) {
         toast.add({
@@ -236,174 +252,239 @@ onMounted(fetchWorkSchedules);
 <template>
     <Head :title="title" />
 
+    <Toast />
+    <ConfirmDialog />
+
+    <CreateModal
+        v-model="createOpen"
+        :companyId="companyId"
+        :canCreate="canCreate"
+        @saved="onSaved"
+    />
+
+    <EditModal
+        v-model="editOpen"
+        :workSchedule="editWorkSchedule"
+        :canUpdate="canUpdate"
+        @saved="onSaved"
+    />
+
     <AuthenticatedLayout>
-        <template #header>
-            <div class="flex items-center justify-between gap-3">
-                <h2 class="text-xl font-semibold leading-tight text-gray-800">
-                    {{ title }}
-                </h2>
-            </div>
-        </template>
+        <div class="space-y-4 p-6">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <h1 class="text-2xl font-semibold">{{ title }}</h1>
 
-        <div class="py-8">
-            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <Toast />
-                <ConfirmDialog />
-                <Menu ref="rowMenu" :model="rowMenuModel" popup />
-
-                <CreateModal
-                    v-model="createOpen"
-                    :companyId="companyId"
-                    :canCreate="canCreate"
-                    @saved="onSaved"
-                />
-                <EditModal
-                    v-model="editOpen"
-                    :workSchedule="editWorkSchedule"
-                    :canUpdate="canUpdate"
-                    @saved="onSaved"
-                />
-
-                <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-                        <div class="flex flex-1 flex-col gap-3 sm:flex-row sm:items-end">
-                            <div class="w-full max-w-sm">
-                                <label class="mb-1 block text-xs text-slate-600">Cég</label>
-                                <CompanySelector v-model="companyId" @update:modelValue="onCompanyChanged" />
-                            </div>
-
-                            <div class="flex flex-wrap items-center gap-2">
-                                <Button
-                                    v-if="canCreate"
-                                    label="Új munkabeosztás"
-                                    icon="pi pi-plus"
-                                    @click="createOpen = true"
-                                />
-                                <Button
-                                    label="Frissítés"
-                                    icon="pi pi-refresh"
-                                    severity="secondary"
-                                    :loading="loading"
-                                    @click="fetchWorkSchedules"
-                                />
-                                <Button
-                                    v-if="canBulkDelete"
-                                    label="Kijelöltek törlése"
-                                    icon="pi pi-trash"
-                                    severity="danger"
-                                    outlined
-                                    :disabled="!selected.length || actionLoading"
-                                    @click="confirmBulkDelete"
-                                />
-                            </div>
-                        </div>
-
-                        <div class="flex flex-wrap items-center justify-end gap-2">
-                            <Button
-                                type="button"
-                                icon="pi pi-filter-slash"
-                                label="Szűrők törlése"
-                                severity="secondary"
-                                size="small"
-                                :disabled="!hasActiveFilters"
-                                @click="clearFilters"
-                            />
-                            <span class="p-input-icon-left">
-                                <i class="pi pi-search" />
-                                <InputText
-                                    v-model="filters.global.value"
-                                    class="w-72"
-                                    placeholder="Keresés..."
-                                />
-                            </span>
-                        </div>
-                    </div>
-
-                    <div v-if="error" class="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                        {{ error }}
-                    </div>
-
-                    <DataTable
-                        ref="dt"
-                        v-model:selection="selected"
-                        :value="rows"
-                        dataKey="id"
-                        :loading="loading"
-                        paginator
-                        :rows="10"
-                        :rowsPerPageOptions="[10, 25, 50, 100]"
-                        stripedRows
-                        filterDisplay="menu"
-                        :filters="filters"
-                        :globalFilterFields="globalFilterFields"
-                        removableSort
+                    <span
+                        v-if="hqBadge"
+                        class="inline-flex items-center rounded bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700"
                     >
-                        <template #empty>Nincs munkabeosztás.</template>
+                        {{ hqBadge }}
+                    </span>
 
-                        <Column selectionMode="multiple" headerStyle="width: 3rem" />
+                    <Button
+                        v-if="canCreate"
+                        label="Új munkabeosztás"
+                        icon="pi pi-plus"
+                        @click="createOpen = true"
+                    />
+                    <Button
+                        label="Frissítés"
+                        icon="pi pi-refresh"
+                        severity="secondary"
+                        :loading="loading"
+                        @click="fetchWorkSchedules"
+                    />
+                    <Button
+                        v-if="canBulkDelete"
+                        label="Kijelöltek törlése"
+                        icon="pi pi-trash"
+                        severity="danger"
+                        outlined
+                        :disabled="!selected.length || actionLoading"
+                        @click="confirmBulkDelete"
+                    />
 
-                        <Column field="name" header="Név" sortable>
-                            <template #body="{ data }">
-                                {{ data.name }}
-                            </template>
-                        </Column>
+                    <div v-if="selected?.length" class="text-sm text-gray-600">
+                        Kijelölve: <b>{{ selected.length }}</b>
+                    </div>
 
-                        <Column field="date_from" header="Kezdet" sortable>
-                            <template #body="{ data }">
-                                {{ toYmd(data.date_from) ?? "-" }}
-                            </template>
-                        </Column>
-
-                        <Column field="date_to" header="Vége" sortable>
-                            <template #body="{ data }">
-                                {{ toYmd(data.date_to) ?? "-" }}
-                            </template>
-                        </Column>
-
-                        <Column field="status" header="Státusz" sortable>
-                            <template #body="{ data }">
-                                <span
-                                    class="inline-flex rounded-full px-2 py-1 text-xs font-medium"
-                                    :class="data.status === 'published'
-                                        ? 'bg-emerald-100 text-emerald-700'
-                                        : 'bg-amber-100 text-amber-700'"
-                                >
-                                    {{ data.status === "published" ? "Publikált" : "Draft" }}
-                                </span>
-                            </template>
-                            <template #filter="{ filterModel }">
-                                <Select
-                                    v-model="filterModel.value"
-                                    :options="statusOptions"
-                                    optionLabel="label"
-                                    optionValue="value"
-                                    placeholder="Mind"
-                                    class="min-w-40"
-                                    showClear
-                                />
-                            </template>
-                        </Column>
-
-                        <Column field="assignments_count" header="Beosztások" sortable>
-                            <template #body="{ data }">
-                                {{ Number(data.assignments_count ?? 0) }}
-                            </template>
-                        </Column>
-
-                        <Column header="Műveletek" bodyClass="text-right" headerClass="text-right">
-                            <template #body="{ data }">
-                                <Button
-                                    icon="pi pi-ellipsis-v"
-                                    text
-                                    rounded
-                                    aria-label="Műveletek"
-                                    @click="openRowMenu($event, data)"
-                                />
-                            </template>
-                        </Column>
-                    </DataTable>
+                    <div class="min-w-[260px]">
+                        <CompanySelector
+                            v-model="companyId"
+                            placeholder="Cég szűrő..."
+                            @update:modelValue="onCompanyChanged"
+                        />
+                    </div>
                 </div>
             </div>
+
+            <div v-if="error" class="mb-3 border p-3">
+                <div class="font-semibold">Hiba</div>
+                <div class="text-sm">{{ error }}</div>
+            </div>
+
+            <Menu ref="rowMenu" :model="rowMenuModel" popup />
+
+            <DataTable
+                ref="dt"
+                v-model:selection="selected"
+                v-model:filters="filters"
+                :value="rows"
+                dataKey="id"
+                :loading="loading"
+                paginator
+                :rows="10"
+                :rowsPerPageOptions="[10, 25, 50, 100]"
+                stripedRows
+                filterDisplay="menu"
+                :globalFilterFields="globalFilterFields"
+                removableSort
+            >
+                <template #header>
+                    <div class="flex justify-between">
+                        <Button
+                            type="button"
+                            icon="pi pi-filter-slash"
+                            label="Clear"
+                            variant="outlined"
+                            @click="clearFilters()"
+                        />
+                        <IconField>
+                            <InputIcon>
+                                <i class="pi pi-search" />
+                            </InputIcon>
+                            <InputText
+                                v-model="filters['global'].value"
+                                placeholder="Keyword Search"
+                            />
+                        </IconField>
+                    </div>
+                </template>
+
+                <template #empty>Nincs munkabeosztás.</template>
+
+                <Column selectionMode="multiple" headerStyle="width: 3rem" />
+
+                <Column
+                    field="name"
+                    filterField="name"
+                    header="Név"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
+                    <template #body="{ data }">
+                        {{ data.name }}
+                    </template>
+                    <template #filter="{ filterModel }">
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            placeholder="Név keresése"
+                        />
+                    </template>
+                </Column>
+
+                <Column
+                    field="date_from"
+                    filterField="date_from"
+                    header="Kezdet"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
+                    <template #body="{ data }">
+                        {{ toYmd(data.date_from) ?? "-" }}
+                    </template>
+                    <template #filter="{ filterModel }">
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            placeholder="Dátum keresése"
+                        />
+                    </template>
+                </Column>
+
+                <Column
+                    field="date_to"
+                    filterField="date_to"
+                    header="Vége"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
+                    <template #body="{ data }">
+                        {{ toYmd(data.date_to) ?? "-" }}
+                    </template>
+                    <template #filter="{ filterModel }">
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            placeholder="Dátum keresése"
+                        />
+                    </template>
+                </Column>
+
+                <Column
+                    field="status"
+                    filterField="status"
+                    header="Státusz"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
+                    <template #body="{ data }">
+                        <span
+                            class="inline-flex rounded-full px-2 py-1 text-xs font-medium"
+                            :class="
+                                data.status === 'published'
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : 'bg-amber-100 text-amber-700'
+                            "
+                        >
+                            {{
+                                data.status === "published"
+                                    ? "Publikált"
+                                    : "Draft"
+                            }}
+                        </span>
+                    </template>
+                    <template #filter="{ filterModel }">
+                        <Select
+                            v-model="filterModel.value"
+                            :options="statusOptions"
+                            optionLabel="label"
+                            optionValue="value"
+                            placeholder="Mind"
+                            class="min-w-40"
+                            showClear
+                        />
+                    </template>
+                </Column>
+
+                <Column field="assignments_count" header="Beosztások" sortable>
+                    <template #body="{ data }">
+                        {{ Number(data.assignments_count ?? 0) }}
+                    </template>
+                </Column>
+
+                <Column
+                    header="Műveletek"
+                    bodyClass="text-right"
+                    headerClass="text-right"
+                >
+                    <template #body="{ data }">
+                        <Button
+                            icon="pi pi-ellipsis-v"
+                            text
+                            rounded
+                            aria-label="Műveletek"
+                            @click="openRowMenu($event, data)"
+                        />
+                    </template>
+                </Column>
+            </DataTable>
         </div>
     </AuthenticatedLayout>
 </template>
