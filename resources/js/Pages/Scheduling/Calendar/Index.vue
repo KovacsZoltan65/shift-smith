@@ -547,9 +547,13 @@ const loadEvents = async () => {
 };
 
 const refresh = async () => {
+    clearSelectedDatesState();
+    await loadEvents();
+};
+
+const clearSelectedDatesState = () => {
     selectedDates.value = [];
     activeQuickSelect.value = null;
-    await loadEvents();
 };
 
 const resetViewFilters = () => {
@@ -742,7 +746,7 @@ const handleBulk = async (payload) => {
     try {
         await WorkScheduleAssignmentService.bulkUpsert(payload);
         bulkOpen.value = false;
-        selectedDates.value = [];
+        clearSelectedDatesState();
         await loadEvents();
         toast.add({ severity: "success", summary: "Siker", detail: "Bulk mentés kész.", life: 2200 });
     } catch (e) {
@@ -773,8 +777,7 @@ watch(
     viewMode,
     async () => {
         resetViewFilters();
-        selectedDates.value = [];
-        activeQuickSelect.value = null;
+        clearSelectedDatesState();
         await loadEvents();
     },
     { immediate: false },

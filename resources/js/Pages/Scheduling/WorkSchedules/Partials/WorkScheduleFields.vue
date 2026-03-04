@@ -11,14 +11,12 @@ const props = defineProps({
 
 const emit = defineEmits(["update:modelValue"]);
 
-const form = props.modelValue;
-
 const statusOptions = [
     { label: "Draft", value: "draft" },
     { label: "Publikált", value: "published" },
 ];
 
-const set = (key, value) => emit("update:modelValue", { ...form, [key]: value });
+const set = (key, value) => emit("update:modelValue", { ...(props.modelValue ?? {}), [key]: value });
 
 const toDateValue = (value) => {
     if (!value) return null;
@@ -64,7 +62,7 @@ const toYmd = (value) => {
             <label class="mb-1 block text-sm">Név</label>
             <InputText
                 class="w-full"
-                :modelValue="form.name"
+                :modelValue="modelValue.name"
                 :disabled="disabled"
                 @update:modelValue="(value) => set('name', String(value ?? '').trimStart())"
             />
@@ -77,7 +75,7 @@ const toYmd = (value) => {
             <label class="mb-1 block text-sm">Kezdő dátum</label>
             <DatePicker
                 class="w-full"
-                :modelValue="toDateValue(form.date_from)"
+                :modelValue="toDateValue(modelValue.date_from)"
                 showIcon
                 dateFormat="yy-mm-dd"
                 :disabled="disabled"
@@ -92,7 +90,7 @@ const toYmd = (value) => {
             <label class="mb-1 block text-sm">Záró dátum</label>
             <DatePicker
                 class="w-full"
-                :modelValue="toDateValue(form.date_to)"
+                :modelValue="toDateValue(modelValue.date_to)"
                 showIcon
                 dateFormat="yy-mm-dd"
                 :disabled="disabled"
@@ -107,7 +105,7 @@ const toYmd = (value) => {
             <label class="mb-1 block text-sm">Státusz</label>
             <Select
                 class="w-full"
-                :modelValue="form.status"
+                :modelValue="modelValue.status"
                 :options="statusOptions"
                 optionLabel="label"
                 optionValue="value"
