@@ -8,14 +8,18 @@ use App\Facades\Settings;
 use App\Models\EmployeeAbsence;
 use App\Models\LeaveType;
 use App\Repositories\EmployeeAbsenceRepositoryInterface;
+use App\Services\Cache\CacheNamespaces;
 use App\Services\Cache\CacheVersionService;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class AbsenceService
 {
     public function __construct(
         private readonly EmployeeAbsenceRepositoryInterface $repository,
         private readonly CacheVersionService $cacheVersionService,
+        private readonly TenantContext $tenantContext,
     ) {
     }
 
@@ -31,12 +35,42 @@ class AbsenceService
 
     public function store(int $companyId, int $userId, array $data): array
     {
-        $this->repository->findEmployeeForCompany((int) $data['employee_id'], $companyId);
+        $employeeIds = array_values(array_map('intval', $data['employee_ids'] ?? []));
+        if (! $this->repository->employeesBelongToCompany($companyId, $employeeIds)) {
+            throw ValidationException::withMessages([
+                'employee_ids' => 'A kiválasztott dolgozók között cégidegen elem található.',
+            ]);
+        }
+
         $leaveType = $this->repository->findLeaveTypeForCompany((int) $data['leave_type_id'], $companyId);
-        $absence = $this->repository->createForCompany($companyId, $this->normalizePayload($data, $userId, true, $companyId, $leaveType));
+        $payloads = [];
+
+        foreach ($employeeIds as $employeeId) {
+            $this->assertEmployeeAbsenceCreatable(
+                companyId: $companyId,
+                employeeId: $employeeId,
+                dateFrom: (string) $data['date_from'],
+                dateTo: (string) $data['date_to'],
+            );
+
+            $payloads[] = $this->normalizePayload(
+                [...$data, 'employee_id' => $employeeId],
+                $userId,
+                true,
+                $companyId,
+                $leaveType
+            );
+        }
+
+        $absences = DB::transaction(
+            fn () => $this->repository->createManyForCompany($companyId, $payloads)
+        );
         $this->invalidateCache($companyId);
 
-        return $this->toArray($absence);
+        return $absences
+            ->map(fn (EmployeeAbsence $absence): array => $this->toArray($absence))
+            ->values()
+            ->all();
     }
 
     public function update(int $companyId, int $id, int $userId, array $data): array
@@ -179,8 +213,10 @@ class AbsenceService
 
     private function invalidateCache(int $companyId): void
     {
-        $this->cacheVersionService->bump("absences:{$companyId}:calendar");
-        $this->cacheVersionService->bump("absences:{$companyId}:show");
+        $tenantGroupId = $this->tenantContext->currentTenantGroupIdOrFail();
+        $base = CacheNamespaces::tenantAbsences($tenantGroupId).":company:{$companyId}";
+        $this->cacheVersionService->bump("{$base}:calendar");
+        $this->cacheVersionService->bump("{$base}:show");
     }
 
     private function resolveSickLeaveCategoryId(int $companyId, LeaveType $leaveType, mixed $rawCategoryId): ?int
@@ -196,5 +232,35 @@ class AbsenceService
         $category = $this->repository->findSickLeaveCategoryForCompany((int) $rawCategoryId, $companyId);
 
         return (int) $category->id;
+    }
+
+    private function assertEmployeeAbsenceCreatable(
+        int $companyId,
+        int $employeeId,
+        string $dateFrom,
+        string $dateTo
+    ): void {
+        $overlap = $this->repository->findOverlappingAbsence($companyId, $employeeId, $dateFrom, $dateTo);
+        if ($overlap instanceof EmployeeAbsence) {
+            throw ValidationException::withMessages([
+                'employee_ids' => sprintf(
+                    'A dolgozó (#%d) számára már van távollét ebben az intervallumban (%s - %s).',
+                    $employeeId,
+                    $overlap->date_from?->format('Y-m-d') ?? $dateFrom,
+                    $overlap->date_to?->format('Y-m-d') ?? $dateTo,
+                ),
+            ]);
+        }
+
+        $assignment = $this->repository->findShiftAssignmentConflict($companyId, $employeeId, $dateFrom, $dateTo);
+        if ($assignment !== null) {
+            throw ValidationException::withMessages([
+                'employee_ids' => sprintf(
+                    'A dolgozó (#%d) számára már van beosztás ezen a napon: %s.',
+                    $employeeId,
+                    $assignment->date?->format('Y-m-d') ?? $dateFrom,
+                ),
+            ]);
+        }
     }
 }

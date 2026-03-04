@@ -8,6 +8,8 @@ use App\Http\Requests\Absence\Concerns\ResolvesCurrentCompany;
 use App\Models\EmployeeAbsence;
 use App\Policies\EmployeeAbsencePolicy;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
 class StoreAbsenceRequest extends FormRequest
 {
     use ResolvesCurrentCompany;
@@ -20,9 +22,28 @@ class StoreAbsenceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'employee_id' => ['required', 'integer', 'exists:employees,id'],
-            'leave_type_id' => ['required', 'integer', 'exists:leave_types,id'],
-            'sick_leave_category_id' => ['nullable', 'integer', 'exists:sick_leave_categories,id'],
+            'employee_ids' => ['required', 'array', 'min:1'],
+            'employee_ids.*' => [
+                'integer',
+                'distinct',
+                Rule::exists('employees', 'id')->where(
+                    fn ($query) => $query->where('company_id', $this->currentCompanyId())
+                ),
+            ],
+            'leave_type_id' => [
+                'required',
+                'integer',
+                Rule::exists('leave_types', 'id')->where(
+                    fn ($query) => $query->where('company_id', $this->currentCompanyId())
+                ),
+            ],
+            'sick_leave_category_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('sick_leave_categories', 'id')->where(
+                    fn ($query) => $query->where('company_id', $this->currentCompanyId())
+                ),
+            ],
             'date_from' => ['required', 'date_format:Y-m-d'],
             'date_to' => ['required', 'date_format:Y-m-d', 'after_or_equal:date_from'],
             'note' => ['nullable', 'string', 'max:500'],

@@ -894,10 +894,24 @@ const handleAbsenceSubmit = async ({ id, payload }) => {
         toast.add({
             severity: "success",
             summary: "Siker",
-            detail: id > 0 ? "Távollét frissítve." : "Távollét létrehozva.",
+            detail: id > 0 ? "Távollét frissítve." : "Távollétek létrehozva.",
             life: 2200,
         });
     } catch (e) {
+        const errors = e?.response?.data?.errors;
+        if (errors && typeof errors === "object") {
+            const detail = Object.values(errors)
+                .flat()
+                .filter(Boolean)
+                .join(" | ");
+            toast.add({
+                severity: "warn",
+                summary: "Validációs hiba",
+                detail: detail || "A megadott adatok hibásak.",
+                life: 5000,
+            });
+            return;
+        }
         toast.add({
             severity: "error",
             summary: "Hiba",
@@ -1218,6 +1232,7 @@ onMounted(async () => {
         v-model="absenceOpen"
         :absence="selectedAbsence"
         :companyId="current_company_id"
+        :employeeOptions="employeeOptions"
         :defaultRange="absenceRange"
         :loading="loading"
         @submit="handleAbsenceSubmit"

@@ -36,10 +36,12 @@ class AbsenceController extends Controller
     public function store(StoreAbsenceRequest $request): JsonResponse
     {
         $this->authorize(EmployeeAbsencePolicy::PERM_CREATE, EmployeeAbsence::class);
+        $rows = $this->service->store($request->currentCompanyId(), (int) $request->user()->id, $request->validated());
 
         return response()->json([
-            'message' => 'Tavollet sikeresen letrehozva.',
-            'data' => $this->service->store($request->currentCompanyId(), (int) $request->user()->id, $request->validated()),
+            'message' => 'Tavolletek sikeresen letrehozva.',
+            'data' => $rows,
+            'count' => count($rows),
         ], Response::HTTP_CREATED);
     }
 
