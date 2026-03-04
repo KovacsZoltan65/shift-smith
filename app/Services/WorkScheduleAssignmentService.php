@@ -17,6 +17,7 @@ use App\Models\WorkShiftAssignment;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class WorkScheduleAssignmentService
@@ -184,21 +185,23 @@ class WorkScheduleAssignmentService
 
         $this->repository->findShiftForCompany($companyId, $workShiftId);
 
-        foreach ($employeeIds as $employeeId) {
-            $this->repository->findEmployeeForCompany($companyId, (int) $employeeId);
+        if (! $this->repository->employeesBelongToCompany($companyId, $employeeIds)) {
+            throw ValidationException::withMessages([
+                'employee_ids' => 'A kiválasztott dolgozók között cégidegen elem található.',
+            ]);
         }
 
         foreach ($dates as $date) {
             $this->guardDateWritable($companyId, $date);
         }
 
-        $rows = $this->repository->bulkUpsert(
+        $rows = DB::transaction(fn () => $this->repository->bulkUpsert(
             companyId: $companyId,
             workScheduleId: $workScheduleId,
             workShiftId: $workShiftId,
             employeeIds: $employeeIds,
             dates: $dates
-        );
+        ));
 
         return WorkScheduleAssignmentData::collect($rows)->all();
     }

@@ -1208,6 +1208,7 @@ onMounted(async () => {
         :companyId="current_company_id"
         :scheduleId="Number(scheduleId || 0)"
         :selectedDates="selectedDates"
+        :employeeOptions="employeeOptions"
         :loading="loading"
         :disabled="viewedMonthLock?.is_closed"
         @submit="handleBulk"
