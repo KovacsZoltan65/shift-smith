@@ -23,6 +23,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkPatternController;
+use App\Http\Controllers\WorkScheduleController;
 use App\Http\Controllers\WorkScheduleAssignmentController;
 use App\Http\Controllers\WorkShiftAssignmentController;
 use App\Http\Controllers\WorkShiftController;
@@ -443,6 +444,21 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
  * SCHEDULING CALENDAR + WORK SCHEDULE ASSIGNMENTS
  * ======================================
  */
+Route::middleware(['auth', 'verified', 'ensure.company'])
+    ->prefix('work-schedules')
+    ->as('work_schedules.')
+    ->controller(WorkScheduleController::class)
+    ->group(function (): void {
+        Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
+        Route::get('/fetch', 'fetch')->name('fetch')->middleware('throttle:60,1');
+        Route::get('/selector', 'selector')->name('selector')->middleware('throttle:120,1');
+        Route::get('/{id}', 'show')->whereNumber('id')->name('show')->middleware('throttle:60,1');
+        Route::post('/', 'store')->name('store')->middleware('throttle:20,1');
+        Route::put('/{id}', 'update')->whereNumber('id')->name('update')->middleware('throttle:30,1');
+        Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy')->middleware('throttle:20,1');
+        Route::delete('/destroy_bulk', 'destroyBulk')->name('destroy_bulk')->middleware('throttle:10,1');
+    });
+
 Route::middleware(['auth', 'verified', 'ensure.company'])
     ->controller(WorkScheduleAssignmentController::class)
     ->group(function (): void {

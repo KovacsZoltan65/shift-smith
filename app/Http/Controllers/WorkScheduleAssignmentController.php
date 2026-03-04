@@ -39,12 +39,12 @@ class WorkScheduleAssignmentController extends Controller
         $companyId = $this->requireCurrentCompanyId($request);
         $schedules = $this->service->getSchedulesForSelector($companyId)
             ->map(fn ($s): array => [
-                'id' => (int) $s->id,
-                'company_id' => (int) $s->company_id,
-                'name' => (string) $s->name,
-                'date_from' => (string) $s->date_from->format('Y-m-d'),
-                'date_to' => (string) $s->date_to->format('Y-m-d'),
-                'status' => (string) $s->status,
+                'id' => (int) data_get($s, 'id'),
+                'company_id' => (int) data_get($s, 'company_id'),
+                'name' => (string) data_get($s, 'name'),
+                'date_from' => (string) data_get($s, 'date_from'),
+                'date_to' => (string) data_get($s, 'date_to'),
+                'status' => (string) data_get($s, 'status'),
             ])
             ->values()
             ->all();

@@ -10,6 +10,7 @@ use App\Models\EmployeeWorkPattern;
 use App\Models\Position;
 use App\Models\User;
 use App\Models\WorkPattern;
+use App\Models\WorkSchedule;
 use App\Models\WorkShift;
 use App\Support\PermissionCatalog;
 use App\Support\MenuPermissions;
@@ -64,6 +65,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'roles'          => Role::class,
             'permissions'    => Permission::class,
             'work_shifts'    => WorkShift::class,
+            'work_schedules' => WorkSchedule::class,
             'work_schedule_assignments' => \App\Models\WorkShiftAssignment::class,
             'work_patterns'  => WorkPattern::class,
             'employee_work_patterns' => EmployeeWorkPattern::class,

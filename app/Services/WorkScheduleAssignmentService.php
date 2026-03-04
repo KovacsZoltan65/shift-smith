@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Data\WorkScheduleAssignment\CalendarEventData;
 use App\Data\WorkScheduleAssignment\WorkScheduleAssignmentData;
 use App\Interfaces\WorkScheduleAssignmentRepositoryInterface;
+use App\Interfaces\WorkScheduleRepositoryInterface;
 use App\Services\Cache\CacheNamespaces;
 use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
@@ -22,6 +23,7 @@ class WorkScheduleAssignmentService
 {
     public function __construct(
         private readonly WorkScheduleAssignmentRepositoryInterface $repository,
+        private readonly WorkScheduleRepositoryInterface $workScheduleRepository,
         private readonly CacheService $cacheService,
         private readonly CacheVersionService $cacheVersionService,
         private readonly TenantContext $tenantContext
@@ -206,7 +208,7 @@ class WorkScheduleAssignmentService
 
     public function getSchedulesForSelector(int $companyId): Collection
     {
-        return $this->repository->getSchedulesForSelector($companyId);
+        return collect($this->workScheduleRepository->selector($companyId, false));
     }
 
     private function findSchedule(int $companyId, int $scheduleId): WorkSchedule
