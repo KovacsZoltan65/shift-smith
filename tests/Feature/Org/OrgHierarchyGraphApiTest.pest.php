@@ -54,7 +54,7 @@ it('returns graph JSON for authorized user', function (): void {
     );
 
     $this->actingAsUserInCompany($admin, $company)
-        ->getJson(route('org.hierarchy.graph', ['company_id' => $company->id, 'at_date' => now()->toDateString()]))
+        ->getJson(route('org.hierarchy.graph', ['company_id' => $company->id, 'at_date' => now()->toDateString(), 'depth' => 1]))
         ->assertOk()
         ->assertJsonStructure([
             'message',
@@ -65,7 +65,7 @@ it('returns graph JSON for authorized user', function (): void {
                 'edges' => [
                     '*' => ['source', 'target'],
                 ],
-                'meta' => ['root_id', 'company_id', 'at_date', 'empty'],
+                'meta' => ['root_id', 'company_id', 'at_date', 'depth', 'empty'],
             ],
         ]);
 });

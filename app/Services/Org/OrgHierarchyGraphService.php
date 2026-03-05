@@ -26,19 +26,20 @@ final class OrgHierarchyGraphService
     ) {
     }
 
-    public function getGraph(int $companyId, ?int $rootEmployeeId, CarbonInterface $atDate): OrgHierarchyGraphData
+    public function getGraph(int $companyId, ?int $rootEmployeeId, CarbonInterface $atDate, int $depth = 1): OrgHierarchyGraphData
     {
         $tenantGroupId = $this->tenantContext->currentTenantGroupIdOrFail();
         $base = CacheNamespaces::tenantOrgHierarchy($tenantGroupId, $companyId);
         $ymd = CarbonImmutable::instance($atDate)->toDateString();
         $version = $this->cacheVersionService->get("{$base}:hierarchy");
         $rootKey = $rootEmployeeId !== null ? (string) $rootEmployeeId : 'ceo';
+        $effectiveDepth = max(1, $depth);
 
         /** @var OrgHierarchyGraphData $graph */
         $graph = $this->cacheService->remember(
             tag: $base,
-            key: "{$base}:hierarchy_graph:{$rootKey}:{$ymd}:v{$version}",
-            callback: fn (): OrgHierarchyGraphData => $this->buildGraph($companyId, $rootEmployeeId, $atDate),
+            key: "{$base}:hierarchy:{$rootKey}:{$ymd}:{$version}",
+            callback: fn (): OrgHierarchyGraphData => $this->buildGraph($companyId, $rootEmployeeId, $atDate, $effectiveDepth),
             ttl: (int) config('cache.ttl_fetch', 300)
         );
 
@@ -63,11 +64,15 @@ final class OrgHierarchyGraphService
         return (int) ($counts[$employeeId] ?? 0);
     }
 
-    private function buildGraph(int $companyId, ?int $rootEmployeeId, CarbonInterface $atDate): OrgHierarchyGraphData
+    private function buildGraph(int $companyId, ?int $rootEmployeeId, CarbonInterface $atDate, int $depth): OrgHierarchyGraphData
     {
         $root = $rootEmployeeId !== null
             ? $this->repository->findEmployeeInCompany($companyId, $rootEmployeeId)
             : $this->repository->findCeo($companyId);
+
+        if (! $root instanceof Employee && $rootEmployeeId !== null) {
+            $root = $this->repository->findCeo($companyId);
+        }
 
         if (! $root instanceof Employee) {
             return new OrgHierarchyGraphData(
@@ -77,6 +82,7 @@ final class OrgHierarchyGraphService
                     'root_id' => null,
                     'company_id' => $companyId,
                     'at_date' => CarbonImmutable::instance($atDate)->toDateString(),
+                    'depth' => $depth,
                     'empty' => true,
                 ]
             );
@@ -117,6 +123,7 @@ final class OrgHierarchyGraphService
                 'root_id' => (int) $root->id,
                 'company_id' => $companyId,
                 'at_date' => CarbonImmutable::instance($atDate)->toDateString(),
+                'depth' => $depth,
                 'empty' => false,
             ]
         );

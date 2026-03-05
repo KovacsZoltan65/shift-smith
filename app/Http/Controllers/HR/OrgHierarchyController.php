@@ -59,6 +59,7 @@ final class OrgHierarchyController extends Controller
             companyId: $currentCompanyId,
             rootEmployeeId: $payload['root_employee_id'],
             atDate: CarbonImmutable::parse($payload['at_date']),
+            depth: (int) $payload['depth'],
         );
 
         return response()->json([

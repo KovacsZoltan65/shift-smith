@@ -23,11 +23,12 @@ final class GraphRequest extends FormRequest
             'company_id' => ['required', 'integer', 'min:1', 'exists:companies,id'],
             'root_employee_id' => ['nullable', 'integer', 'min:1', 'exists:employees,id'],
             'at_date' => ['nullable', 'date_format:Y-m-d'],
+            'depth' => ['nullable', 'integer', 'in:1'],
         ];
     }
 
     /**
-     * @return array{company_id:int,root_employee_id:int|null,at_date:string}
+     * @return array{company_id:int,root_employee_id:int|null,at_date:string,depth:int}
      */
     public function validatedPayload(): array
     {
@@ -39,6 +40,7 @@ final class GraphRequest extends FormRequest
                 ? (int) $data['root_employee_id']
                 : null,
             'at_date' => (string) ($data['at_date'] ?? now()->toDateString()),
+            'depth' => (int) ($data['depth'] ?? 1),
         ];
     }
 }
