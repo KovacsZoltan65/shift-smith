@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Employee;
 
-use App\Models\Employee;
 use App\Policies\EmployeePolicy;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -34,7 +33,6 @@ class StoreRequest extends FormRequest
                     fn ($q) => $q->where('company_id', (int) $this->input('company_id'))->whereNull('deleted_at')
                 ),
             ],
-
             'birth_date'  => ['required', 'date', 'before:today'],
             'hired_at'    => ['nullable', 'date'],
             'active'      => ['nullable', 'boolean'],

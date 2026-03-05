@@ -127,6 +127,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'month_closures.viewAny',
             'month_closures.close',
             'month_closures.reopen',
+            'org_hierarchy.update',
+            'org_position_levels.viewAny',
+            'org_position_levels.create',
+            'org_position_levels.update',
+            'org_position_levels.delete',
         ];
 
         /**

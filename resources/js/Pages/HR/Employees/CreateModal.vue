@@ -5,6 +5,7 @@ import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 
 import EmployeeFields from "@/Pages/HR/Employees/Partials/EmployeeFields.vue";
+import SupervisorSelector from "@/Components/Selectors/SupervisorSelector.vue";
 import { csrfFetch } from "@/lib/csrfFetch";
 
 const props = defineProps({
@@ -33,6 +34,8 @@ const form = ref({
     birth_date: null,
     hired_at: null,
     active: true,
+    supervisor_employee_id: null,
+    supervisor_valid_from: null,
 });
 
 const reset = () => {
@@ -48,6 +51,8 @@ const reset = () => {
         birth_date: null,
         hired_at: null,
         active: true,
+        supervisor_employee_id: null,
+        supervisor_valid_from: null,
     };
 };
 
@@ -78,6 +83,21 @@ const toPayload = () => {
         birth_date: birthDate,
         hired_at: hiredAt,
         active: !!form.value.active,
+    };
+};
+
+const toSupervisorPayload = (employeeId) => {
+    const validFrom =
+        form.value.supervisor_valid_from instanceof Date
+            ? form.value.supervisor_valid_from.toISOString().slice(0, 10)
+            : form.value.hired_at instanceof Date
+              ? form.value.hired_at.toISOString().slice(0, 10)
+              : new Date().toISOString().slice(0, 10);
+
+    return {
+        employee_id: Number(employeeId),
+        supervisor_employee_id: form.value.supervisor_employee_id ? Number(form.value.supervisor_employee_id) : null,
+        valid_from: validFrom,
     };
 };
 
@@ -112,6 +132,34 @@ const submit = async () => {
             throw new Error(msg);
         }
 
+        const body = await res.json().catch(() => ({}));
+        const employeeId = Number(body?.data?.id || 0);
+
+        if (employeeId > 0 && form.value.supervisor_employee_id) {
+            const supervisorPayload = toSupervisorPayload(employeeId);
+
+            const supervisorResponse = await csrfFetch(`/employees/${employeeId}/supervisor`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                body: JSON.stringify(supervisorPayload),
+            });
+
+            if (supervisorResponse.status === 422) {
+                const supervisorErrors = await supervisorResponse.json().catch(() => ({}));
+                errors.value = supervisorErrors?.errors ?? {};
+                saving.value = false;
+                return;
+            }
+
+            if (!supervisorResponse.ok) {
+                throw new Error(`Felettes mentés sikertelen (HTTP ${supervisorResponse.status})`);
+            }
+        }
+
         visible.value = false;
         emit("saved", "Dolgozó létrehozva.");
     } catch (e) {
@@ -142,6 +190,20 @@ const close = () => {
         </div>
 
         <EmployeeFields v-model="form" :errors="errors" :disabled="saving" />
+
+        <div class="mt-4 space-y-3">
+            <div>
+                <label class="mb-1 block text-sm font-medium">Felettes</label>
+                <SupervisorSelector
+                    v-model="form.supervisor_employee_id"
+                    :company-id="form.company_id"
+                    :disabled="saving"
+                />
+                <div v-if="errors?.supervisor_employee_id" class="mt-1 text-sm text-red-600">
+                    {{ Array.isArray(errors.supervisor_employee_id) ? errors.supervisor_employee_id[0] : errors.supervisor_employee_id }}
+                </div>
+            </div>
+        </div>
 
         <template #footer>
             <!-- CANCEL -->

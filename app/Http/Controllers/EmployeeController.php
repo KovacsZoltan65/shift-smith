@@ -10,6 +10,7 @@ use App\Http\Requests\Employee\UpdateRequest;
 use App\Models\Employee;
 use App\Policies\EmployeePolicy;
 use App\Services\EmployeeService;
+use App\Services\EmployeeSupervisorService;
 use App\Services\CurrentCompany;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -34,7 +35,8 @@ class EmployeeController extends Controller
      */
     public function __construct(
             private readonly EmployeeService $service,
-            private readonly CurrentCompany $currentCompany
+            private readonly CurrentCompany $currentCompany,
+            private readonly EmployeeSupervisorService $employeeSupervisorService,
     ) {}
     
     /**
@@ -128,10 +130,14 @@ class EmployeeController extends Controller
     {
         $employee = $this->service->getEmployee($id);
         $this->authorize('view', $employee);
+        $history = $this->employeeSupervisorService->history((int) $employee->company_id, (int) $employee->id);
 
         try {
             return response()->json(
-                $employee,
+                [
+                    ...$employee->toArray(),
+                    'supervisor_history' => $history,
+                ],
                 Response::HTTP_OK
             );
         } catch(Throwable $th) {

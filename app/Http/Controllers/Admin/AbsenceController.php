@@ -47,7 +47,8 @@ class AbsenceController extends Controller
 
     public function show(int $id, ShowAbsenceRequest $request): JsonResponse
     {
-        $this->authorize(EmployeeAbsencePolicy::PERM_VIEW_ANY, EmployeeAbsence::class);
+        $absence = $this->service->getModel($request->currentCompanyId(), $id);
+        $this->authorize('view', $absence);
 
         return response()->json([
             'message' => 'Tavollet sikeresen lekerve.',
@@ -57,7 +58,8 @@ class AbsenceController extends Controller
 
     public function update(int $id, UpdateAbsenceRequest $request): JsonResponse
     {
-        $this->authorize(EmployeeAbsencePolicy::PERM_UPDATE, EmployeeAbsence::class);
+        $absence = $this->service->getModel($request->currentCompanyId(), $id);
+        $this->authorize('update', $absence);
 
         return response()->json([
             'message' => 'Tavollet sikeresen frissitve.',
@@ -67,7 +69,8 @@ class AbsenceController extends Controller
 
     public function destroy(int $id, DeleteAbsenceRequest $request): JsonResponse
     {
-        $this->authorize(EmployeeAbsencePolicy::PERM_DELETE, EmployeeAbsence::class);
+        $absence = $this->service->getModel($request->currentCompanyId(), $id);
+        $this->authorize('delete', $absence);
         $this->service->destroy($request->currentCompanyId(), $id);
 
         return response()->json([

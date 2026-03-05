@@ -13,6 +13,19 @@ class SettingsMetaSeeder extends Seeder
     {
         $rows = [
             [
+                'key' => 'org.hierarchy.recursive_supervisor_access',
+                'group' => 'org.hierarchy',
+                'label' => 'Rekurzív supervisor hozzáférés',
+                'type' => 'bool',
+                'default_value' => false,
+                'description' => 'Ha igaz, a supervisor a teljes alhierarchiát kezelheti; ha hamis, csak a közvetlen beosztottakat.',
+                'options' => null,
+                'validation' => ['required', 'boolean'],
+                'order_index' => 5,
+                'is_editable' => true,
+                'is_visible' => true,
+            ],
+            [
                 'key' => 'autoplan.min_rest_minutes',
                 'group' => 'scheduling.autoplan',
                 'label' => 'Minimum pihenőidő két műszak között (perc)',

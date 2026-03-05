@@ -20,6 +20,14 @@ class EmployeeService extends BaseService {
         return this.put(route(`${this.url}.update`, id), params);
     }
 
+    getEmployee(id) {
+        return this.get(route(`${this.url}.by_id`, id));
+    }
+
+    assignSupervisor(employeeId, payload) {
+        return this.post(route(`${this.url}.supervisor.assign`, employeeId), payload);
+    }
+
     // BULK DELETE – body a config.data-ban
     deleteEmployees(ids) {
         return this.delete(route(`${this.url}.destroy_bulk`), {

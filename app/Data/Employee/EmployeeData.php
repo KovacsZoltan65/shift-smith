@@ -15,6 +15,7 @@ use Spatie\LaravelData\Attributes\Validation\Nullable;
 use Spatie\LaravelData\Attributes\Validation\Required;
 use Spatie\LaravelData\Attributes\Validation\StringType;
 use Spatie\LaravelData\Attributes\Validation\BooleanType;
+use Spatie\LaravelData\Attributes\Validation\In;
 use Spatie\LaravelData\Attributes\Validation\Unique;
 use Spatie\LaravelData\Support\Validation\References\RouteParameterReference;
 
@@ -31,6 +32,7 @@ class EmployeeData extends Data
      * @param string $email E-mail cím
      * @param string $address Cím
      * @param ?int $position_id Pozíció azonosító
+     * @param string $org_level Szervezeti szint
      * @param ?string $phone Telefonszám
      * @param ?string $hired_at Belépés dátuma (Y-m-d)
      * @param bool $active Aktív státusz
@@ -59,6 +61,9 @@ class EmployeeData extends Data
 
         #[Nullable, IntegerType, Exists('positions', 'id')]
         public ?int $position_id = null,
+
+        #[StringType, In(Employee::ORG_LEVELS)]
+        public string $org_level = Employee::ORG_LEVEL_STAFF,
 
         #[Nullable, StringType, Max(50)]
         public ?string $phone = null,
@@ -92,6 +97,7 @@ class EmployeeData extends Data
             birth_date: optional($employee->birth_date)?->format('Y-m-d') ?? '',
             address: $employee->address,
             position_id: $employee->position_id,
+            org_level: (string) $employee->org_level,
             phone: $employee->phone,
             hired_at: optional($employee->hired_at)?->format('Y-m-d'),
             active: $employee->active,

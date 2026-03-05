@@ -68,6 +68,12 @@ export const appMenuDefinition = [
                 can: "positions.viewAny",
             },
             {
+                title: "Position Szint Mapping",
+                route: "admin.position_org_levels.index",
+                key: "admin.position_org_levels.index",
+                can: "org_position_levels.viewAny",
+            },
+            {
                 title: "Műszakok",
                 route: "work_shifts.index",
                 key: "work_shifts.index",

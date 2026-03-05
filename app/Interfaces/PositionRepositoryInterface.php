@@ -50,4 +50,6 @@ interface PositionRepositoryInterface
      * @return array<int, array{id:int, name:string}>
      */
     public function getToSelect(int $companyId, bool $onlyActive = true): array;
+
+    public function firstOrCreateInCompany(int $companyId, string $name, ?string $description = null): Position;
 }

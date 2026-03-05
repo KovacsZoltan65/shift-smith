@@ -27,6 +27,7 @@ const fieldError = (key) => {
     const e = props.errors?.[key];
     return Array.isArray(e) ? e[0] : e || null;
 };
+
 </script>
 
 <template>

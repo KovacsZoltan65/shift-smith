@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Org\EmployeeSupervisor;
 use Database\Factories\EmployeeFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -57,12 +58,13 @@ class Employee extends Model
 
     protected $fillable = [
         'company_id', 'first_name', 'last_name', 'email', 'address',
-        'position_id', 'phone', 'hired_at', 'birth_date',
+        'position_id', 'org_level', 'phone', 'hired_at', 'birth_date',
         'children_count', 'disabled_children_count', 'is_disabled', 'active',
     ];
 
     protected $casts = [
         'position_id' => 'int',
+        'org_level' => 'string',
         'hired_at' => 'date',
         'birth_date' => 'date',
         'children_count' => 'int',
@@ -81,6 +83,23 @@ class Employee extends Model
         'hired_at',
         'active',
         'created_at',
+    ];
+
+    public const ORG_LEVEL_CEO = 'ceo';
+    public const ORG_LEVEL_MANAGER = 'manager';
+    public const ORG_LEVEL_DEPARTMENT_HEAD = 'department_head';
+    public const ORG_LEVEL_SHIFT_LEAD = 'shift_lead';
+    public const ORG_LEVEL_TEAM_LEAD = 'team_lead';
+    public const ORG_LEVEL_STAFF = 'staff';
+
+    /** @var list<string> */
+    public const ORG_LEVELS = [
+        self::ORG_LEVEL_CEO,
+        self::ORG_LEVEL_MANAGER,
+        self::ORG_LEVEL_DEPARTMENT_HEAD,
+        self::ORG_LEVEL_SHIFT_LEAD,
+        self::ORG_LEVEL_TEAM_LEAD,
+        self::ORG_LEVEL_STAFF,
     ];
 
     protected $appends = ['name', 'company_name'];
@@ -270,6 +289,39 @@ class Employee extends Model
     public function profile(): HasOne
     {
         return $this->hasOne(EmployeeProfile::class);
+    }
+
+    /**
+     * @return HasOne<EmployeeSupervisor, $this>
+     */
+    public function currentSupervisorRelation(): HasOne
+    {
+        return $this->hasOne(EmployeeSupervisor::class, 'employee_id')
+            ->whereColumn('employee_supervisors.company_id', 'employees.company_id')
+            ->whereNull('valid_to')
+            ->latestOfMany('valid_from');
+    }
+
+    /**
+     * @return HasMany<EmployeeSupervisor, $this>
+     */
+    public function supervisorHistory(): HasMany
+    {
+        return $this->hasMany(EmployeeSupervisor::class, 'employee_id')
+            ->whereColumn('employee_supervisors.company_id', 'employees.company_id')
+            ->orderByDesc('valid_from')
+            ->orderByDesc('id');
+    }
+
+    /**
+     * @return HasMany<EmployeeSupervisor, $this>
+     */
+    public function directSubordinates(): HasMany
+    {
+        return $this->hasMany(EmployeeSupervisor::class, 'supervisor_employee_id')
+            ->whereColumn('employee_supervisors.company_id', 'employees.company_id')
+            ->whereNull('valid_to')
+            ->orderBy('valid_from');
     }
 
     /**

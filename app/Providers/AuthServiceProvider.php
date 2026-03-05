@@ -36,6 +36,7 @@ class AuthServiceProvider extends ServiceProvider
         \App\Models\SickLeaveCategory::class => \App\Policies\SickLeaveCategoryPolicy::class,
         \App\Models\UserSetting::class => \App\Policies\UserSettingPolicy::class,
         \App\Models\UserEmployee::class => \App\Policies\UserEmployeePolicy::class,
+        \App\Models\PositionOrgLevel::class => \App\Policies\PositionOrgLevelPolicy::class,
         
         //\App\Models\Activity::class               => \App\Policies\ActivityPolicy::class,
         //

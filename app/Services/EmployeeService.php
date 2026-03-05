@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Interfaces\EmployeeRepositoryInterface;
+use App\Interfaces\PositionRepositoryInterface;
 use App\Models\Employee;
+use App\Services\Org\PositionOrgLevelService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use App\Data\Employee\EmployeeData;
@@ -20,7 +22,9 @@ class EmployeeService
      * @param EmployeeRepositoryInterface $repo Munkavállaló repository
      */
     public function __construct(
-        private readonly EmployeeRepositoryInterface $repo
+        private readonly EmployeeRepositoryInterface $repo,
+        private readonly PositionRepositoryInterface $positionRepository,
+        private readonly PositionOrgLevelService $positionOrgLevelService,
     ) {}
     
     /**
@@ -73,6 +77,7 @@ class EmployeeService
             'email' => $data->email,
             'address' => $data->address,
             'position_id' => $data->position_id,
+            'org_level' => $this->resolveOrgLevel($data->company_id, $data->position_id),
             'phone' => $data->phone,
             'birth_date' => $data->birth_date,
             'hired_at' => $data->hired_at,
@@ -98,6 +103,7 @@ class EmployeeService
             'email' => $data->email,
             'address' => $data->address,
             'position_id' => $data->position_id,
+            'org_level' => $this->resolveOrgLevel($data->company_id, $data->position_id),
             'phone' => $data->phone,
             'birth_date' => $data->birth_date,
             'hired_at' => $data->hired_at,
@@ -177,5 +183,16 @@ class EmployeeService
     public function getEligibleForAutoPlan(int $companyId, array $params): array
     {
         return $this->repo->getEligibleForAutoPlan($companyId, $params);
+    }
+
+    private function resolveOrgLevel(int $companyId, ?int $positionId): string
+    {
+        if (! is_int($positionId) || $positionId <= 0) {
+            return Employee::ORG_LEVEL_STAFF;
+        }
+
+        $position = $this->positionRepository->getPosition($positionId, $companyId);
+
+        return $this->positionOrgLevelService->resolveOrgLevel($companyId, (string) $position->name);
     }
 }

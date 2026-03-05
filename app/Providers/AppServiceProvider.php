@@ -39,6 +39,8 @@ use App\Repositories\CompanySettingRepository;
 use App\Repositories\Dashboard\DashboardRepository;
 use App\Repositories\EmployeeAbsenceRepository;
 use App\Repositories\EmployeeAbsenceRepositoryInterface;
+use App\Repositories\EmployeeSupervisorRepository;
+use App\Repositories\EmployeeSupervisorRepositoryInterface;
 use App\Repositories\EmployeeRepository;
 use App\Repositories\EmployeeProfileRepository;
 use App\Repositories\LeaveBalanceRepository;
@@ -51,6 +53,8 @@ use App\Repositories\SickLeaveCategoryRepositoryInterface;
 use App\Repositories\EmployeeWorkPatternRepository;
 use App\Repositories\MonthClosureRepository;
 use App\Repositories\PositionRepository;
+use App\Repositories\PositionOrgLevelRepository;
+use App\Repositories\PositionOrgLevelRepositoryInterface;
 use App\Repositories\UserRepository;
 use App\Repositories\UserSettingRepository;
 use App\Repositories\UserEmployeeRepository;
@@ -119,6 +123,10 @@ class AppServiceProvider extends ServiceProvider
             EmployeeAbsenceRepository::class
         );
         $this->app->bind(
+            EmployeeSupervisorRepositoryInterface::class,
+            EmployeeSupervisorRepository::class
+        );
+        $this->app->bind(
             EmployeeProfileRepositoryInterface::class,
             EmployeeProfileRepository::class
         );
@@ -145,6 +153,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             PositionRepositoryInterface::class,
             PositionRepository::class
+        );
+        $this->app->bind(
+            PositionOrgLevelRepositoryInterface::class,
+            PositionOrgLevelRepository::class
         );
         $this->app->bind(
             WorkShiftRepositoryInterface::class, 

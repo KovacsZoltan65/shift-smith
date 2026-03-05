@@ -91,13 +91,20 @@ class AbsenceService
 
     public function show(int $companyId, int $id): array
     {
+        $absence = $this->getModel($companyId, $id);
+
+        return $this->toArray($absence);
+    }
+
+    public function getModel(int $companyId, int $id): EmployeeAbsence
+    {
         $absence = $this->repository->findByIdInCompany($id, $companyId);
 
         if (! $absence instanceof EmployeeAbsence) {
             abort(404, 'A tavollet rekord nem talalhato.');
         }
 
-        return $this->toArray($absence);
+        return $absence;
     }
 
     /**

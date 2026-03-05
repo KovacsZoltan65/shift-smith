@@ -25,4 +25,9 @@ final class CacheNamespaces
     {
         return "tenant:{$tenantGroupId}:absences";
     }
+
+    public static function tenantOrgHierarchy(int $tenantGroupId, int $companyId): string
+    {
+        return "tenant:{$tenantGroupId}:org:{$companyId}";
+    }
 }
