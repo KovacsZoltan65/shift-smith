@@ -26,6 +26,12 @@ interface OrgHierarchyRepositoryInterface
     public function getDirectSubordinateCounts(int $companyId, array $supervisorEmployeeIds, CarbonInterface $atDate): array;
 
     /**
+     * @param list<int> $employeeIds
+     * @return array<int, bool>
+     */
+    public function getActiveSupervisorFlags(int $companyId, array $employeeIds, CarbonInterface $atDate): array;
+
+    /**
      * @return array<int, array{id:int, full_name:string, email:string|null, position:string|null}>
      */
     public function searchEmployeesForHierarchy(int $companyId, string $query, int $limit): array;

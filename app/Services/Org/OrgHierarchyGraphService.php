@@ -54,8 +54,9 @@ final class OrgHierarchyGraphService
         }
 
         $count = $this->getSubordinateCount($companyId, $employeeId, $atDate);
+        $hasSupervisor = (bool) ($this->repository->getActiveSupervisorFlags($companyId, [$employeeId], $atDate)[$employeeId] ?? false);
 
-        return $this->toNode($employee, $count, $count);
+        return $this->toNode($employee, $count, $count, $hasSupervisor, false);
     }
 
     public function getSubordinateCount(int $companyId, int $employeeId, CarbonInterface $atDate): int
@@ -146,12 +147,15 @@ final class OrgHierarchyGraphService
 
         $nodeIds = array_keys($nodeModels);
         $counts = $this->repository->getDirectSubordinateCounts($companyId, $nodeIds, $atDate);
+        $supervisorFlags = $this->repository->getActiveSupervisorFlags($companyId, $nodeIds, $atDate);
         $nodes = [];
         foreach ($nodeModels as $nodeId => $employee) {
             $nodes[] = $this->toNode(
                 $employee,
                 (int) ($counts[$nodeId] ?? 0),
                 (int) ($counts[$nodeId] ?? 0),
+                (bool) ($supervisorFlags[$nodeId] ?? false),
+                $nodeId === (int) $root->id,
             );
         }
 
@@ -168,7 +172,13 @@ final class OrgHierarchyGraphService
         );
     }
 
-    private function toNode(Employee $employee, int $directCount, int $totalCount): OrgHierarchyNodeData
+    private function toNode(
+        Employee $employee,
+        int $directCount,
+        int $totalCount,
+        bool $hasSupervisor,
+        bool $isRoot
+    ): OrgHierarchyNodeData
     {
         $label = trim((string) (($employee->last_name ?? '').' '.($employee->first_name ?? '')));
         if ($label === '') {
@@ -182,6 +192,8 @@ final class OrgHierarchyGraphService
             org_level: (string) ($employee->org_level ?? Employee::ORG_LEVEL_STAFF),
             direct_count: $directCount,
             total_count: $totalCount,
+            has_supervisor: $hasSupervisor,
+            is_root: $isRoot,
         );
     }
 }

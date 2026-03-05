@@ -104,6 +104,33 @@ final class OrgHierarchyRepository implements OrgHierarchyRepositoryInterface
         return $result;
     }
 
+    public function getActiveSupervisorFlags(int $companyId, array $employeeIds, CarbonInterface $atDate): array
+    {
+        if ($employeeIds === []) {
+            return [];
+        }
+
+        $day = CarbonImmutable::instance($atDate)->toDateString();
+
+        /** @var Collection<int, int|string> $rows */
+        $rows = EmployeeSupervisor::query()
+            ->where('company_id', $companyId)
+            ->whereIn('employee_id', $employeeIds)
+            ->whereDate('valid_from', '<=', $day)
+            ->where(function ($query) use ($day): void {
+                $query->whereNull('valid_to')
+                    ->orWhereDate('valid_to', '>=', $day);
+            })
+            ->pluck('employee_id');
+
+        $result = [];
+        foreach ($rows as $employeeId) {
+            $result[(int) $employeeId] = true;
+        }
+
+        return $result;
+    }
+
     public function searchEmployeesForHierarchy(int $companyId, string $query, int $limit): array
     {
         $term = trim($query);

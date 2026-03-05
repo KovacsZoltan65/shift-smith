@@ -2,6 +2,12 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import cytoscape from "cytoscape";
 import ProgressSpinner from "primevue/progressspinner";
+import {
+    buildOrgHierarchyStyles,
+    buildOrgNodeLabel,
+    estimateOrgNodeWidth,
+    resolveOrgNodeRole,
+} from "@/Styles/orgHierarchyCytoscapeStyles.js";
 
 const props = defineProps({
     nodes: { type: Array, default: () => [] },
@@ -17,6 +23,7 @@ const emit = defineEmits(["nodeClick", "nodeHover"]);
 
 const container = ref(null);
 let cy = null;
+let renderSequence = 0;
 
 const isEmpty = computed(() => !Array.isArray(props.nodes) || props.nodes.length === 0);
 
@@ -24,15 +31,21 @@ const toElements = () => {
     const mappedNodes = (props.nodes ?? []).map((node) => ({
         data: {
             id: String(node.id),
-            label: props.showPosition && node.position
-                ? `${String(node.label ?? "")}\n${String(node.position)}`
-                : String(node.label ?? ""),
+            label: String(node.label ?? ""),
+            display_label: buildOrgNodeLabel(node, { showPosition: props.showPosition }),
+            node_width: estimateOrgNodeWidth(node, {
+                showPosition: props.showPosition,
+                density: props.density,
+            }),
             org_level: String(node.org_level ?? "staff"),
             position: node.position ?? null,
             direct_count: Number(node.direct_count ?? 0),
+            has_supervisor: Boolean(node.has_supervisor ?? false),
+            role: resolveOrgNodeRole(node),
             root:
-                props.rootId !== null &&
-                Number(node.id) === Number(props.rootId),
+                Boolean(node.is_root) ||
+                (props.rootId !== null &&
+                    Number(node.id) === Number(props.rootId)),
         },
     }));
 
@@ -47,75 +60,28 @@ const toElements = () => {
     return [...mappedNodes, ...mappedEdges];
 };
 
-const styleConfig = computed(() => {
-    const compact = props.density === "compact";
-
-    return {
-        textMaxWidth: compact ? "120px" : "160px",
-        height: compact ? "34px" : "44px",
-        padding: compact ? "8px" : "14px",
-        fontSize: compact ? "11px" : "12px",
-    };
-});
-
-const styleSheet = () => [
-    {
-        selector: "node",
-        style: {
-            shape: "round-rectangle",
-            label: "data(label)",
-            "text-wrap": "wrap",
-            "text-max-width": styleConfig.value.textMaxWidth,
-            width: "label",
-            height: styleConfig.value.height,
-            padding: styleConfig.value.padding,
-            "text-valign": "center",
-            "text-halign": "center",
-            "font-size": styleConfig.value.fontSize,
-            "font-weight": 500,
-            "background-color": "#2563eb",
-            color: "#ffffff",
-            "border-width": 2,
-            "border-color": "#1e40af",
-        },
-    },
-    {
-        selector: "node:hover",
-        style: {
-            "background-color": "#1d4ed8",
-            "border-width": 3,
-        },
-    },
-    {
-        selector: "node[root]",
-        style: {
-            "background-color": "#dc2626",
-            "border-color": "#7f1d1d",
-        },
-    },
-    {
-        selector: "edge",
-        style: {
-            "curve-style": "bezier",
-            "target-arrow-shape": "triangle",
-            "line-color": "#94a3b8",
-            "target-arrow-color": "#94a3b8",
-        },
-    },
-];
+const styleSheet = computed(() =>
+    buildOrgHierarchyStyles({
+        density: props.density,
+        showPosition: props.showPosition,
+    }),
+);
 
 const render = async () => {
+    const seq = ++renderSequence;
     if (!container.value) {
         return;
     }
     await nextTick();
+    if (seq !== renderSequence) {
+        return;
+    }
 
     if (!cy) {
         cy = cytoscape({
             container: container.value,
             elements: [],
-            wheelSensitivity: 0.2,
-            style: styleSheet(),
+            style: styleSheet.value,
         });
 
         cy.on("tap", "node", (event) => {
@@ -124,14 +90,22 @@ const render = async () => {
         });
 
         cy.on("mouseover", "node", (event) => {
-            const data = event.target.data();
+            const target = event.target;
+            target.addClass("is-hovered");
+            const data = target.data();
             emit("nodeHover", Number(data.id));
+        });
+
+        cy.on("mouseout", "node", (event) => {
+            event.target.removeClass("is-hovered");
         });
     }
 
-    cy.style(styleSheet());
+    cy.style(styleSheet.value).update();
+    cy.startBatch();
     cy.elements().remove();
     cy.add(toElements());
+    cy.endBatch();
 
     const layout =
         props.mode === "explorer"

@@ -60,7 +60,7 @@ it('returns graph JSON for authorized user', function (): void {
             'message',
             'data' => [
                 'nodes' => [
-                    '*' => ['id', 'label', 'position', 'org_level', 'direct_count', 'total_count'],
+                    '*' => ['id', 'label', 'position', 'org_level', 'direct_count', 'total_count', 'has_supervisor', 'is_root'],
                 ],
                 'edges' => [
                     '*' => ['source', 'target'],

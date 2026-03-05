@@ -15,6 +15,8 @@ final class OrgHierarchyNodeData extends Data
         public string $org_level,
         public int $direct_count,
         public int $total_count,
+        public bool $has_supervisor,
+        public bool $is_root,
     ) {
     }
 }
