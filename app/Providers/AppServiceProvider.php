@@ -55,6 +55,8 @@ use App\Repositories\MonthClosureRepository;
 use App\Repositories\PositionRepository;
 use App\Repositories\PositionOrgLevelRepository;
 use App\Repositories\PositionOrgLevelRepositoryInterface;
+use App\Repositories\Org\OrgHierarchyRepository;
+use App\Repositories\Org\OrgHierarchyRepositoryInterface;
 use App\Repositories\UserRepository;
 use App\Repositories\UserSettingRepository;
 use App\Repositories\UserEmployeeRepository;
@@ -157,6 +159,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             PositionOrgLevelRepositoryInterface::class,
             PositionOrgLevelRepository::class
+        );
+        $this->app->bind(
+            OrgHierarchyRepositoryInterface::class,
+            OrgHierarchyRepository::class
         );
         $this->app->bind(
             WorkShiftRepositoryInterface::class, 

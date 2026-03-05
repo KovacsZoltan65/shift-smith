@@ -30,6 +30,7 @@ use App\Http\Controllers\WorkShiftAssignmentController;
 use App\Http\Controllers\WorkShiftController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MonthClosureController;
+use App\Http\Controllers\HR\OrgHierarchyController;
 use App\Http\Controllers\OrgPositionLevelController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -120,6 +121,16 @@ Route::middleware(['auth', 'verified', 'ensure.company'])->group(function () {
     //Route::get('/employees', fn () => Inertia::render('HR/Employees/Index', ['title' => 'Dolgozók']))->name('employees.index');
     
     Route::get('/assignments', fn () => Inertia::render('HR/Assignments/Index'))->name('assignments.index');
+    Route::get('/hr/hierarchy', [OrgHierarchyController::class, 'index'])
+        ->name('org.hierarchy.index')
+        ->middleware('throttle:60,1');
+    Route::get('/hr/hierarchy/graph', [OrgHierarchyController::class, 'graph'])
+        ->name('org.hierarchy.graph')
+        ->middleware('throttle:120,1');
+    Route::get('/hr/hierarchy/node/{id}', [OrgHierarchyController::class, 'node'])
+        ->whereNumber('id')
+        ->name('org.hierarchy.node')
+        ->middleware('throttle:120,1');
 
     // Beállítások
     Route::get('/settings/app', [SettingsController::class, 'app'])->name('settings.app');

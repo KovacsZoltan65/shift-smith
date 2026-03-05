@@ -4,6 +4,7 @@ namespace App\Providers;
 
 // use Illuminate\Support\Facades\Gate;
 use App\Policies\UserAssignmentPolicy;
+use App\Policies\OrgHierarchyPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
@@ -74,6 +75,12 @@ class AuthServiceProvider extends ServiceProvider
 
             return $policy->before($user, UserAssignmentPolicy::PERM_UPDATE)
                 ?? $policy->update($user);
+        });
+
+        Gate::define(OrgHierarchyPolicy::PERM_VIEW_ANY, function (\App\Models\User $user): bool {
+            $policy = app(OrgHierarchyPolicy::class);
+
+            return $policy->viewAny($user);
         });
     }
 }

@@ -74,6 +74,12 @@ export const appMenuDefinition = [
                 can: "org_position_levels.viewAny",
             },
             {
+                title: "Hierarchia",
+                route: "org.hierarchy.index",
+                key: "org.hierarchy.index",
+                can: "org_hierarchy.viewAny",
+            },
+            {
                 title: "Műszakok",
                 route: "work_shifts.index",
                 key: "work_shifts.index",
