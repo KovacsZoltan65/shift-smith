@@ -221,4 +221,14 @@ final class OrgHierarchyRepository implements OrgHierarchyRepositoryInterface
 
         return $rows;
     }
+
+    public function listEmployeesInCompany(int $companyId): Collection
+    {
+        /** @var Collection<int, Employee> $rows */
+        $rows = Employee::query()
+            ->where('company_id', $companyId)
+            ->get(['id', 'company_id', 'first_name', 'last_name', 'org_level']);
+
+        return $rows;
+    }
 }

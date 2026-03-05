@@ -43,4 +43,9 @@ interface OrgHierarchyRepositoryInterface
      * @return Collection<int, Employee>
      */
     public function getEmployeesByIdsInCompany(int $companyId, array $employeeIds): Collection;
+
+    /**
+     * @return Collection<int, Employee>
+     */
+    public function listEmployeesInCompany(int $companyId): Collection;
 }

@@ -82,5 +82,11 @@ class AuthServiceProvider extends ServiceProvider
 
             return $policy->viewAny($user);
         });
+
+        Gate::define(OrgHierarchyPolicy::PERM_UPDATE, function (\App\Models\User $user): bool {
+            $policy = app(OrgHierarchyPolicy::class);
+
+            return $policy->update($user);
+        });
     }
 }

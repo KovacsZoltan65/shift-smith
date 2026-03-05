@@ -3,11 +3,15 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { Head } from "@inertiajs/vue3";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import OrgHierarchyCytoscape from "@/Components/Org/OrgHierarchyCytoscape.vue";
+import MoveDialog from "@/Components/Org/MoveDialog.vue";
 import CompanySelector from "@/Components/Selectors/CompanySelector.vue";
 import EmployeeSelector from "@/Components/Selectors/EmployeeSelector.vue";
 import Button from "primevue/button";
 import Card from "primevue/card";
+import ContextMenu from "primevue/contextmenu";
 import DatePicker from "primevue/datepicker";
+import Dialog from "primevue/dialog";
+import Message from "primevue/message";
 import ProgressBar from "primevue/progressbar";
 import SelectButton from "primevue/selectbutton";
 import Tag from "primevue/tag";
@@ -44,6 +48,14 @@ const currentRootId = ref(null);
 const rootStack = ref([]);
 const breadcrumbs = ref([]);
 const detailNode = ref(null);
+const contextMenuRef = ref(null);
+const contextMenu = ref({ nodeId: null });
+const moveDialogVisible = ref(false);
+const moveMode = ref("employee_only");
+const moveEmployeeId = ref(null);
+const integrityDialogVisible = ref(false);
+const integrityLoading = ref(false);
+const integrityReport = ref(null);
 const viewMode = ref(normalizeViewModeValue(props.ui_settings?.view_mode));
 const density = ref(normalizeDensityValue(props.ui_settings?.density));
 const showPosition = ref(normalizeBoolValue(props.ui_settings?.show_position ?? true));
@@ -338,6 +350,121 @@ const onNodeHover = (nodeId) => {
     }
 };
 
+const onNodeContext = (payload) => {
+    const nodeId = Number(payload?.nodeId ?? 0);
+    if (!nodeId) return;
+
+    contextMenu.value.nodeId = nodeId;
+    if (payload?.originalEvent) {
+        payload.originalEvent.preventDefault?.();
+        contextMenuRef.value?.show(payload.originalEvent);
+    }
+};
+
+const hideContextMenu = () => {
+    contextMenuRef.value?.hide?.();
+};
+
+const openMoveDialog = (mode) => {
+    moveMode.value = mode;
+    moveEmployeeId.value = Number(contextMenu.value.nodeId ?? 0);
+    moveDialogVisible.value = true;
+    hideContextMenu();
+};
+
+const selectedContextNode = computed(() => {
+    const nodeId = Number(contextMenu.value.nodeId ?? 0);
+    if (!nodeId) return null;
+    return findNodeById(nodeId);
+});
+
+const effectiveContextMenuItems = computed(() => {
+    const node = selectedContextNode.value;
+    if (!node) return [];
+
+    const hasSubordinates = Number(node.direct_count ?? 0) > 0;
+    const hasSupervisor = Boolean(node.has_supervisor);
+
+    if (!hasSubordinates) {
+        return [
+            {
+                label: "Dolgozó áthelyezése",
+                icon: "pi pi-user-edit",
+                command: () => openMoveDialog("employee_only"),
+            },
+        ];
+    }
+
+    if (hasSubordinates && hasSupervisor) {
+        return [
+            {
+                label: "Vezető áthelyezése (csapattal)",
+                icon: "pi pi-users",
+                command: () => openMoveDialog("leader_with_subordinates"),
+            },
+            {
+                label: "Vezető áthelyezése (csapat nélkül)",
+                icon: "pi pi-user-minus",
+                command: () => openMoveDialog("leader_without_subordinates"),
+            },
+            {
+                label: "Beosztottak áthelyezése",
+                icon: "pi pi-share-alt",
+                command: () => openMoveDialog("move_subordinates_only"),
+            },
+        ];
+    }
+
+    return [
+        {
+            label: "Beosztottak áthelyezése",
+            icon: "pi pi-share-alt",
+            command: () => openMoveDialog("move_subordinates_only"),
+        },
+    ];
+});
+
+const onMoveDone = async () => {
+    toast.add({
+        severity: "success",
+        summary: "Sikeres művelet",
+        detail: "A hierarchia módosítása mentésre került.",
+        life: 3000,
+    });
+    await fetchGraph();
+};
+
+const runIntegrity = async () => {
+    if (!companyId.value) return;
+
+    integrityLoading.value = true;
+    try {
+        const params = new URLSearchParams({
+            company_id: String(companyId.value),
+            at_date: todayYmd.value,
+        });
+        const response = await csrfFetch(`${route("org.hierarchy.integrity")}?${params.toString()}`, {
+            method: "GET",
+            headers: { Accept: "application/json" },
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+            throw new Error(payload?.message || "Integritás riport lekérése sikertelen.");
+        }
+        integrityReport.value = payload?.data ?? null;
+        integrityDialogVisible.value = true;
+    } catch (error) {
+        toast.add({
+            severity: "error",
+            summary: "Hiba",
+            detail: error instanceof Error ? error.message : "Integritás riport lekérése sikertelen.",
+            life: 4000,
+        });
+    } finally {
+        integrityLoading.value = false;
+    }
+};
+
 watch(companyId, () => {
     selectedEmployeeId.value = null;
     currentRootId.value = null;
@@ -379,6 +506,7 @@ onBeforeUnmount(() => {
 
     <AuthenticatedLayout>
         <Toast />
+        <ContextMenu ref="contextMenuRef" :model="effectiveContextMenuItems" />
 
         <template #header>
             <h2 class="text-xl font-semibold leading-tight text-gray-800">{{ title }}</h2>
@@ -471,6 +599,15 @@ onBeforeUnmount(() => {
                                 class="w-auto min-w-fit inline-flex items-center justify-center px-3"
                                 @click="fetchGraph"
                             />
+                            <Button
+                                icon="pi pi-shield"
+                                label="Integrity"
+                                severity="secondary"
+                                :loading="integrityLoading"
+                                :disabled="loading || !companyId"
+                                class="w-auto min-w-fit inline-flex items-center gap-2 px-3"
+                                @click="runIntegrity"
+                            />
                         </div>
                     </div>
 
@@ -488,6 +625,7 @@ onBeforeUnmount(() => {
                 :show-position="normalizedShowPosition"
                 @nodeClick="drillDown"
                 @nodeHover="onNodeHover"
+                @nodeContext="onNodeContext"
             />
 
             <Card class="mt-4">
@@ -503,5 +641,50 @@ onBeforeUnmount(() => {
                 </template>
             </Card>
         </div>
+
+        <MoveDialog
+            v-model:visible="moveDialogVisible"
+            :company-id="Number(companyId || 0)"
+            :employee-id="moveEmployeeId"
+            :mode="moveMode"
+            :loading="loading"
+            @moved="onMoveDone"
+        />
+
+        <Dialog
+            v-model:visible="integrityDialogVisible"
+            modal
+            :draggable="false"
+            :style="{ width: '52rem', maxWidth: '96vw' }"
+            header="Hierarchia integritás"
+        >
+            <div v-if="integrityReport" class="space-y-3">
+                <Message :severity="integrityReport.ok ? 'success' : 'warn'" :closable="false">
+                    {{ integrityReport.ok ? "A hierarchia konzisztens." : "Integritási problémák találhatók." }}
+                </Message>
+                <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div class="rounded border border-slate-200 p-3 text-sm">
+                        <div class="font-semibold">Cycle</div>
+                        <div>{{ integrityReport.issues?.cycles?.length || 0 }}</div>
+                    </div>
+                    <div class="rounded border border-slate-200 p-3 text-sm">
+                        <div class="font-semibold">Overlap</div>
+                        <div>{{ integrityReport.issues?.overlaps?.length || 0 }}</div>
+                    </div>
+                    <div class="rounded border border-slate-200 p-3 text-sm">
+                        <div class="font-semibold">Missing supervisor</div>
+                        <div>{{ integrityReport.issues?.missing_supervisor?.length || 0 }}</div>
+                    </div>
+                    <div class="rounded border border-slate-200 p-3 text-sm">
+                        <div class="font-semibold">Multiple active</div>
+                        <div>{{ integrityReport.issues?.multiple_active?.length || 0 }}</div>
+                    </div>
+                    <div class="rounded border border-slate-200 p-3 text-sm md:col-span-2">
+                        <div class="font-semibold">CEO has supervisor</div>
+                        <div>{{ integrityReport.issues?.ceo_has_supervisor?.length || 0 }}</div>
+                    </div>
+                </div>
+            </div>
+        </Dialog>
     </AuthenticatedLayout>
 </template>

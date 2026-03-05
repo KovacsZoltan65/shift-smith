@@ -161,6 +161,63 @@ final class EmployeeSupervisorRepository implements EmployeeSupervisorRepository
         return $row->refresh();
     }
 
+    public function listActiveRelations(int $companyId, CarbonInterface $date): array
+    {
+        $day = CarbonImmutable::instance($date)->toDateString();
+
+        return EmployeeSupervisor::query()
+            ->where('company_id', $companyId)
+            ->whereDate('valid_from', '<=', $day)
+            ->where(function ($query) use ($day): void {
+                $query->whereNull('valid_to')
+                    ->orWhereDate('valid_to', '>=', $day);
+            })
+            ->get(['employee_id', 'supervisor_employee_id'])
+            ->map(static fn (EmployeeSupervisor $row): array => [
+                'employee_id' => (int) $row->employee_id,
+                'supervisor_employee_id' => (int) $row->supervisor_employee_id,
+            ])
+            ->values()
+            ->all();
+    }
+
+    public function listActiveSupervisorIdsGroupedByEmployee(int $companyId, CarbonInterface $date): array
+    {
+        $grouped = [];
+
+        foreach ($this->listActiveRelations($companyId, $date) as $row) {
+            $employeeId = (int) $row['employee_id'];
+            $supervisorId = (int) $row['supervisor_employee_id'];
+
+            if (! array_key_exists($employeeId, $grouped)) {
+                $grouped[$employeeId] = [];
+            }
+
+            $grouped[$employeeId][] = $supervisorId;
+        }
+
+        return $grouped;
+    }
+
+    public function listCompanyHistoryRows(int $companyId): array
+    {
+        return EmployeeSupervisor::query()
+            ->where('company_id', $companyId)
+            ->orderBy('employee_id')
+            ->orderBy('valid_from')
+            ->orderBy('id')
+            ->get(['id', 'employee_id', 'supervisor_employee_id', 'valid_from', 'valid_to'])
+            ->map(static fn (EmployeeSupervisor $row): array => [
+                'id' => (int) $row->id,
+                'employee_id' => (int) $row->employee_id,
+                'supervisor_employee_id' => (int) $row->supervisor_employee_id,
+                'valid_from' => (string) $row->valid_from?->format('Y-m-d'),
+                'valid_to' => $row->valid_to?->format('Y-m-d'),
+            ])
+            ->values()
+            ->all();
+    }
+
     public function listSupervisorHistory(int $companyId, int $employeeId): array
     {
         /** @var array<int, EmployeeSupervisor> $rows */

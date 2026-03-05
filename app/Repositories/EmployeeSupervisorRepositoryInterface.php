@@ -47,8 +47,22 @@ interface EmployeeSupervisorRepositoryInterface
     ): EmployeeSupervisor;
 
     /**
+     * @return list<array{employee_id:int,supervisor_employee_id:int}>
+     */
+    public function listActiveRelations(int $companyId, CarbonInterface $date): array;
+
+    /**
+     * @return array<int, list<int>>
+     */
+    public function listActiveSupervisorIdsGroupedByEmployee(int $companyId, CarbonInterface $date): array;
+
+    /**
+     * @return list<array{id:int,employee_id:int,supervisor_employee_id:int,valid_from:string,valid_to:?string}>
+     */
+    public function listCompanyHistoryRows(int $companyId): array;
+
+    /**
      * @return list<EmployeeSupervisor>
      */
     public function listSupervisorHistory(int $companyId, int $employeeId): array;
 }
-

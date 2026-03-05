@@ -19,11 +19,14 @@ const props = defineProps({
     showPosition: { type: Boolean, default: true },
 });
 
-const emit = defineEmits(["nodeClick", "nodeHover"]);
+const emit = defineEmits(["nodeClick", "nodeHover", "nodeContext"]);
 
 const container = ref(null);
 let cy = null;
 let renderSequence = 0;
+const preventNativeContextMenu = (event) => {
+    event.preventDefault();
+};
 
 const isEmpty = computed(() => !Array.isArray(props.nodes) || props.nodes.length === 0);
 
@@ -99,6 +102,14 @@ const render = async () => {
         cy.on("mouseout", "node", (event) => {
             event.target.removeClass("is-hovered");
         });
+
+        cy.on("cxttap", "node", (event) => {
+            const data = event.target.data();
+            emit("nodeContext", {
+                nodeId: Number(data.id),
+                originalEvent: event.originalEvent ?? null,
+            });
+        });
     }
 
     cy.style(styleSheet.value).update();
@@ -138,10 +149,16 @@ watch(
 );
 
 onMounted(() => {
+    if (container.value) {
+        container.value.addEventListener("contextmenu", preventNativeContextMenu);
+    }
     render();
 });
 
 onBeforeUnmount(() => {
+    if (container.value) {
+        container.value.removeEventListener("contextmenu", preventNativeContextMenu);
+    }
     if (cy) {
         cy.destroy();
         cy = null;

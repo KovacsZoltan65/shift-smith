@@ -137,6 +137,15 @@ Route::middleware(['auth', 'verified', 'ensure.company'])->group(function () {
     Route::get('/hr/hierarchy/path', [OrgHierarchyController::class, 'path'])
         ->name('org.hierarchy.path')
         ->middleware('throttle:120,1');
+    Route::get('/hr/hierarchy/move/preview', [OrgHierarchyController::class, 'movePreview'])
+        ->name('org.hierarchy.move.preview')
+        ->middleware('throttle:60,1');
+    Route::post('/hr/hierarchy/move', [OrgHierarchyController::class, 'move'])
+        ->name('org.hierarchy.move')
+        ->middleware('throttle:20,1');
+    Route::get('/hr/hierarchy/integrity', [OrgHierarchyController::class, 'integrity'])
+        ->name('org.hierarchy.integrity')
+        ->middleware('throttle:60,1');
     Route::post('/hr/hierarchy/design-settings', [OrgHierarchyController::class, 'saveDesignSettings'])
         ->name('org.hierarchy.design_settings.save')
         ->middleware('throttle:30,1');
