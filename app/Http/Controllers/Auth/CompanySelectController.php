@@ -28,7 +28,7 @@ final class CompanySelectController extends Controller
         $user = $request->user('web');
         abort_unless($user instanceof User, 401);
 
-        $companies = $this->companyContext->selectableCompanies($user);
+        $companies = $this->companyContext->selectableCompaniesForSwitch($user);
         $companyCount = count($companies);
 
         if ($companyCount === 0) {
@@ -66,7 +66,7 @@ final class CompanySelectController extends Controller
 
         $companyId = (int) $validated['company_id'];
 
-        if (!$this->companyContext->userCanSelectCompany($user, $companyId)) {
+        if (!$this->companyContext->userCanSelectCompanyForSwitch($user, $companyId)) {
             abort(403, 'The selected company is not assigned to the current user.');
         }
 
@@ -79,7 +79,7 @@ final class CompanySelectController extends Controller
     {
         $this->currentCompany->setCurrentCompanyId($request, $companyId);
 
-        $tenantGroupId = $this->companyContext->tenantGroupIdForCompany($user, $companyId);
+        $tenantGroupId = $this->companyContext->tenantGroupIdForCompanyForSwitch($user, $companyId);
         if ($tenantGroupId === null) {
             Log::error('company.missing_tenant_group_id', [
                 'company_id' => $companyId,
