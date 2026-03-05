@@ -137,6 +137,9 @@ Route::middleware(['auth', 'verified', 'ensure.company'])->group(function () {
     Route::get('/hr/hierarchy/path', [OrgHierarchyController::class, 'path'])
         ->name('org.hierarchy.path')
         ->middleware('throttle:120,1');
+    Route::post('/hr/hierarchy/design-settings', [OrgHierarchyController::class, 'saveDesignSettings'])
+        ->name('org.hierarchy.design_settings.save')
+        ->middleware('throttle:30,1');
 
     // Beállítások
     Route::get('/settings/app', [SettingsController::class, 'app'])->name('settings.app');

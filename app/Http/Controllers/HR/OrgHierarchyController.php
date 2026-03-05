@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\HR;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\OrgHierarchy\DesignSettingsSaveRequest;
 use App\Http\Requests\OrgHierarchy\EmployeeSearchRequest;
 use App\Http\Requests\OrgHierarchy\GraphRequest;
 use App\Http\Requests\OrgHierarchy\NodeRequest;
@@ -12,6 +13,7 @@ use App\Http\Requests\OrgHierarchy\PathRequest;
 use App\Policies\OrgHierarchyPolicy;
 use App\Services\CompanyContextService;
 use App\Services\CurrentCompany;
+use App\Services\Org\OrgHierarchyDesignSettingsService;
 use App\Services\Org\OrgHierarchyGraphService;
 use App\Services\Org\OrgHierarchyPathService;
 use Carbon\CarbonImmutable;
@@ -28,6 +30,7 @@ final class OrgHierarchyController extends Controller
     public function __construct(
         private readonly CurrentCompany $currentCompany,
         private readonly CompanyContextService $companyContextService,
+        private readonly OrgHierarchyDesignSettingsService $designSettingsService,
         private readonly OrgHierarchyGraphService $graphService,
         private readonly OrgHierarchyPathService $pathService,
     ) {
@@ -49,6 +52,10 @@ final class OrgHierarchyController extends Controller
             'company_id' => $currentCompanyId,
             'companies' => $companies,
             'at_date' => now()->toDateString(),
+            'ui_settings' => $this->designSettingsService->effectiveForUser(
+                companyId: $currentCompanyId,
+                userId: (int) $request->user()->id,
+            ),
         ]);
     }
 
@@ -145,6 +152,32 @@ final class OrgHierarchyController extends Controller
         return response()->json([
             'message' => 'Hierarchia útvonal sikeresen lekérve.',
             'data' => $path,
+        ], Response::HTTP_OK);
+    }
+
+    public function saveDesignSettings(DesignSettingsSaveRequest $request): JsonResponse
+    {
+        $this->authorize(OrgHierarchyPolicy::PERM_VIEW_ANY);
+        $payload = $request->validatedPayload();
+
+        $currentCompanyId = $this->currentCompany->currentCompanyId($request);
+        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, 'No company selected');
+        abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, 'Company scope mismatch');
+
+        $saved = $this->designSettingsService->saveForUser(
+            companyId: $currentCompanyId,
+            userId: (int) $request->user()->id,
+            actorUserId: (int) $request->user()->id,
+            settings: [
+                'view_mode' => (string) $payload['view_mode'],
+                'density' => (string) $payload['density'],
+                'show_position' => (bool) $payload['show_position'],
+            ],
+        );
+
+        return response()->json([
+            'message' => 'Hierarchia UI beállítások mentve.',
+            'data' => $saved,
         ], Response::HTTP_OK);
     }
 }

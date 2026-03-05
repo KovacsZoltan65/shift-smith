@@ -23,7 +23,7 @@ final class GraphRequest extends FormRequest
             'company_id' => ['required', 'integer', 'min:1', 'exists:companies,id'],
             'root_employee_id' => ['nullable', 'integer', 'min:1', 'exists:employees,id'],
             'at_date' => ['nullable', 'date_format:Y-m-d'],
-            'depth' => ['nullable', 'integer', 'in:1'],
+            'depth' => ['nullable', 'integer', 'in:1,2'],
         ];
     }
 

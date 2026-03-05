@@ -57,6 +57,8 @@ use App\Repositories\PositionOrgLevelRepository;
 use App\Repositories\PositionOrgLevelRepositoryInterface;
 use App\Repositories\Org\OrgHierarchyRepository;
 use App\Repositories\Org\OrgHierarchyRepositoryInterface;
+use App\Repositories\Org\OrgHierarchyDesignSettingsRepository;
+use App\Repositories\Org\OrgHierarchyDesignSettingsRepositoryInterface;
 use App\Repositories\UserRepository;
 use App\Repositories\UserSettingRepository;
 use App\Repositories\UserEmployeeRepository;
@@ -163,6 +165,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             OrgHierarchyRepositoryInterface::class,
             OrgHierarchyRepository::class
+        );
+        $this->app->bind(
+            OrgHierarchyDesignSettingsRepositoryInterface::class,
+            OrgHierarchyDesignSettingsRepository::class
         );
         $this->app->bind(
             WorkShiftRepositoryInterface::class, 

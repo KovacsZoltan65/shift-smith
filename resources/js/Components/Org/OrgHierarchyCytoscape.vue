@@ -9,6 +9,8 @@ const props = defineProps({
     mode: { type: String, default: "explorer" },
     rootId: { type: [Number, null], default: null },
     loading: { type: Boolean, default: false },
+    density: { type: String, default: "comfortable" },
+    showPosition: { type: Boolean, default: true },
 });
 
 const emit = defineEmits(["nodeClick", "nodeHover"]);
@@ -22,7 +24,9 @@ const toElements = () => {
     const mappedNodes = (props.nodes ?? []).map((node) => ({
         data: {
             id: String(node.id),
-            label: String(node.label ?? ""),
+            label: props.showPosition && node.position
+                ? `${String(node.label ?? "")}\n${String(node.position)}`
+                : String(node.label ?? ""),
             org_level: String(node.org_level ?? "staff"),
             position: node.position ?? null,
             direct_count: Number(node.direct_count ?? 0),
@@ -43,6 +47,63 @@ const toElements = () => {
     return [...mappedNodes, ...mappedEdges];
 };
 
+const styleConfig = computed(() => {
+    const compact = props.density === "compact";
+
+    return {
+        textMaxWidth: compact ? "120px" : "160px",
+        height: compact ? "34px" : "44px",
+        padding: compact ? "8px" : "14px",
+        fontSize: compact ? "11px" : "12px",
+    };
+});
+
+const styleSheet = () => [
+    {
+        selector: "node",
+        style: {
+            shape: "round-rectangle",
+            label: "data(label)",
+            "text-wrap": "wrap",
+            "text-max-width": styleConfig.value.textMaxWidth,
+            width: "label",
+            height: styleConfig.value.height,
+            padding: styleConfig.value.padding,
+            "text-valign": "center",
+            "text-halign": "center",
+            "font-size": styleConfig.value.fontSize,
+            "font-weight": 500,
+            "background-color": "#2563eb",
+            color: "#ffffff",
+            "border-width": 2,
+            "border-color": "#1e40af",
+        },
+    },
+    {
+        selector: "node:hover",
+        style: {
+            "background-color": "#1d4ed8",
+            "border-width": 3,
+        },
+    },
+    {
+        selector: "node[root]",
+        style: {
+            "background-color": "#dc2626",
+            "border-color": "#7f1d1d",
+        },
+    },
+    {
+        selector: "edge",
+        style: {
+            "curve-style": "bezier",
+            "target-arrow-shape": "triangle",
+            "line-color": "#94a3b8",
+            "target-arrow-color": "#94a3b8",
+        },
+    },
+];
+
 const render = async () => {
     if (!container.value) {
         return;
@@ -54,51 +115,7 @@ const render = async () => {
             container: container.value,
             elements: [],
             wheelSensitivity: 0.2,
-            style: [
-                {
-                    selector: "node",
-                    style: {
-                        shape: "round-rectangle",
-                        label: "data(label)",
-                        "text-wrap": "wrap",
-                        "text-max-width": "140px",
-                        width: "label",
-                        height: "40px",
-                        padding: "12px",
-                        "text-valign": "center",
-                        "text-halign": "center",
-                        "font-size": "12px",
-                        "font-weight": 500,
-                        "background-color": "#2563eb",
-                        color: "#ffffff",
-                        "border-width": 2,
-                        "border-color": "#1e40af",
-                    },
-                },
-                {
-                    selector: "node:hover",
-                    style: {
-                        "background-color": "#1d4ed8",
-                        "border-width": 3,
-                    },
-                },
-                {
-                    selector: "node[root]",
-                    style: {
-                        "background-color": "#dc2626",
-                        "border-color": "#7f1d1d",
-                    },
-                },
-                {
-                    selector: "edge",
-                    style: {
-                        "curve-style": "bezier",
-                        "target-arrow-shape": "triangle",
-                        "line-color": "#94a3b8",
-                        "target-arrow-color": "#94a3b8",
-                    },
-                },
-            ],
+            style: styleSheet(),
         });
 
         cy.on("tap", "node", (event) => {
@@ -112,6 +129,7 @@ const render = async () => {
         });
     }
 
+    cy.style(styleSheet());
     cy.elements().remove();
     cy.add(toElements());
 
@@ -138,7 +156,7 @@ const render = async () => {
 };
 
 watch(
-    () => [props.nodes, props.edges, props.mode],
+    () => [props.nodes, props.edges, props.mode, props.density, props.showPosition],
     () => {
         render();
     },

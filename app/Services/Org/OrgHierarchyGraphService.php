@@ -38,7 +38,7 @@ final class OrgHierarchyGraphService
         /** @var OrgHierarchyGraphData $graph */
         $graph = $this->cacheService->remember(
             tag: $base,
-            key: "{$base}:hierarchy:{$rootKey}:{$ymd}:{$version}",
+            key: "{$base}:hierarchy:{$rootKey}:d{$effectiveDepth}:{$ymd}:{$version}",
             callback: fn (): OrgHierarchyGraphData => $this->buildGraph($companyId, $rootEmployeeId, $atDate, $effectiveDepth),
             ttl: (int) config('cache.ttl_fetch', 300)
         );
@@ -114,31 +114,44 @@ final class OrgHierarchyGraphService
             );
         }
 
-        $children = $this->repository->listDirectSubordinates($companyId, (int) $root->id, $atDate);
-        $childIds = $children->pluck('id')->map(static fn ($id): int => (int) $id)->values()->all();
-        $counts = $this->repository->getDirectSubordinateCounts($companyId, array_merge([(int) $root->id], $childIds), $atDate);
-
-        $nodes = [
-            $this->toNode(
-                $root,
-                (int) ($counts[(int) $root->id] ?? 0),
-                (int) ($counts[(int) $root->id] ?? 0),
-            ),
-        ];
-
+        $nodeModels = [(int) $root->id => $root];
         $edges = [];
-        foreach ($children as $child) {
-            $childId = (int) $child->id;
+        $visited = [(int) $root->id => true];
+        $frontier = [(int) $root->id];
+        $level = 0;
 
+        while ($level < $depth && $frontier !== []) {
+            $next = [];
+
+            foreach ($frontier as $supervisorId) {
+                $children = $this->repository->listDirectSubordinates($companyId, $supervisorId, $atDate);
+                foreach ($children as $child) {
+                    $childId = (int) $child->id;
+                    $nodeModels[$childId] = $child;
+                    $edges[] = new OrgHierarchyEdgeData(
+                        source: $supervisorId,
+                        target: $childId,
+                    );
+
+                    if (! isset($visited[$childId])) {
+                        $visited[$childId] = true;
+                        $next[] = $childId;
+                    }
+                }
+            }
+
+            $frontier = array_values(array_unique($next));
+            $level++;
+        }
+
+        $nodeIds = array_keys($nodeModels);
+        $counts = $this->repository->getDirectSubordinateCounts($companyId, $nodeIds, $atDate);
+        $nodes = [];
+        foreach ($nodeModels as $nodeId => $employee) {
             $nodes[] = $this->toNode(
-                $child,
-                (int) ($counts[$childId] ?? 0),
-                (int) ($counts[$childId] ?? 0),
-            );
-
-            $edges[] = new OrgHierarchyEdgeData(
-                source: (int) $root->id,
-                target: $childId
+                $employee,
+                (int) ($counts[$nodeId] ?? 0),
+                (int) ($counts[$nodeId] ?? 0),
             );
         }
 

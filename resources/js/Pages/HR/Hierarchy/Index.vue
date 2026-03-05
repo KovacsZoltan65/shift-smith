@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { Head } from "@inertiajs/vue3";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import OrgHierarchyCytoscape from "@/Components/Org/OrgHierarchyCytoscape.vue";
@@ -20,11 +20,23 @@ const props = defineProps({
     company_id: { type: Number, required: true },
     companies: { type: Array, default: () => [] },
     at_date: { type: String, default: null },
+    ui_settings: {
+        type: Object,
+        default: () => ({
+            view_mode: "explorer",
+            density: "comfortable",
+            show_position: true,
+        }),
+    },
 });
 
 const toast = useToast();
 const loading = ref(false);
 const selectedEmployeeId = ref(null);
+
+const normalizeViewModeValue = (value) => (value === "network" ? "network" : "explorer");
+const normalizeDensityValue = (value) => (value === "compact" ? "compact" : "comfortable");
+const normalizeBoolValue = (value) => Boolean(value);
 
 const companyId = ref(Number(props.company_id || 0) || null);
 const atDate = ref(props.at_date ? new Date(props.at_date) : new Date());
@@ -32,11 +44,21 @@ const currentRootId = ref(null);
 const rootStack = ref([]);
 const breadcrumbs = ref([]);
 const detailNode = ref(null);
-const viewMode = ref("explorer");
+const viewMode = ref(normalizeViewModeValue(props.ui_settings?.view_mode));
+const density = ref(normalizeDensityValue(props.ui_settings?.density));
+const showPosition = ref(normalizeBoolValue(props.ui_settings?.show_position ?? true));
 
 const viewModeOptions = [
     { label: "Explorer", value: "explorer" },
     { label: "Network", value: "network" },
+];
+const densityOptions = [
+    { label: "Compact", value: "compact" },
+    { label: "Comfortable", value: "comfortable" },
+];
+const positionOptions = [
+    { label: "Pozíció: Ki", value: false },
+    { label: "Pozíció: Be", value: true },
 ];
 
 const nodes = ref([]);
@@ -53,6 +75,13 @@ const todayYmd = computed(() => {
 
 const refreshTooltip = computed(() => (loading.value ? "Frissítés folyamatban..." : "Frissítés"));
 const canGoBack = computed(() => rootStack.value.length > 1);
+const graphDepth = computed(() => (viewMode.value === "network" ? 2 : 1));
+const normalizedViewMode = computed(() => normalizeViewModeValue(viewMode.value));
+const normalizedDensity = computed(() => normalizeDensityValue(density.value));
+const normalizedShowPosition = computed(() => normalizeBoolValue(showPosition.value));
+
+let settingsSaveTimer = null;
+let settingsInitialized = false;
 
 const findNodeById = (id) => nodes.value.find((row) => Number(row.id) === Number(id)) ?? null;
 
@@ -109,7 +138,7 @@ const fetchGraph = async () => {
         const params = new URLSearchParams({
             company_id: String(companyId.value),
             at_date: todayYmd.value,
-            depth: "1",
+            depth: String(graphDepth.value),
         });
 
         if (currentRootId.value !== null) {
@@ -142,6 +171,54 @@ const fetchGraph = async () => {
     } finally {
         loading.value = false;
     }
+};
+
+const saveDesignSettingsNow = async () => {
+    if (!companyId.value) {
+        return;
+    }
+
+    try {
+        const response = await csrfFetch(route("org.hierarchy.design_settings.save"), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+            },
+            body: JSON.stringify({
+                company_id: Number(companyId.value),
+                view_mode: normalizedViewMode.value,
+                density: normalizedDensity.value,
+                show_position: normalizedShowPosition.value,
+            }),
+        });
+
+        if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            throw new Error(payload?.message || "A hierarchia UI beállítás mentése sikertelen.");
+        }
+    } catch (error) {
+        toast.add({
+            severity: "error",
+            summary: "Hiba",
+            detail: error instanceof Error ? error.message : "A hierarchia UI beállítás mentése sikertelen.",
+            life: 3500,
+        });
+    }
+};
+
+const queueDesignSettingsSave = () => {
+    if (!settingsInitialized) {
+        return;
+    }
+
+    if (settingsSaveTimer !== null) {
+        clearTimeout(settingsSaveTimer);
+    }
+
+    settingsSaveTimer = setTimeout(() => {
+        saveDesignSettingsNow();
+    }, 300);
 };
 
 const fetchPath = async (employeeId) => {
@@ -273,8 +350,27 @@ watch(todayYmd, () => {
     fetchGraph();
 });
 
-onMounted(() => {
+watch(
+    [normalizedViewMode, normalizedDensity, normalizedShowPosition],
+    () => {
+        queueDesignSettingsSave();
+    },
+);
+
+watch(normalizedViewMode, () => {
     fetchGraph();
+});
+
+onMounted(() => {
+    settingsInitialized = true;
+    fetchGraph();
+});
+
+onBeforeUnmount(() => {
+    if (settingsSaveTimer !== null) {
+        clearTimeout(settingsSaveTimer);
+        settingsSaveTimer = null;
+    }
 });
 </script>
 
@@ -350,6 +446,20 @@ onMounted(() => {
                                 optionValue="value"
                                 :disabled="loading"
                             />
+                            <SelectButton
+                                v-model="density"
+                                :options="densityOptions"
+                                optionLabel="label"
+                                optionValue="value"
+                                :disabled="loading"
+                            />
+                            <SelectButton
+                                v-model="showPosition"
+                                :options="positionOptions"
+                                optionLabel="label"
+                                optionValue="value"
+                                :disabled="loading"
+                            />
 
                             <Button
                                 :icon="loading ? 'pi pi-spin pi-spinner' : 'pi pi-refresh'"
@@ -372,8 +482,10 @@ onMounted(() => {
                 :nodes="nodes"
                 :edges="edges"
                 :root-id="meta.root_id"
-                :mode="viewMode"
+                :mode="normalizedViewMode"
                 :loading="loading"
+                :density="normalizedDensity"
+                :show-position="normalizedShowPosition"
                 @nodeClick="drillDown"
                 @nodeHover="onNodeHover"
             />
