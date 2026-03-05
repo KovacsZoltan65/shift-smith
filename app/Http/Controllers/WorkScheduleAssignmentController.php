@@ -16,6 +16,7 @@ use App\Models\WorkShiftAssignment;
 use App\Policies\EmployeeAbsencePolicy;
 use App\Policies\WorkScheduleAssignmentPolicy;
 use App\Services\Scheduling\CalendarFeedService;
+use App\Services\MonthClosureService;
 use App\Services\WorkScheduleAssignmentService;
 use App\Support\CurrentCompanyContext;
 use Illuminate\Http\JsonResponse;
@@ -29,7 +30,8 @@ class WorkScheduleAssignmentController extends Controller
     public function __construct(
         private readonly CalendarFeedService $calendarFeedService,
         private readonly WorkScheduleAssignmentService $service,
-        private readonly CurrentCompanyContext $companyContext
+        private readonly CurrentCompanyContext $companyContext,
+        private readonly MonthClosureService $monthClosureService,
     ) {}
 
     public function calendar(CalendarPageRequest $request): InertiaResponse
@@ -53,6 +55,11 @@ class WorkScheduleAssignmentController extends Controller
             'title' => 'Naptár tervező',
             'current_company_id' => $companyId,
             'schedules' => $schedules,
+            'month_lock' => $this->monthClosureService->stateForMonth(
+                $companyId,
+                (int) now()->format('Y'),
+                (int) now()->format('m'),
+            ),
             'permissions' => [
                 'viewer' => $request->user()?->can(WorkScheduleAssignmentPolicy::PERM_VIEW_ANY, WorkShiftAssignment::class) ?? false,
                 'planner' => (
@@ -66,6 +73,9 @@ class WorkScheduleAssignmentController extends Controller
                     && ($request->user()?->can(EmployeeAbsencePolicy::PERM_UPDATE, EmployeeAbsence::class) ?? false)
                     && ($request->user()?->can(EmployeeAbsencePolicy::PERM_DELETE, EmployeeAbsence::class) ?? false)
                 ),
+                'monthClosureViewAny' => $request->user()?->can(\App\Policies\MonthClosurePolicy::PERM_VIEW_ANY, \App\Models\MonthClosure::class) ?? false,
+                'monthClosureClose' => $request->user()?->can(\App\Policies\MonthClosurePolicy::PERM_CREATE, \App\Models\MonthClosure::class) ?? false,
+                'monthClosureReopen' => $request->user()?->can(\App\Policies\MonthClosurePolicy::PERM_DELETE, \App\Models\MonthClosure::class) ?? false,
             ],
         ]);
     }
@@ -102,6 +112,16 @@ class WorkScheduleAssignmentController extends Controller
                 'range' => $result['range'],
                 'selected_date' => $result['selected_date'],
                 'editable' => $result['editable'],
+                'month_lock' => $this->monthClosureService->stateForMonth(
+                    $companyId,
+                    $this->resolveViewedYear($data),
+                    $this->resolveViewedMonth($data),
+                ),
+                'closed_month_keys' => $this->monthClosureService->closedMonthKeysWithinRange(
+                    $companyId,
+                    (string) $result['range']['start'],
+                    (string) $result['range']['end'],
+                ),
             ],
         ], Response::HTTP_OK);
     }
@@ -170,5 +190,41 @@ class WorkScheduleAssignmentController extends Controller
     private function requireCurrentCompanyId(Request $request): int
     {
         return $this->companyContext->resolve($request);
+    }
+
+    private function resolveViewedYear(array $filters): int
+    {
+        if (($filters['view_type'] ?? 'week') === 'month') {
+            return (int) ($filters['year'] ?? now()->format('Y'));
+        }
+
+        if (($filters['view_type'] ?? 'week') === 'day' && isset($filters['date'])) {
+            return (int) \Carbon\CarbonImmutable::parse((string) $filters['date'])->format('Y');
+        }
+
+        if (isset($filters['week_year'])) {
+            return (int) $filters['week_year'];
+        }
+
+        return (int) now()->format('Y');
+    }
+
+    private function resolveViewedMonth(array $filters): int
+    {
+        if (($filters['view_type'] ?? 'week') === 'month') {
+            return (int) ($filters['month'] ?? now()->format('m'));
+        }
+
+        if (($filters['view_type'] ?? 'week') === 'day' && isset($filters['date'])) {
+            return (int) \Carbon\CarbonImmutable::parse((string) $filters['date'])->format('m');
+        }
+
+        if (isset($filters['week_number']) && isset($filters['week_year'])) {
+            return (int) \Carbon\CarbonImmutable::now()
+                ->setISODate((int) $filters['week_year'], (int) $filters['week_number'], 1)
+                ->format('m');
+        }
+
+        return (int) now()->format('m');
     }
 }

@@ -10,6 +10,7 @@ const props = defineProps({
     filter: { type: Boolean, default: null },
     placeholder: { type: String, default: "" },
     inputId: { type: String, default: null },
+    disabled: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(["update:modelValue"]);
@@ -83,5 +84,6 @@ watch(
         :filter="shouldUseFilter"
         showClear
         :inputId="inputId"
+        :disabled="disabled"
     />
 </template>

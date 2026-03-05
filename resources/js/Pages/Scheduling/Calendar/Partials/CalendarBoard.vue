@@ -8,6 +8,7 @@ const props = defineProps({
     anchorDate: { type: Date, required: true },
     plannerMode: { type: Boolean, default: false },
     selectedDates: { type: Array, default: () => [] },
+    closedMonthKeys: { type: Array, default: () => [] },
     scheduleRange: {
         type: Object,
         default: () => ({ from: null, to: null }),
@@ -118,13 +119,16 @@ const onDragStart = (event, row) => {
 
 const onDrop = (event, day) => {
     if (!props.plannerMode) return;
-    if (!isInRange(day) || !isEditableDay(day)) return;
+    if (!isInRange(day) || !isEditableDay(day) || isClosedMonthDay(day)) return;
     const id = Number(event.dataTransfer?.getData("text/plain") ?? 0);
     if (!id) return;
     emit("event-drop", { id, date: toYmd(day) });
 };
 
 const isSelected = (d) => props.selectedDates.includes(toYmd(d));
+const isClosedMonthKey = (value) => props.closedMonthKeys.includes(String(value));
+const isClosedMonthDay = (d) => isClosedMonthKey(toYmd(d).slice(0, 7));
+const isClosedMonthEvent = (row) => isClosedMonthKey(String(row?.start ?? "").slice(0, 7));
 const shiftColorClass = (row) => {
     const shiftId = Number(row?.extendedProps?.shift_id ?? 0);
     if (!shiftId) return "";
@@ -141,7 +145,7 @@ const isInRange = (d) => {
 
 const isEditableDay = (d) => {
     if (!props.todayYmd) return true;
-    return toYmd(d) >= props.todayYmd;
+    return toYmd(d).slice(0, 7) >= props.todayYmd.slice(0, 7);
 };
 </script>
 
@@ -169,12 +173,12 @@ const isEditableDay = (d) => {
                     <button
                         class="text-xs font-semibold"
                         :class="
-                            isInRange(day) && isEditableDay(day)
+                            isInRange(day) && isEditableDay(day) && !isClosedMonthDay(day)
                                 ? 'text-slate-700 hover:text-slate-900'
                                 : 'text-slate-400 cursor-not-allowed'
                         "
                         type="button"
-                        :disabled="!isInRange(day) || !isEditableDay(day)"
+                        :disabled="!isInRange(day) || !isEditableDay(day) || isClosedMonthDay(day)"
                         @click="emit('date-click', { date: toYmd(day) })"
                     >
                         {{ label(day) }}
@@ -183,7 +187,7 @@ const isEditableDay = (d) => {
                         v-if="plannerMode"
                         type="checkbox"
                         class="h-4 w-4"
-                        :disabled="!isInRange(day) || !isEditableDay(day)"
+                        :disabled="!isInRange(day) || !isEditableDay(day) || isClosedMonthDay(day)"
                         :checked="isSelected(day)"
                         @change="emit('toggle-date', toYmd(day))"
                     />
@@ -196,8 +200,8 @@ const isEditableDay = (d) => {
                         class="w-full rounded border px-2 py-1 text-left text-xs transition hover:bg-sky-50"
                         :class="[row.className || [], shiftColorClass(row)]"
                         type="button"
-                        :draggable="plannerMode && !!row.editable && row?.extendedProps?.entity_type === 'shift_assignment'"
-                        :disabled="plannerMode && !row.editable"
+                        :draggable="plannerMode && !!row.editable && row?.extendedProps?.entity_type === 'shift_assignment' && !isClosedMonthEvent(row)"
+                        :disabled="plannerMode && (!row.editable || isClosedMonthEvent(row))"
                         @dragstart="onDragStart($event, row)"
                         @click="emit('event-click', row)"
                     >

@@ -11,6 +11,7 @@ use App\Repositories\Dashboard\DashboardRepositoryInterface;
 use App\Interfaces\EmployeeRepositoryInterface;
 use App\Interfaces\EmployeeProfileRepositoryInterface;
 use App\Interfaces\LeaveBalanceRepositoryInterface;
+use App\Interfaces\MonthClosureRepositoryInterface;
 use App\Interfaces\EmployeeWorkPatternRepositoryInterface;
 use App\Interfaces\PositionRepositoryInterface;
 use App\Interfaces\UserRepositoryInterface;
@@ -48,6 +49,7 @@ use App\Repositories\LeaveTypeRepositoryInterface;
 use App\Repositories\SickLeaveCategoryRepository;
 use App\Repositories\SickLeaveCategoryRepositoryInterface;
 use App\Repositories\EmployeeWorkPatternRepository;
+use App\Repositories\MonthClosureRepository;
 use App\Repositories\PositionRepository;
 use App\Repositories\UserRepository;
 use App\Repositories\UserSettingRepository;
@@ -123,6 +125,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             LeaveBalanceRepositoryInterface::class,
             LeaveBalanceRepository::class
+        );
+        $this->app->bind(
+            MonthClosureRepositoryInterface::class,
+            MonthClosureRepository::class
         );
         $this->app->bind(
             LeaveCategoryRepositoryInterface::class,

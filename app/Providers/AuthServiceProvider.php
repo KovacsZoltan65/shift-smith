@@ -29,6 +29,7 @@ class AuthServiceProvider extends ServiceProvider
         \App\Models\EmployeeWorkPattern::class => \App\Policies\EmployeeWorkPatternPolicy::class,
         \App\Models\AppSetting::class => \App\Policies\AppSettingPolicy::class,
         \App\Models\CompanySetting::class => \App\Policies\CompanySettingPolicy::class,
+        \App\Models\MonthClosure::class => \App\Policies\MonthClosurePolicy::class,
         \App\Models\EmployeeAbsence::class => \App\Policies\EmployeeAbsencePolicy::class,
         \App\Models\LeaveCategory::class => \App\Policies\LeaveCategoryPolicy::class,
         \App\Models\LeaveType::class => \App\Policies\LeaveTypePolicy::class,

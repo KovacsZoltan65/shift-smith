@@ -41,6 +41,10 @@ final class EnsureCompanySelected
 
         if ($currentCompanyId !== null) {
             if ($sessionTenantId !== null) {
+                if (! $this->syncCurrentTenantGroup($sessionTenantId)) {
+                    return $this->resetAndRedirect($request);
+                }
+
                 if (! $this->isCurrentCompanyValidForTenant($user, $currentCompanyId, $sessionTenantId)) {
                     return $this->resetAndRedirect($request);
                 }
@@ -54,6 +58,9 @@ final class EnsureCompanySelected
 
                 if ($tenantGroupId !== null) {
                     $this->currentTenantGroup->setCurrentTenantGroupId($request, $tenantGroupId);
+                    if (! $this->syncCurrentTenantGroup($tenantGroupId)) {
+                        return $this->resetAndRedirect($request);
+                    }
                 } else {
                     Log::error('company.missing_tenant_group_id', [
                         'company_id' => $currentCompanyId,
@@ -80,6 +87,9 @@ final class EnsureCompanySelected
                 $tenantGroupId = $this->companyContext->tenantGroupIdForCompany($user, $companyId);
                 if ($tenantGroupId !== null) {
                     $this->currentTenantGroup->setCurrentTenantGroupId($request, $tenantGroupId);
+                    if (! $this->syncCurrentTenantGroup($tenantGroupId)) {
+                        return $this->resetAndRedirect($request);
+                    }
                 } else {
                     Log::error('company.missing_tenant_group_id', [
                         'company_id' => $companyId,
@@ -127,6 +137,33 @@ final class EnsureCompanySelected
         $routeName = $request->route()?->getName();
 
         return is_string($routeName) && str_starts_with($routeName, 'hq.');
+    }
+
+    private function syncCurrentTenantGroup(int $tenantGroupId): bool
+    {
+        $currentTenant = TenantGroup::current();
+        if ($currentTenant?->id === $tenantGroupId) {
+            return true;
+        }
+
+        $tenant = TenantGroup::query()
+            ->whereKey($tenantGroupId)
+            ->where('active', true)
+            ->first();
+
+        if ($tenant === null) {
+            Log::warning('tenant_group.session_tenant_not_found', [
+                'tenant_group_id' => $tenantGroupId,
+            ]);
+
+            TenantGroup::forgetCurrent();
+
+            return false;
+        }
+
+        $tenant->makeCurrent();
+
+        return true;
     }
 
     private function resetAndRedirect(Request $request): RedirectResponse

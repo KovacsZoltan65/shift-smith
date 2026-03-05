@@ -4,7 +4,7 @@ import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 import DatePicker from "primevue/datepicker";
 import InputText from "primevue/inputtext";
-import EmployeeSelector from "@/Components/Selectors/EmployeeSelector.vue";
+import MultiSelect from "primevue/multiselect";
 import LeaveTypeSelector from "@/Components/Selectors/LeaveTypeSelector.vue";
 import SickLeaveCategorySelector from "@/Components/Selectors/SickLeaveCategorySelector.vue";
 
@@ -12,6 +12,7 @@ const props = defineProps({
     modelValue: { type: Boolean, default: false },
     absence: { type: Object, default: null },
     companyId: { type: Number, required: true },
+    employeeOptions: { type: Array, default: () => [] },
     loading: { type: Boolean, default: false },
     defaultRange: { type: Object, default: () => ({ from: null, to: null }) },
 });
@@ -24,17 +25,24 @@ const visible = computed({
 });
 
 const form = reactive({
-    employee_id: null,
+    employee_ids: [],
     leave_type_id: null,
     sick_leave_category_id: null,
     date_range: null,
     note: "",
+    errors: {},
 });
 const selectedLeaveType = ref(null);
 
 const isEdit = computed(() => Number(props.absence?.extendedProps?.absence_id ?? 0) > 0);
 const header = computed(() => (isEdit.value ? "Távollét módosítása" : "Távollét jelölése"));
 const isSickLeaveSelected = computed(() => selectedLeaveType.value?.category === "sick_leave");
+const employeeCountLabel = computed(() => `Kijelölve: ${form.employee_ids.length} fő`);
+const allEmployeeIds = computed(() =>
+    (props.employeeOptions ?? [])
+        .map((employee) => Number(employee?.id ?? 0))
+        .filter((id) => id > 0),
+);
 
 const toDate = (value) => {
     if (!value) return null;
@@ -54,7 +62,7 @@ watch(
         if (!props.modelValue) return;
 
         if (isEdit.value) {
-            form.employee_id = Number(props.absence?.extendedProps?.employee_id ?? 0) || null;
+            form.employee_ids = [Number(props.absence?.extendedProps?.employee_id ?? 0)].filter(Boolean);
             form.leave_type_id = Number(props.absence?.extendedProps?.leave_type_id ?? 0) || null;
             form.sick_leave_category_id = Number(props.absence?.extendedProps?.sick_leave_category_id ?? 0) || null;
             form.date_range = [
@@ -62,6 +70,7 @@ watch(
                 toDate(props.absence?.end ? new Date(new Date(props.absence.end).getTime() - 86400000) : props.absence?.start),
             ];
             form.note = String(props.absence?.extendedProps?.note ?? "");
+            form.errors = {};
             selectedLeaveType.value = form.leave_type_id
                 ? {
                     id: form.leave_type_id,
@@ -72,13 +81,14 @@ watch(
             return;
         }
 
-        form.employee_id = null;
+        form.employee_ids = [];
         form.leave_type_id = null;
         form.sick_leave_category_id = null;
         form.date_range = props.defaultRange?.from
             ? [toDate(props.defaultRange.from), toDate(props.defaultRange.to ?? props.defaultRange.from)]
             : null;
         form.note = "";
+        form.errors = {};
         selectedLeaveType.value = null;
     },
     { immediate: true, deep: true },
@@ -90,13 +100,38 @@ watch(isSickLeaveSelected, (value) => {
     }
 });
 
+watch(
+    () => form.employee_ids,
+    () => {
+        if (form.errors.employee_ids && form.employee_ids.length > 0) {
+            form.errors = { ...form.errors, employee_ids: null };
+        }
+    },
+    { deep: true },
+);
+
+const selectAllEmployees = () => {
+    if (isEdit.value) return;
+    form.employee_ids = [...allEmployeeIds.value];
+};
+
 const submit = () => {
+    if (!form.employee_ids.length) {
+        form.errors = {
+            ...form.errors,
+            employee_ids: "Válassz legalább egy dolgozót.",
+        };
+        return;
+    }
+
     const range = Array.isArray(form.date_range) ? form.date_range : [form.date_range, form.date_range];
 
     emit("submit", {
         id: Number(props.absence?.extendedProps?.absence_id ?? 0),
         payload: {
-            employee_id: Number(form.employee_id ?? 0),
+            ...(isEdit.value
+                ? { employee_id: Number(form.employee_ids[0] ?? 0) }
+                : { employee_ids: form.employee_ids.map((id) => Number(id)) }),
             leave_type_id: Number(form.leave_type_id ?? 0),
             ...(isSickLeaveSelected.value && form.sick_leave_category_id
                 ? { sick_leave_category_id: Number(form.sick_leave_category_id) }
@@ -117,8 +152,37 @@ const submitDelete = () => {
     <Dialog v-model:visible="visible" modal :header="header" :style="{ width: '36rem' }">
         <div class="grid grid-cols-1 gap-3">
             <div>
-                <label class="mb-1 block text-sm">Dolgozó</label>
-                <EmployeeSelector v-model="form.employee_id" :companyId="companyId" />
+                <div class="mb-1 flex items-center justify-between gap-3">
+                    <label class="block text-sm">Dolgozók</label>
+                    <span class="text-xs text-slate-500">{{ employeeCountLabel }}</span>
+                </div>
+                <MultiSelect
+                    v-model="form.employee_ids"
+                    :options="employeeOptions"
+                    optionLabel="name"
+                    optionValue="id"
+                    class="w-full"
+                    display="chip"
+                    filter
+                    :maxSelectedLabels="3"
+                    selectedItemsLabel="{0} dolgozó kiválasztva"
+                    :disabled="loading || isEdit"
+                    placeholder="Dolgozók kiválasztása"
+                />
+                <div v-if="!isEdit" class="mt-2 flex items-center gap-2">
+                    <Button
+                        type="button"
+                        label="Összes kijelölése"
+                        size="small"
+                        severity="secondary"
+                        outlined
+                        :disabled="loading || allEmployeeIds.length === 0"
+                        @click="selectAllEmployees"
+                    />
+                </div>
+                <div v-if="form.errors.employee_ids" class="mt-2 text-sm text-red-600">
+                    {{ form.errors.employee_ids }}
+                </div>
             </div>
 
             <div>
@@ -152,7 +216,7 @@ const submitDelete = () => {
         <template #footer>
             <Button v-if="isEdit" label="Törlés" icon="pi pi-trash" severity="danger" text :disabled="loading" @click="submitDelete" />
             <Button label="Mégse" severity="secondary" :disabled="loading" @click="visible = false" />
-            <Button label="Mentés" icon="pi pi-check" :loading="loading" @click="submit" />
+            <Button label="Mentés" icon="pi pi-check" :loading="loading" :disabled="!form.employee_ids.length" @click="submit" />
         </template>
     </Dialog>
 </template>

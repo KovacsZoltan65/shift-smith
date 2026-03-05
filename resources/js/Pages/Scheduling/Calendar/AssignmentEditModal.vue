@@ -12,6 +12,7 @@ const props = defineProps({
     companyId: { type: Number, required: true },
     scheduleId: { type: Number, required: true },
     loading: { type: Boolean, default: false },
+    disabled: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(["update:modelValue", "update", "delete"]);
@@ -67,24 +68,24 @@ const submitDelete = () => {
         <div class="grid grid-cols-1 gap-3">
             <div>
                 <label class="mb-1 block text-sm">Dolgozó</label>
-                <EmployeeSelector v-model="form.employee_id" :companyId="companyId" />
+                <EmployeeSelector v-model="form.employee_id" :companyId="companyId" :disabled="disabled" />
             </div>
 
             <div>
                 <label class="mb-1 block text-sm">Műszak</label>
-                <WorkShiftSelector v-model="form.work_shift_id" :companyId="companyId" />
+                <WorkShiftSelector v-model="form.work_shift_id" :companyId="companyId" :disabled="disabled" />
             </div>
 
             <div>
                 <label class="mb-1 block text-sm">Dátum</label>
-                <DatePicker v-model="form.date" dateFormat="yy-mm-dd" showIcon class="w-full" />
+                <DatePicker v-model="form.date" dateFormat="yy-mm-dd" showIcon class="w-full" :disabled="disabled" />
             </div>
         </div>
 
         <template #footer>
-            <Button label="Törlés" icon="pi pi-trash" severity="danger" text :disabled="loading" @click="submitDelete" />
-            <Button label="Mégse" severity="secondary" :disabled="loading" @click="visible = false" />
-            <Button label="Mentés" icon="pi pi-check" :loading="loading" @click="submitUpdate" />
+            <Button label="Törlés" icon="pi pi-trash" severity="danger" text :disabled="loading || disabled" @click="submitDelete" />
+            <Button label="Mégse" severity="secondary" :disabled="loading || disabled" @click="visible = false" />
+            <Button label="Mentés" icon="pi pi-check" :loading="loading" :disabled="disabled" @click="submitUpdate" />
         </template>
     </Dialog>
 </template>

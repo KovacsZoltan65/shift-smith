@@ -15,5 +15,14 @@ final class CacheNamespaces
     {
         return "tenant:{$tenantGroupId}:work_schedule_assignments";
     }
-}
 
+    public static function tenantMonthClosures(int $tenantGroupId): string
+    {
+        return "tenant:{$tenantGroupId}:month_closures";
+    }
+
+    public static function tenantAbsences(int $tenantGroupId): string
+    {
+        return "tenant:{$tenantGroupId}:absences";
+    }
+}

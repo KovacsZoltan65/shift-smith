@@ -77,6 +77,25 @@ it('applies active and soft delete rules on employee KPI', function (): void {
     expect($activeEmployee->deleted_at)->toBeNull();
 });
 
+it('bootstraps tenant context on the first dashboard request for a single-company user', function (): void {
+    $tenantGroup = TenantGroup::factory()->create();
+    $company = Company::factory()->create(['tenant_group_id' => $tenantGroup->id, 'active' => true]);
+
+    $user = $this->createAdminUser($company);
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertSessionHas('current_company_id', (int) $company->id)
+        ->assertSessionHas('current_tenant_group_id', (int) $tenantGroup->id)
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Dashboard')
+            ->where('companyContext.current_company_id', (int) $company->id)
+            ->where('companyContext.current_company.name', (string) $company->name)
+            ->where('stats.companies', 1)
+        );
+});
+
 it('bumps dashboard stats cache version after employee mutation when dashboard cache is enabled', function (): void {
     config()->set('cache.enable_dashboard', true);
 
