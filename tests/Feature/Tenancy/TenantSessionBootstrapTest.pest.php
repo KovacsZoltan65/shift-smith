@@ -78,3 +78,41 @@ it('drifted company and tenant in session are cleared and redirected to company.
         ->assertSessionMissing('current_company_id')
         ->assertSessionMissing('current_tenant_group_id');
 });
+
+it('allows superadmin to switch company across tenant groups via company selector', function (): void {
+    $tenantOne = TenantGroup::factory()->create();
+    $tenantTwo = TenantGroup::factory()->create();
+
+    $companyTenantOne = Company::factory()->create([
+        'tenant_group_id' => $tenantOne->id,
+        'active' => true,
+    ]);
+    $companyTenantTwo = Company::factory()->create([
+        'tenant_group_id' => $tenantTwo->id,
+        'active' => true,
+    ]);
+
+    $user = $this->createSuperadminUser();
+
+    $this->actingAs($user)
+        ->withSession([
+            'current_tenant_group_id' => $tenantOne->id,
+            'current_company_id' => $companyTenantOne->id,
+        ])
+        ->get(route('company.select'))
+        ->assertOk()
+        ->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $page
+            ->component('Auth/SelectCompany')
+            ->has('companies', 2)
+        );
+
+    $this->actingAs($user)
+        ->withSession([
+            'current_tenant_group_id' => $tenantOne->id,
+            'current_company_id' => $companyTenantOne->id,
+        ])
+        ->post(route('company.select.store'), ['company_id' => $companyTenantTwo->id])
+        ->assertRedirect(route('dashboard', absolute: false))
+        ->assertSessionHas('current_company_id', $companyTenantTwo->id)
+        ->assertSessionHas('current_tenant_group_id', $tenantTwo->id);
+});

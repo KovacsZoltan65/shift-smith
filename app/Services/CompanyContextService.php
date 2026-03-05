@@ -35,6 +35,14 @@ final class CompanyContextService
         return $this->companySelectorService->countSelectableCompaniesForUser($user);
     }
 
+    public function countSelectableCompaniesForSwitch(User $user): int
+    {
+        return $this->companySelectorService->countSelectableCompaniesForUser(
+            $user,
+            $this->isSuperadmin($user)
+        );
+    }
+
     public function firstSelectableCompanyId(User $user): ?int
     {
         return $this->companySelectorService->firstSelectableCompanyIdForUser($user);
@@ -43,6 +51,15 @@ final class CompanyContextService
     public function userCanSelectCompany(User $user, int $companyId): bool
     {
         return $this->companySelectorService->userCanSelectCompany($user, $companyId);
+    }
+
+    public function userCanSelectCompanyForSwitch(User $user, int $companyId): bool
+    {
+        return $this->companySelectorService->userCanSelectCompany(
+            $user,
+            $companyId,
+            $this->isSuperadmin($user)
+        );
     }
 
     public function isSuperadmin(User $user): bool
@@ -69,5 +86,33 @@ final class CompanyContextService
     public function tenantGroupIdForCompany(User $user, int $companyId): ?int
     {
         return $this->companySelectorService->tenantGroupIdForSelectableCompany($user, $companyId);
+    }
+
+    public function tenantGroupIdForCompanyForSwitch(User $user, int $companyId): ?int
+    {
+        return $this->companySelectorService->tenantGroupIdForSelectableCompany(
+            $user,
+            $companyId,
+            $this->isSuperadmin($user)
+        );
+    }
+
+    /**
+     * @return array<int, array{id:int, name:string}>
+     */
+    public function selectableCompaniesForSwitch(User $user): array
+    {
+        $items = $this->companySelectorService->listSelectableCompaniesForUser(
+            $user,
+            $this->isSuperadmin($user)
+        );
+
+        return array_values(array_map(
+            static fn (array $row): array => [
+                'id' => (int) $row['id'],
+                'name' => (string) $row['name'],
+            ],
+            $items
+        ));
     }
 }

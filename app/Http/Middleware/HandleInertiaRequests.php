@@ -54,7 +54,7 @@ class HandleInertiaRequests extends Middleware
             }
 
             if ($user instanceof User) {
-                $selectableCompanyCount = $this->companyContext->countSelectableCompanies($user);
+                $selectableCompanyCount = $this->companyContext->countSelectableCompaniesForSwitch($user);
             }
 
             if ($user instanceof User && $currentCompanyId === null && $selectableCompanyCount === 1) {

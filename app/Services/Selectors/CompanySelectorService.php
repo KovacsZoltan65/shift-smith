@@ -25,13 +25,15 @@ final class CompanySelectorService
     /**
      * @return array<int, array{id:int,name:string,tenant_group_id:int}>
      */
-    public function listSelectableCompaniesForUser(User $user): array
+    public function listSelectableCompaniesForUser(User $user, bool $acrossTenants = false): array
     {
         if (! $this->canAccessCompanySelection($user)) {
             return [];
         }
 
-        $tenantGroupId = $this->currentTenantGroupId();
+        $tenantGroupId = $acrossTenants && $user->hasRole('superadmin')
+            ? null
+            : $this->currentTenantGroupId();
         $versionNamespace = $tenantGroupId === null
             ? "landlord:".self::NS_SELECTORS_COMPANIES
             : self::NS_SELECTORS_COMPANIES;
@@ -64,14 +66,14 @@ final class CompanySelectorService
         return $items;
     }
 
-    public function countSelectableCompaniesForUser(User $user): int
+    public function countSelectableCompaniesForUser(User $user, bool $acrossTenants = false): int
     {
-        return count($this->listSelectableCompaniesForUser($user));
+        return count($this->listSelectableCompaniesForUser($user, $acrossTenants));
     }
 
-    public function firstSelectableCompanyIdForUser(User $user): ?int
+    public function firstSelectableCompanyIdForUser(User $user, bool $acrossTenants = false): ?int
     {
-        $items = $this->listSelectableCompaniesForUser($user);
+        $items = $this->listSelectableCompaniesForUser($user, $acrossTenants);
         if ($items === []) {
             return null;
         }
@@ -79,9 +81,11 @@ final class CompanySelectorService
         return (int) $items[0]['id'];
     }
 
-    public function userCanSelectCompany(User $user, int $companyId): bool
+    public function userCanSelectCompany(User $user, int $companyId, bool $acrossTenants = false): bool
     {
-        $tenantGroupId = $this->currentTenantGroupId();
+        $tenantGroupId = $acrossTenants && $user->hasRole('superadmin')
+            ? null
+            : $this->currentTenantGroupId();
         if (! $this->canAccessCompanySelection($user)) {
             return false;
         }
@@ -93,18 +97,20 @@ final class CompanySelectorService
         return $this->repository->companyIsSelectableForUser($user, $tenantGroupId, $companyId);
     }
 
-    public function tenantGroupIdForSelectableCompany(User $user, int $companyId): ?int
+    public function tenantGroupIdForSelectableCompany(User $user, int $companyId, bool $acrossTenants = false): ?int
     {
-        if (! $this->userCanSelectCompany($user, $companyId)) {
+        if (! $this->userCanSelectCompany($user, $companyId, $acrossTenants)) {
             return null;
         }
 
-        $tenantGroupId = $this->currentTenantGroupId();
+        $tenantGroupId = $acrossTenants && $user->hasRole('superadmin')
+            ? null
+            : $this->currentTenantGroupId();
         if ($tenantGroupId !== null) {
             return $tenantGroupId;
         }
 
-        $match = collect($this->listSelectableCompaniesForUser($user))->firstWhere('id', $companyId);
+        $match = collect($this->listSelectableCompaniesForUser($user, $acrossTenants))->firstWhere('id', $companyId);
         if (! is_array($match) || ! is_numeric($match['tenant_group_id'] ?? null)) {
             return null;
         }
