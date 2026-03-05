@@ -64,6 +64,32 @@ final class OrgHierarchyGraphService
         return (int) ($counts[$employeeId] ?? 0);
     }
 
+    /**
+     * @return array<int, array{id:int,full_name:string,email:string|null,position:string|null}>
+     */
+    public function searchEmployees(int $companyId, string $query, int $limit = 20): array
+    {
+        $term = trim($query);
+        if ($term === '') {
+            return [];
+        }
+
+        $tenantGroupId = $this->tenantContext->currentTenantGroupIdOrFail();
+        $base = CacheNamespaces::tenantOrgHierarchy($tenantGroupId, $companyId);
+        $safeLimit = max(1, min($limit, 50));
+        $hash = hash('sha256', mb_strtolower($term, 'UTF-8').'|'.$safeLimit);
+
+        /** @var array<int, array{id:int,full_name:string,email:string|null,position:string|null}> $rows */
+        $rows = $this->cacheService->remember(
+            tag: $base,
+            key: "{$base}:employee_search:{$hash}",
+            callback: fn (): array => $this->repository->searchEmployeesForHierarchy($companyId, $term, $safeLimit),
+            ttl: 60
+        );
+
+        return $rows;
+    }
+
     private function buildGraph(int $companyId, ?int $rootEmployeeId, CarbonInterface $atDate, int $depth): OrgHierarchyGraphData
     {
         $root = $rootEmployeeId !== null

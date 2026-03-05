@@ -131,6 +131,12 @@ Route::middleware(['auth', 'verified', 'ensure.company'])->group(function () {
         ->whereNumber('id')
         ->name('org.hierarchy.node')
         ->middleware('throttle:120,1');
+    Route::get('/hr/hierarchy/employees/search', [OrgHierarchyController::class, 'employeesSearch'])
+        ->name('org.hierarchy.employees.search')
+        ->middleware('throttle:120,1');
+    Route::get('/hr/hierarchy/path', [OrgHierarchyController::class, 'path'])
+        ->name('org.hierarchy.path')
+        ->middleware('throttle:120,1');
 
     // Beállítások
     Route::get('/settings/app', [SettingsController::class, 'app'])->name('settings.app');
