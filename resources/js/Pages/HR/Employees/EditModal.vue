@@ -4,9 +4,12 @@ import { ref, watch, computed } from "vue";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 import Divider from "primevue/divider";
+import DatePicker from "primevue/datepicker";
+import Message from "primevue/message";
 import { useToast } from "primevue/usetoast";
 
 import EmployeeFields from "@/Pages/HR/Employees/Partials/EmployeeFields.vue";
+import SupervisorSelector from "@/Components/Selectors/SupervisorSelector.vue";
 import LeaveProfileFields from "@/Pages/HR/Employees/Partials/LeaveProfileFields.vue";
 import { csrfFetch } from "@/lib/csrfFetch";
 import EmployeeLeaveProfileService from "@/services/EmployeeLeaveProfileService.js";
@@ -34,6 +37,10 @@ const entitlementLoading = ref(false);
 const errors = ref({});
 const profileErrors = ref({});
 const entitlement = ref(null);
+const supervisorHistory = ref([]);
+const supervisorPreviewLoading = ref(false);
+const supervisorPreview = ref(null);
+let supervisorPreviewTimer = null;
 
 const form = ref({
     company_id: null,
@@ -45,6 +52,8 @@ const form = ref({
     birth_date: null,
     hired_at: null,
     active: true,
+    supervisor_employee_id: null,
+    supervisor_valid_from: null,
 });
 
 const profileForm = ref({
@@ -54,12 +63,20 @@ const profileForm = ref({
 });
 
 const reset = () => {
+    if (supervisorPreviewTimer !== null) {
+        clearTimeout(supervisorPreviewTimer);
+        supervisorPreviewTimer = null;
+    }
+
     errors.value = {};
     profileErrors.value = {};
     saving.value = false;
     profileLoading.value = false;
     entitlementLoading.value = false;
     entitlement.value = null;
+    supervisorHistory.value = [];
+    supervisorPreviewLoading.value = false;
+    supervisorPreview.value = null;
     form.value = {
         company_id: null,
         first_name: "",
@@ -70,12 +87,24 @@ const reset = () => {
         birth_date: null,
         hired_at: null,
         active: true,
+        supervisor_employee_id: null,
+        supervisor_valid_from: null,
     };
     profileForm.value = {
         children_count: 0,
         disabled_children_count: 0,
         is_disabled: false,
     };
+};
+
+const toYmd = (value) => {
+    if (!value) return null;
+    if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return value;
+    }
+
+    const date = value instanceof Date ? value : new Date(value);
+    return isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
 };
 
 const parseDate = (val) => {
@@ -102,7 +131,13 @@ const fillFromEmployee = (emp) => {
         birth_date: parseDate(emp.birth_date ?? null),
         hired_at: parseDate(emp.hired_at),
         active: emp.active ?? true,
+        supervisor_employee_id: null,
+        supervisor_valid_from: parseDate(emp.hired_at),
     };
+
+    supervisorHistory.value = Array.isArray(emp.supervisor_history)
+        ? emp.supervisor_history
+        : [];
 };
 
 const fillProfile = (profile) => {
@@ -162,9 +197,11 @@ watch(
             errors.value = {};
             fillFromEmployee(props.employee);
             if (props.employee?.id) {
+                loadEmployeeDetails(props.employee.id);
                 loadLeaveProfile(props.employee.id);
                 loadEntitlement(props.employee.id);
             }
+            queueSupervisorPreview();
         } else {
             reset();
         }
@@ -178,10 +215,30 @@ watch(
             errors.value = {};
             fillFromEmployee(emp);
             if (emp?.id) {
+                loadEmployeeDetails(emp.id);
                 loadLeaveProfile(emp.id);
                 loadEntitlement(emp.id);
             }
+            queueSupervisorPreview();
         }
+    }
+);
+
+watch(
+    () => [
+        visible.value,
+        props.employee?.id ?? null,
+        form.value.company_id,
+        form.value.supervisor_employee_id,
+        toYmd(form.value.supervisor_valid_from),
+        toYmd(form.value.hired_at),
+    ],
+    () => {
+        if (!visible.value) {
+            return;
+        }
+
+        queueSupervisorPreview();
     }
 );
 
@@ -208,6 +265,93 @@ const toPayload = () => {
     };
 };
 
+const loadEmployeeDetails = async (employeeId) => {
+    try {
+        const response = await csrfFetch(`/employees/${employeeId}`, {
+            method: "GET",
+            headers: {
+                Accept: "application/json",
+                "X-Requested-With": "XMLHttpRequest",
+            },
+        });
+
+        if (!response.ok) {
+            return;
+        }
+
+        const payload = await response.json().catch(() => ({}));
+        if (payload && typeof payload === "object") {
+            fillFromEmployee(payload);
+        }
+    } catch {
+        // no-op
+    }
+};
+
+const runSupervisorPreview = async () => {
+    const employeeId = Number(props.employee?.id || 0);
+    const companyId = Number(form.value.company_id || 0);
+    const supervisorEmployeeId = Number(form.value.supervisor_employee_id || 0);
+    const effectiveFrom =
+        toYmd(form.value.supervisor_valid_from) ||
+        toYmd(form.value.hired_at) ||
+        new Date().toISOString().slice(0, 10);
+
+    if (!visible.value || !employeeId || !companyId || !supervisorEmployeeId) {
+        supervisorPreview.value = null;
+        return;
+    }
+
+    supervisorPreviewLoading.value = true;
+
+    try {
+        const params = new URLSearchParams({
+            company_id: String(companyId),
+            employee_id: String(employeeId),
+            new_supervisor_employee_id: String(supervisorEmployeeId),
+            mode: "employee_only",
+            effective_from: effectiveFrom,
+            at_date: effectiveFrom,
+        });
+
+        const response = await csrfFetch(`${route("org.hierarchy.move.preview")}?${params.toString()}`, {
+            method: "GET",
+            headers: {
+                Accept: "application/json",
+                "X-Requested-With": "XMLHttpRequest",
+            },
+        });
+
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(payload?.message || "A felettes integritás ellenőrzése sikertelen.");
+        }
+
+        supervisorPreview.value = payload?.data ?? null;
+    } catch (error) {
+        supervisorPreview.value = {
+            warnings: [],
+            errors: [error?.message || "A felettes integritás ellenőrzése sikertelen."],
+        };
+    } finally {
+        supervisorPreviewLoading.value = false;
+    }
+};
+
+const queueSupervisorPreview = () => {
+    if (supervisorPreviewTimer !== null) {
+        clearTimeout(supervisorPreviewTimer);
+    }
+
+    supervisorPreviewTimer = setTimeout(() => {
+        runSupervisorPreview();
+    }, 400);
+};
+
+const supervisorPreviewHasErrors = computed(
+    () => (supervisorPreview.value?.errors ?? []).length > 0,
+);
+
 const submit = async () => {
     const id = props.employee?.id;
     if (!id) {
@@ -219,6 +363,20 @@ const submit = async () => {
     errors.value = {};
 
     try {
+        if (form.value.supervisor_employee_id) {
+            await runSupervisorPreview();
+
+            if (supervisorPreviewHasErrors.value) {
+                errors.value = {
+                    supervisor_employee_id: supervisorPreview.value?.errors ?? [
+                        "A felettes kapcsolat integritás ellenőrzése hibát talált.",
+                    ],
+                };
+                saving.value = false;
+                return;
+            }
+        }
+
         const res = await csrfFetch(`/employees/${id}`, {
             method: "PUT",
             headers: {
@@ -243,6 +401,42 @@ const submit = async () => {
                 msg = body?.message || msg;
             } catch (_) {}
             throw new Error(msg);
+        }
+
+        if (form.value.supervisor_employee_id) {
+            const validFrom =
+                form.value.supervisor_valid_from instanceof Date
+                    ? form.value.supervisor_valid_from.toISOString().slice(0, 10)
+                    : form.value.hired_at instanceof Date
+                      ? form.value.hired_at.toISOString().slice(0, 10)
+                      : new Date().toISOString().slice(0, 10);
+
+            const supervisorRes = await csrfFetch(`/employees/${id}/supervisor`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                body: JSON.stringify({
+                    employee_id: Number(id),
+                    supervisor_employee_id: form.value.supervisor_employee_id
+                        ? Number(form.value.supervisor_employee_id)
+                        : null,
+                    valid_from: validFrom,
+                }),
+            });
+
+            if (supervisorRes.status === 422) {
+                const body = await supervisorRes.json().catch(() => ({}));
+                errors.value = body?.errors ?? {};
+                saving.value = false;
+                return;
+            }
+
+            if (!supervisorRes.ok) {
+                throw new Error(`Felettes mentés sikertelen (HTTP ${supervisorRes.status})`);
+            }
         }
 
         const profileResponse = await EmployeeLeaveProfileService.updateProfile(id, toProfilePayload());
@@ -315,6 +509,91 @@ const close = () => {
             :disabled="saving"
             :lockCompany="lockCompany"
         />
+
+        <section class="mt-4 rounded-lg border border-surface-200 p-4">
+            <div class="mb-3">
+                <h3 class="text-lg font-semibold">Felettes kapcsolatok</h3>
+            </div>
+
+            <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div>
+                    <label class="mb-1 block text-sm font-medium">Új felettes</label>
+                    <SupervisorSelector
+                        v-model="form.supervisor_employee_id"
+                        :company-id="form.company_id"
+                        :employee-id="props.employee?.id"
+                        :disabled="saving"
+                    />
+                    <div v-if="errors?.supervisor_employee_id" class="mt-1 text-sm text-red-600">
+                        {{ Array.isArray(errors.supervisor_employee_id) ? errors.supervisor_employee_id[0] : errors.supervisor_employee_id }}
+                    </div>
+                </div>
+                <div>
+                    <label class="mb-1 block text-sm font-medium">Érvényes ettől</label>
+                    <DatePicker
+                        v-model="form.supervisor_valid_from"
+                        class="w-full"
+                        dateFormat="yy-mm-dd"
+                        showIcon
+                        :disabled="saving"
+                    />
+                </div>
+            </div>
+
+            <div v-if="form.supervisor_employee_id" class="mt-3 space-y-2">
+                <div class="text-xs text-surface-500">
+                    {{ supervisorPreviewLoading ? "Integritás ellenőrzés folyamatban..." : "Integritás ellenőrzés a hierarchy szabályai szerint." }}
+                </div>
+
+                <Message
+                    v-for="warning in supervisorPreview?.warnings || []"
+                    :key="`supervisor-warning-${warning}`"
+                    severity="warn"
+                    :closable="false"
+                >
+                    {{ warning }}
+                </Message>
+
+                <Message
+                    v-for="error in supervisorPreview?.errors || []"
+                    :key="`supervisor-error-${error}`"
+                    severity="error"
+                    :closable="false"
+                >
+                    {{ error }}
+                </Message>
+
+                <Message
+                    v-if="!supervisorPreviewLoading && supervisorPreview && !supervisorPreviewHasErrors"
+                    severity="success"
+                    :closable="false"
+                >
+                    A felettes kapcsolat integritása rendben van.
+                </Message>
+            </div>
+
+            <div class="mt-4 overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <thead>
+                        <tr class="border-b">
+                            <th class="px-2 py-1 text-left">Érvényes ettől</th>
+                            <th class="px-2 py-1 text-left">Érvényes eddig</th>
+                            <th class="px-2 py-1 text-left">Felettes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="row in supervisorHistory" :key="row.id" class="border-b border-surface-100">
+                            <td class="px-2 py-1">{{ row.valid_from }}</td>
+                            <td class="px-2 py-1">{{ row.valid_to || '-' }}</td>
+                            <td class="px-2 py-1">{{ row.supervisor_name }}</td>
+                        </tr>
+                        <tr v-if="!supervisorHistory.length">
+                            <td class="px-2 py-2 text-surface-500" colspan="3">Nincs felettes történet.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
         <Divider />
 
@@ -391,7 +670,7 @@ const close = () => {
                 label="Mentés"
                 icon="pi pi-check"
                 :loading="saving"
-                :disabled="saving || !props.canUpdate"
+                :disabled="saving || supervisorPreviewLoading || supervisorPreviewHasErrors || !props.canUpdate"
                 @click="submit"
             />
         </template>

@@ -31,6 +31,8 @@ interface UserEmployeeRepositoryInterface
 
     public function userHasEmployee(User $target, Employee $employee): bool;
 
+    public function findEmployeeIdForUserInCompany(User $user, int $companyId): ?int;
+
     public function attach(User $target, Employee $employee): void;
 
     public function detach(User $target, Employee $employee): void;

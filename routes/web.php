@@ -18,6 +18,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\CompanySelectController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\EmployeeWorkPatternController;
+use App\Http\Controllers\EmployeeSupervisorController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ProfileController;
@@ -29,6 +30,8 @@ use App\Http\Controllers\WorkShiftAssignmentController;
 use App\Http\Controllers\WorkShiftController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MonthClosureController;
+use App\Http\Controllers\HR\OrgHierarchyController;
+use App\Http\Controllers\OrgPositionLevelController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -118,6 +121,34 @@ Route::middleware(['auth', 'verified', 'ensure.company'])->group(function () {
     //Route::get('/employees', fn () => Inertia::render('HR/Employees/Index', ['title' => 'Dolgozók']))->name('employees.index');
     
     Route::get('/assignments', fn () => Inertia::render('HR/Assignments/Index'))->name('assignments.index');
+    Route::get('/hr/hierarchy', [OrgHierarchyController::class, 'index'])
+        ->name('org.hierarchy.index')
+        ->middleware('throttle:60,1');
+    Route::get('/hr/hierarchy/graph', [OrgHierarchyController::class, 'graph'])
+        ->name('org.hierarchy.graph')
+        ->middleware('throttle:120,1');
+    Route::get('/hr/hierarchy/node/{id}', [OrgHierarchyController::class, 'node'])
+        ->whereNumber('id')
+        ->name('org.hierarchy.node')
+        ->middleware('throttle:120,1');
+    Route::get('/hr/hierarchy/employees/search', [OrgHierarchyController::class, 'employeesSearch'])
+        ->name('org.hierarchy.employees.search')
+        ->middleware('throttle:120,1');
+    Route::get('/hr/hierarchy/path', [OrgHierarchyController::class, 'path'])
+        ->name('org.hierarchy.path')
+        ->middleware('throttle:120,1');
+    Route::get('/hr/hierarchy/move/preview', [OrgHierarchyController::class, 'movePreview'])
+        ->name('org.hierarchy.move.preview')
+        ->middleware('throttle:60,1');
+    Route::post('/hr/hierarchy/move', [OrgHierarchyController::class, 'move'])
+        ->name('org.hierarchy.move')
+        ->middleware('throttle:20,1');
+    Route::get('/hr/hierarchy/integrity', [OrgHierarchyController::class, 'integrity'])
+        ->name('org.hierarchy.integrity')
+        ->middleware('throttle:60,1');
+    Route::post('/hr/hierarchy/design-settings', [OrgHierarchyController::class, 'saveDesignSettings'])
+        ->name('org.hierarchy.design_settings.save')
+        ->middleware('throttle:30,1');
 
     // Beállítások
     Route::get('/settings/app', [SettingsController::class, 'app'])->name('settings.app');
@@ -184,6 +215,12 @@ Route::middleware(['auth', 'verified'])
         Route::delete('/app-settings/{id}', [AppSettingController::class, 'destroy'])->whereNumber('id')->name('app_settings.destroy')->middleware('throttle:20,1');
 
         Route::middleware(['ensure.company'])->group(function (): void {
+            Route::get('/position-org-levels', [OrgPositionLevelController::class, 'index'])->name('position_org_levels.index')->middleware('throttle:60,1');
+            Route::get('/position-org-levels/fetch', [OrgPositionLevelController::class, 'fetch'])->name('position_org_levels.fetch')->middleware('throttle:60,1');
+            Route::post('/position-org-levels', [OrgPositionLevelController::class, 'store'])->name('position_org_levels.store')->middleware('throttle:20,1');
+            Route::put('/position-org-levels/{id}', [OrgPositionLevelController::class, 'update'])->whereNumber('id')->name('position_org_levels.update')->middleware('throttle:30,1');
+            Route::delete('/position-org-levels/{id}', [OrgPositionLevelController::class, 'destroy'])->whereNumber('id')->name('position_org_levels.destroy')->middleware('throttle:20,1');
+
             Route::get('/leave-types', [LeaveTypeController::class, 'index'])->name('leave_types.index')->middleware('throttle:60,1');
             Route::get('/leave-types/fetch', [LeaveTypeController::class, 'fetch'])->name('leave_types.fetch')->middleware('throttle:60,1');
             Route::get('/leave-types/selector', [LeaveTypeController::class, 'selector'])->name('leave_types.selector')->middleware('throttle:120,1');
@@ -361,9 +398,19 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
         
         // Írási műveletek
         Route::post('/', 'store')->name('store')->middleware('throttle:20,1');
+        Route::post('/{employee}/restore', 'restore')->whereNumber('employee')->name('restore')->middleware('throttle:20,1');
         Route::put('/{id}', 'update')->whereNumber('id')->name('update')->middleware('throttle:30,1');
-        Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy')->middleware('throttle:20,1');
+        Route::get('/{employee}/delete-preview', 'deletePreview')->whereNumber('employee')->name('delete_preview')->middleware('throttle:60,1');
+        Route::delete('/{employee}', 'destroy')->whereNumber('employee')->name('destroy')->middleware('throttle:20,1');
         Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
+    });
+
+Route::middleware(['auth', 'verified', 'ensure.company'])
+    ->prefix('employees')
+    ->as('employees.')
+    ->controller(EmployeeSupervisorController::class)
+    ->group(function (): void {
+        Route::post('/{employee}/supervisor', 'assign')->whereNumber('employee')->name('supervisor.assign')->middleware('throttle:20,1');
     });
 
 Route::middleware(['auth', 'verified', 'ensure.company'])

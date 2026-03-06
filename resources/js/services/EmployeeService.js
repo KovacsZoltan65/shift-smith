@@ -20,6 +20,18 @@ class EmployeeService extends BaseService {
         return this.put(route(`${this.url}.update`, id), params);
     }
 
+    getEmployee(id) {
+        return this.get(route(`${this.url}.by_id`, id));
+    }
+
+    assignSupervisor(employeeId, payload) {
+        return this.post(route(`${this.url}.supervisor.assign`, employeeId), payload);
+    }
+
+    getDeletePreview(id, params = {}) {
+        return this.get(route(`${this.url}.delete_preview`, id), { params });
+    }
+
     // BULK DELETE – body a config.data-ban
     deleteEmployees(ids) {
         return this.delete(route(`${this.url}.destroy_bulk`), {
@@ -27,8 +39,10 @@ class EmployeeService extends BaseService {
         });
     }
 
-    deleteEmployee(id) {
-        return this.delete(route(`${this.url}.destroy`, id));
+    deleteEmployee(id, params = {}) {
+        return this.delete(route(`${this.url}.destroy`, id), {
+            data: params,
+        });
     }
 
     //restoreEmployee(id) {

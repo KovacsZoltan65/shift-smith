@@ -104,6 +104,7 @@ final class WorkScheduleAssignmentRepository implements WorkScheduleAssignmentRe
     {
         /** @var WorkShiftAssignment $assignment */
         $assignment = WorkShiftAssignment::query()
+            ->with('employee:id,company_id,first_name,last_name,org_level')
             ->where('company_id', $companyId)
             ->findOrFail($id);
 

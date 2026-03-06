@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
 
             CompanySeeder::class,
             PositionSeeder::class,
+            PositionOrgLevelsSeeder::class,
             EmployeeSeeder::class,
             PivotSeeder::class,
             
@@ -38,7 +39,15 @@ class DatabaseSeeder extends Seeder
             SickLeaveCategoriesSeeder::class,
             LeaveCarryOverAppSettingsSeeder::class,
             LeaveTypesSeeder::class,
+
+            OrgHierarchySeeder::class,
         ]);
+
+        if (filter_var((string) env('ORG_SEEDER_ENABLED', 'false'), FILTER_VALIDATE_BOOL)) {
+            $this->call([
+                OrgHierarchySeeder::class,
+            ]);
+        }
 
         // Demo tenant explicit, opt-in seed:
         // $this->call(\Database\Seeders\Demo\DemoTenantSeeder::class);

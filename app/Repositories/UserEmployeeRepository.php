@@ -8,6 +8,7 @@ use App\Models\Company;
 use App\Models\Employee;
 use App\Models\TenantGroup;
 use App\Models\User;
+use App\Models\UserEmployee;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
@@ -148,6 +149,25 @@ final class UserEmployeeRepository implements UserEmployeeRepositoryInterface
             ->whereKey((int) $employee->id)
             ->where('user_employee.active', true)
             ->exists();
+    }
+
+    public function findEmployeeIdForUserInCompany(User $user, int $companyId): ?int
+    {
+        $tenantGroupId = $this->currentTenantGroupId();
+        if ($tenantGroupId === null) {
+            return null;
+        }
+
+        $employeeId = UserEmployee::query()
+            ->where('user_id', (int) $user->id)
+            ->where('company_id', $companyId)
+            ->where('active', true)
+            ->whereHas('company', function (Builder $query) use ($tenantGroupId): void {
+                $query->where('tenant_group_id', $tenantGroupId);
+            })
+            ->value('employee_id');
+
+        return is_numeric($employeeId) ? (int) $employeeId : null;
     }
 
     public function attach(User $target, Employee $employee): void

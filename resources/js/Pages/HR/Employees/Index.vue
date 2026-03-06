@@ -19,6 +19,7 @@ import Select from "primevue/select";
 import CreateModal from "@/Pages/HR/Employees/CreateModal.vue";
 import EditModal from "@/Pages/HR/Employees/EditModal.vue";
 import WorkPatternModal from "@/Pages/HR/Employees/WorkPatternModal.vue";
+import DeleteEmployeeDialog from "@/Components/Employees/DeleteEmployeeDialog.vue";
 
 import { csrfFetch } from "@/lib/csrfFetch";
 
@@ -27,6 +28,7 @@ import { toYmd } from "@/helpers/functions.js";
 const page = usePage();
 
 import { usePermissions } from "@/composables/usePermissions";
+import { IconField, InputIcon } from "primevue";
 
 const props = defineProps({
     title: { type: String, default: "Dolgozók" },
@@ -57,6 +59,8 @@ const confirm = useConfirm();
 const createOpen = ref(false);
 const editOpen = ref(false);
 const editEmployee = ref(null);
+const deleteOpen = ref(false);
+const deleteEmployee = ref(null);
 const workPatternOpen = ref(false);
 const selectedEmployeeForWorkPattern = ref(null);
 
@@ -261,63 +265,24 @@ const fetchEmployees = async () => {
 };
 
 const confirmDeleteOne = (row) => {
-    const label =
-        row?.name ||
-        `${row?.first_name ?? ""} ${row?.last_name ?? ""}`.trim() ||
-        `#${row?.id}`;
-
-    confirm.require({
-        message: `Biztos törlöd: ${label}?`,
-        header: "Megerősítés",
-        icon: "pi pi-exclamation-triangle",
-        acceptLabel: "Törlés",
-        rejectLabel: "Mégse",
-        acceptClass: "p-button-danger",
-        accept: () => deleteOne(row.id),
-    });
+    deleteEmployee.value = row;
+    deleteOpen.value = true;
 };
 
-const deleteOne = async (id) => {
-    actionLoading.value = true;
-
-    try {
-        const res = await csrfFetch(`${props.endpointBase}/${id}`, {
-            method: "DELETE",
-            headers: {
-                "X-Requested-With": "XMLHttpRequest",
-                Accept: "application/json",
-            },
-        });
-
-        if (!res.ok) {
-            let msg = `Törlés sikertelen (HTTP ${res.status})`;
-            try {
-                const body = await res.json();
-                msg = body?.message || msg;
-            } catch (_) {}
-            throw new Error(msg);
-        }
-
-        toast.add({
-            severity: "success",
-            summary: "Siker",
-            detail: "Dolgozó törölve",
-            life: 2500,
-        });
-
-        selected.value = selected.value.filter((x) => x.id !== id);
-
-        await fetchEmployees();
-    } catch (e) {
-        toast.add({
-            severity: "error",
-            summary: "Hiba",
-            detail: e?.message || "Ismeretlen hiba",
-            life: 3500,
-        });
-    } finally {
-        actionLoading.value = false;
+const onDeleted = async () => {
+    deleteOpen.value = false;
+    const deletedId = Number(deleteEmployee.value?.id || 0);
+    if (deletedId > 0) {
+        selected.value = selected.value.filter((x) => x.id !== deletedId);
     }
+    deleteEmployee.value = null;
+    toast.add({
+        severity: "success",
+        summary: "Siker",
+        detail: "Dolgozó törölve",
+        life: 2500,
+    });
+    await fetchEmployees();
 };
 
 const confirmBulkDelete = () => {
@@ -404,6 +369,13 @@ onMounted(() => {
         :employee="editEmployee"
         :canUpdate="canUpdate"
         @saved="onSaved"
+    />
+
+    <DeleteEmployeeDialog
+        v-model:visible="deleteOpen"
+        :employee="deleteEmployee"
+        :company-id="Number(companyId || 0)"
+        @deleted="onDeleted"
     />
 
     <WorkPatternModal

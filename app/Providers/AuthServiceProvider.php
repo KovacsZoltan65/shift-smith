@@ -4,6 +4,7 @@ namespace App\Providers;
 
 // use Illuminate\Support\Facades\Gate;
 use App\Policies\UserAssignmentPolicy;
+use App\Policies\OrgHierarchyPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
@@ -36,6 +37,7 @@ class AuthServiceProvider extends ServiceProvider
         \App\Models\SickLeaveCategory::class => \App\Policies\SickLeaveCategoryPolicy::class,
         \App\Models\UserSetting::class => \App\Policies\UserSettingPolicy::class,
         \App\Models\UserEmployee::class => \App\Policies\UserEmployeePolicy::class,
+        \App\Models\PositionOrgLevel::class => \App\Policies\PositionOrgLevelPolicy::class,
         
         //\App\Models\Activity::class               => \App\Policies\ActivityPolicy::class,
         //
@@ -73,6 +75,18 @@ class AuthServiceProvider extends ServiceProvider
 
             return $policy->before($user, UserAssignmentPolicy::PERM_UPDATE)
                 ?? $policy->update($user);
+        });
+
+        Gate::define(OrgHierarchyPolicy::PERM_VIEW_ANY, function (\App\Models\User $user): bool {
+            $policy = app(OrgHierarchyPolicy::class);
+
+            return $policy->viewAny($user);
+        });
+
+        Gate::define(OrgHierarchyPolicy::PERM_UPDATE, function (\App\Models\User $user): bool {
+            $policy = app(OrgHierarchyPolicy::class);
+
+            return $policy->update($user);
         });
     }
 }

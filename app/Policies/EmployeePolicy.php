@@ -5,7 +5,8 @@ namespace App\Policies;
 use App\Models\Employee;
 use App\Models\User;
 use App\Policies\BasePolicy;
-use App\Services\Access\CompanyAccessService;
+use App\Services\HierarchyAuthorizationService;
+use Carbon\CarbonImmutable;
 
 /**
  * Dolgozó policy osztály
@@ -66,10 +67,10 @@ final class EmployeePolicy extends BasePolicy
             return false;
         }
 
-        /** @var CompanyAccessService $access */
-        $access = app(CompanyAccessService::class);
+        /** @var HierarchyAuthorizationService $authorization */
+        $authorization = app(HierarchyAuthorizationService::class);
 
-        return $access->userCanAccessEmployee($user, $employee);
+        return $authorization->canManageEmployee($user, $employee, CarbonImmutable::today());
     }
     
     /**
@@ -96,10 +97,10 @@ final class EmployeePolicy extends BasePolicy
             return false;
         }
 
-        /** @var CompanyAccessService $access */
-        $access = app(CompanyAccessService::class);
+        /** @var HierarchyAuthorizationService $authorization */
+        $authorization = app(HierarchyAuthorizationService::class);
 
-        return $access->userCanAccessEmployee($user, $employee);
+        return $authorization->canManageEmployee($user, $employee, CarbonImmutable::today());
     }
 
     /**
@@ -138,10 +139,10 @@ final class EmployeePolicy extends BasePolicy
             return false;
         }
 
-        /** @var CompanyAccessService $access */
-        $access = app(CompanyAccessService::class);
+        /** @var HierarchyAuthorizationService $authorization */
+        $authorization = app(HierarchyAuthorizationService::class);
 
-        return $access->userCanAccessEmployee($user, $employee);
+        return $authorization->canManageEmployee($user, $employee, CarbonImmutable::today());
     }
     
     /**

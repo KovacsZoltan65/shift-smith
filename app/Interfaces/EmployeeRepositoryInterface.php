@@ -20,6 +20,14 @@ interface EmployeeRepositoryInterface
 
     public function findByIdInCompany(int $employeeId, int $companyId): ?Employee;
 
+    public function findByIdInCompanyForUpdate(int $employeeId, int $companyId): ?Employee;
+
+    public function findActiveByEmail(int $companyId, string $email): ?Employee;
+
+    public function findSoftDeletedByEmail(int $companyId, string $email): ?Employee;
+
+    public function findTrashedByIdInCompany(int $employeeId, int $companyId): ?Employee;
+
     public function findLeaveEntitlementData(int $employeeId, int $companyId): EmployeeLeaveEntitlementData;
     
     public function getEmployeeByName(string $name): Employee;
@@ -34,6 +42,7 @@ interface EmployeeRepositoryInterface
      *   phone?: string|null,
      *   email?: string|null,
      *   position_id?: int|null,
+     *   org_level?: string|null,
      *   hired_at: string|null
      * } $data
      * @return Employee
@@ -50,6 +59,7 @@ interface EmployeeRepositoryInterface
      *   address?: string|null,
      *   phone?: string|null,
      *   position_id?: int|null,
+     *   org_level?: string|null,
      *   hired_at?: string|null,
      *   active?: bool,
      *   company_id?: int|null
@@ -66,6 +76,26 @@ interface EmployeeRepositoryInterface
     public function bulkDelete(array $ids): int;
     
     public function destroy(int $id): bool;
+
+    public function softDeleteEmployee(int $companyId, int $employeeId): bool;
+
+    /**
+     * @param array{
+     *   first_name: string,
+     *   last_name: string,
+     *   email: string,
+     *   birth_date: string,
+     *   address?: string|null,
+     *   phone?: string|null,
+     *   position_id?: int|null,
+     *   org_level?: string|null,
+     *   hired_at?: string|null,
+     *   active?: bool
+     * } $data
+     */
+    public function restoreEmployee(int $companyId, int $employeeId, array $data): Employee;
+
+    public function isCeo(int $companyId, int $employeeId): bool;
     
     /**
      * @param array{

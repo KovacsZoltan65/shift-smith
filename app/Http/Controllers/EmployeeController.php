@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Employee\BulkDeleteRequest;
+use App\Http\Requests\Employee\EmployeeDeletePreviewRequest;
+use App\Http\Requests\Employee\EmployeeDestroyRequest;
+use App\Http\Requests\Employee\EmployeeRestoreRequest;
 use App\Http\Requests\Employee\EligibleSelectorRequest;
 use App\Http\Requests\Employee\IndexRequest;
 use App\Http\Requests\Employee\StoreRequest;
@@ -10,15 +13,18 @@ use App\Http\Requests\Employee\UpdateRequest;
 use App\Models\Employee;
 use App\Policies\EmployeePolicy;
 use App\Services\EmployeeService;
+use App\Services\Employee\EmployeeDeletionService;
+use App\Services\Employee\EmployeeRestoreService;
+use App\Services\EmployeeSupervisorService;
 use App\Services\CurrentCompany;
+use App\Data\Employee\EmployeeData;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
-use Throwable;
-use App\Data\Employee\EmployeeData;
 use App\Data\Employee\EmployeeIndexData;
+use Throwable;
 
 /**
  * Munkavállaló controller osztály
@@ -34,7 +40,10 @@ class EmployeeController extends Controller
      */
     public function __construct(
             private readonly EmployeeService $service,
-            private readonly CurrentCompany $currentCompany
+            private readonly EmployeeDeletionService $employeeDeletionService,
+            private readonly EmployeeRestoreService $employeeRestoreService,
+            private readonly CurrentCompany $currentCompany,
+            private readonly EmployeeSupervisorService $employeeSupervisorService,
     ) {}
     
     /**
@@ -128,10 +137,14 @@ class EmployeeController extends Controller
     {
         $employee = $this->service->getEmployee($id);
         $this->authorize('view', $employee);
+        $history = $this->employeeSupervisorService->history((int) $employee->company_id, (int) $employee->id);
 
         try {
             return response()->json(
-                $employee,
+                [
+                    ...$employee->toArray(),
+                    'supervisor_history' => $history,
+                ],
                 Response::HTTP_OK
             );
         } catch(Throwable $th) {
@@ -172,14 +185,51 @@ class EmployeeController extends Controller
      * @param EmployeeData $data Validált DTO adatok
      * @return JsonResponse Létrehozott munkavállaló JSON-ben
      */
-    public function store(EmployeeData $data): JsonResponse
+    public function store(StoreRequest $request): JsonResponse
     {
         $this->authorize(EmployeePolicy::PERM_CREATE, Employee::class);
-        $created = $this->service->store($data);
+
+        $payload = $request->validatedPayload();
+        $currentCompanyId = $this->currentCompany->currentCompanyId($request) ?? (int) $payload['company_id'];
+        abort_if((int) $payload['company_id'] !== (int) $currentCompanyId, 403, 'Company scope mismatch');
+
+        $restoreResponse = $this->employeeRestoreService->prepareRestoreResponse(
+            (int) $currentCompanyId,
+            (string) $payload['email'],
+        );
+
+        if (is_array($restoreResponse)) {
+            return response()->json($restoreResponse, Response::HTTP_CONFLICT);
+        }
+
+        $created = $this->service->storeFromPayload($payload);
+
         return response()->json([
             'message' => 'A dolgozó sikeresen létrehozva.',
             'data' => $created,
         ], Response::HTTP_CREATED);
+    }
+
+    public function restore(EmployeeRestoreRequest $request, int $employee): JsonResponse
+    {
+        $this->authorize(EmployeePolicy::PERM_CREATE, Employee::class);
+
+        $payload = $request->validatedPayload();
+        $currentCompanyId = $this->currentCompany->currentCompanyId($request) ?? (int) $payload['company_id'];
+        abort_if((int) $payload['company_id'] !== (int) $currentCompanyId, 403, 'Company scope mismatch');
+
+        $restored = $this->employeeRestoreService->restoreEmployee(
+            companyId: (int) $currentCompanyId,
+            employeeId: $employee,
+            data: $payload,
+            actorUserId: $request->user()?->id !== null ? (int) $request->user()->id : null,
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'A dolgozó sikeresen visszaállítva. A hierarchia hozzárendelés külön szükséges.',
+            'data' => EmployeeIndexData::fromModel($restored),
+        ], Response::HTTP_OK);
     }
     
     /**
@@ -241,14 +291,50 @@ class EmployeeController extends Controller
      * @return JsonResponse Törlés eredménye JSON-ben
      * @throws \Throwable
      */
-    public function destroy(int $id): JsonResponse
+    public function deletePreview(EmployeeDeletePreviewRequest $request, Employee $employee): JsonResponse
     {
-        $employee = $this->service->getEmployee($id);
         $this->authorize('delete', $employee);
 
-        $deleted = $this->service->destroy($id);
+        $payload = $request->validatedPayload();
+        $currentCompanyId = $this->currentCompany->currentCompanyId($request);
+        abort_if($currentCompanyId === null, 403, 'No company selected');
+        abort_if((int) $payload['company_id'] !== (int) $currentCompanyId, 403, 'Company scope mismatch');
 
-        return response()->json($deleted, Response::HTTP_OK);
+        $preview = $this->employeeDeletionService->previewDelete(
+            companyId: (int) $currentCompanyId,
+            employeeId: (int) $employee->id,
+            effectiveFrom: (string) $payload['effective_from'],
+            strategy: (string) $payload['strategy'],
+            targetSupervisorId: $payload['target_supervisor_employee_id'],
+        );
+
+        return response()->json([
+            'message' => 'Dolgozó törlés előnézet sikeresen elkészült.',
+            'data' => $preview,
+        ], Response::HTTP_OK);
+    }
+
+    public function destroy(EmployeeDestroyRequest $request, Employee $employee): JsonResponse
+    {
+        $this->authorize('delete', $employee);
+        $payload = $request->validatedPayload();
+        $currentCompanyId = $this->currentCompany->currentCompanyId($request);
+        abort_if($currentCompanyId === null, 403, 'No company selected');
+        abort_if((int) $payload['company_id'] !== (int) $currentCompanyId, 403, 'Company scope mismatch');
+
+        $deleted = $this->employeeDeletionService->deleteEmployee(
+            companyId: (int) $currentCompanyId,
+            employeeId: (int) $employee->id,
+            effectiveFrom: (string) $payload['effective_from'],
+            strategy: (string) $payload['strategy'],
+            targetSupervisorId: $payload['target_supervisor_employee_id'],
+            actorUserId: $request->user()?->id !== null ? (int) $request->user()->id : null,
+        );
+
+        return response()->json([
+            'message' => 'A dolgozó törlése sikeres.',
+            'data' => $deleted,
+        ], Response::HTTP_OK);
     }
     
     /**

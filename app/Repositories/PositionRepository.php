@@ -175,6 +175,23 @@ class PositionRepository extends BaseRepository implements PositionRepositoryInt
         );
     }
 
+    public function firstOrCreateInCompany(int $companyId, string $name, ?string $description = null): Position
+    {
+        /** @var Position $position */
+        $position = Position::query()->firstOrCreate(
+            [
+                'company_id' => $companyId,
+                'name' => trim($name),
+            ],
+            [
+                'description' => $description,
+                'active' => true,
+            ]
+        );
+
+        return $position;
+    }
+
     private function invalidateAfterWrite(int $companyId): void
     {
         DB::afterCommit(function () use ($companyId): void {

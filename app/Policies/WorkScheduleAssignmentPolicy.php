@@ -6,6 +6,7 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Models\WorkShiftAssignment;
+use App\Services\HierarchyAuthorizationService;
 use Carbon\CarbonImmutable;
 
 final class WorkScheduleAssignmentPolicy extends BasePolicy
@@ -38,7 +39,18 @@ final class WorkScheduleAssignmentPolicy extends BasePolicy
 
     public function view(User $user, WorkShiftAssignment $assignment): bool
     {
-        return $user->can(self::perm(self::PERM_VIEW));
+        if (! $user->can(self::perm(self::PERM_VIEW))) {
+            return false;
+        }
+
+        if ($assignment->employee === null) {
+            return false;
+        }
+
+        /** @var HierarchyAuthorizationService $authorization */
+        $authorization = app(HierarchyAuthorizationService::class);
+
+        return $authorization->canManageEmployee($user, $assignment->employee, CarbonImmutable::parse((string) $assignment->date));
     }
 
     public function create(User $user): bool
@@ -48,14 +60,36 @@ final class WorkScheduleAssignmentPolicy extends BasePolicy
 
     public function update(User $user, WorkShiftAssignment $assignment): bool
     {
-        return $user->can(self::perm(self::PERM_UPDATE))
-            && $this->isDateEditable((string) $assignment->date->format('Y-m-d'));
+        if (! $user->can(self::perm(self::PERM_UPDATE))) {
+            return false;
+        }
+
+        if ($assignment->employee === null) {
+            return false;
+        }
+
+        /** @var HierarchyAuthorizationService $authorization */
+        $authorization = app(HierarchyAuthorizationService::class);
+
+        return $this->isDateEditable((string) $assignment->date->format('Y-m-d'))
+            && $authorization->canManageEmployee($user, $assignment->employee, CarbonImmutable::parse((string) $assignment->date));
     }
 
     public function delete(User $user, WorkShiftAssignment $assignment): bool
     {
-        return $user->can(self::perm(self::PERM_DELETE))
-            && $this->isDateEditable((string) $assignment->date->format('Y-m-d'));
+        if (! $user->can(self::perm(self::PERM_DELETE))) {
+            return false;
+        }
+
+        if ($assignment->employee === null) {
+            return false;
+        }
+
+        /** @var HierarchyAuthorizationService $authorization */
+        $authorization = app(HierarchyAuthorizationService::class);
+
+        return $this->isDateEditable((string) $assignment->date->format('Y-m-d'))
+            && $authorization->canManageEmployee($user, $assignment->employee, CarbonImmutable::parse((string) $assignment->date));
     }
 
     public function deleteAny(User $user): bool
