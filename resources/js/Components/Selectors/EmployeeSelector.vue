@@ -18,6 +18,7 @@ const props = defineProps({
     searchRouteName: { type: String, default: "org.hierarchy.employees.search" },
     searchLimit: { type: Number, default: 20 },
     minQueryLength: { type: Number, default: 1 },
+    excludeEmployeeIds: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(["update:modelValue", "selected"]);
@@ -45,6 +46,17 @@ const placeholderText = computed(() => {
 
     return props.serverSearch ? "Dolgozó keresése..." : "Dolgozó kiválasztása";
 });
+
+const excludedIds = computed(() =>
+    new Set(
+        (props.excludeEmployeeIds ?? [])
+            .map((id) => Number(id))
+            .filter((id) => Number.isFinite(id) && id > 0),
+    ),
+);
+
+const filterExcluded = (rows) =>
+    (Array.isArray(rows) ? rows : []).filter((row) => !excludedIds.value.has(Number(row?.id)));
 
 const resolveSelectedById = (id) => {
     if (id === null || id === undefined || id === "") {
@@ -99,11 +111,11 @@ const loadEmployees = async () => {
                 ...baseParams,
                 only_active: 0,
             });
-            employees.value = Array.isArray(fallback?.data) ? fallback.data : [];
+            employees.value = filterExcluded(Array.isArray(fallback?.data) ? fallback.data : []);
             return;
         }
 
-        employees.value = list;
+        employees.value = filterExcluded(list);
     } catch {
         employees.value = [];
     } finally {
@@ -144,7 +156,7 @@ const searchEmployees = async (event) => {
             throw new Error(payload?.message || "Dolgozó keresése sikertelen.");
         }
 
-        suggestions.value = Array.isArray(payload?.data) ? payload.data : [];
+        suggestions.value = filterExcluded(Array.isArray(payload?.data) ? payload.data : []);
     } catch {
         suggestions.value = [];
     } finally {
@@ -228,6 +240,7 @@ watch(
         :disabled="disabled || !companyId"
         :minLength="minQueryLength"
         class="w-full"
+        inputClass="w-full"
         forceSelection
         @complete="searchEmployees"
         @item-select="onSuggestionSelect"

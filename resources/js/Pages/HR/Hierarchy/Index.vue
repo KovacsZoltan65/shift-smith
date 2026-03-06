@@ -3,12 +3,11 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { Head } from "@inertiajs/vue3";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import OrgHierarchyCytoscape from "@/Components/Org/OrgHierarchyCytoscape.vue";
-import MoveDialog from "@/Components/Org/MoveDialog.vue";
+import HierarchyMoveDialog from "@/Components/Org/HierarchyMoveDialog.vue";
 import CompanySelector from "@/Components/Selectors/CompanySelector.vue";
 import EmployeeSelector from "@/Components/Selectors/EmployeeSelector.vue";
 import Button from "primevue/button";
 import Card from "primevue/card";
-import ContextMenu from "primevue/contextmenu";
 import DatePicker from "primevue/datepicker";
 import Dialog from "primevue/dialog";
 import Message from "primevue/message";
@@ -37,6 +36,15 @@ const props = defineProps({
 const toast = useToast();
 const loading = ref(false);
 const selectedEmployeeId = ref(null);
+const selectedNode = ref(null);
+const highlightedEmployeeId = ref(null);
+const actionMenuVisible = ref(false);
+const actionMenuPosition = ref({ x: 0, y: 0 });
+const moveDialogVisible = ref(false);
+const moveMode = ref("employee_only");
+const integrityDialogVisible = ref(false);
+const integrityLoading = ref(false);
+const integrityReport = ref(null);
 
 const normalizeViewModeValue = (value) => (value === "network" ? "network" : "explorer");
 const normalizeDensityValue = (value) => (value === "compact" ? "compact" : "comfortable");
@@ -48,14 +56,6 @@ const currentRootId = ref(null);
 const rootStack = ref([]);
 const breadcrumbs = ref([]);
 const detailNode = ref(null);
-const contextMenuRef = ref(null);
-const contextMenu = ref({ nodeId: null });
-const moveDialogVisible = ref(false);
-const moveMode = ref("employee_only");
-const moveEmployeeId = ref(null);
-const integrityDialogVisible = ref(false);
-const integrityLoading = ref(false);
-const integrityReport = ref(null);
 const viewMode = ref(normalizeViewModeValue(props.ui_settings?.view_mode));
 const density = ref(normalizeDensityValue(props.ui_settings?.density));
 const showPosition = ref(normalizeBoolValue(props.ui_settings?.show_position ?? true));
@@ -79,10 +79,7 @@ const meta = ref({ root_id: null, company_id: null, at_date: null, depth: 1, emp
 
 const todayYmd = computed(() => {
     const value = atDate.value instanceof Date ? atDate.value : new Date();
-    const y = value.getFullYear();
-    const m = String(value.getMonth() + 1).padStart(2, "0");
-    const d = String(value.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
 });
 
 const refreshTooltip = computed(() => (loading.value ? "Frissítés folyamatban..." : "Frissítés"));
@@ -92,6 +89,48 @@ const normalizedViewMode = computed(() => normalizeViewModeValue(viewMode.value)
 const normalizedDensity = computed(() => normalizeDensityValue(density.value));
 const normalizedShowPosition = computed(() => normalizeBoolValue(showPosition.value));
 
+const actionMenuItems = computed(() => {
+    const node = selectedNode.value;
+    if (!node) {
+        return [];
+    }
+
+    const hasSubordinates = Number(node.direct_count ?? 0) > 0;
+
+    return [
+        {
+            key: "employee_only",
+            label: "Áthelyezés",
+            icon: "pi pi-user-edit",
+            visible: true,
+        },
+        {
+            key: "leader_with_subordinates",
+            label: "Áthelyezés csapattal",
+            icon: "pi pi-users",
+            visible: hasSubordinates,
+        },
+        {
+            key: "leader_without_subordinates",
+            label: "Áthelyezés csapat nélkül",
+            icon: "pi pi-user-minus",
+            visible: hasSubordinates,
+        },
+        {
+            key: "move_subordinates_only",
+            label: "Beosztottak áthelyezése",
+            icon: "pi pi-share-alt",
+            visible: hasSubordinates,
+        },
+        {
+            key: "integrity",
+            label: "Integritás ellenőrzés",
+            icon: "pi pi-shield",
+            visible: true,
+        },
+    ].filter((item) => item.visible);
+});
+
 let settingsSaveTimer = null;
 let settingsInitialized = false;
 
@@ -99,15 +138,15 @@ const findNodeById = (id) => nodes.value.find((row) => Number(row.id) === Number
 
 const shortLabel = (label) => {
     const text = String(label ?? "").trim();
-    if (text.length <= 20) {
-        return text;
-    }
-
-    return `${text.slice(0, 19)}…`;
+    return text.length <= 20 ? text : `${text.slice(0, 19)}…`;
 };
 
 const syncStack = () => {
     rootStack.value = breadcrumbs.value.map((row) => Number(row.id));
+};
+
+const hideActionMenu = () => {
+    actionMenuVisible.value = false;
 };
 
 const ensureBreadcrumbRoot = () => {
@@ -160,8 +199,8 @@ const fetchGraph = async () => {
         const response = await csrfFetch(`${route("org.hierarchy.graph")}?${params.toString()}`, {
             method: "GET",
         });
-
         const payload = await response.json();
+
         if (!response.ok) {
             throw new Error(payload?.message || "A hierarchia lekérése sikertelen.");
         }
@@ -171,6 +210,11 @@ const fetchGraph = async () => {
         edges.value = Array.isArray(data.edges) ? data.edges : [];
         meta.value = data.meta ?? meta.value;
         ensureBreadcrumbRoot();
+
+        if (selectedNode.value) {
+            selectedNode.value = findNodeById(selectedNode.value.id);
+            detailNode.value = selectedNode.value;
+        }
     } catch (error) {
         nodes.value = [];
         edges.value = [];
@@ -247,8 +291,8 @@ const fetchPath = async (employeeId) => {
     const response = await csrfFetch(`${route("org.hierarchy.path")}?${params.toString()}`, {
         method: "GET",
     });
-
     const payload = await response.json();
+
     if (!response.ok) {
         throw new Error(payload?.message || "Az útvonal lekérése sikertelen.");
     }
@@ -256,8 +300,106 @@ const fetchPath = async (employeeId) => {
     return Array.isArray(payload?.data) ? payload.data : [];
 };
 
+const focusEmployee = async (employeeId) => {
+    if (!employeeId) {
+        return;
+    }
+
+    try {
+        const pathRows = await fetchPath(employeeId);
+        if (pathRows.length > 0) {
+            breadcrumbs.value = pathRows.map((row) => ({
+                id: Number(row.id),
+                label: String(row.label ?? `#${row.id}`),
+            }));
+            syncStack();
+        }
+
+        currentRootId.value = employeeId;
+        await fetchGraph();
+    } catch (error) {
+        toast.add({
+            severity: "error",
+            summary: "Hiba",
+            detail: error instanceof Error ? error.message : "A kiválasztott dolgozó fókuszálása sikertelen.",
+            life: 4000,
+        });
+    }
+};
+
+const highlightEmployee = (employeeId) => {
+    const nextId = Number(employeeId || 0);
+    highlightedEmployeeId.value = Number.isFinite(nextId) && nextId > 0 ? nextId : null;
+};
+
+const refreshGraph = async () => {
+    await fetchGraph();
+    if (selectedNode.value?.id) {
+        highlightEmployee(selectedNode.value.id);
+    }
+};
+
+const setSelectedNode = (nodeId) => {
+    const node = findNodeById(nodeId);
+    selectedNode.value = node;
+    detailNode.value = node;
+
+    if (node) {
+        selectedEmployeeId.value = Number(node.id);
+        highlightEmployee(node.id);
+    }
+};
+
+const openNodeMenu = (payload) => {
+    const nodeId = Number(payload?.nodeId ?? 0);
+    if (!nodeId) {
+        return;
+    }
+
+    setSelectedNode(nodeId);
+    actionMenuPosition.value = {
+        x: Number(payload?.originalEvent?.clientX ?? payload?.renderedPosition?.x ?? 0),
+        y: Number(payload?.originalEvent?.clientY ?? payload?.renderedPosition?.y ?? 0),
+    };
+    actionMenuVisible.value = true;
+};
+
+const openMoveDialog = (mode, node = selectedNode.value) => {
+    if (!node) {
+        return;
+    }
+
+    moveMode.value = mode;
+    selectedNode.value = node;
+    detailNode.value = node;
+    moveDialogVisible.value = true;
+    hideActionMenu();
+};
+
+const closeMoveDialog = () => {
+    moveDialogVisible.value = false;
+};
+
+const onEmployeeSelected = async (employee) => {
+    const selectedId = Number(typeof employee === "object" && employee !== null ? employee.id : employee);
+
+    if (!Number.isFinite(selectedId) || selectedId <= 0) {
+        currentRootId.value = null;
+        breadcrumbs.value = [];
+        rootStack.value = [];
+        selectedNode.value = null;
+        detailNode.value = null;
+        highlightEmployee(null);
+        fetchGraph();
+        return;
+    }
+
+    await focusEmployee(selectedId);
+    setSelectedNode(selectedId);
+};
+
 const drillDown = (nodeId) => {
-    const nextId = Number(nodeId);
+    const nextId = Number(nodeId ?? 0);
     if (!nextId) {
         return;
     }
@@ -267,7 +409,8 @@ const drillDown = (nodeId) => {
         return;
     }
 
-    detailNode.value = clicked;
+    setSelectedNode(nextId);
+
     if (Number(clicked.direct_count ?? 0) <= 0) {
         return;
     }
@@ -282,6 +425,21 @@ const drillDown = (nodeId) => {
     currentRootId.value = nextId;
     syncStack();
     fetchGraph();
+};
+
+const onNodeClick = (payload) => {
+    const nodeId = Number(payload?.nodeId ?? 0);
+    if (!nodeId) {
+        return;
+    }
+
+    hideActionMenu();
+    drillDown(nodeId);
+};
+
+const onNodeContextMenu = (payload) => {
+    payload?.originalEvent?.preventDefault?.();
+    openNodeMenu(payload);
 };
 
 const goBack = () => {
@@ -308,134 +466,10 @@ const setRootFromBreadcrumb = (index) => {
     fetchGraph();
 };
 
-const onEmployeeSelected = async (employee) => {
-    const selectedId = Number(
-        typeof employee === "object" && employee !== null ? employee.id : employee,
-    );
-
-    if (!Number.isFinite(selectedId) || selectedId <= 0) {
-        currentRootId.value = null;
-        breadcrumbs.value = [];
-        rootStack.value = [];
-        fetchGraph();
+const runIntegrity = async () => {
+    if (!companyId.value) {
         return;
     }
-
-    try {
-        const pathRows = await fetchPath(selectedId);
-        if (pathRows.length > 0) {
-            breadcrumbs.value = pathRows.map((row) => ({
-                id: Number(row.id),
-                label: String(row.label ?? `#${row.id}`),
-            }));
-            syncStack();
-        }
-
-        currentRootId.value = selectedId;
-        await fetchGraph();
-    } catch (error) {
-        toast.add({
-            severity: "error",
-            summary: "Hiba",
-            detail: error instanceof Error ? error.message : "A kiválasztott dolgozó betöltése sikertelen.",
-            life: 4000,
-        });
-    }
-};
-
-const onNodeHover = (nodeId) => {
-    const hovered = findNodeById(nodeId);
-    if (hovered) {
-        detailNode.value = hovered;
-    }
-};
-
-const onNodeContext = (payload) => {
-    const nodeId = Number(payload?.nodeId ?? 0);
-    if (!nodeId) return;
-
-    contextMenu.value.nodeId = nodeId;
-    if (payload?.originalEvent) {
-        payload.originalEvent.preventDefault?.();
-        contextMenuRef.value?.show(payload.originalEvent);
-    }
-};
-
-const hideContextMenu = () => {
-    contextMenuRef.value?.hide?.();
-};
-
-const openMoveDialog = (mode) => {
-    moveMode.value = mode;
-    moveEmployeeId.value = Number(contextMenu.value.nodeId ?? 0);
-    moveDialogVisible.value = true;
-    hideContextMenu();
-};
-
-const selectedContextNode = computed(() => {
-    const nodeId = Number(contextMenu.value.nodeId ?? 0);
-    if (!nodeId) return null;
-    return findNodeById(nodeId);
-});
-
-const effectiveContextMenuItems = computed(() => {
-    const node = selectedContextNode.value;
-    if (!node) return [];
-
-    const hasSubordinates = Number(node.direct_count ?? 0) > 0;
-    const hasSupervisor = Boolean(node.has_supervisor);
-
-    if (!hasSubordinates) {
-        return [
-            {
-                label: "Dolgozó áthelyezése",
-                icon: "pi pi-user-edit",
-                command: () => openMoveDialog("employee_only"),
-            },
-        ];
-    }
-
-    if (hasSubordinates && hasSupervisor) {
-        return [
-            {
-                label: "Vezető áthelyezése (csapattal)",
-                icon: "pi pi-users",
-                command: () => openMoveDialog("leader_with_subordinates"),
-            },
-            {
-                label: "Vezető áthelyezése (csapat nélkül)",
-                icon: "pi pi-user-minus",
-                command: () => openMoveDialog("leader_without_subordinates"),
-            },
-            {
-                label: "Beosztottak áthelyezése",
-                icon: "pi pi-share-alt",
-                command: () => openMoveDialog("move_subordinates_only"),
-            },
-        ];
-    }
-
-    return [
-        {
-            label: "Beosztottak áthelyezése",
-            icon: "pi pi-share-alt",
-            command: () => openMoveDialog("move_subordinates_only"),
-        },
-    ];
-});
-
-const onMoveDone = async () => {
-    toast.add({
-        severity: "success",
-        summary: "Sikeres művelet",
-        detail: "A hierarchia módosítása mentésre került.",
-        life: 3000,
-    });
-    await fetchGraph();
-};
-
-const runIntegrity = async () => {
-    if (!companyId.value) return;
 
     integrityLoading.value = true;
     try {
@@ -453,6 +487,7 @@ const runIntegrity = async () => {
         }
         integrityReport.value = payload?.data ?? null;
         integrityDialogVisible.value = true;
+        hideActionMenu();
     } catch (error) {
         toast.add({
             severity: "error",
@@ -465,11 +500,54 @@ const runIntegrity = async () => {
     }
 };
 
+const onNodeMenuAction = async (item) => {
+    if (item.key === "integrity") {
+        await runIntegrity();
+        return;
+    }
+
+    openMoveDialog(item.key, selectedNode.value);
+};
+
+const onMoveDone = async (result) => {
+    toast.add({
+        severity: "success",
+        summary: "Sikeres művelet",
+        detail: "A hierarchia módosítása mentésre került.",
+        life: 3000,
+    });
+
+    const focusId = Number(result?.new_root_id ?? selectedNode.value?.id ?? 0) || null;
+    if (focusId) {
+        await focusEmployee(focusId);
+        highlightEmployee(focusId);
+        setSelectedNode(focusId);
+    } else {
+        await refreshGraph();
+    }
+};
+
+const onDocumentPointerDown = (event) => {
+    if (!(event.target instanceof Element)) {
+        hideActionMenu();
+        return;
+    }
+
+    if (event.target.closest("[data-hierarchy-node-menu]")) {
+        return;
+    }
+
+    hideActionMenu();
+};
+
 watch(companyId, () => {
     selectedEmployeeId.value = null;
+    selectedNode.value = null;
+    detailNode.value = null;
     currentRootId.value = null;
     rootStack.value = [];
     breadcrumbs.value = [];
+    highlightEmployee(null);
     fetchGraph();
 });
 
@@ -490,6 +568,7 @@ watch(normalizedViewMode, () => {
 
 onMounted(() => {
     settingsInitialized = true;
+    document.addEventListener("pointerdown", onDocumentPointerDown);
     fetchGraph();
 });
 
@@ -498,6 +577,8 @@ onBeforeUnmount(() => {
         clearTimeout(settingsSaveTimer);
         settingsSaveTimer = null;
     }
+
+    document.removeEventListener("pointerdown", onDocumentPointerDown);
 });
 </script>
 
@@ -506,7 +587,6 @@ onBeforeUnmount(() => {
 
     <AuthenticatedLayout>
         <Toast />
-        <ContextMenu ref="contextMenuRef" :model="effectiveContextMenuItems" />
 
         <template #header>
             <h2 class="text-xl font-semibold leading-tight text-gray-800">{{ title }}</h2>
@@ -551,10 +631,9 @@ onBeforeUnmount(() => {
                                 <EmployeeSelector
                                     v-model="selectedEmployeeId"
                                     :company-id="companyId"
-                                    :server-search="false"
-                                    :filter="true"
+                                    :server-search="true"
                                     :disabled="loading || !companyId"
-                                    placeholder="Dolgozó kiválasztása..."
+                                    placeholder="Dolgozó keresése..."
                                     @selected="onEmployeeSelected"
                                 />
                             </div>
@@ -597,11 +676,11 @@ onBeforeUnmount(() => {
                                 v-tooltip="refreshTooltip"
                                 aria-label="Frissítés"
                                 class="w-auto min-w-fit inline-flex items-center justify-center px-3"
-                                @click="fetchGraph"
+                                @click="refreshGraph"
                             />
                             <Button
                                 icon="pi pi-shield"
-                                label="Integrity"
+                                label="Integritás"
                                 severity="secondary"
                                 :loading="integrityLoading"
                                 :disabled="loading || !companyId"
@@ -615,40 +694,114 @@ onBeforeUnmount(() => {
                 </template>
             </Card>
 
-            <OrgHierarchyCytoscape
-                :nodes="nodes"
-                :edges="edges"
-                :root-id="meta.root_id"
-                :mode="normalizedViewMode"
-                :loading="loading"
-                :density="normalizedDensity"
-                :show-position="normalizedShowPosition"
-                @nodeClick="drillDown"
-                @nodeHover="onNodeHover"
-                @nodeContext="onNodeContext"
-            />
+            <div class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+                <div class="relative">
+                    <OrgHierarchyCytoscape
+                        :nodes="nodes"
+                        :edges="edges"
+                        :root-id="meta.root_id"
+                        :mode="normalizedViewMode"
+                        :loading="loading"
+                        :density="normalizedDensity"
+                        :show-position="normalizedShowPosition"
+                        :highlighted-employee-id="highlightedEmployeeId"
+                        @nodeClick="onNodeClick"
+                        @nodeContext="onNodeContextMenu"
+                    />
 
-            <Card class="mt-4">
-                <template #title>Részletek</template>
-                <template #content>
-                    <div v-if="detailNode" class="grid grid-cols-1 gap-2 text-sm text-slate-700 md:grid-cols-2">
-                        <div><span class="font-semibold">Név:</span> {{ detailNode.label }}</div>
-                        <div><span class="font-semibold">Pozíció:</span> {{ detailNode.position || "-" }}</div>
-                        <div><span class="font-semibold">Org szint:</span> {{ detailNode.org_level }}</div>
-                        <div><span class="font-semibold">Közvetlen beosztott:</span> {{ detailNode.direct_count }}</div>
+                    <div
+                        v-if="actionMenuVisible && selectedNode"
+                        data-hierarchy-node-menu
+                        class="fixed z-50 w-72 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl"
+                        :style="{ left: `${actionMenuPosition.x}px`, top: `${actionMenuPosition.y}px` }"
+                        @pointerdown.stop
+                    >
+                        <div class="border-b border-slate-100 px-3 py-2">
+                            <div class="truncate text-sm font-semibold text-slate-800">{{ selectedNode.label }}</div>
+                            <div class="truncate text-xs text-slate-500">{{ selectedNode.position || "Pozíció nélkül" }}</div>
+                        </div>
+                        <button
+                            v-for="item in actionMenuItems"
+                            :key="item.key"
+                            type="button"
+                            class="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+                            @click="onNodeMenuAction(item)"
+                        >
+                            <i :class="item.icon" class="text-slate-500" />
+                            <span>{{ item.label }}</span>
+                        </button>
                     </div>
-                    <p v-else class="text-sm text-slate-500">Kattints egy node-ra a részletekhez.</p>
-                </template>
-            </Card>
+                </div>
+
+                <div class="space-y-4">
+                    <Card>
+                        <template #title>Gyorsműveletek</template>
+                        <template #content>
+                            <div class="space-y-3">
+                                <Message v-if="!selectedNode" severity="info" :closable="false">
+                                    Válassz ki egy node-ot a gráfon a műveletekhez.
+                                </Message>
+                                <div v-else class="space-y-3">
+                                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                        <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Kiválasztott</div>
+                                        <div class="mt-1 text-sm font-medium text-slate-800">{{ selectedNode.label }}</div>
+                                        <div class="mt-1 text-xs text-slate-500">{{ selectedNode.position || "-" }}</div>
+                                    </div>
+                                    <Button
+                                        label="Kiválasztott dolgozó áthelyezése"
+                                        icon="pi pi-user-edit"
+                                        class="w-full"
+                                        :disabled="!selectedNode"
+                                        @click="openMoveDialog('employee_only', selectedNode)"
+                                    />
+                                    <Button
+                                        label="Integritás ellenőrzése"
+                                        icon="pi pi-shield"
+                                        severity="secondary"
+                                        class="w-full"
+                                        :loading="integrityLoading"
+                                        @click="runIntegrity"
+                                    />
+                                    <Button
+                                        label="Fókusz a kiválasztottra"
+                                        icon="pi pi-crosshairs"
+                                        severity="secondary"
+                                        outlined
+                                        class="w-full"
+                                        @click="focusEmployee(selectedNode.id)"
+                                    />
+                                </div>
+                            </div>
+                        </template>
+                    </Card>
+
+                    <Card>
+                        <template #title>Részletek</template>
+                        <template #content>
+                            <div v-if="detailNode" class="grid grid-cols-1 gap-2 text-sm text-slate-700">
+                                <div><span class="font-semibold">Név:</span> {{ detailNode.label }}</div>
+                                <div><span class="font-semibold">Pozíció:</span> {{ detailNode.position || "-" }}</div>
+                                <div><span class="font-semibold">Org szint:</span> {{ detailNode.org_level }}</div>
+                                <div><span class="font-semibold">Közvetlen beosztott:</span> {{ detailNode.direct_count }}</div>
+                            </div>
+                            <p v-else class="text-sm text-slate-500">Kattints vagy jobb klikkelj egy node-ra a műveletekhez.</p>
+                        </template>
+                    </Card>
+                </div>
+            </div>
         </div>
 
-        <MoveDialog
+        <HierarchyMoveDialog
             v-model:visible="moveDialogVisible"
-            :company-id="Number(companyId || 0)"
-            :employee-id="moveEmployeeId"
             :mode="moveMode"
-            :loading="loading"
+            :company-id="Number(companyId || 0)"
+            :employee-id="Number(selectedNode?.id || 0)"
+            :employee-label="selectedNode?.label || ''"
+            :current-supervisor-id="null"
+            :at-date="todayYmd"
+            :default-effective-from="todayYmd"
             @moved="onMoveDone"
+            @update:visible="moveDialogVisible = $event"
         />
 
         <Dialog

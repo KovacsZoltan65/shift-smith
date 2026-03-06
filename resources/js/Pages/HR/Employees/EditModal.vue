@@ -5,6 +5,7 @@ import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 import Divider from "primevue/divider";
 import DatePicker from "primevue/datepicker";
+import Message from "primevue/message";
 import { useToast } from "primevue/usetoast";
 
 import EmployeeFields from "@/Pages/HR/Employees/Partials/EmployeeFields.vue";
@@ -37,6 +38,9 @@ const errors = ref({});
 const profileErrors = ref({});
 const entitlement = ref(null);
 const supervisorHistory = ref([]);
+const supervisorPreviewLoading = ref(false);
+const supervisorPreview = ref(null);
+let supervisorPreviewTimer = null;
 
 const form = ref({
     company_id: null,
@@ -59,6 +63,11 @@ const profileForm = ref({
 });
 
 const reset = () => {
+    if (supervisorPreviewTimer !== null) {
+        clearTimeout(supervisorPreviewTimer);
+        supervisorPreviewTimer = null;
+    }
+
     errors.value = {};
     profileErrors.value = {};
     saving.value = false;
@@ -66,6 +75,8 @@ const reset = () => {
     entitlementLoading.value = false;
     entitlement.value = null;
     supervisorHistory.value = [];
+    supervisorPreviewLoading.value = false;
+    supervisorPreview.value = null;
     form.value = {
         company_id: null,
         first_name: "",
@@ -84,6 +95,16 @@ const reset = () => {
         disabled_children_count: 0,
         is_disabled: false,
     };
+};
+
+const toYmd = (value) => {
+    if (!value) return null;
+    if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return value;
+    }
+
+    const date = value instanceof Date ? value : new Date(value);
+    return isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
 };
 
 const parseDate = (val) => {
@@ -180,6 +201,7 @@ watch(
                 loadLeaveProfile(props.employee.id);
                 loadEntitlement(props.employee.id);
             }
+            queueSupervisorPreview();
         } else {
             reset();
         }
@@ -197,7 +219,26 @@ watch(
                 loadLeaveProfile(emp.id);
                 loadEntitlement(emp.id);
             }
+            queueSupervisorPreview();
         }
+    }
+);
+
+watch(
+    () => [
+        visible.value,
+        props.employee?.id ?? null,
+        form.value.company_id,
+        form.value.supervisor_employee_id,
+        toYmd(form.value.supervisor_valid_from),
+        toYmd(form.value.hired_at),
+    ],
+    () => {
+        if (!visible.value) {
+            return;
+        }
+
+        queueSupervisorPreview();
     }
 );
 
@@ -247,6 +288,70 @@ const loadEmployeeDetails = async (employeeId) => {
     }
 };
 
+const runSupervisorPreview = async () => {
+    const employeeId = Number(props.employee?.id || 0);
+    const companyId = Number(form.value.company_id || 0);
+    const supervisorEmployeeId = Number(form.value.supervisor_employee_id || 0);
+    const effectiveFrom =
+        toYmd(form.value.supervisor_valid_from) ||
+        toYmd(form.value.hired_at) ||
+        new Date().toISOString().slice(0, 10);
+
+    if (!visible.value || !employeeId || !companyId || !supervisorEmployeeId) {
+        supervisorPreview.value = null;
+        return;
+    }
+
+    supervisorPreviewLoading.value = true;
+
+    try {
+        const params = new URLSearchParams({
+            company_id: String(companyId),
+            employee_id: String(employeeId),
+            new_supervisor_employee_id: String(supervisorEmployeeId),
+            mode: "employee_only",
+            effective_from: effectiveFrom,
+            at_date: effectiveFrom,
+        });
+
+        const response = await csrfFetch(`${route("org.hierarchy.move.preview")}?${params.toString()}`, {
+            method: "GET",
+            headers: {
+                Accept: "application/json",
+                "X-Requested-With": "XMLHttpRequest",
+            },
+        });
+
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(payload?.message || "A felettes integritás ellenőrzése sikertelen.");
+        }
+
+        supervisorPreview.value = payload?.data ?? null;
+    } catch (error) {
+        supervisorPreview.value = {
+            warnings: [],
+            errors: [error?.message || "A felettes integritás ellenőrzése sikertelen."],
+        };
+    } finally {
+        supervisorPreviewLoading.value = false;
+    }
+};
+
+const queueSupervisorPreview = () => {
+    if (supervisorPreviewTimer !== null) {
+        clearTimeout(supervisorPreviewTimer);
+    }
+
+    supervisorPreviewTimer = setTimeout(() => {
+        runSupervisorPreview();
+    }, 400);
+};
+
+const supervisorPreviewHasErrors = computed(
+    () => (supervisorPreview.value?.errors ?? []).length > 0,
+);
+
 const submit = async () => {
     const id = props.employee?.id;
     if (!id) {
@@ -258,6 +363,20 @@ const submit = async () => {
     errors.value = {};
 
     try {
+        if (form.value.supervisor_employee_id) {
+            await runSupervisorPreview();
+
+            if (supervisorPreviewHasErrors.value) {
+                errors.value = {
+                    supervisor_employee_id: supervisorPreview.value?.errors ?? [
+                        "A felettes kapcsolat integritás ellenőrzése hibát talált.",
+                    ],
+                };
+                saving.value = false;
+                return;
+            }
+        }
+
         const res = await csrfFetch(`/employees/${id}`, {
             method: "PUT",
             headers: {
@@ -421,6 +540,38 @@ const close = () => {
                 </div>
             </div>
 
+            <div v-if="form.supervisor_employee_id" class="mt-3 space-y-2">
+                <div class="text-xs text-surface-500">
+                    {{ supervisorPreviewLoading ? "Integritás ellenőrzés folyamatban..." : "Integritás ellenőrzés a hierarchy szabályai szerint." }}
+                </div>
+
+                <Message
+                    v-for="warning in supervisorPreview?.warnings || []"
+                    :key="`supervisor-warning-${warning}`"
+                    severity="warn"
+                    :closable="false"
+                >
+                    {{ warning }}
+                </Message>
+
+                <Message
+                    v-for="error in supervisorPreview?.errors || []"
+                    :key="`supervisor-error-${error}`"
+                    severity="error"
+                    :closable="false"
+                >
+                    {{ error }}
+                </Message>
+
+                <Message
+                    v-if="!supervisorPreviewLoading && supervisorPreview && !supervisorPreviewHasErrors"
+                    severity="success"
+                    :closable="false"
+                >
+                    A felettes kapcsolat integritása rendben van.
+                </Message>
+            </div>
+
             <div class="mt-4 overflow-x-auto">
                 <table class="min-w-full text-sm">
                     <thead>
@@ -519,7 +670,7 @@ const close = () => {
                 label="Mentés"
                 icon="pi pi-check"
                 :loading="saving"
-                :disabled="saving || !props.canUpdate"
+                :disabled="saving || supervisorPreviewLoading || supervisorPreviewHasErrors || !props.canUpdate"
                 @click="submit"
             />
         </template>

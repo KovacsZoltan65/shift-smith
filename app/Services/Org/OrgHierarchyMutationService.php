@@ -46,6 +46,7 @@ final class OrgHierarchyMutationService
      * @return array{
      *   meta: array<string, mixed>,
      *   affected_employee_ids: list<int>,
+     *   affected_employees: list<array{id:int,label:string}>,
      *   affected_count:int,
      *   warnings:list<string>,
      *   errors:list<string>
@@ -64,12 +65,19 @@ final class OrgHierarchyMutationService
         try {
             $plan = $this->buildPlan($payload, $atDate, $warnings);
             foreach ($plan as $item) {
+                $active = $this->employeeSupervisorRepository->findActiveSupervisor(
+                    $companyId,
+                    $item['employee_id'],
+                    $effectiveFrom,
+                );
+
                 $this->hierarchyIntegrityService->validateNewSupervisorRelationOrFail(
                     companyId: $companyId,
                     employeeId: $item['employee_id'],
                     supervisorEmployeeId: $item['supervisor_employee_id'],
                     validFrom: $effectiveFrom,
-                    enforceOverlap: false,
+                    ignoreId: $active?->id !== null ? (int) $active->id : null,
+                    enforceOverlap: true,
                 );
             }
         } catch (ValidationException $exception) {
@@ -84,6 +92,14 @@ final class OrgHierarchyMutationService
             static fn (array $item): int => (int) $item['employee_id'],
             $plan
         )));
+        $affectedEmployees = $this->orgHierarchyRepository
+            ->getEmployeesByIdsInCompany($companyId, $affectedIds)
+            ->map(static fn (Employee $employee): array => [
+                'id' => (int) $employee->id,
+                'label' => trim((string) $employee->name) !== '' ? (string) $employee->name : '#'.(int) $employee->id,
+            ])
+            ->values()
+            ->all();
 
         return [
             'meta' => [
@@ -95,6 +111,7 @@ final class OrgHierarchyMutationService
                 'at_date' => $atDate->toDateString(),
             ],
             'affected_employee_ids' => $affectedIds,
+            'affected_employees' => $affectedEmployees,
             'affected_count' => count($affectedIds),
             'warnings' => array_values(array_unique($warnings)),
             'errors' => array_values(array_unique($errors)),

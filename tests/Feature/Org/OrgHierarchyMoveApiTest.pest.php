@@ -41,6 +41,54 @@ it('returns 403 for move preview without permission', function (): void {
         ->assertForbidden();
 });
 
+it('returns 200 for move preview with permission', function (): void {
+    [$tenant, $company] = $this->createTenantWithCompany();
+    $tenant->makeCurrent();
+    $admin = $this->createAdminUser($company);
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+    $admin->refresh();
+
+    $employee = Employee::factory()->create(['company_id' => $company->id, 'org_level' => Employee::ORG_LEVEL_STAFF]);
+    $supervisor = Employee::factory()->create(['company_id' => $company->id, 'org_level' => Employee::ORG_LEVEL_MANAGER]);
+
+    $this->actingAsUserInCompany($admin, $company)
+        ->getJson(route('org.hierarchy.move.preview', [
+            'company_id' => $company->id,
+            'employee_id' => $employee->id,
+            'new_supervisor_employee_id' => $supervisor->id,
+            'mode' => 'employee_only',
+        ]))
+        ->assertOk()
+        ->assertJsonPath('data.affected_count', 1)
+        ->assertJsonPath('data.meta.company_id', (int) $company->id);
+});
+
+it('returns 403 for move execute without permission', function (): void {
+    [$tenant, $company] = $this->createTenantWithCompany();
+    $tenant->makeCurrent();
+
+    /** @var User $user */
+    $user = User::factory()->create();
+    $user->assignRole('user');
+    $user->companies()->syncWithoutDetaching([$company->id]);
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+    $user->refresh();
+
+    $employee = Employee::factory()->create(['company_id' => $company->id, 'org_level' => Employee::ORG_LEVEL_STAFF]);
+    $supervisor = Employee::factory()->create(['company_id' => $company->id, 'org_level' => Employee::ORG_LEVEL_MANAGER]);
+
+    $this->actingAsUserInCompany($user, $company)
+        ->postJson(route('org.hierarchy.move'), [
+            'company_id' => $company->id,
+            'employee_id' => $employee->id,
+            'new_supervisor_employee_id' => $supervisor->id,
+            'mode' => 'employee_only',
+            'effective_from' => '2026-03-01',
+            'at_date' => '2026-03-01',
+        ])
+        ->assertForbidden();
+});
+
 it('moves employee with history close and create', function (): void {
     [$tenant, $company] = $this->createTenantWithCompany();
     $tenant->makeCurrent();
@@ -155,6 +203,48 @@ it('reassigns direct children in move_subordinates_only mode', function (): void
     expect((int) $b?->supervisor_employee_id)->toBe((int) $targetLeader->id);
 });
 
+it('reassigns direct children in leader_without_subordinates mode', function (): void {
+    [$tenant, $company] = $this->createTenantWithCompany();
+    $tenant->makeCurrent();
+    $admin = $this->createAdminUser($company);
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+    $admin->refresh();
+
+    $oldSupervisor = Employee::factory()->create(['company_id' => $company->id, 'org_level' => Employee::ORG_LEVEL_MANAGER]);
+    $newSupervisor = Employee::factory()->create(['company_id' => $company->id, 'org_level' => Employee::ORG_LEVEL_MANAGER]);
+    $targetLeader = Employee::factory()->create(['company_id' => $company->id, 'org_level' => Employee::ORG_LEVEL_MANAGER]);
+    $leader = Employee::factory()->create(['company_id' => $company->id, 'org_level' => Employee::ORG_LEVEL_MANAGER]);
+    $childA = Employee::factory()->create(['company_id' => $company->id, 'org_level' => Employee::ORG_LEVEL_STAFF]);
+    $childB = Employee::factory()->create(['company_id' => $company->id, 'org_level' => Employee::ORG_LEVEL_STAFF]);
+
+    $svc = app(EmployeeSupervisorService::class);
+    $svc->assignSupervisor((int) $company->id, (int) $leader->id, (int) $oldSupervisor->id, '2026-01-01', (int) $admin->id);
+    $svc->assignSupervisor((int) $company->id, (int) $childA->id, (int) $leader->id, '2026-01-01', (int) $admin->id);
+    $svc->assignSupervisor((int) $company->id, (int) $childB->id, (int) $leader->id, '2026-01-01', (int) $admin->id);
+
+    $this->actingAsUserInCompany($admin, $company)
+        ->postJson(route('org.hierarchy.move'), [
+            'company_id' => $company->id,
+            'employee_id' => $leader->id,
+            'new_supervisor_employee_id' => $newSupervisor->id,
+            'mode' => 'leader_without_subordinates',
+            'subordinates_strategy' => 'reassign_to_specific_supervisor',
+            'target_supervisor_for_subordinates' => $targetLeader->id,
+            'effective_from' => '2026-02-01',
+            'at_date' => '2026-01-20',
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.affected_count', 3);
+
+    $leaderActive = app(EmployeeSupervisorRepositoryInterface::class)->findActiveSupervisor((int) $company->id, (int) $leader->id, CarbonImmutable::parse('2026-02-10'));
+    $childAActive = app(EmployeeSupervisorRepositoryInterface::class)->findActiveSupervisor((int) $company->id, (int) $childA->id, CarbonImmutable::parse('2026-02-10'));
+    $childBActive = app(EmployeeSupervisorRepositoryInterface::class)->findActiveSupervisor((int) $company->id, (int) $childB->id, CarbonImmutable::parse('2026-02-10'));
+
+    expect((int) $leaderActive?->supervisor_employee_id)->toBe((int) $newSupervisor->id);
+    expect((int) $childAActive?->supervisor_employee_id)->toBe((int) $targetLeader->id);
+    expect((int) $childBActive?->supervisor_employee_id)->toBe((int) $targetLeader->id);
+});
+
 it('blocks cycle and ceo supervisor rules during move', function (): void {
     [$tenant, $company] = $this->createTenantWithCompany();
     $tenant->makeCurrent();
@@ -193,6 +283,85 @@ it('blocks cycle and ceo supervisor rules during move', function (): void {
         ->assertStatus(422);
 });
 
+it('blocks cycle during preview and execute', function (): void {
+    [$tenant, $company] = $this->createTenantWithCompany();
+    $tenant->makeCurrent();
+    $admin = $this->createAdminUser($company);
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+    $admin->refresh();
+
+    $ceo = Employee::factory()->create(['company_id' => $company->id, 'org_level' => Employee::ORG_LEVEL_CEO]);
+    $leader = Employee::factory()->create(['company_id' => $company->id, 'org_level' => Employee::ORG_LEVEL_MANAGER]);
+    $staff = Employee::factory()->create(['company_id' => $company->id, 'org_level' => Employee::ORG_LEVEL_STAFF]);
+
+    $svc = app(EmployeeSupervisorService::class);
+    $svc->assignSupervisor((int) $company->id, (int) $leader->id, (int) $ceo->id, '2026-01-01', (int) $admin->id);
+    $svc->assignSupervisor((int) $company->id, (int) $staff->id, (int) $leader->id, '2026-01-01', (int) $admin->id);
+
+    $this->actingAsUserInCompany($admin, $company)
+        ->getJson(route('org.hierarchy.move.preview', [
+            'company_id' => $company->id,
+            'employee_id' => $leader->id,
+            'new_supervisor_employee_id' => $staff->id,
+            'mode' => 'employee_only',
+            'effective_from' => '2026-03-01',
+            'at_date' => '2026-02-01',
+        ]))
+        ->assertOk()
+        ->assertJsonCount(1, 'data.errors');
+
+    $this->actingAsUserInCompany($admin, $company)
+        ->postJson(route('org.hierarchy.move'), [
+            'company_id' => $company->id,
+            'employee_id' => $leader->id,
+            'new_supervisor_employee_id' => $staff->id,
+            'mode' => 'employee_only',
+            'effective_from' => '2026-03-01',
+            'at_date' => '2026-02-01',
+        ])
+        ->assertStatus(422);
+});
+
+it('blocks overlapping supervisor periods during preview and execute', function (): void {
+    [$tenant, $company] = $this->createTenantWithCompany();
+    $tenant->makeCurrent();
+    $admin = $this->createAdminUser($company);
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+    $admin->refresh();
+
+    $employee = Employee::factory()->create(['company_id' => $company->id, 'org_level' => Employee::ORG_LEVEL_STAFF]);
+    $supervisorOne = Employee::factory()->create(['company_id' => $company->id, 'org_level' => Employee::ORG_LEVEL_MANAGER]);
+    $supervisorTwo = Employee::factory()->create(['company_id' => $company->id, 'org_level' => Employee::ORG_LEVEL_MANAGER]);
+    $supervisorThree = Employee::factory()->create(['company_id' => $company->id, 'org_level' => Employee::ORG_LEVEL_MANAGER]);
+
+    $svc = app(EmployeeSupervisorService::class);
+    $svc->assignSupervisor((int) $company->id, (int) $employee->id, (int) $supervisorOne->id, '2026-01-01', (int) $admin->id);
+    $svc->assignSupervisor((int) $company->id, (int) $employee->id, (int) $supervisorTwo->id, '2026-03-01', (int) $admin->id);
+
+    $this->actingAsUserInCompany($admin, $company)
+        ->getJson(route('org.hierarchy.move.preview', [
+            'company_id' => $company->id,
+            'employee_id' => $employee->id,
+            'new_supervisor_employee_id' => $supervisorThree->id,
+            'mode' => 'employee_only',
+            'effective_from' => '2026-02-01',
+            'at_date' => '2026-01-20',
+        ]))
+        ->assertOk()
+        ->assertJsonCount(1, 'data.errors');
+
+    $this->actingAsUserInCompany($admin, $company)
+        ->postJson(route('org.hierarchy.move'), [
+            'company_id' => $company->id,
+            'employee_id' => $employee->id,
+            'new_supervisor_employee_id' => $supervisorThree->id,
+            'mode' => 'employee_only',
+            'effective_from' => '2026-02-01',
+            'at_date' => '2026-01-20',
+        ])
+        ->assertStatus(422);
+});
+
 it('returns integrity report in company scope', function (): void {
     [$tenant, $company] = $this->createTenantWithCompany();
     $tenant->makeCurrent();
@@ -223,5 +392,39 @@ it('returns integrity report in company scope', function (): void {
             'company_id' => $companyB->id,
             'at_date' => now()->toDateString(),
         ]))
+        ->assertForbidden();
+});
+
+it('enforces tenant isolation and company scope on move endpoints', function (): void {
+    [$tenantA, $companyA] = $this->createTenantWithCompany();
+    $tenantA->makeCurrent();
+    $admin = $this->createAdminUser($companyA);
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+    $admin->refresh();
+
+    $employee = Employee::factory()->create(['company_id' => $companyA->id, 'org_level' => Employee::ORG_LEVEL_STAFF]);
+    $supervisor = Employee::factory()->create(['company_id' => $companyA->id, 'org_level' => Employee::ORG_LEVEL_MANAGER]);
+
+    $tenantB = TenantGroup::factory()->create();
+    $companyB = Company::factory()->create(['tenant_group_id' => $tenantB->id]);
+
+    $this->actingAsUserInCompany($admin, $companyA)
+        ->getJson(route('org.hierarchy.move.preview', [
+            'company_id' => $companyB->id,
+            'employee_id' => $employee->id,
+            'new_supervisor_employee_id' => $supervisor->id,
+            'mode' => 'employee_only',
+        ]))
+        ->assertForbidden();
+
+    $this->actingAsUserInCompany($admin, $companyA)
+        ->postJson(route('org.hierarchy.move'), [
+            'company_id' => $companyB->id,
+            'employee_id' => $employee->id,
+            'new_supervisor_employee_id' => $supervisor->id,
+            'mode' => 'employee_only',
+            'effective_from' => '2026-03-01',
+            'at_date' => '2026-03-01',
+        ])
         ->assertForbidden();
 });

@@ -17,6 +17,7 @@ const props = defineProps({
     loading: { type: Boolean, default: false },
     density: { type: String, default: "comfortable" },
     showPosition: { type: Boolean, default: true },
+    highlightedEmployeeId: { type: [Number, null], default: null },
 });
 
 const emit = defineEmits(["nodeClick", "nodeHover", "nodeContext"]);
@@ -64,11 +65,46 @@ const toElements = () => {
 };
 
 const styleSheet = computed(() =>
-    buildOrgHierarchyStyles({
-        density: props.density,
-        showPosition: props.showPosition,
-    }),
+    [
+        ...buildOrgHierarchyStyles({
+            density: props.density,
+            showPosition: props.showPosition,
+        }),
+        {
+            selector: "node.is-highlighted",
+            style: {
+                "border-width": 4,
+                "border-color": "#0f766e",
+                "overlay-opacity": 0.15,
+                "overlay-color": "#14b8a6",
+            },
+        },
+    ],
 );
+
+const syncHighlight = () => {
+    if (!cy) {
+        return;
+    }
+
+    cy.nodes().removeClass("is-highlighted");
+
+    const highlightId = Number(props.highlightedEmployeeId ?? 0);
+    if (!Number.isFinite(highlightId) || highlightId <= 0) {
+        return;
+    }
+
+    const node = cy.getElementById(String(highlightId));
+    if (!node || node.empty()) {
+        return;
+    }
+
+    node.addClass("is-highlighted");
+    cy.animate({
+        center: { eles: node },
+        duration: 250,
+    });
+};
 
 const render = async () => {
     const seq = ++renderSequence;
@@ -89,7 +125,11 @@ const render = async () => {
 
         cy.on("tap", "node", (event) => {
             const data = event.target.data();
-            emit("nodeClick", Number(data.id));
+            emit("nodeClick", {
+                nodeId: Number(data.id),
+                renderedPosition: event.target.renderedPosition(),
+                originalEvent: event.originalEvent ?? null,
+            });
         });
 
         cy.on("mouseover", "node", (event) => {
@@ -107,6 +147,7 @@ const render = async () => {
             const data = event.target.data();
             emit("nodeContext", {
                 nodeId: Number(data.id),
+                renderedPosition: event.target.renderedPosition(),
                 originalEvent: event.originalEvent ?? null,
             });
         });
@@ -138,6 +179,8 @@ const render = async () => {
     if (cy.nodes().length > 0) {
         cy.fit(cy.nodes(), 36);
     }
+
+    syncHighlight();
 };
 
 watch(
@@ -146,6 +189,13 @@ watch(
         render();
     },
     { deep: true },
+);
+
+watch(
+    () => props.highlightedEmployeeId,
+    () => {
+        syncHighlight();
+    },
 );
 
 onMounted(() => {

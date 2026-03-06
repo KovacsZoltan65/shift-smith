@@ -39,7 +39,7 @@ final class EmployeeSupervisorService
                 supervisorEmployeeId: $supervisorEmployeeId,
                 validFrom: $validFromDate,
                 ignoreId: $closed?->id !== null ? (int) $closed->id : null,
-                enforceOverlap: false,
+                enforceOverlap: true,
             );
 
             $created = $this->employeeSupervisorRepository->createNewRelation(
