@@ -4,6 +4,7 @@ import { Head } from "@inertiajs/vue3";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import OrgHierarchyCytoscape from "@/Components/Org/OrgHierarchyCytoscape.vue";
 import HierarchyMoveDialog from "@/Components/Org/HierarchyMoveDialog.vue";
+import DeleteEmployeeDialog from "@/Components/Employees/DeleteEmployeeDialog.vue";
 import CompanySelector from "@/Components/Selectors/CompanySelector.vue";
 import EmployeeSelector from "@/Components/Selectors/EmployeeSelector.vue";
 import Button from "primevue/button";
@@ -41,6 +42,7 @@ const highlightedEmployeeId = ref(null);
 const actionMenuVisible = ref(false);
 const actionMenuPosition = ref({ x: 0, y: 0 });
 const moveDialogVisible = ref(false);
+const deleteDialogVisible = ref(false);
 const moveMode = ref("employee_only");
 const integrityDialogVisible = ref(false);
 const integrityLoading = ref(false);
@@ -126,6 +128,12 @@ const actionMenuItems = computed(() => {
             key: "integrity",
             label: "Integritás ellenőrzés",
             icon: "pi pi-shield",
+            visible: true,
+        },
+        {
+            key: "delete",
+            label: "Törlés",
+            icon: "pi pi-trash",
             visible: true,
         },
     ].filter((item) => item.visible);
@@ -380,6 +388,17 @@ const closeMoveDialog = () => {
     moveDialogVisible.value = false;
 };
 
+const openDeleteDialog = (node = selectedNode.value) => {
+    if (!node) {
+        return;
+    }
+
+    selectedNode.value = node;
+    detailNode.value = node;
+    deleteDialogVisible.value = true;
+    hideActionMenu();
+};
+
 const onEmployeeSelected = async (employee) => {
     const selectedId = Number(typeof employee === "object" && employee !== null ? employee.id : employee);
 
@@ -506,6 +525,11 @@ const onNodeMenuAction = async (item) => {
         return;
     }
 
+    if (item.key === "delete") {
+        openDeleteDialog(selectedNode.value);
+        return;
+    }
+
     openMoveDialog(item.key, selectedNode.value);
 };
 
@@ -525,6 +549,20 @@ const onMoveDone = async (result) => {
     } else {
         await refreshGraph();
     }
+};
+
+const onDeletedFromHierarchy = async () => {
+    deleteDialogVisible.value = false;
+    toast.add({
+        severity: "success",
+        summary: "Sikeres művelet",
+        detail: "A dolgozó törlése megtörtént.",
+        life: 3000,
+    });
+    selectedNode.value = null;
+    detailNode.value = null;
+    highlightEmployee(null);
+    await refreshGraph();
 };
 
 const onDocumentPointerDown = (event) => {
@@ -755,6 +793,15 @@ onBeforeUnmount(() => {
                                         @click="openMoveDialog('employee_only', selectedNode)"
                                     />
                                     <Button
+                                        label="Kiválasztott dolgozó törlése"
+                                        icon="pi pi-trash"
+                                        severity="danger"
+                                        outlined
+                                        class="w-full"
+                                        :disabled="!selectedNode"
+                                        @click="openDeleteDialog(selectedNode)"
+                                    />
+                                    <Button
                                         label="Integritás ellenőrzése"
                                         icon="pi pi-shield"
                                         severity="secondary"
@@ -802,6 +849,14 @@ onBeforeUnmount(() => {
             :default-effective-from="todayYmd"
             @moved="onMoveDone"
             @update:visible="moveDialogVisible = $event"
+        />
+
+        <DeleteEmployeeDialog
+            v-model:visible="deleteDialogVisible"
+            :employee="selectedNode"
+            :company-id="Number(companyId || 0)"
+            :default-effective-from="todayYmd"
+            @deleted="onDeletedFromHierarchy"
         />
 
         <Dialog

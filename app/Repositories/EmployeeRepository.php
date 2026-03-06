@@ -254,6 +254,109 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
         return $employee;
     }
 
+    public function findByIdInCompanyForUpdate(int $employeeId, int $companyId): ?Employee
+    {
+        $currentTenantId = TenantGroup::current()?->id;
+
+        /** @var Employee|null $employee */
+        $employee = Employee::query()
+            ->whereKey($employeeId)
+            ->where('company_id', $companyId)
+            ->whereHas('company', function ($query) use ($companyId, $currentTenantId): void {
+                $query->whereKey($companyId)->where('active', true);
+
+                if (is_numeric($currentTenantId)) {
+                    $query->where('tenant_group_id', (int) $currentTenantId);
+                    return;
+                }
+
+                $query->whereRaw('1 = 0');
+            })
+            ->lockForUpdate()
+            ->first();
+
+        return $employee;
+    }
+
+    public function findActiveByEmail(int $companyId, string $email): ?Employee
+    {
+        $currentTenantId = TenantGroup::current()?->id;
+        $normalizedEmail = mb_strtolower(trim($email), 'UTF-8');
+
+        /** @var Employee|null $employee */
+        $employee = Employee::query()
+            ->with('position:id,name')
+            ->where('company_id', $companyId)
+            ->whereRaw('LOWER(email) = ?', [$normalizedEmail])
+            ->whereHas('company', function ($query) use ($companyId, $currentTenantId): void {
+                $query->whereKey($companyId)->where('active', true);
+
+                if (is_numeric($currentTenantId)) {
+                    $query->where('tenant_group_id', (int) $currentTenantId);
+                    return;
+                }
+
+                $query->whereRaw('1 = 0');
+            })
+            ->first();
+
+        return $employee;
+    }
+
+    public function findSoftDeletedByEmail(int $companyId, string $email): ?Employee
+    {
+        $currentTenantId = TenantGroup::current()?->id;
+        $normalizedEmail = mb_strtolower(trim($email), 'UTF-8');
+
+        /** @var Employee|null $employee */
+        $employee = Employee::query()
+            ->withTrashed()
+            ->with('position:id,name')
+            ->where('company_id', $companyId)
+            ->whereRaw('LOWER(email) = ?', [$normalizedEmail])
+            ->whereNotNull('deleted_at')
+            ->whereHas('company', function ($query) use ($companyId, $currentTenantId): void {
+                $query->whereKey($companyId)->where('active', true);
+
+                if (is_numeric($currentTenantId)) {
+                    $query->where('tenant_group_id', (int) $currentTenantId);
+                    return;
+                }
+
+                $query->whereRaw('1 = 0');
+            })
+            ->latest('deleted_at')
+            ->first();
+
+        return $employee;
+    }
+
+    public function findTrashedByIdInCompany(int $employeeId, int $companyId): ?Employee
+    {
+        $currentTenantId = TenantGroup::current()?->id;
+
+        /** @var Employee|null $employee */
+        $employee = Employee::query()
+            ->withTrashed()
+            ->with('position:id,name')
+            ->whereKey($employeeId)
+            ->where('company_id', $companyId)
+            ->whereNotNull('deleted_at')
+            ->whereHas('company', function ($query) use ($companyId, $currentTenantId): void {
+                $query->whereKey($companyId)->where('active', true);
+
+                if (is_numeric($currentTenantId)) {
+                    $query->where('tenant_group_id', (int) $currentTenantId);
+                    return;
+                }
+
+                $query->whereRaw('1 = 0');
+            })
+            ->first();
+
+        return $employee;
+    }
+
     public function findLeaveEntitlementData(int $employeeId, int $companyId): EmployeeLeaveEntitlementData
     {
         $currentTenantId = TenantGroup::current()?->id;
@@ -417,6 +520,53 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
 
             return $deleted;
         });
+    }
+
+    public function softDeleteEmployee(int $companyId, int $employeeId): bool
+    {
+        /** @var Employee|null $employee */
+        $employee = Employee::query()
+            ->whereKey($employeeId)
+            ->where('company_id', $companyId)
+            ->lockForUpdate()
+            ->first();
+
+        if (! $employee instanceof Employee) {
+            return false;
+        }
+
+        return (bool) $employee->delete();
+    }
+
+    public function restoreEmployee(int $companyId, int $employeeId, array $data): Employee
+    {
+        /** @var Employee $employee */
+        $employee = Employee::query()
+            ->withTrashed()
+            ->whereKey($employeeId)
+            ->where('company_id', $companyId)
+            ->whereNotNull('deleted_at')
+            ->lockForUpdate()
+            ->firstOrFail();
+
+        $employee->fill($data);
+        $employee->restore();
+        $employee->save();
+        $employee->refresh();
+
+        $this->updateDefaultSettings($employee);
+        $this->invalidateAfterEmployeeWrite(true);
+
+        return $employee;
+    }
+
+    public function isCeo(int $companyId, int $employeeId): bool
+    {
+        return Employee::query()
+            ->whereKey($employeeId)
+            ->where('company_id', $companyId)
+            ->where('org_level', Employee::ORG_LEVEL_CEO)
+            ->exists();
     }
 
     /**

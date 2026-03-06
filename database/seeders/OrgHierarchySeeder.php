@@ -65,13 +65,14 @@ final class OrgHierarchySeeder extends Seeder
 
         if ($this->command !== null) {
             $this->command->newLine();
-            $this->command->info(sprintf(
-                'OrgHierarchySeeder summary: companies=%d createdEmployees=%d assignedRelations=%d historyChanges=%d',
-                (int) $totals['companies'],
-                (int) $totals['createdEmployees'],
-                (int) $totals['assignedRelations'],
-                (int) $totals['historyChanges'],
-            ));
+
+            $this->command->info(\sprintf(
+            'OrgHierarchySeeder summary: companies=%03d createdEmployees=%03d assignedRelations=%03d historyChanges=%03d',
+            $totals['companies'],
+                $totals['createdEmployees'],
+                $totals['assignedRelations'],
+                $totals['historyChanges'],
+        ));
         }
     }
 }

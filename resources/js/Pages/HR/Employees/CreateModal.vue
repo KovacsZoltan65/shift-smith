@@ -6,6 +6,7 @@ import Button from "primevue/button";
 
 import EmployeeFields from "@/Pages/HR/Employees/Partials/EmployeeFields.vue";
 import SupervisorSelector from "@/Components/Selectors/SupervisorSelector.vue";
+import RestoreEmployeeDialog from "@/Components/Employees/RestoreEmployeeDialog.vue";
 import { csrfFetch } from "@/lib/csrfFetch";
 
 const props = defineProps({
@@ -23,6 +24,9 @@ const visible = computed({
 
 const saving = ref(false);
 const errors = ref({});
+const restoreDialogVisible = ref(false);
+const restoreCandidate = ref(null);
+const restoreLoading = ref(false);
 
 const form = ref({
     company_id: props.defaultCompanyId ? Number(props.defaultCompanyId) : null,
@@ -41,6 +45,9 @@ const form = ref({
 const reset = () => {
     errors.value = {};
     saving.value = false;
+    restoreDialogVisible.value = false;
+    restoreCandidate.value = null;
+    restoreLoading.value = false;
     form.value = {
         company_id: props.defaultCompanyId ? Number(props.defaultCompanyId) : null,
         first_name: "",
@@ -104,6 +111,7 @@ const toSupervisorPayload = (employeeId) => {
 const submit = async () => {
     saving.value = true;
     errors.value = {};
+    restoreCandidate.value = null;
 
     try {
         const res = await csrfFetch("/employees", {
@@ -115,6 +123,16 @@ const submit = async () => {
             },
             body: JSON.stringify(toPayload()),
         });
+
+        if (res.status === 409) {
+            const body = await res.json().catch(() => ({}));
+            if (body?.restore_available && body?.employee) {
+                restoreCandidate.value = body.employee;
+                restoreDialogVisible.value = true;
+                saving.value = false;
+                return;
+            }
+        }
 
         if (res.status === 422) {
             const body = await res.json().catch(() => ({}));
@@ -169,6 +187,55 @@ const submit = async () => {
     }
 };
 
+const submitRestore = async () => {
+    const employeeId = Number(restoreCandidate.value?.id || 0);
+    if (!employeeId) {
+        return;
+    }
+
+    restoreLoading.value = true;
+    errors.value = {};
+
+    try {
+        const res = await csrfFetch(`/employees/${employeeId}/restore`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                "X-Requested-With": "XMLHttpRequest",
+            },
+            body: JSON.stringify(toPayload()),
+        });
+
+        if (res.status === 422) {
+            const body = await res.json().catch(() => ({}));
+            errors.value = body?.errors ?? {};
+            restoreLoading.value = false;
+            return;
+        }
+
+        if (!res.ok) {
+            let msg = `Visszaállítás sikertelen (HTTP ${res.status})`;
+            try {
+                const body = await res.json();
+                msg = body?.message || msg;
+            } catch (_) {}
+            throw new Error(msg);
+        }
+
+        restoreDialogVisible.value = false;
+        visible.value = false;
+        emit(
+            "saved",
+            "Dolgozó visszaállítva. A hierarchia hozzárendelés külön szükséges.",
+        );
+    } catch (e) {
+        errors.value = { _general: e?.message || "Ismeretlen hiba" };
+    } finally {
+        restoreLoading.value = false;
+    }
+};
+
 const close = () => {
     visible.value = false;
 };
@@ -184,6 +251,14 @@ const close = () => {
         :dismissableMask="!saving"
         @hide="reset"
     >
+        <RestoreEmployeeDialog
+            :visible="restoreDialogVisible"
+            :employee="restoreCandidate"
+            :loading="restoreLoading"
+            @update:visible="restoreDialogVisible = $event"
+            @confirm="submitRestore"
+        />
+
         <div v-if="errors?._general" class="mb-4 border p-3">
             <div class="font-semibold">Hiba</div>
             <div class="text-sm">{{ errors._general }}</div>

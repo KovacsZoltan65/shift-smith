@@ -30,11 +30,10 @@ it('validates required fields on employee store (email required)', function (): 
 });
 
 it('allows admin to store employee and bumps cache versions', function (): void {
-    $user = $this->createAdminUser();
+    $company = Company::factory()->create();
+    $user = $this->createAdminUser($company);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
-
-    $company = Company::factory()->create();
     $position = Position::factory()->create([
         'company_id' => $company->id,
         'name' => 'Operátor',
@@ -60,7 +59,7 @@ it('allows admin to store employee and bumps cache versions', function (): void 
     $payload['birth_date'] = '1990-01-01';
     $payload['hired_at'] = '2026-02-01';
 
-    $this->actingAs($user)
+    $this->actingAsUserInCompany($user, $company)
         ->postJson(route('employees.store'), $payload)
         ->assertCreated();
 

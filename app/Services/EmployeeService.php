@@ -70,18 +70,48 @@ class EmployeeService
      */
     public function store(EmployeeData $data): EmployeeData
     {
-        $employee = $this->repo->store([
+        return $this->storeFromPayload([
             'company_id' => $data->company_id,
             'first_name' => $data->first_name,
             'last_name' => $data->last_name,
             'email' => $data->email,
             'address' => $data->address,
             'position_id' => $data->position_id,
-            'org_level' => $this->resolveOrgLevel($data->company_id, $data->position_id),
-            'phone' => $data->phone,
             'birth_date' => $data->birth_date,
+            'phone' => $data->phone,
             'hired_at' => $data->hired_at,
             'active' => $data->active,
+        ]);
+    }
+
+    /**
+     * @param array{
+     *   company_id:int,
+     *   first_name:string,
+     *   last_name:string,
+     *   email:string,
+     *   birth_date:string,
+     *   address?:string|null,
+     *   position_id?:int|null,
+     *   phone?:string|null,
+     *   hired_at?:string|null,
+     *   active?:bool
+     * } $data
+     */
+    public function storeFromPayload(array $data): EmployeeData
+    {
+        $employee = $this->repo->store([
+            'company_id' => $data['company_id'],
+            'first_name' => $data['first_name'],
+            'last_name' => $data['last_name'],
+            'email' => $data['email'],
+            'address' => $data['address'] ?? null,
+            'position_id' => $data['position_id'] ?? null,
+            'org_level' => $this->resolveOrgLevel($data['company_id'], $data['position_id'] ?? null),
+            'phone' => $data['phone'] ?? null,
+            'birth_date' => $data['birth_date'],
+            'hired_at' => $data['hired_at'] ?? null,
+            'active' => (bool) ($data['active'] ?? true),
         ]);
 
         return EmployeeData::fromModel($employee);

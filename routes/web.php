@@ -398,8 +398,10 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
         
         // Írási műveletek
         Route::post('/', 'store')->name('store')->middleware('throttle:20,1');
+        Route::post('/{employee}/restore', 'restore')->whereNumber('employee')->name('restore')->middleware('throttle:20,1');
         Route::put('/{id}', 'update')->whereNumber('id')->name('update')->middleware('throttle:30,1');
-        Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy')->middleware('throttle:20,1');
+        Route::get('/{employee}/delete-preview', 'deletePreview')->whereNumber('employee')->name('delete_preview')->middleware('throttle:60,1');
+        Route::delete('/{employee}', 'destroy')->whereNumber('employee')->name('destroy')->middleware('throttle:20,1');
         Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
     });
 
