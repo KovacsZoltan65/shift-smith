@@ -16,8 +16,8 @@ final class TenantGroupDeletionBlockedException extends RuntimeException
      */
     public function __construct(
         public readonly array $impact,
-        string $message = 'Tenant group cannot be deleted while related companies or domain data still exist.',
+        string $message = 'tenant_groups.delete_blocked_companies',
     ) {
-        parent::__construct($message);
+        parent::__construct(__($message));
     }
 }

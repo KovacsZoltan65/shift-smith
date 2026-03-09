@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 import ApplicationLogo from "@/Components/ApplicationLogo.vue";
 import Dropdown from "@/Components/Dropdown.vue";
 import DropdownLink from "@/Components/DropdownLink.vue";
+import LocaleSwitcher from "@/Components/LocaleSwitcher.vue";
 import NavLink from "@/Components/NavLink.vue";
 import ResponsiveNavLink from "@/Components/ResponsiveNavLink.vue";
 
@@ -81,7 +82,7 @@ const logout = () => {
                                 type="button"
                                 class="me-2 hidden items-center justify-center rounded-md p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 sm:inline-flex"
                                 @click="sidebarOpen = !sidebarOpen"
-                                title="Oldalsáv"
+                                :title="$t('common.navigation.sidebar')"
                             >
                                 <svg
                                     class="h-6 w-6"
@@ -108,7 +109,8 @@ const logout = () => {
                                     v-if="currentCompanyName"
                                     class="inline-flex items-center rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700"
                                 >
-                                    Cég: {{ currentCompanyName }}
+                                    {{ $t("common.company.current") }}:
+                                    {{ currentCompanyName }}
                                 </div>
 
                                 <div
@@ -142,6 +144,8 @@ const logout = () => {
                         </div>
 
                         <div class="hidden sm:ms-6 sm:flex sm:items-center">
+                            <LocaleSwitcher class="me-3" />
+
                             <!-- Sidebar toggle (desktop) -->
 
                             <!--<button
@@ -226,14 +230,18 @@ const logout = () => {
                                         <div class="border-t border-gray-100"></div>
 
                                         <DropdownLink :href="route('profile.edit')">
-                                            Profile
+                                            {{ $t("common.navigation.profile") }}
                                         </DropdownLink>
 
                                         <DropdownLink
                                             v-if="canSwitchCompany"
                                             :href="route('company.select')"
                                         >
-                                            Cég váltás
+                                            {{
+                                                $t(
+                                                    "common.navigation.company_switch"
+                                                )
+                                            }}
                                         </DropdownLink>
 
                                         <button
@@ -241,7 +249,7 @@ const logout = () => {
                                             class="block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 transition duration-150 ease-in-out hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
                                             @click="logout"
                                         >
-                                            Log Out
+                                            {{ $t("common.navigation.logout") }}
                                         </button>
                                     </template>
                                 </Dropdown>
@@ -317,21 +325,25 @@ const logout = () => {
                         </div>
 
                         <div class="mt-3 space-y-1">
+                            <div class="px-4 py-2">
+                                <LocaleSwitcher compact />
+                            </div>
+
                             <ResponsiveNavLink :href="route('profile.edit')">
-                                Profile
+                                {{ $t("common.navigation.profile") }}
                             </ResponsiveNavLink>
                             <ResponsiveNavLink
                                 v-if="canSwitchCompany"
                                 :href="route('company.select')"
                             >
-                                Cég váltás
+                                {{ $t("common.navigation.company_switch") }}
                             </ResponsiveNavLink>
                             <button
                                 type="button"
                                 class="block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 transition duration-150 ease-in-out hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
                                 @click="logout"
                             >
-                                Log Out
+                                {{ $t("common.navigation.logout") }}
                             </button>
                         </div>
                     </div>

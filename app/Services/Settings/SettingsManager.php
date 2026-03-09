@@ -173,7 +173,7 @@ class SettingsManager
     private function resolveEffectiveRows(array $keys, ?int $companyId, ?int $userId): array
     {
         $rows = $companyId === null
-            ? $this->resolveAppOnlyRows($keys)
+            ? $this->resolveAppOnlyRows($keys, $userId)
             : $this->resolver->getEffectiveMany($keys, $companyId, $userId);
 
         $resolved = [];
@@ -189,21 +189,26 @@ class SettingsManager
      * @param list<string> $keys
      * @return list<EffectiveSettingData>
      */
-    private function resolveAppOnlyRows(array $keys): array
+    private function resolveAppOnlyRows(array $keys, ?int $userId = null): array
     {
         $appValues = $this->appSettings->valuesByKeys($keys);
+        $userValues = $userId !== null
+            ? $this->settingsRepository->userValuesByKeys($userId, $keys)
+            : [];
 
         return array_map(
-            static fn (string $key): EffectiveSettingData => new EffectiveSettingData(
+            fn (string $key): EffectiveSettingData => new EffectiveSettingData(
                 key: $key,
-                effective_value: $appValues[$key] ?? null,
-                source: array_key_exists($key, $appValues) ? 'app' : 'none',
+                effective_value: $userValues[$key] ?? $appValues[$key] ?? null,
+                source: array_key_exists($key, $userValues)
+                    ? 'user'
+                    : (array_key_exists($key, $appValues) ? 'app' : 'none'),
                 type: null,
                 group: null,
                 label: null,
                 description: null,
                 company_id: 0,
-                user_id: null,
+                user_id: array_key_exists($key, $userValues) ? $userId : null,
             ),
             $keys
         );
@@ -268,6 +273,9 @@ class SettingsManager
             ? $this->cacheVersionService->get("effective_settings:{$companyId}:all")
             : 1;
         $appVersion = $this->cacheVersionService->get('landlord:app_settings.show');
+        $userVersion = $userId !== null
+            ? $this->cacheVersionService->get("settings.user.{$userId}")
+            : 0;
 
         return implode(':', [
             $prefix,
@@ -275,6 +283,7 @@ class SettingsManager
             'user', (string) ($userId ?? 0),
             'effective', (string) $companyVersion,
             'app', (string) $appVersion,
+            'user-version', (string) $userVersion,
             hash('sha256', json_encode($keys, JSON_THROW_ON_ERROR)),
         ]);
     }

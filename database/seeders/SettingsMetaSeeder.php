@@ -11,7 +11,42 @@ class SettingsMetaSeeder extends Seeder
 {
     public function run(): void
     {
+        $availableLocales = config('app.available_locales', [
+            ['name' => 'English', 'code' => 'en'],
+            ['name' => 'Magyar', 'code' => 'hu'],
+        ]);
+
+        $localeOptions = array_values(array_filter(array_map(
+            static fn (array $locale): ?array => isset($locale['code'])
+                ? [
+                    'label' => (string) ($locale['name'] ?? $locale['code']),
+                    'value' => (string) $locale['code'],
+                ]
+                : null,
+            $availableLocales
+        )));
+
+        $supportedLocales = array_values(array_filter(array_map(
+            static fn (array $locale): string => (string) ($locale['code'] ?? ''),
+            $availableLocales
+        )));
+        
+        $defaultLocale = config('app.locale', config('app.fallback_locale', 'en'));
+
         $rows = [
+            [
+                'key' => 'app.locale',
+                'group' => 'localization',
+                'label' => 'Alkalmazás nyelve',
+                'type' => 'select',
+                'default_value' => $defaultLocale,
+                'description' => 'Felhasználó -> cég -> alkalmazás sorrendben feloldott nyelvi beállítás.',
+                'options' => $localeOptions,
+                'validation' => ['required', 'string', 'in:'.implode(',', $supportedLocales)],
+                'order_index' => 1,
+                'is_editable' => true,
+                'is_visible' => true,
+            ],
             [
                 'key' => 'ui.hierarchy.view_mode',
                 'group' => 'ui.hierarchy',

@@ -32,6 +32,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MonthClosureController;
 use App\Http\Controllers\Tenant\TenantGroupController;
 use App\Http\Controllers\HR\OrgHierarchyController;
+use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\OrgPositionLevelController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -53,6 +54,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 Route::middleware('auth')->group(function () {
     Route::get('/select-company', [CompanySelectController::class, 'index'])->name('company.select');
     Route::post('/select-company', [CompanySelectController::class, 'store'])->name('company.select.store');
+    Route::post('/locale', [LocaleController::class, 'update'])->name('locale.update');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

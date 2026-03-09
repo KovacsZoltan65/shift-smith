@@ -33,6 +33,29 @@ final class TenantGroupFetchRequest extends FormRequest
         ];
     }
 
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'search.string' => __('validation.string'),
+            'search.max' => __('validation.max.string'),
+            'active.boolean' => __('validation.boolean'),
+            'status.string' => __('validation.string'),
+            'status.max' => __('validation.max.string'),
+            'sort_field.string' => __('validation.string'),
+            'sort_field.in' => __('validation.in'),
+            'sort_direction.string' => __('validation.string'),
+            'sort_direction.in' => __('validation.in'),
+            'page.integer' => __('validation.integer'),
+            'page.min' => __('validation.min.numeric'),
+            'per_page.integer' => __('validation.integer'),
+            'per_page.min' => __('validation.min.numeric'),
+            'per_page.max' => __('validation.max.numeric'),
+        ];
+    }
+
     protected function prepareForValidation(): void
     {
         $active = $this->input('active');

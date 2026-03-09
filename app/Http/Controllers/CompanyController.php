@@ -35,7 +35,7 @@ class CompanyController extends Controller
         $this->authorize(CompanyPolicy::PERM_VIEW_ANY, Company::class);
         
         return Inertia::render('Companies/Index', [
-            'title'  => 'Cégek',
+            'title'  => __('companies.title'),
             'filter' => $request->validatedFilters(),
         ]);
     }

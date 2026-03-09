@@ -43,6 +43,42 @@ final class TenantGroupUpdateRequest extends FormRequest
         ];
     }
 
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'name.required' => __('validation.required'),
+            'name.string' => __('validation.string'),
+            'name.max' => __('validation.max.string'),
+            'code.required' => __('validation.required'),
+            'code.string' => __('validation.string'),
+            'code.max' => __('validation.max.string'),
+            'code.unique' => __('validation.unique'),
+            'status.string' => __('validation.string'),
+            'status.max' => __('validation.max.string'),
+            'active.required' => __('validation.required'),
+            'active.boolean' => __('validation.boolean'),
+            'notes.string' => __('validation.string'),
+            'notes.max' => __('validation.max.string'),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'name' => __('validation.attributes.name'),
+            'code' => __('validation.attributes.code'),
+            'status' => __('validation.attributes.status'),
+            'active' => __('validation.attributes.active'),
+            'notes' => __('validation.attributes.notes'),
+        ];
+    }
+
     protected function prepareForValidation(): void
     {
         $this->merge([

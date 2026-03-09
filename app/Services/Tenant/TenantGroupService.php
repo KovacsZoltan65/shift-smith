@@ -70,7 +70,7 @@ final class TenantGroupService
         if (($impact['company_count'] ?? 0) > 0 || ($impact['active_company_count'] ?? 0) > 0) {
             throw new TenantGroupDeletionBlockedException(
                 impact: $impact,
-                message: 'Tenant group deletion is blocked while companies still belong to it.',
+                message: 'tenant_groups.delete_blocked_companies',
             );
         }
 

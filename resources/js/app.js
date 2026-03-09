@@ -3,6 +3,7 @@ import "./bootstrap";
 import "@primeuix/styled";
 
 import { createInertiaApp } from "@inertiajs/vue3";
+import { i18nVue } from "laravel-vue-i18n";
 import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
 import { createApp, h } from "vue";
 import { ZiggyVue } from "../../vendor/tightenco/ziggy";
@@ -24,6 +25,7 @@ import Divider from "primevue/divider";
 import Message from "primevue/message";
 
 const appName = import.meta.env.VITE_APP_NAME || "Laravel";
+const langs = import.meta.glob("../../lang/*.json", { eager: true });
 
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,
@@ -33,8 +35,25 @@ createInertiaApp({
             import.meta.glob("./Pages/**/*.vue"),
         ),
     setup({ el, App, props, plugin }) {
+        const locale = props.initialPage?.props?.locale || "en";
+
         return createApp({ render: () => h(App, props) })
             .use(plugin)
+            .use(i18nVue, {
+                lang: locale,
+                fallbackLang: "en",
+                fallbackMissingTranslations: true,
+                resolve: (lang) => {
+                    const loader = langs[`../../lang/${lang}.json`];
+
+                    if (!loader) {
+                        const fallback = langs["../../lang/en.json"];
+                        return fallback?.default ?? {};
+                    }
+
+                    return loader.default ?? {};
+                },
+            })
             .use(PrimeVue, {
                 ripple: true,
                 theme: {

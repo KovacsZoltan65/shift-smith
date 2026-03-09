@@ -236,9 +236,11 @@ class AppServiceProvider extends ServiceProvider
         if (!\defined('APP_TRUE'))     \define('APP_TRUE', true);
         if (!\defined('APP_FALSE'))    \define('APP_FALSE', false);
 
-        $available_locales = config('app.available_locales', ['English' => 'en', 'Hungarian' => 'hu']);
+        $available_locales = config('app.available_locales', [
+            ['name' => 'English', 'code' => 'en'],
+            ['name' => 'Magyar', 'code' => 'hu'],
+        ]);
         $supported_locales = config('app.supported_locales', ['en', 'hu']);
-        $locale = (Session::has('locale')) ? Session::get('locale') : config('app.locale', 'en');
 
         Inertia::share([
             'errors' => function () {
@@ -248,7 +250,7 @@ class AppServiceProvider extends ServiceProvider
             },
             'available_locales' => $available_locales,
             'supported_locales' => $supported_locales,
-            'locale' => $locale,
+            'locale' => fn () => app()->getLocale(),
         ]);
 
         Inertia::share('flash', function () {

@@ -1,5 +1,6 @@
 <script setup>
 import { Head } from "@inertiajs/vue3";
+import { trans } from "laravel-vue-i18n";
 import { computed, onMounted, reactive, ref } from "vue";
 
 import RowActionMenu from "@/Components/DataTable/RowActionMenu.vue";
@@ -62,18 +63,19 @@ const form = ref({
 });
 
 // DataTable szűrőállapot
+const localizedTitle = computed(() => trans("tenant_groups.title"));
 const globalFilterFields = ["name", "code", "status", "active"];
-const activeOptions = [
-    { label: "All", value: null },
-    { label: "Active", value: true },
-    { label: "Inactive", value: false },
-];
-const statusOptions = [
-    { label: "All", value: null },
-    { label: "Draft", value: "draft" },
-    { label: "Active", value: "active" },
-    { label: "Archived", value: "archived" },
-];
+const activeOptions = computed(() => [
+    { label: trans("common.filters.all"), value: null },
+    { label: trans("common.states.active"), value: true },
+    { label: trans("common.states.inactive"), value: false },
+]);
+const statusOptions = computed(() => [
+    { label: trans("common.filters.all"), value: null },
+    { label: trans("tenant_groups.statuses.draft"), value: "draft" },
+    { label: trans("tenant_groups.statuses.active"), value: "active" },
+    { label: trans("tenant_groups.statuses.archived"), value: "archived" },
+]);
 const createTableFilters = () => ({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS },
     name: {
@@ -97,8 +99,8 @@ const filters = ref(createTableFilters());
 
 const dialogTitle = computed(() =>
     dialogMode.value === "create"
-        ? "Create Tenant Group"
-        : "Edit Tenant Group",
+        ? trans("tenant_groups.dialog.create_title")
+        : trans("tenant_groups.dialog.edit_title"),
 );
 
 const resetForm = () => {
@@ -121,13 +123,13 @@ const openCreateDialog = () => {
 
 const buildRowMenuItems = (row) => [
         {
-            label: "Edit",
+            label: trans("common.actions.edit"),
             icon: "pi pi-pencil",
             disabled: formLoading.value || !canUpdate.value,
             command: () => openEditDialog(row),
         },
         {
-            label: "Delete",
+            label: trans("common.actions.delete"),
             icon: "pi pi-trash",
             disabled: formLoading.value || !canDelete.value,
             command: () => confirmDelete(row),
@@ -158,8 +160,8 @@ const openEditDialog = async (row) => {
         ErrorService.logClientError(error, { category: "tenant_group_show_failed" });
         toast.add({
             severity: "error",
-            summary: "Error",
-            detail: error?.response?.data?.message ?? "Failed to load tenant group.",
+            summary: trans("common.feedback.error"),
+            detail: error?.response?.data?.message ?? trans("tenant_groups.feedback.load_failed"),
             life: 3500,
         });
     } finally {
@@ -216,7 +218,7 @@ const loadRows = async () => {
         });
         rows.value = response?.data?.data ?? [];
     } catch (error) {
-        tableError.value = error?.response?.data?.message ?? "Failed to fetch tenant groups.";
+        tableError.value = error?.response?.data?.message ?? trans("tenant_groups.feedback.fetch_failed");
         ErrorService.logClientError(error, { category: "tenant_group_fetch_failed" });
     } finally {
         loading.value = false;
@@ -231,10 +233,10 @@ const submit = async () => {
     try {
         if (dialogMode.value === "create") {
             await TenantGroupService.store(form.value);
-            toast.add({ severity: "success", summary: "Saved", detail: "Tenant group created.", life: 2500 });
+            toast.add({ severity: "success", summary: trans("common.feedback.saved"), detail: trans("tenant_groups.feedback.created"), life: 2500 });
         } else {
             await TenantGroupService.update(selectedRow.value.id, form.value);
-            toast.add({ severity: "success", summary: "Saved", detail: "Tenant group updated.", life: 2500 });
+            toast.add({ severity: "success", summary: trans("common.feedback.saved"), detail: trans("tenant_groups.feedback.updated"), life: 2500 });
         }
 
         closeDialog();
@@ -242,11 +244,11 @@ const submit = async () => {
     } catch (error) {
         const normalizedErrors = error?.normalizedErrors || error?.response?.data?.errors || {};
         Object.keys(normalizedErrors).forEach((key) => {
-            formErrors[key] = normalizedErrors[key]?.[0] ?? "Invalid value";
+            formErrors[key] = normalizedErrors[key]?.[0] ?? trans("validation.invalid_value");
         });
 
         if (Object.keys(normalizedErrors).length === 0) {
-            formErrors._global = error?.response?.data?.message ?? "Save failed.";
+            formErrors._global = error?.response?.data?.message ?? trans("tenant_groups.feedback.save_failed");
         }
 
         ErrorService.logClientError(error, { category: "tenant_group_save_failed" });
@@ -259,18 +261,18 @@ const submit = async () => {
 // és ilyenkor a backend strukturált conflict választ ad vissza.
 const confirmDelete = (row) => {
     confirm.require({
-        header: "Delete Tenant Group",
-        message: `Delete ${row.name}?`,
+        header: trans("tenant_groups.actions.delete_confirm_title"),
+        message: trans("tenant_groups.actions.delete_confirm_message", { name: row.name }),
         icon: "pi pi-exclamation-triangle",
         acceptClass: "p-button-danger",
         accept: async () => {
             try {
                 await TenantGroupService.destroy(row.id);
-                toast.add({ severity: "success", summary: "Deleted", detail: "Tenant group archived.", life: 2500 });
+                toast.add({ severity: "success", summary: trans("common.feedback.deleted"), detail: trans("tenant_groups.feedback.archived"), life: 2500 });
                 await loadRows();
             } catch (error) {
-                const detail = error?.response?.data?.message ?? "Delete failed.";
-                toast.add({ severity: "error", summary: "Blocked", detail, life: 4000 });
+                const detail = error?.response?.data?.message ?? trans("tenant_groups.feedback.delete_failed");
+                toast.add({ severity: "error", summary: trans("common.feedback.blocked"), detail, life: 4000 });
                 ErrorService.logClientError(error, { category: "tenant_group_delete_failed" });
             }
         },
@@ -288,7 +290,7 @@ onMounted(loadRows);
 </script>
 
 <template>
-    <Head :title="title" />
+    <Head :title="localizedTitle" />
 
     <Toast />
     <ConfirmDialog />
@@ -297,13 +299,13 @@ onMounted(loadRows);
         <div class="space-y-4 p-6">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                    <h1 class="text-2xl font-semibold">{{ title }}</h1>
-                    <p class="text-sm text-slate-500">Landlord-only tenant administration.</p>
+                    <h1 class="text-2xl font-semibold">{{ localizedTitle }}</h1>
+                    <p class="text-sm text-slate-500">{{ $t("tenant_groups.description") }}</p>
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2">
                     <Button
-                        label="Refresh"
+                        :label="$t('common.actions.refresh')"
                         icon="pi pi-refresh"
                         severity="secondary"
                         :loading="loading"
@@ -311,7 +313,7 @@ onMounted(loadRows);
                     />
                     <Button
                         v-if="canCreate"
-                        label="Create"
+                        :label="$t('common.actions.create')"
                         icon="pi pi-plus"
                         @click="openCreateDialog"
                     />
@@ -342,7 +344,7 @@ onMounted(loadRows);
                         <Button
                             type="button"
                             icon="pi pi-filter-slash"
-                            label="Clear Filters"
+                            :label="$t('common.actions.clear_filters')"
                             severity="secondary"
                             :disabled="!hasActiveFilters"
                             @click="clearFilters"
@@ -354,41 +356,41 @@ onMounted(loadRows);
                             <InputText
                                 v-model="filters.global.value"
                                 class="w-full min-w-72"
-                                placeholder="Search tenant groups"
+                                :placeholder="$t('tenant_groups.search_placeholder')"
                             />
                         </IconField>
                     </div>
                 </template>
 
                 <template #empty>
-                    <div class="py-8 text-center text-slate-500">No tenant groups found.</div>
+                    <div class="py-8 text-center text-slate-500">{{ $t("tenant_groups.empty") }}</div>
                 </template>
                 <template #loading>
-                    <div class="py-8 text-center text-slate-500">Loading tenant groups...</div>
+                    <div class="py-8 text-center text-slate-500">{{ $t("tenant_groups.loading") }}</div>
                 </template>
 
-                <Column field="id" header="ID" sortable />
-                <Column field="name" header="Name" sortable filter filterField="name" :showFilterMatchModes="false">
+                <Column field="id" :header="$t('common.fields.id')" sortable />
+                <Column field="name" :header="$t('tenant_groups.fields.name')" sortable filter filterField="name" :showFilterMatchModes="false">
                     <template #filter="{ filterModel }">
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Filter by name"
+                            :placeholder="$t('tenant_groups.filters.name_placeholder')"
                         />
                     </template>
                 </Column>
-                <Column field="code" header="Code" sortable filter filterField="code" :showFilterMatchModes="false">
+                <Column field="code" :header="$t('tenant_groups.fields.code')" sortable filter filterField="code" :showFilterMatchModes="false">
                     <template #filter="{ filterModel }">
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Filter by code"
+                            :placeholder="$t('tenant_groups.filters.code_placeholder')"
                         />
                     </template>
                 </Column>
-                <Column field="status" header="Status" sortable filter filterField="status" :showFilterMatchModes="false">
+                <Column field="status" :header="$t('tenant_groups.fields.status')" sortable filter filterField="status" :showFilterMatchModes="false">
                     <template #body="{ data }">
-                        <Tag :value="data.status || 'draft'" :severity="statusSeverity(data.status)" />
+                        <Tag :value="$t(`tenant_groups.statuses.${data.status || 'draft'}`)" :severity="statusSeverity(data.status)" />
                     </template>
                     <template #filter="{ filterModel }">
                         <Select
@@ -398,13 +400,13 @@ onMounted(loadRows);
                             optionLabel="label"
                             optionValue="value"
                             showClear
-                            placeholder="Filter by status"
+                            :placeholder="$t('tenant_groups.filters.status_placeholder')"
                         />
                     </template>
                 </Column>
-                <Column field="active" header="Active" sortable filter filterField="active" dataType="boolean" :showFilterMatchModes="false">
+                <Column field="active" :header="$t('tenant_groups.fields.active')" sortable filter filterField="active" dataType="boolean" :showFilterMatchModes="false">
                     <template #body="{ data }">
-                        <Tag :value="data.active ? 'Yes' : 'No'" :severity="activeSeverity(data.active)" />
+                        <Tag :value="data.active ? $t('common.states.yes') : $t('common.states.no')" :severity="activeSeverity(data.active)" />
                     </template>
                     <template #filter="{ filterModel }">
                         <Select
@@ -414,14 +416,14 @@ onMounted(loadRows);
                             optionLabel="label"
                             optionValue="value"
                             showClear
-                            placeholder="Filter by active"
+                            :placeholder="$t('tenant_groups.filters.active_placeholder')"
                         />
                     </template>
                 </Column>
-                <Column field="createdAt" header="Created" sortable />
+                <Column field="createdAt" :header="$t('common.fields.created_at')" sortable />
                 <Column
                     v-if="canAnyRowAction"
-                    header="Műveletek"
+                    :header="$t('common.fields.actions')"
                     headerStyle="width: 3rem"
                     bodyStyle="white-space: nowrap;"
                 >
@@ -430,7 +432,7 @@ onMounted(loadRows);
                             <RowActionMenu
                                 :items="buildRowMenuItems(data)"
                                 :disabled="formLoading"
-                                :buttonTitle="`Műveletek: ${data.name}`"
+                                :buttonTitle="trans('tenant_groups.action_menu_title', { name: data.name })"
                             />
                         </div>
                     </template>
@@ -455,11 +457,11 @@ onMounted(loadRows);
                 <div class="flex items-center justify-between gap-3">
                     <div class="flex items-center gap-2 text-sm text-slate-500">
                         <Checkbox :binary="true" :modelValue="form.active" disabled />
-                        <span>Active flag is stored at landlord level.</span>
+                        <span>{{ $t("tenant_groups.active_flag_help") }}</span>
                     </div>
                     <div class="flex gap-2">
-                        <Button label="Cancel" severity="secondary" :disabled="formLoading" @click="closeDialog" />
-                        <Button label="Save" :loading="formLoading" @click="submit" />
+                        <Button :label="$t('common.actions.cancel')" severity="secondary" :disabled="formLoading" @click="closeDialog" />
+                        <Button :label="$t('common.actions.save')" :loading="formLoading" @click="submit" />
                     </div>
                 </div>
             </template>

@@ -70,7 +70,8 @@ class EffectiveSettingsResolverService
         $userScopedRows = $userId !== null
             ? $this->userSettings->findManyByUserCompanyKeys($userId, $companyId, $keys)->keyBy('key')
             : collect();
-        $userLegacyRows = $userId !== null && $allowLegacy
+        $needsGlobalUserFallback = $this->containsGlobalUserFallbackKeys($keys);
+        $userLegacyRows = $userId !== null && ($allowLegacy || $needsGlobalUserFallback)
             ? $this->userSettings->findManyLegacyByUserKeys($userId, $keys)->keyBy('key')
             : collect();
 
@@ -86,8 +87,8 @@ class EffectiveSettingsResolverService
             if ($userScoped !== null) {
                 $source = 'user';
                 $value = $userScoped->value;
-            } elseif ($userLegacy !== null) {
-                $source = 'user_legacy';
+            } elseif ($userLegacy !== null && ($allowLegacy || $this->usesGlobalUserFallback($key))) {
+                $source = $this->usesGlobalUserFallback($key) ? 'user' : 'user_legacy';
                 $value = $userLegacy->value;
             } elseif (array_key_exists($key, $companyValues)) {
                 $source = 'company';
@@ -118,5 +119,24 @@ class EffectiveSettingsResolverService
         $flag = $this->appSettings->valuesByKeys(['settings.user_legacy_global_override_enabled']);
 
         return (bool) ($flag['settings.user_legacy_global_override_enabled'] ?? false);
+    }
+
+    /**
+     * @param list<string> $keys
+     */
+    private function containsGlobalUserFallbackKeys(array $keys): bool
+    {
+        foreach ($keys as $key) {
+            if ($this->usesGlobalUserFallback($key)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function usesGlobalUserFallback(string $key): bool
+    {
+        return $key === 'app.locale';
     }
 }

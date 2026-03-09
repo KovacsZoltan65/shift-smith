@@ -85,9 +85,8 @@ return [
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
 
     'available_locales' => [
-        ['name' => 'United States', 'code' => 'US'],
-        ['name' => 'Magyarország', 'code' => 'HU'],
-        ['name' => 'Great Britain', 'code' => 'GB'],
+        ['name' => 'English', 'code' => 'en'],
+        ['name' => 'Magyar', 'code' => 'hu'],
     ],
 
     'supported_locales' => ['en', 'hu'],

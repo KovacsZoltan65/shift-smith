@@ -2,6 +2,7 @@
 import { Head } from "@inertiajs/vue3";
 import { computed, onMounted, ref } from "vue";
 import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
+import { trans } from "laravel-vue-i18n";
 
 import RowActionMenu from "@/Components/DataTable/RowActionMenu.vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
@@ -26,7 +27,7 @@ import { IconField, InputIcon } from "primevue";
 const { has } = usePermissions();
 
 const props = defineProps({
-    title: { type: String, default: "Cégek" },
+    title: { type: String, default: "" },
     filter: { type: Object, default: () => ({}) },
     endpointBase: { type: String, default: "/companies" },
     permissionPrefix: { type: String, default: "companies" },
@@ -40,6 +41,7 @@ const canCreate = computed(() => has(`${props.permissionPrefix}.create`));
 const canUpdate = computed(() => has(`${props.permissionPrefix}.update`));
 const canDelete = computed(() => has(`${props.permissionPrefix}.delete`));
 const canAnyRowAction = computed(() => canUpdate.value || canDelete.value);
+const localizedTitle = computed(() => props.title || trans("companies.title"));
 
 const toast = useToast();
 const confirm = useConfirm();
@@ -62,19 +64,19 @@ const selected = ref([]);
 // ------------------------
 // Row actions menu
 const buildRowMenuItems = (row) => [
-        {
-            label: "Szerkesztés",
-            icon: "pi pi-pencil",
-            disabled: actionLoading.value || !canUpdate.value,
-            command: () => openEditModal(row),
-        },
-        {
-            label: "Törlés",
-            icon: "pi pi-trash",
-            disabled: actionLoading.value || !canDelete.value,
-            command: () => confirmDeleteOne(row),
-        },
-    ];
+    {
+        label: "Szerkesztés",
+        icon: "pi pi-pencil",
+        disabled: actionLoading.value || !canUpdate.value,
+        command: () => openEditModal(row),
+    },
+    {
+        label: "Törlés",
+        icon: "pi pi-trash",
+        disabled: actionLoading.value || !canDelete.value,
+        command: () => confirmDeleteOne(row),
+    },
+];
 // ------------------------
 
 // lazy state (Users minta)
@@ -345,7 +347,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <Head :title="props.title" />
+    <Head :title="localizedTitle" />
 
     <Toast />
     <ConfirmDialog />
@@ -365,7 +367,7 @@ onMounted(() => {
         <div class="space-y-4 p-6">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-3 flex-wrap">
-                    <h1 class="text-2xl font-semibold">{{ title }}</h1>
+                    <h1 class="text-2xl font-semibold">{{ localizedTitle }}</h1>
                     <span
                         v-if="hqBadge"
                         class="inline-flex items-center rounded bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700"
@@ -376,7 +378,7 @@ onMounted(() => {
                     <!-- CREATE -->
                     <Button
                         v-if="canCreate"
-                        label="Új cég"
+                        :label="$t('companies.new')"
                         icon="pi pi-plus"
                         size="small"
                         @click="openCreate"
@@ -385,7 +387,7 @@ onMounted(() => {
 
                     <!-- FRISSÍTÉS -->
                     <Button
-                        label="Frissítés"
+                        :label="trans('common.actions.refresh')"
                         icon="pi pi-refresh"
                         severity="secondary"
                         size="small"
@@ -398,7 +400,7 @@ onMounted(() => {
                     <!-- BULK DELETE -->
                     <Button
                         v-if="canDelete"
-                        label="Kijelöltek törlése"
+                        :label="trans('common.actions.bulk_delete')"
                         icon="pi pi-trash"
                         severity="danger"
                         size="small"
