@@ -8,6 +8,8 @@ import { createApp, h } from "vue";
 import { ZiggyVue } from "../../vendor/tightenco/ziggy";
 import Tooltip from "primevue/tooltip";
 
+import { i18nVue } from "laravel-vue-i18n";
+
 import PrimeVue from "primevue/config";
 import ToastService from "primevue/toastservice";
 import { ConfirmationService } from "primevue";
@@ -35,6 +37,17 @@ createInertiaApp({
     setup({ el, App, props, plugin }) {
         return createApp({ render: () => h(App, props) })
             .use(plugin)
+            .use(i18nVue, {
+                locale:
+                    props?.initialPage?.props?.preferences?.locale ||
+                    document.documentElement.getAttribute("lang") ||
+                    "hu",
+                fallbackLocale: "hu",
+                resolve: async (lang) => {
+                    const messages = import.meta.glob("../../lang/*.json"); // */
+                    return await messages[`../../lang/${lang}.json`]();
+                },
+            })
             .use(PrimeVue, {
                 ripple: true,
                 theme: {

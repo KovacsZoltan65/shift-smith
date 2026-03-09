@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         //]);
 
         $middleware->web(append: [
+            \App\Http\Middleware\SetLocaleFromSession::class,
             \App\Http\Middleware\HandleInertiaRequests::class,
             \App\Http\Middleware\TrackMenuUsage::class,
             \App\Http\Middleware\SecurityHeaders::class,

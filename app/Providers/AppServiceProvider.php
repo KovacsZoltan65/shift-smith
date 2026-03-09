@@ -238,7 +238,9 @@ class AppServiceProvider extends ServiceProvider
 
         $available_locales = config('app.available_locales', ['English' => 'en', 'Hungarian' => 'hu']);
         $supported_locales = config('app.supported_locales', ['en', 'hu']);
-        $locale = (Session::has('locale')) ? Session::get('locale') : config('app.locale', 'en');
+        $locale = app()->getLocale();
+        $timezone = (Session::has('timezone')) ? Session::get('timezone') : config('app.timezone', 'UTC');
+        $theme = (Session::has('theme')) ? Session::get('theme') : 'system';
 
         Inertia::share([
             'errors' => function () {
@@ -249,6 +251,11 @@ class AppServiceProvider extends ServiceProvider
             'available_locales' => $available_locales,
             'supported_locales' => $supported_locales,
             'locale' => $locale,
+            'preferences' => [
+                'locale' => $locale,
+                'timezone' => $timezone,
+                'theme' => $theme,
+            ],
         ]);
 
         Inertia::share('flash', function () {

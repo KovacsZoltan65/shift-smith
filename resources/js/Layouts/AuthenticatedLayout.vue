@@ -11,6 +11,7 @@ import { Link, router, usePage } from "@inertiajs/vue3";
 import { useAppMenu } from "@/composables/useAppMenu";
 
 import Button from "primevue/button";
+import TopbarLocaleSwitch from "@/Components/TopbarLocaleSwitch.vue";
 
 const showingNavigationDropdown = ref(false);
 
@@ -45,7 +46,9 @@ const canSwitchCompany = computed(
 const logout = () => {
     const csrf =
         page.props?.csrf_token ??
-        document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ??
+        document
+            .querySelector('meta[name="csrf-token"]')
+            ?.getAttribute("content") ??
         "";
 
     router.post(
@@ -117,12 +120,18 @@ const logout = () => {
                                     class="inline-block"
                                 >
                                     <template
-                                        v-if="qi && qi.route && route().has(qi.route)"
+                                        v-if="
+                                            qi &&
+                                            qi.route &&
+                                            route().has(qi.route)
+                                        "
                                     >
                                         <Button
                                             severity="secondary"
                                             size="small"
-                                            @click="router.visit(route(qi.route))"
+                                            @click="
+                                                router.visit(route(qi.route))
+                                            "
                                         >
                                             {{ qi.title }}
                                         </Button>
@@ -130,41 +139,12 @@ const logout = () => {
                                 </div>
                             </TransitionGroup>
 
-                            <!-- Navigation Links -->
-                            <!--<div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                <NavLink
-                  :href="route('dashboard')"
-                  :active="route().current('dashboard')"
-                >
-                  Dashboard
-                </NavLink>
-              </div>-->
                         </div>
 
-                        <div class="hidden sm:ms-6 sm:flex sm:items-center">
-                            <!-- Sidebar toggle (desktop) -->
-
-                            <!--<button
-                type="button"
-                class="me-2 inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-medium text-gray-500 transition hover:bg-gray-50 hover:text-gray-700"
-                @click="sidebarOpen = !sidebarOpen"
-                title="Oldalsáv"
-              >
-                <svg
-                  class="h-5 w-5"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                </svg>
-              </button>-->
+                        <div
+                            class="hidden sm:ms-6 sm:flex sm:items-center sm:gap-3"
+                        >
+                            <TopbarLocaleSwitch />
 
                             <!-- Settings Dropdown -->
                             <div class="relative ms-3">
@@ -206,15 +186,21 @@ const logout = () => {
                                                 {{ $page.props.auth.user.name }}
                                             </div>
                                             <div class="text-xs text-gray-500">
-                                                {{ $page.props.auth.user.email }}
+                                                {{
+                                                    $page.props.auth.user.email
+                                                }}
                                             </div>
 
                                             <div
-                                                v-if="$page.props.auth.roles?.length"
+                                                v-if="
+                                                    $page.props.auth.roles
+                                                        ?.length
+                                                "
                                                 class="mt-2 flex flex-wrap gap-1"
                                             >
                                                 <span
-                                                    v-for="r in $page.props.auth.roles"
+                                                    v-for="r in $page.props.auth
+                                                        .roles"
                                                     :key="r"
                                                     class="rounded bg-gray-100 px-2 py-0.5 text-[11px] text-gray-700"
                                                 >
@@ -223,9 +209,13 @@ const logout = () => {
                                             </div>
                                         </div>
 
-                                        <div class="border-t border-gray-100"></div>
+                                        <div
+                                            class="border-t border-gray-100"
+                                        ></div>
 
-                                        <DropdownLink :href="route('profile.edit')">
+                                        <DropdownLink
+                                            :href="route('profile.edit')"
+                                        >
                                             Profile
                                         </DropdownLink>
 
@@ -252,7 +242,8 @@ const logout = () => {
                         <div class="-me-2 flex items-center sm:hidden">
                             <button
                                 @click="
-                                    showingNavigationDropdown = !showingNavigationDropdown
+                                    showingNavigationDropdown =
+                                        !showingNavigationDropdown
                                 "
                                 class="inline-flex items-center justify-center rounded-md p-2 text-gray-400 transition duration-150 ease-in-out hover:bg-gray-100 hover:text-gray-500 focus:bg-gray-100 focus:text-gray-500 focus:outline-none"
                             >
@@ -265,7 +256,8 @@ const logout = () => {
                                     <path
                                         :class="{
                                             hidden: showingNavigationDropdown,
-                                            'inline-flex': !showingNavigationDropdown,
+                                            'inline-flex':
+                                                !showingNavigationDropdown,
                                         }"
                                         stroke-linecap="round"
                                         stroke-linejoin="round"
@@ -275,7 +267,8 @@ const logout = () => {
                                     <path
                                         :class="{
                                             hidden: !showingNavigationDropdown,
-                                            'inline-flex': showingNavigationDropdown,
+                                            'inline-flex':
+                                                showingNavigationDropdown,
                                         }"
                                         stroke-linecap="round"
                                         stroke-linejoin="round"
@@ -381,9 +374,10 @@ const logout = () => {
                                                 :href="route(item.route)"
                                                 class="block rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
                                                 :class="{
-                                                    'bg-gray-100 font-semibold text-gray-900': route().current(
-                                                        item.route
-                                                    ),
+                                                    'bg-gray-100 font-semibold text-gray-900':
+                                                        route().current(
+                                                            item.route,
+                                                        ),
                                                 }"
                                             >
                                                 {{ item.title }}
@@ -393,7 +387,10 @@ const logout = () => {
                                             <div
                                                 class="block rounded-md px-3 py-2 text-sm text-gray-400"
                                             >
-                                                {{ item?.title ?? "(ismeretlen)" }}
+                                                {{
+                                                    item?.title ??
+                                                    "(ismeretlen)"
+                                                }}
                                             </div>
                                         </template>
                                     </template>
