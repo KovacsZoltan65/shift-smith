@@ -30,6 +30,7 @@ use App\Http\Controllers\WorkShiftAssignmentController;
 use App\Http\Controllers\WorkShiftController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MonthClosureController;
+use App\Http\Controllers\Tenant\TenantGroupController;
 use App\Http\Controllers\HR\OrgHierarchyController;
 use App\Http\Controllers\OrgPositionLevelController;
 use Illuminate\Foundation\Application;
@@ -46,7 +47,7 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'verified', 'ensure.company'])
+    ->middleware(['auth', 'verified', 'ensure.company', 'ensure.tenant'])
     ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
@@ -63,7 +64,7 @@ Route::middleware('auth')->group(function () {
  * SELECTOROK
  * ======================================
  */
-Route::middleware(['auth', 'verified', 'ensure.company', 'throttle:120,1'])->group(function(): void {
+Route::middleware(['auth', 'verified', 'ensure.company', 'ensure.tenant', 'throttle:120,1'])->group(function(): void {
     // Company Selector
     Route::get('/selectors/companies', [CompanyController::class, 'getToSelect'])->name('selectors.companies');
     // Employee Selector
@@ -101,7 +102,7 @@ Route::middleware(['auth', 'verified', 'ensure.company', 'throttle:120,1'])->gro
  * MENÜPONT NAVIGÁCIÓK
  * ======================================
  */
-Route::middleware(['auth', 'verified', 'ensure.company'])->group(function () {
+Route::middleware(['auth', 'verified', 'ensure.company', 'ensure.tenant'])->group(function () {
 
     // Menü
     Route::get('/menu', fn () => Inertia::render('Menu/Index'))->name('menu.index');
@@ -214,7 +215,7 @@ Route::middleware(['auth', 'verified'])
         Route::delete('/app-settings/destroy-bulk', [AppSettingController::class, 'bulkDestroy'])->name('app_settings.destroy_bulk')->middleware('throttle:10,1');
         Route::delete('/app-settings/{id}', [AppSettingController::class, 'destroy'])->whereNumber('id')->name('app_settings.destroy')->middleware('throttle:20,1');
 
-        Route::middleware(['ensure.company'])->group(function (): void {
+        Route::middleware(['ensure.company', 'ensure.tenant'])->group(function (): void {
             Route::get('/position-org-levels', [OrgPositionLevelController::class, 'index'])->name('position_org_levels.index')->middleware('throttle:60,1');
             Route::get('/position-org-levels/fetch', [OrgPositionLevelController::class, 'fetch'])->name('position_org_levels.fetch')->middleware('throttle:60,1');
             Route::post('/position-org-levels', [OrgPositionLevelController::class, 'store'])->name('position_org_levels.store')->middleware('throttle:20,1');
@@ -272,7 +273,7 @@ Route::middleware(['auth', 'verified'])
         // ---------------------------------------
         // USER <-> EMPLOYEE MAPPING
         // ---------------------------------------
-        Route::middleware(['ensure.company'])->group(function (): void {
+        Route::middleware(['ensure.company', 'ensure.tenant'])->group(function (): void {
             Route::get('/user-assignments', [UserAssignmentController::class, 'index'])->name('user_assignments.index')->middleware('throttle:60,1');
             Route::get('/user-assignments/fetch/users', [UserAssignmentController::class, 'fetchUsers'])->name('user_assignments.users.fetch')->middleware('throttle:60,1');
             Route::get('/user-assignments/{user}/fetch', [UserAssignmentController::class, 'fetch'])->name('user_assignments.fetch')->middleware('throttle:60,1');
@@ -291,7 +292,7 @@ Route::middleware(['auth', 'verified'])
  * ======================================
  * Felhasználók kezelése
  */
-Route::middleware(['auth', 'verified', 'ensure.company'])
+Route::middleware(['auth', 'verified', 'ensure.company', 'ensure.tenant'])
         ->prefix('users')->as('users.')->controller(UserController::class)->group(function () {
         // INDEX - olvasási műveletek
         Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
@@ -315,7 +316,7 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
         Route::post('/{user}/password-reset', 'sendPasswordReset')->name('send_password_reset')->middleware('throttle:5,1');
     });
 
-Route::middleware(['auth', 'verified', 'ensure.company'])
+Route::middleware(['auth', 'verified', 'ensure.company', 'ensure.tenant'])
     ->prefix('admin/users')
     ->name('admin.users.')
     ->group(function (): void {
@@ -332,7 +333,7 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
  * ======================================
  * Cégek kezelése
  */
-Route::middleware(['auth', 'verified', 'ensure.company'])
+Route::middleware(['auth', 'verified', 'ensure.company', 'ensure.tenant'])
     ->prefix('companies')
     ->as('companies.')
     ->controller(CompanyController::class)
@@ -363,6 +364,19 @@ Route::middleware(['auth', 'verified', 'superadmin', 'hq.landlord'])
         Route::get('/fetch', 'fetch')->name('fetch')->middleware('throttle:60,1');
         Route::get('/{id}', 'getCompany')->whereNumber('id')->name('by_id')->middleware('throttle:60,1');
     });
+
+Route::middleware(['auth', 'verified', 'superadmin', 'hq.landlord'])
+    ->prefix('hq/tenant-groups')
+    ->as('hq.tenant_groups.')
+    ->controller(TenantGroupController::class)
+    ->group(function (): void {
+        Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
+        Route::get('/fetch', 'fetch')->name('fetch')->middleware('throttle:60,1');
+        Route::get('/{tenantGroup}', 'show')->name('show')->middleware('throttle:60,1');
+        Route::post('/', 'store')->name('store')->middleware('throttle:20,1');
+        Route::put('/{tenantGroup}', 'update')->name('update')->middleware('throttle:30,1');
+        Route::delete('/{tenantGroup}', 'destroy')->name('destroy')->middleware('throttle:20,1');
+    });
     
 /**
  * ======================================
@@ -370,7 +384,7 @@ Route::middleware(['auth', 'verified', 'superadmin', 'hq.landlord'])
  * ======================================
  * Dolgozók kezelése
  */
-Route::middleware(['auth', 'verified', 'ensure.company'])
+Route::middleware(['auth', 'verified', 'ensure.company', 'ensure.tenant'])
     ->prefix('positions')
     ->as('positions.')
     ->controller(PositionController::class)
@@ -385,7 +399,7 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
         Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
     });
 
-Route::middleware(['auth', 'verified', 'ensure.company'])
+Route::middleware(['auth', 'verified', 'ensure.company', 'ensure.tenant'])
     ->prefix('employees')
     ->as('employees.')
     ->controller(EmployeeController::class)
@@ -405,7 +419,7 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
         Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
     });
 
-Route::middleware(['auth', 'verified', 'ensure.company'])
+Route::middleware(['auth', 'verified', 'ensure.company', 'ensure.tenant'])
     ->prefix('employees')
     ->as('employees.')
     ->controller(EmployeeSupervisorController::class)
@@ -413,7 +427,7 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
         Route::post('/{employee}/supervisor', 'assign')->whereNumber('employee')->name('supervisor.assign')->middleware('throttle:20,1');
     });
 
-Route::middleware(['auth', 'verified', 'ensure.company'])
+Route::middleware(['auth', 'verified', 'ensure.company', 'ensure.tenant'])
     ->prefix('admin/employees')
     ->as('employees.')
     ->controller(\App\Http\Controllers\Admin\EmployeeLeaveProfileController::class)
@@ -422,7 +436,7 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
         Route::put('/{id}/leave-profile', 'update')->whereNumber('id')->name('leave_profile.update')->middleware('throttle:30,1');
     });
 
-Route::middleware(['auth', 'verified', 'ensure.company'])
+Route::middleware(['auth', 'verified', 'ensure.company', 'ensure.tenant'])
     ->prefix('admin/employees')
     ->as('employees.')
     ->controller(EmployeeLeaveEntitlementController::class)
@@ -435,7 +449,7 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
  * EMPLOYEE WORK PATTERNS
  * ======================================
  */
-Route::middleware(['auth', 'verified', 'ensure.company'])
+Route::middleware(['auth', 'verified', 'ensure.company', 'ensure.tenant'])
     ->prefix('employees/{employee}/work-patterns')
     ->whereNumber('employee')
     ->as('employee_work_patterns.')
@@ -453,7 +467,7 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
  * ======================================
  * Műszakok kezelése
  */
-Route::middleware(['auth', 'verified', 'ensure.company'])
+Route::middleware(['auth', 'verified', 'ensure.company', 'ensure.tenant'])
     ->prefix('work-shifts')
     ->as('work_shifts.')
     ->controller(WorkShiftController::class)
@@ -475,7 +489,7 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
  * WORK_SHIFT ASSIGNMENTS
  * ======================================
  */
-Route::middleware(['auth', 'verified', 'ensure.company'])
+Route::middleware(['auth', 'verified', 'ensure.company', 'ensure.tenant'])
     ->prefix('work_shifts/{work_shift}/assignments')
     ->whereNumber('work_shift')
     ->as('work_shift_assignments.')
@@ -492,7 +506,7 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
  * SCHEDULING CALENDAR + WORK SCHEDULE ASSIGNMENTS
  * ======================================
  */
-Route::middleware(['auth', 'verified', 'ensure.company'])
+Route::middleware(['auth', 'verified', 'ensure.company', 'ensure.tenant'])
     ->prefix('work-schedules')
     ->as('work_schedules.')
     ->controller(WorkScheduleController::class)
@@ -507,14 +521,14 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
         Route::delete('/destroy_bulk', 'destroyBulk')->name('destroy_bulk')->middleware('throttle:10,1');
     });
 
-Route::middleware(['auth', 'verified', 'ensure.company'])
+Route::middleware(['auth', 'verified', 'ensure.company', 'ensure.tenant'])
     ->controller(WorkScheduleAssignmentController::class)
     ->group(function (): void {
         Route::get('/scheduling/calendar', 'calendar')->name('scheduling.calendar')->middleware('throttle:60,1');
         Route::get('/scheduling/calendar/feed', 'feed')->name('scheduling.calendar.feed')->middleware('throttle:120,1');
     });
 
-Route::middleware(['auth', 'verified', 'ensure.company'])
+Route::middleware(['auth', 'verified', 'ensure.company', 'ensure.tenant'])
     ->prefix('scheduling/month-closures')
     ->controller(MonthClosureController::class)
     ->group(function (): void {
@@ -522,7 +536,7 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
         Route::delete('/{id}', 'destroy')->whereNumber('id')->name('scheduling.month_closures.destroy')->middleware('throttle:20,1');
     });
 
-Route::middleware(['auth', 'verified', 'ensure.company'])
+Route::middleware(['auth', 'verified', 'ensure.company', 'ensure.tenant'])
     ->prefix('work-schedule-assignments')
     ->controller(WorkScheduleAssignmentController::class)
     ->group(function (): void {
@@ -537,7 +551,7 @@ Route::middleware(['auth', 'verified', 'ensure.company'])
  * WORK_PATTERNS
  * ======================================
  */
-Route::middleware(['auth', 'verified', 'ensure.company'])
+Route::middleware(['auth', 'verified', 'ensure.company', 'ensure.tenant'])
     ->prefix('work-patterns')
     ->as('work_patterns.')
     ->controller(WorkPatternController::class)

@@ -110,6 +110,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'user_settings.deleteAny',
             'user_settings.manageOthers',
             'hq.companies.view',
+            'tenant-groups.view',
+            'tenant-groups.viewAny',
+            'tenant-groups.create',
+            'tenant-groups.update',
+            'tenant-groups.delete',
             'employee_work_patterns.assign',
             'employee_work_patterns.unassign',
             'employee_work_patterns.view',
@@ -242,6 +247,7 @@ class RolesAndPermissionsSeeder extends Seeder
             $adminRole->syncPermissions(
                 Permission::where('name', 'not like', '%.forceDelete%')
                     ->where('name', 'not like', 'hq.%')
+                    ->where('name', 'not like', 'tenant-groups.%')
                     ->get()
             );
             $bar->advance();
@@ -250,13 +256,16 @@ class RolesAndPermissionsSeeder extends Seeder
                 Permission::where(function ($q) {
                     $q->where('name', 'like', '%.viewAny')
                       ->orWhere('name', 'like', '%.view');
-                })->where('name', 'not like', 'hq.%')->get()
+                })->where('name', 'not like', 'hq.%')
+                    ->where('name', 'not like', 'tenant-groups.%')
+                    ->get()
             );
             $bar->advance();
 
             $userRole->syncPermissions(
                 Permission::where('name', 'like', '%.view')
                     ->where('name', 'not like', 'hq.%')
+                    ->where('name', 'not like', 'tenant-groups.%')
                     ->get()
             );
             $bar->advance();

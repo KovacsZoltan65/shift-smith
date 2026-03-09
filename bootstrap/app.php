@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__.'/../app/Support/helpers.php';
+
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -26,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'ensure.company' => \App\Http\Middleware\EnsureCompanySelected::class,
+            'ensure.tenant' => \App\Http\Middleware\EnsureTenantContext::class,
             'hq.landlord' => \App\Http\Middleware\EnsureHqLandlordContext::class,
             'superadmin' => \App\Http\Middleware\EnsureSuperadmin::class,
         ]);

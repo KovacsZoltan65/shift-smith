@@ -3,6 +3,7 @@ import { Head } from "@inertiajs/vue3";
 import { computed, onMounted, ref } from "vue";
 import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
 
+import RowActionMenu from "@/Components/DataTable/RowActionMenu.vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 
 import Button from "primevue/button";
@@ -10,7 +11,6 @@ import Column from "primevue/column";
 import ConfirmDialog from "primevue/confirmdialog";
 import DataTable from "primevue/datatable";
 import InputText from "primevue/inputtext";
-import Menu from "primevue/menu";
 import Select from "primevue/select";
 import Toast from "primevue/toast";
 import { useConfirm } from "primevue/useconfirm";
@@ -61,14 +61,7 @@ const selected = ref([]);
 
 // ------------------------
 // Row actions menu
-const rowMenu = ref();
-const rowMenuModel = ref([]);
-const rowMenuRow = ref(null);
-
-const openRowMenu = (event, row) => {
-    rowMenuRow.value = row;
-
-    rowMenuModel.value = [
+const buildRowMenuItems = (row) => [
         {
             label: "Szerkesztés",
             icon: "pi pi-pencil",
@@ -82,9 +75,6 @@ const openRowMenu = (event, row) => {
             command: () => confirmDeleteOne(row),
         },
     ];
-
-    rowMenu.value.toggle(event);
-};
 // ------------------------
 
 // lazy state (Users minta)
@@ -431,13 +421,6 @@ onMounted(() => {
                 <div class="text-sm">{{ error }}</div>
             </div>
 
-            <Menu
-                v-if="canAnyRowAction"
-                ref="rowMenu"
-                :model="rowMenuModel"
-                popup
-            />
-
             <DataTable
                 ref="dt"
                 v-model:selection="selected"
@@ -573,15 +556,10 @@ onMounted(() => {
                 >
                     <template #body="{ data }">
                         <div class="flex gap-2 justify-end">
-                            <Button
-                                icon="pi pi-ellipsis-v"
-                                severity="secondary"
-                                size="small"
-                                text
-                                rounded
+                            <RowActionMenu
+                                :items="buildRowMenuItems(data)"
                                 :disabled="actionLoading"
-                                @click="openRowMenu($event, data)"
-                                :title="`Műveletek: ${data.name}`"
+                                :buttonTitle="`Műveletek: ${data.name}`"
                             />
                         </div>
                     </template>

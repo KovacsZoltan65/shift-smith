@@ -3,12 +3,12 @@ import { Head } from "@inertiajs/vue3";
 import { computed, onMounted, ref } from "vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
+import RowActionMenu from "@/Components/DataTable/RowActionMenu.vue";
 import Button from "primevue/button";
 import Column from "primevue/column";
 import ConfirmDialog from "primevue/confirmdialog";
 import DataTable from "primevue/datatable";
 import InputText from "primevue/inputtext";
-import Menu from "primevue/menu";
 import Select from "primevue/select";
 import Toast from "primevue/toast";
 import { useConfirm } from "primevue/useconfirm";
@@ -47,9 +47,6 @@ const companyId = ref(props.filter?.company_id ?? null);
 const createOpen = ref(false);
 const editOpen = ref(false);
 const editWorkSchedule = ref(null);
-
-const rowMenu = ref();
-const rowMenuModel = ref([]);
 
 const statusOptions = [
     { label: "Draft", value: "draft" },
@@ -109,8 +106,7 @@ const hasActiveFilters = computed(() =>
     }),
 );
 
-const openRowMenu = (event, row) => {
-    rowMenuModel.value = [
+const buildRowMenuItems = (row) => [
         {
             label: "Szerkesztés",
             icon: "pi pi-pencil",
@@ -127,9 +123,6 @@ const openRowMenu = (event, row) => {
             command: () => confirmDeleteOne(row),
         },
     ];
-
-    rowMenu.value.toggle(event);
-};
 
 const fetchWorkSchedules = async () => {
     if (!companyId.value) {
@@ -324,8 +317,6 @@ onMounted(fetchWorkSchedules);
                 <div class="text-sm">{{ error }}</div>
             </div>
 
-            <Menu ref="rowMenu" :model="rowMenuModel" popup />
-
             <DataTable
                 ref="dt"
                 v-model:selection="selected"
@@ -475,12 +466,10 @@ onMounted(fetchWorkSchedules);
                     headerClass="text-right"
                 >
                     <template #body="{ data }">
-                        <Button
-                            icon="pi pi-ellipsis-v"
-                            text
-                            rounded
-                            aria-label="Műveletek"
-                            @click="openRowMenu($event, data)"
+                        <RowActionMenu
+                            :items="buildRowMenuItems(data)"
+                            :disabled="actionLoading"
+                            buttonTitle="Műveletek"
                         />
                     </template>
                 </Column>

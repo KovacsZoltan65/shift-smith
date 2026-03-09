@@ -19,11 +19,15 @@ class TenantGroupFactory extends Factory
     public function definition(): array
     {
         $name = fake()->company();
+        $code = Str::upper(Str::slug($name, '_')).'_'.fake()->unique()->numberBetween(10, 999);
 
         return [
             'name' => $name,
+            'code' => Str::limit($code, 50, ''),
             'slug' => Str::slug($name).'-'.Str::lower(Str::random(6)),
             'database_name' => null,
+            'status' => fake()->randomElement(['draft', 'active', 'archived']),
+            'notes' => fake()->optional()->sentence(),
             'active' => true,
         ];
     }

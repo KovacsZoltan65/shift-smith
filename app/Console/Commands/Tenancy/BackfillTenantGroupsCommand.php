@@ -40,6 +40,7 @@ class BackfillTenantGroupsCommand extends Command
 
                         $tenantGroup = TenantGroup::query()->create([
                             'name' => $company->name,
+                            'code' => $this->makeUniqueCode($company),
                             'slug' => $this->makeUniqueSlug($company),
                             'active' => true,
                         ]);
@@ -84,6 +85,25 @@ class BackfillTenantGroupsCommand extends Command
             $candidate = $slugWithId.'-'.$counter;
             $counter++;
         } while (TenantGroup::query()->where('slug', $candidate)->exists());
+
+        return $candidate;
+    }
+
+    private function makeUniqueCode(Company $company): string
+    {
+        $baseCode = Str::upper(Str::slug($company->name, '_'));
+        if ($baseCode === '') {
+            $baseCode = 'TENANT_GROUP';
+        }
+
+        $candidate = Str::limit($baseCode, 50, '');
+        $counter = 1;
+
+        while (TenantGroup::query()->withTrashed()->where('code', $candidate)->exists()) {
+            $suffix = '_'.$counter;
+            $candidate = Str::limit($baseCode, 50 - strlen($suffix), '').$suffix;
+            $counter++;
+        }
 
         return $candidate;
     }

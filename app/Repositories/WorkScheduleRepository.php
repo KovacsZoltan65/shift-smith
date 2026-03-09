@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use App\Interfaces\WorkScheduleRepositoryInterface;
-use App\Models\Company;
-use App\Models\TenantGroup;
+use App\Repositories\Concerns\TenantScopedRepository;
 use App\Models\WorkSchedule;
 use App\Services\Cache\CacheNamespaces;
 use App\Services\Cache\CacheVersionService;
@@ -18,6 +17,8 @@ use Illuminate\Support\Facades\DB;
 
 final class WorkScheduleRepository implements WorkScheduleRepositoryInterface
 {
+    use TenantScopedRepository;
+
     private const NS_SELECTOR = 'selectors.work_schedules';
 
     public function __construct(
@@ -213,18 +214,6 @@ final class WorkScheduleRepository implements WorkScheduleRepositoryInterface
         );
 
         return $items;
-    }
-
-    private function resolveTenantScopedCompanyId(int $companyId): int
-    {
-        $tenantId = TenantGroup::current()?->id;
-
-        $company = Company::query()
-            ->whereKey($companyId)
-            ->when($tenantId !== null, fn ($query) => $query->where('tenant_group_id', $tenantId))
-            ->firstOrFail(['id']);
-
-        return (int) $company->id;
     }
 
     private function companyTag(int $companyId): string

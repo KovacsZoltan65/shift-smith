@@ -322,6 +322,7 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
         return DB::transaction(function() use($data): Company {
             $tenantGroup = TenantGroup::query()->create([
                 'name' => (string) $data['name'],
+                'code' => $this->makeUniqueTenantGroupCode((string) $data['name']),
                 'slug' => $this->makeUniqueTenantGroupSlug((string) $data['name']),
                 'active' => true,
             ]);
@@ -356,6 +357,25 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
         }
 
         return $slug;
+    }
+
+    private function makeUniqueTenantGroupCode(string $name): string
+    {
+        $baseCode = Str::upper(Str::slug($name, '_'));
+        if ($baseCode === '') {
+            $baseCode = 'TENANT_GROUP';
+        }
+
+        $code = Str::limit($baseCode, 50, '');
+        $counter = 1;
+
+        while (TenantGroup::query()->withTrashed()->where('code', $code)->exists()) {
+            $suffix = '_'.$counter;
+            $code = Str::limit($baseCode, 50 - strlen($suffix), '').$suffix;
+            $counter++;
+        }
+
+        return $code;
     }
 
     /**

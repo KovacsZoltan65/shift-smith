@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import { Head } from "@inertiajs/vue3";
 import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
 
+import RowActionMenu from "@/Components/DataTable/RowActionMenu.vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 
 import DataTable from "primevue/datatable";
@@ -13,7 +14,6 @@ import ConfirmDialog from "primevue/confirmdialog";
 import { useConfirm } from "primevue/useconfirm";
 import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
-import Menu from "primevue/menu";
 import Tag from "primevue/tag";
 import Dialog from "primevue/dialog";
 import MultiSelect from "primevue/multiselect";
@@ -56,9 +56,6 @@ const error = ref(null);
 const rows = ref([]);
 const selected = ref([]);
 const dt = ref(null);
-
-const rowMenu = ref();
-const rowMenuModel = ref([]);
 
 const globalFilterFields = ["name", "guard_name", "users_count"];
 const createInitialFilters = () => ({
@@ -106,8 +103,7 @@ const usersModalSummary = computed(() => {
     return `${count} felhasználó kijelölve`;
 });
 
-const openRowMenu = (event, row) => {
-    rowMenuModel.value = [
+const buildRowMenuItems = (row) => [
         {
             label: "Szerkesztés",
             icon: "pi pi-pencil",
@@ -127,9 +123,6 @@ const openRowMenu = (event, row) => {
             command: () => confirmDeleteOne(row),
         },
     ];
-
-    rowMenu.value.toggle(event);
-};
 
 const openCreate = () => {
     createOpen.value = true;
@@ -459,8 +452,6 @@ onMounted(() => {
                 <div class="text-sm">{{ error }}</div>
             </div>
 
-            <Menu ref="rowMenu" :model="rowMenuModel" popup />
-
             <DataTable
                 ref="dt"
                 v-model:selection="selected"
@@ -569,15 +560,10 @@ onMounted(() => {
                 >
                     <template #body="{ data }">
                         <div class="flex justify-end gap-2">
-                            <Button
-                                icon="pi pi-ellipsis-v"
-                                severity="secondary"
-                                size="small"
-                                text
-                                rounded
+                            <RowActionMenu
+                                :items="buildRowMenuItems(data)"
                                 :disabled="actionLoading"
-                                @click="openRowMenu($event, data)"
-                                :title="`Műveletek: ${data.name}`"
+                                :buttonTitle="`Műveletek: ${data.name}`"
                             />
                         </div>
                     </template>

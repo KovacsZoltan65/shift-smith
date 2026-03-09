@@ -42,6 +42,7 @@ class CompanySeeder extends Seeder
 
             $tenantGroup = TenantGroup::query()->create([
                 'name' => $row['name'],
+                'code' => $this->makeTenantCode((string) $row['name'], $slug),
                 'slug' => $slug,
                 'active' => true,
             ]);
@@ -59,5 +60,21 @@ class CompanySeeder extends Seeder
         $this->command->info("{$count} companies created.");
 
         activity()->enableLogging();
+    }
+
+    private function makeTenantCode(string $name, string $slug): string
+    {
+        $base = Str::upper(Str::slug($slug !== '' ? $slug : $name, '_'));
+        $base = $base !== '' ? Str::limit($base, 50, '') : 'TENANT_GROUP';
+        $candidate = $base;
+        $counter = 1;
+
+        while (TenantGroup::query()->withTrashed()->where('code', $candidate)->exists()) {
+            $suffix = '_'.$counter;
+            $candidate = Str::limit($base, 50 - strlen($suffix), '').$suffix;
+            $counter++;
+        }
+
+        return $candidate;
     }
 }

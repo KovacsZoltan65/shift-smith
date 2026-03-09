@@ -35,6 +35,7 @@ it('makes tenant current when current_tenant_group_id is present in session', fu
 
     $tenantGroup = TenantGroup::query()->create([
         'name' => 'Tenant A',
+        'code' => 'TENANT_A',
         'slug' => 'tenant-a',
         'active' => true,
     ]);

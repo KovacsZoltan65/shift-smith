@@ -6,14 +6,19 @@ namespace App\Repositories\Dashboard;
 
 use App\Models\Company;
 use App\Models\Employee;
-use App\Models\TenantGroup;
 use App\Models\User;
 use App\Models\WorkShift;
+use App\Repositories\Concerns\TenantScopedRepository;
 use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
 
 final class DashboardRepository implements DashboardRepositoryInterface
 {
+    use TenantScopedRepository {
+        resolveTenantScopedCompany as private resolveScopedCompany;
+        tenantId as private currentTenantId;
+    }
+
     private const NS_DASHBOARD_STATS = 'dashboard.stats';
     private const TAG_DASHBOARD = 'dashboard';
 
@@ -110,18 +115,9 @@ final class DashboardRepository implements DashboardRepositoryInterface
      */
     private function resolveTenantScopedCompany(int $companyId): array
     {
-        abort_if($companyId <= 0, 403, 'No company selected');
-
-        $tenantGroupId = (int) (TenantGroup::current()?->id ?? 0);
-        abort_if($tenantGroupId <= 0, 422, 'Missing tenant context');
-
-        $company = Company::query()
-            ->whereKey($companyId)
-            ->where('tenant_group_id', $tenantGroupId)
-            ->where('active', true)
-            ->firstOrFail(['id']);
+        $tenantGroupId = $this->currentTenantId();
+        $company = $this->resolveScopedCompany($companyId);
 
         return [$tenantGroupId, (int) $company->id];
     }
 }
-

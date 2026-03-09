@@ -33,6 +33,12 @@ export const appMenuDefinition = [
                 key: "hq.companies.index",
                 can: "hq.companies.view",
             },
+            {
+                title: "Tenant Groups",
+                route: "hq.tenant_groups.index",
+                key: "hq.tenant_groups.index",
+                can: "tenant-groups.viewAny",
+            },
         ],
     },
     {

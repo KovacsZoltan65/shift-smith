@@ -268,7 +268,10 @@ const selectedDateYmd = computed(() => {
 });
 
 const selectedPeriodEditable = computed(() => {
-    return String(selectedDateYmd.value).slice(0, 7) >= String(currentMonthKey.value);
+    return (
+        String(selectedDateYmd.value).slice(0, 7) >=
+        String(currentMonthKey.value)
+    );
 });
 
 const plannerModeEnabled = computed(() => {
@@ -707,14 +710,6 @@ const loadEvents = async () => {
 const refresh = async () => {
     clearSelectedDatesState();
     await loadEvents();
-<<<<<<< HEAD
-};
-
-const clearSelectedDatesState = () => {
-    selectedDates.value = [];
-    activeQuickSelect.value = null;
-=======
->>>>>>> Calendar
 };
 
 const clearSelectedDatesState = () => {

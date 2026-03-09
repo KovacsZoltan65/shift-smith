@@ -4,17 +4,24 @@ declare(strict_types=1);
 
 namespace App\Support;
 
-use App\Models\Company;
+use App\Services\Tenant\TenantManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Symfony\Component\HttpFoundation\Response;
 
 final class CurrentCompanyContext
 {
+    public function __construct(
+        private readonly TenantManager $tenantManager,
+    ) {}
+
     public function resolve(Request $request): int
     {
         $companyId = (int) $request->session()->get('current_company_id', 0);
-        $tenantGroupId = (int) $request->session()->get('current_tenant_group_id', 0);
+        $tenantGroupId = (int) ($request->session()->get('current_tenant_group_id')
+            ?? $this->tenantManager->tenantIdOrNull($request)
+            ?? 0);
 
         if ($companyId <= 0) {
             abort(Response::HTTP_UNPROCESSABLE_ENTITY, 'Nincs kiválasztott cég kontextus (current_company_id).');
@@ -25,14 +32,10 @@ final class CurrentCompanyContext
             abort(Response::HTTP_UNPROCESSABLE_ENTITY, 'Hiányzó tenant kontextus (current_tenant_group_id).');
         }
 
-        $isValid = Company::query()
-            ->whereKey($companyId)
-            ->where('active', true)
-            ->where('tenant_group_id', $tenantGroupId)
-            ->exists();
-
-        if ($isValid) {
+        try {
+            $this->tenantManager->resolveTenantScopedCompany($companyId, $request);
             return $companyId;
+        } catch (ModelNotFoundException) {
         }
 
         $this->resetDriftedContext($request, $companyId, $tenantGroupId, 'invalid_company_for_tenant');

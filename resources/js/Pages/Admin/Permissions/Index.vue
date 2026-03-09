@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import { Head } from "@inertiajs/vue3";
 import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
 
+import RowActionMenu from "@/Components/DataTable/RowActionMenu.vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 
 import DataTable from "primevue/datatable";
@@ -13,7 +14,6 @@ import ConfirmDialog from "primevue/confirmdialog";
 import { useConfirm } from "primevue/useconfirm";
 import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
-import Menu from "primevue/menu";
 import Tag from "primevue/tag";
 
 import CreateModal from "@/Pages/Admin/Permissions/CreateModal.vue";
@@ -56,14 +56,7 @@ const selected = ref([]);
 
 // ------------------------
 // Row actions menu
-const rowMenu = ref();
-const rowMenuModel = ref([]);
-const rowMenuRow = ref(null);
-
-const openRowMenu = (event, row) => {
-    rowMenuRow.value = row;
-
-    rowMenuModel.value = [
+const buildRowMenuItems = (row) => [
         {
             label: "Szerkesztés",
             icon: "pi pi-pencil",
@@ -77,9 +70,6 @@ const openRowMenu = (event, row) => {
             command: () => confirmDeleteOne(row),
         },
     ];
-
-    rowMenu.value.toggle(event);
-};
 // ------------------------
 
 const globalFilterFields = ["name", "guard_name", "users_count"];
@@ -388,8 +378,6 @@ onMounted(() => {
                 <div class="text-sm">{{ error }}</div>
             </div>
 
-            <Menu ref="rowMenu" :model="rowMenuModel" popup />
-
             <DataTable
                 ref="dt"
                 v-model:selection="selected"
@@ -493,15 +481,10 @@ onMounted(() => {
                 >
                     <template #body="{ data }">
                         <div class="flex gap-2 justify-end">
-                            <Button
-                                icon="pi pi-ellipsis-v"
-                                severity="secondary"
-                                size="small"
-                                text
-                                rounded
+                            <RowActionMenu
+                                :items="buildRowMenuItems(data)"
                                 :disabled="actionLoading"
-                                @click="openRowMenu($event, data)"
-                                :title="`Műveletek: ${data.name}`"
+                                :buttonTitle="`Műveletek: ${data.name}`"
                             />
                         </div>
                     </template>

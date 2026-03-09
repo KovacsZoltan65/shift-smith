@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories;
 
 use App\Interfaces\WorkShiftRepositoryInterface;
-use App\Models\Company;
-use App\Models\TenantGroup;
+use App\Repositories\Concerns\TenantScopedRepository;
 use App\Models\WorkShift;
 use App\Models\WorkShiftBreak;
 use App\Services\Cache\CacheVersionService;
@@ -17,6 +16,8 @@ use Illuminate\Support\Facades\DB;
 
 final class WorkShiftRepository implements WorkShiftRepositoryInterface
 {
+    use TenantScopedRepository;
+
     private const NS_WORK_SHIFTS_FETCH = 'work_shifts.fetch';
     private const NS_SELECTORS_WORK_SHIFTS = 'selectors.work_shifts';
     private const NS_DASHBOARD_STATS = 'dashboard.stats';
@@ -244,22 +245,6 @@ final class WorkShiftRepository implements WorkShiftRepositoryInterface
         );
 
         return $items;
-    }
-
-    private function resolveTenantScopedCompanyId(int $companyId): int
-    {
-        abort_if($companyId <= 0, 403, 'No company selected');
-
-        $query = Company::query()->whereKey($companyId);
-
-        $tenantId = TenantGroup::current()?->id;
-        if ($tenantId !== null) {
-            $query->where('tenant_group_id', $tenantId);
-        }
-
-        $company = $query->firstOrFail(['id']);
-
-        return (int) $company->id;
     }
 
     private function invalidateAfterWrite(): void

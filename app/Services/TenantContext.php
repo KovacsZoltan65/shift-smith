@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\TenantGroup;
+use App\Services\Tenant\TenantManager;
 use RuntimeException;
 
 final class TenantContext
 {
+    public function __construct(
+        private readonly TenantManager $tenantManager,
+    ) {}
+
     public function currentTenantGroupIdOrFail(): int
     {
         $tenantGroupId = $this->currentTenantGroupIdOrNull();
@@ -22,13 +26,6 @@ final class TenantContext
 
     public function currentTenantGroupIdOrNull(): ?int
     {
-        $tenantGroupId = TenantGroup::current()?->id;
-
-        if (! is_int($tenantGroupId) || $tenantGroupId <= 0) {
-            return null;
-        }
-
-        return $tenantGroupId;
+        return $this->tenantManager->tenantIdOrNull();
     }
 }
-

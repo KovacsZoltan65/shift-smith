@@ -59,6 +59,8 @@ use App\Repositories\Org\OrgHierarchyRepository;
 use App\Repositories\Org\OrgHierarchyRepositoryInterface;
 use App\Repositories\Org\OrgHierarchyDesignSettingsRepository;
 use App\Repositories\Org\OrgHierarchyDesignSettingsRepositoryInterface;
+use App\Repositories\Tenant\TenantGroupRepository;
+use App\Repositories\Tenant\TenantGroupRepositoryInterface;
 use App\Repositories\UserRepository;
 use App\Repositories\UserSettingRepository;
 use App\Repositories\UserEmployeeRepository;
@@ -109,6 +111,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             DashboardRepositoryInterface::class,
             DashboardRepository::class
+        );
+        $this->app->bind(
+            TenantGroupRepositoryInterface::class,
+            TenantGroupRepository::class
         );
         $this->app->bind(
             RoleRepositoryInterface::class, 
@@ -224,11 +230,11 @@ class AppServiceProvider extends ServiceProvider
         CompanyUser::observe(CompanyUserObserver::class);
         UserEmployee::observe(UserEmployeeObserver::class);
         
-        if (!defined('APP_ACTIVE'))   define('APP_ACTIVE', 1);
-        if (!defined('APP_INACTIVE')) define('APP_INACTIVE', 0);
+        if (!\defined('APP_ACTIVE'))   \define('APP_ACTIVE', 1);
+        if (!\defined('APP_INACTIVE')) \define('APP_INACTIVE', 0);
 
-        if (!defined('APP_TRUE'))     define('APP_TRUE', true);
-        if (!defined('APP_FALSE'))    define('APP_FALSE', false);
+        if (!\defined('APP_TRUE'))     \define('APP_TRUE', true);
+        if (!\defined('APP_FALSE'))    \define('APP_FALSE', false);
 
         $available_locales = config('app.available_locales', ['English' => 'en', 'Hungarian' => 'hu']);
         $supported_locales = config('app.supported_locales', ['en', 'hu']);

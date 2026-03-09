@@ -2,6 +2,7 @@
 import { Head } from "@inertiajs/vue3";
 import { computed, onMounted, ref } from "vue";
 import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
+import RowActionMenu from "@/Components/DataTable/RowActionMenu.vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import CreateModal from "@/Pages/Admin/SickLeaveCategories/Partials/CreateModal.vue";
 import DeleteModal from "@/Pages/Admin/SickLeaveCategories/Partials/DeleteModal.vue";
@@ -13,7 +14,6 @@ import Button from "primevue/button";
 import Column from "primevue/column";
 import DataTable from "primevue/datatable";
 import InputText from "primevue/inputtext";
-import Menu from "primevue/menu";
 import Select from "primevue/select";
 import Tag from "primevue/tag";
 import Toast from "primevue/toast";
@@ -41,8 +41,6 @@ const editOpen = ref(false);
 const deleteOpen = ref(false);
 const editTarget = ref(null);
 const deleteTarget = ref(null);
-const rowMenu = ref();
-const rowMenuModel = ref([]);
 const globalFilterFields = ["code", "name", "description"];
 
 const booleanOptions = [
@@ -144,8 +142,7 @@ const openDeleteModal = (row) => {
     deleteOpen.value = true;
 };
 
-const openRowMenu = (event, row) => {
-    rowMenuModel.value = [
+const buildRowMenuItems = (row) => [
         {
             label: "Szerkesztes",
             icon: "pi pi-pencil",
@@ -159,9 +156,6 @@ const openRowMenu = (event, row) => {
             command: () => openDeleteModal(row),
         },
     ];
-
-    rowMenu.value.toggle(event);
-};
 
 const onSaved = async (message) => {
     createOpen.value = false;
@@ -229,13 +223,6 @@ onMounted(() => {
                     />
                 </div>
             </div>
-
-            <Menu
-                v-if="canAnyRowAction"
-                ref="rowMenu"
-                :model="rowMenuModel"
-                popup
-            />
 
             <DataTable
                 ref="dt"
@@ -388,15 +375,10 @@ onMounted(() => {
                 >
                     <template #body="{ data }">
                         <div class="flex justify-end gap-2">
-                            <Button
-                                icon="pi pi-ellipsis-v"
-                                severity="secondary"
-                                text
-                                rounded
-                                size="small"
+                            <RowActionMenu
+                                :items="buildRowMenuItems(data)"
                                 :disabled="loading"
-                                data-testid="sick-leave-categories-actions"
-                                @click="openRowMenu($event, data)"
+                                buttonTitle="Műveletek"
                             />
                         </div>
                     </template>

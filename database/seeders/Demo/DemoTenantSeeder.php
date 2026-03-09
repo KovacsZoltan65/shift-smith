@@ -23,6 +23,7 @@ final class DemoTenantSeeder extends Seeder
 {
     private const TENANT_NAME = 'Alfa Cégcsoport';
     private const TENANT_SLUG = 'alfa-group';
+    private const TENANT_CODE = 'ALFA_GROUP';
     private const COMPANY_NAME = 'Alfa Könyvelés';
     private const COMPANY_EMAIL = 'info@alfa.test';
     private const PASSWORD = 'password';
@@ -51,6 +52,7 @@ final class DemoTenantSeeder extends Seeder
             ['slug' => self::TENANT_SLUG],
             [
                 'name' => self::TENANT_NAME,
+                'code' => self::TENANT_CODE,
                 'database_name' => (string) DB::connection()->getDatabaseName(),
                 'active' => true,
             ]
@@ -58,6 +60,7 @@ final class DemoTenantSeeder extends Seeder
 
         $tenant->forceFill([
             'name' => self::TENANT_NAME,
+            'code' => self::TENANT_CODE,
             'database_name' => (string) DB::connection()->getDatabaseName(),
             'active' => true,
         ])->save();
