@@ -19,7 +19,7 @@ const update = (patch) => {
     <div class="grid grid-cols-1 gap-4">
         <!-- NAME -->
         <div>
-            <label class="block text-sm font-medium mb-1">Név</label>
+            <label class="block text-sm font-medium mb-1">{{ $t("columns.name") }}</label>
             <InputText
                 class="w-full"
                 :disabled="disabled"
@@ -34,7 +34,7 @@ const update = (patch) => {
 
         <!-- EMAIL -->
         <div>
-            <label class="block text-sm font-medium mb-1">Email</label>
+            <label class="block text-sm font-medium mb-1">{{ $t("columns.email") }}</label>
             <InputText
                 class="w-full"
                 :disabled="disabled"
@@ -49,7 +49,7 @@ const update = (patch) => {
 
         <!-- ADDRESS -->
         <div>
-            <label class="block text-sm font-medium mb-1">Cím</label>
+            <label class="block text-sm font-medium mb-1">{{ $t("companies.form.address") }}</label>
             <InputText
                 class="w-full"
                 :disabled="disabled"
@@ -64,7 +64,7 @@ const update = (patch) => {
 
         <!-- PHONE -->
         <div>
-            <label class="block text-sm font-medium mb-1">Telefon</label>
+            <label class="block text-sm font-medium mb-1">{{ $t("columns.phone") }}</label>
             <InputText
                 class="w-full"
                 :disabled="disabled"
@@ -86,7 +86,7 @@ const update = (patch) => {
                 :modelValue="!!modelValue.active"
                 @update:modelValue="(v) => update({ active: !!v })"
             />
-            <label for="company_active" class="text-sm text-gray-700">Aktív</label>
+            <label for="company_active" class="text-sm text-gray-700">{{ $t("columns.active") }}</label>
 
             <div v-if="errors.active" class="text-sm text-red-600 ml-2">
                 {{ errors.active }}

@@ -1,5 +1,6 @@
 <script setup>
 import { computed, reactive, ref, watch } from "vue";
+import { trans } from "laravel-vue-i18n";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 
@@ -68,7 +69,7 @@ const submit = async () => {
         if (res.status === 422) {
             const body = await res.json();
             const bag = body?.errors ?? {};
-            for (const k of Object.keys(bag)) errors[k] = bag[k]?.[0] ?? "Hiba";
+            for (const k of Object.keys(bag)) errors[k] = bag[k]?.[0] ?? trans("common.error");
             return;
         }
 
@@ -78,10 +79,10 @@ const submit = async () => {
         }
 
         const body = await res.json().catch(() => null);
-        emit("saved", body?.message ?? "Cég sikeresen frissítve.");
+        emit("saved", body?.message ?? trans("companies.messages.updated_success"));
         close();
     } catch (e) {
-        errors._global = e?.message ?? "Ismeretlen hiba";
+        errors._global = e?.message ?? trans("common.unknown_error");
     } finally {
         loading.value = false;
     }
@@ -92,12 +93,12 @@ const submit = async () => {
     <Dialog
         :visible="modelValue"
         modal
-        header="Cég szerkesztése"
+        :header="$t('companies.dialogs.edit_title')"
         :style="{ width: '520px' }"
         @update:visible="emit('update:modelValue', $event)"
     >
         <div v-if="!hasCompany" class="text-sm text-gray-600">
-            Nincs kiválasztott cég.
+            {{ $t("companies.dialogs.none_selected") }}
         </div>
 
         <div v-else class="space-y-4">
@@ -111,7 +112,7 @@ const submit = async () => {
         <template #footer>
             <!-- CANCEL -->
             <Button
-                label="Mégse"
+                :label="$t('common.cancel')"
                 severity="secondary"
                 :disabled="loading"
                 @click="close"
@@ -119,7 +120,7 @@ const submit = async () => {
 
             <!-- SAVE -->
             <Button
-                label="Mentés"
+                :label="$t('common.save')"
                 :loading="loading"
                 :disabled="!hasCompany || !props.canUpdate"
                 @click="submit"

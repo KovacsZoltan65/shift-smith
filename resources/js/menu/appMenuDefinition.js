@@ -1,40 +1,38 @@
-// resources/js/menu/appMenuDefinition.js
-
 export const appMenuDefinition = [
     {
-        title: "Főoldal",
-        items: [{ title: "Dashboard", route: "dashboard", key: "dashboard" }],
+        titleKey: "home.title",
+        items: [{ titleKey: "dashboard.title", route: "dashboard", key: "dashboard" }],
     },
     {
-        title: "Adminisztráció",
+        titleKey: "administration.title",
         items: [
-            { title: "Menü", route: "menu.index", key: "menu.index" },
+            { titleKey: "menu.title", route: "menu.index", key: "menu.index" },
             {
-                title: "Felhasználók",
+                titleKey: "users.title",
                 route: "users.index",
                 key: "users.index",
                 can: "users.viewAny",
             },
             {
-                title: "Felhasználó hozzárendelések",
+                titleKey: "user_assignments.title",
                 route: "admin.user_assignments.index",
                 key: "admin.user_assignments.index",
                 can: "user_assignments.viewAny",
             },
             {
-                title: "Cégek",
+                titleKey: "companies.title",
                 route: "companies.index",
                 key: "companies.index",
                 can: "companies.viewAny",
             },
             {
-                title: "HQ Cégek",
+                titleKey: "hq_companies.title",
                 route: "hq.companies.index",
                 key: "hq.companies.index",
                 can: "hq.companies.view",
             },
             {
-                title: "Tenant Groups",
+                titleKey: "tenant_groups.title",
                 route: "hq.tenant_groups.index",
                 key: "hq.tenant_groups.index",
                 can: "tenant-groups.viewAny",
@@ -42,16 +40,16 @@ export const appMenuDefinition = [
         ],
     },
     {
-        title: "Biztonság",
+        titleKey: "security.title",
         items: [
             {
-                title: "Szabályok",
+                titleKey: "permissions.title",
                 route: "admin.permissions.index",
                 key: "permissions.index",
                 can: "permissions.viewAny",
             },
             {
-                title: "Szerepkörök",
+                titleKey: "roles.title",
                 route: "admin.roles.index",
                 key: "roles.index",
                 can: "roles.viewAny",
@@ -59,70 +57,70 @@ export const appMenuDefinition = [
         ],
     },
     {
-        title: "HR",
+        titleKey: "hr.title",
         items: [
             {
-                title: "Dolgozók",
+                titleKey: "employees.title",
                 route: "employees.index",
                 key: "employees.index",
                 can: "employees.viewAny",
             },
             {
-                title: "Positions",
+                titleKey: "positions.title",
                 route: "positions.index",
                 key: "positions.index",
                 can: "positions.viewAny",
             },
             {
-                title: "Position Szint Mapping",
+                titleKey: "position_org_levels.title",
                 route: "admin.position_org_levels.index",
                 key: "admin.position_org_levels.index",
                 can: "org_position_levels.viewAny",
             },
             {
-                title: "Hierarchia",
+                titleKey: "hierarchy.title",
                 route: "org.hierarchy.index",
                 key: "org.hierarchy.index",
                 can: "org_hierarchy.viewAny",
             },
             {
-                title: "Műszakok",
+                titleKey: "work_shifts.title",
                 route: "work_shifts.index",
                 key: "work_shifts.index",
                 can: "work_shifts.view",
             },
             {
-                title: "Munkarendek",
+                titleKey: "work_patterns.title",
                 route: "work_patterns.index",
                 key: "work_patterns.index",
                 can: "work_patterns.viewAny",
             },
             {
-                title: "Munkabeosztások",
+                titleKey: "work_schedules.title",
                 route: "work_schedules.index",
                 key: "work_schedules.index",
                 can: "work_schedules.viewAny",
             },
             {
-                title: "Naptár",
+                titleKey: "calendar.title",
                 route: "scheduling.calendar",
                 key: "scheduling.calendar",
                 can: "work_schedule_assignments.viewAny",
             },
             {
-                title: "Szabadság típusok",
+                titleKey: "leave_types.title",
                 route: "admin.leave_types.index",
                 key: "admin.leave_types.index",
                 can: "leave_types.viewAny",
             },
             {
-                title: "Szabadság kategóriák",
+                titleKey: "leave_categories.title",
                 route: "admin.leave_categories.index",
                 key: "admin.leave_categories.index",
                 can: "leave_categories.viewAny",
             },
             {
-                title: "Betegszabadság kategóriák",
+                titleKey: "sick_leave_categories.title",
                 route: "admin.sick_leave_categories.index",
                 key: "admin.sick_leave_categories.index",
                 can: "sick_leave_categories.viewAny",
@@ -130,22 +128,22 @@ export const appMenuDefinition = [
         ],
     },
     {
-        title: "Beállítások",
+        titleKey: "settings.title",
         items: [
             {
-                title: "App Settings",
+                titleKey: "app_settings.title",
                 route: "admin.app_settings.index",
                 key: "admin.app_settings.index",
                 can: "app_settings.viewAny",
             },
             {
-                title: "Company Settings",
+                titleKey: "company_settings.title",
                 route: "admin.company_settings.index",
                 key: "admin.company_settings.index",
                 can: "company_settings.viewAny",
             },
             {
-                title: "User Settings",
+                titleKey: "user_settings.title",
                 route: "admin.user_settings.index",
                 key: "admin.user_settings.index",
                 can: "user_settings.viewAny",

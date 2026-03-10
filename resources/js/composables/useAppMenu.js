@@ -1,5 +1,6 @@
 import { computed } from "vue";
 import { usePage } from "@inertiajs/vue3";
+import { trans } from "laravel-vue-i18n";
 import { appMenuDefinition } from "@/menu/appMenuDefinition";
 
 export function useAppMenu() {
@@ -7,7 +8,25 @@ export function useAppMenu() {
 
     // Inertia props lehet ref is (page.props.value), de lehet sima object is.
     const props = computed(() => page.props?.value ?? page.props ?? {});
-    const menu = computed(() => appMenuDefinition);
+    const translateLabel = (item) => {
+        if (!item || typeof item !== "object") return item;
+
+        const translatedTitle = item.titleKey
+            ? trans(item.titleKey)
+            : item.title;
+
+        const translatedItems = Array.isArray(item.items)
+            ? item.items.map(translateLabel)
+            : item.items;
+
+        return {
+            ...item,
+            title: translatedTitle,
+            ...(Array.isArray(translatedItems) ? { items: translatedItems } : {}),
+        };
+    };
+
+    const menu = computed(() => appMenuDefinition.map(translateLabel));
 
     const itemIdentity = (item) =>
         String(item?.route ?? item?.key ?? item?.title ?? "");

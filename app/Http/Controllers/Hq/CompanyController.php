@@ -23,7 +23,7 @@ final class CompanyController extends Controller
     public function index(HqCompanyIndexRequest $request): InertiaResponse
     {
         return Inertia::render('Hq/Companies/Index', [
-            'title' => 'HQ / Összes cég',
+            'title' => __('companies.hq.title'),
             'filter' => $request->validatedFilters(),
         ]);
     }
@@ -34,7 +34,7 @@ final class CompanyController extends Controller
         $items = CompanyIndexData::collect($companies->items());
 
         return response()->json([
-            'message' => 'HQ cégek sikeresen lekérve.',
+            'message' => __('companies.hq.messages.fetch_success'),
             'data' => $items,
             'meta' => [
                 'current_page' => $companies->currentPage(),
@@ -51,7 +51,7 @@ final class CompanyController extends Controller
         $company = $this->service->find($id);
 
         return response()->json([
-            'message' => 'HQ cég sikeresen lekérve.',
+            'message' => __('companies.hq.messages.show_success'),
             'data' => CompanyData::fromModel($company),
         ], Response::HTTP_OK);
     }

@@ -54,7 +54,7 @@ class CompanyController extends Controller
         $items = CompanyIndexData::collect($companies->items());
 
         return response()->json([
-            'message' => 'Cégek sikeresen lekérve.',
+            'message' => __('companies.messages.fetch_success'),
             'data' => $items,
             'meta' => [
                 'current_page' => $companies->currentPage(),
@@ -75,7 +75,7 @@ class CompanyController extends Controller
         $this->authorize(CompanyPolicy::PERM_VIEW, $company);
 
         return response()->json([
-            'message' => 'Cég sikeresen lekérve.',
+            'message' => __('companies.messages.show_success'),
             'data' => CompanyData::fromModel($company),
         ], Response::HTTP_OK);
     }
@@ -89,7 +89,7 @@ class CompanyController extends Controller
         $this->authorize(CompanyPolicy::PERM_VIEW, $company);
         
         return response()->json([
-            'message' => 'Cég sikeresen lekérve.',
+            'message' => __('companies.messages.show_success'),
             'data' => CompanyData::fromModel($company),
         ], Response::HTTP_OK);
     }
@@ -104,7 +104,7 @@ class CompanyController extends Controller
         $created = $this->service->store($data);
 
         return response()->json([
-            'message' => 'A cég sikeresen létrehozva.',
+            'message' => __('companies.messages.created_success'),
             'data' => $created,
         ], Response::HTTP_CREATED);
     }
@@ -120,7 +120,7 @@ class CompanyController extends Controller
         $updated = $this->service->update($id, $data);
 
         return response()->json([
-            'message' => 'Cég sikeresen frissítve.',
+            'message' => __('companies.messages.updated_success'),
             'data' => $updated,
         ], Response::HTTP_OK);
     }
@@ -136,7 +136,7 @@ class CompanyController extends Controller
         $deleted = $this->service->bulkDelete($data['ids']);
 
         return response()->json([
-                'message' => 'Sikeres törlés.',
+                'message' => __('companies.messages.delete_success'),
                 'deleted' => $deleted,
             ], Response::HTTP_OK);
     }
@@ -152,7 +152,9 @@ class CompanyController extends Controller
         $deleted = $this->service->destroy($id);
 
         return response()->json([
-            'message' => $deleted ? 'Törlés sikeres.' : 'Törlés sikertelen.',
+            'message' => $deleted
+                ? __('companies.messages.delete_success')
+                : __('companies.messages.delete_failed'),
             'deleted' => (bool) $deleted,
         ], $deleted ? Response::HTTP_OK : Response::HTTP_INTERNAL_SERVER_ERROR);
     }

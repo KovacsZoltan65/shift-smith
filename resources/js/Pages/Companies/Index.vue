@@ -2,6 +2,7 @@
 import { Head } from "@inertiajs/vue3";
 import { computed, onMounted, ref } from "vue";
 import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
+import { trans } from "laravel-vue-i18n";
 
 import RowActionMenu from "@/Components/DataTable/RowActionMenu.vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
@@ -26,7 +27,7 @@ import { IconField, InputIcon } from "primevue";
 const { has } = usePermissions();
 
 const props = defineProps({
-    title: { type: String, default: "Cégek" },
+    title: { type: String, default: "" },
     filter: { type: Object, default: () => ({}) },
     endpointBase: { type: String, default: "/companies" },
     permissionPrefix: { type: String, default: "companies" },
@@ -35,6 +36,8 @@ const props = defineProps({
     detailRouteName: { type: String, default: "" },
     forbiddenRedirectRouteName: { type: String, default: "" },
 });
+
+const title = computed(() => props.title || trans("companies.title"));
 
 const canCreate = computed(() => has(`${props.permissionPrefix}.create`));
 const canUpdate = computed(() => has(`${props.permissionPrefix}.update`));
@@ -62,26 +65,26 @@ const selected = ref([]);
 // ------------------------
 // Row actions menu
 const buildRowMenuItems = (row) => [
-        {
-            label: "Szerkesztés",
-            icon: "pi pi-pencil",
-            disabled: actionLoading.value || !canUpdate.value,
-            command: () => openEditModal(row),
-        },
-        {
-            label: "Törlés",
-            icon: "pi pi-trash",
-            disabled: actionLoading.value || !canDelete.value,
-            command: () => confirmDeleteOne(row),
-        },
-    ];
+    {
+        label: trans("edit"),
+        icon: "pi pi-pencil",
+        disabled: actionLoading.value || !canUpdate.value,
+        command: () => openEditModal(row),
+    },
+    {
+        label: trans("delete"),
+        icon: "pi pi-trash",
+        disabled: actionLoading.value || !canDelete.value,
+        command: () => confirmDeleteOne(row),
+    },
+];
 // ------------------------
 
 // lazy state (Users minta)
 const globalFilterFields = ["name", "email", "phone", "active"];
 const booleanOptions = [
-    { label: "Igen", value: true },
-    { label: "Nem", value: false },
+    { label: trans("true"), value: true },
+    { label: trans("false"), value: false },
 ];
 const createInitialFilters = () => ({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -138,12 +141,12 @@ const openEditModal = (row) => {
     editOpen.value = true;
 };
 
-const onSaved = async (msg = "Mentve.") => {
+const onSaved = async (msg = trans("common.success")) => {
     selected.value = [];
     await fetchCompanies();
     toast.add({
         severity: "success",
-        summary: "Siker",
+        summary: trans("common.success"),
         detail: msg,
         life: 2000,
     });
@@ -178,8 +181,8 @@ const handleForbidden = () => {
 
     toast.add({
         severity: "warn",
-        summary: "Nincs jogosultság",
-        detail: "A HQ cégek megtekintéséhez superadmin jogosultság szükséges.",
+        summary: trans("companies.messages.permission_denied"),
+        detail: trans("companies.messages.hq_permission_required"),
         life: 3500,
     });
 
@@ -219,7 +222,7 @@ const fetchCompanies = async () => {
 
         rows.value = items;
     } catch (e) {
-        error.value = e?.message || "Ismeretlen hiba";
+        error.value = e?.message || trans("common.unknown_error");
     } finally {
         loading.value = false;
     }
@@ -227,11 +230,11 @@ const fetchCompanies = async () => {
 
 const confirmDeleteOne = (row) => {
     confirm.require({
-        message: `Biztos törlöd: ${row.name}?`,
-        header: "Megerősítés",
+        message: trans("companies.dialogs.delete_confirm", { name: row.name }),
+        header: trans("common.confirmation"),
         icon: "pi pi-exclamation-triangle",
-        acceptLabel: "Törlés",
-        rejectLabel: "Mégse",
+        acceptLabel: trans("delete"),
+        rejectLabel: trans("common.cancel"),
         acceptClass: "p-button-danger",
         accept: () => deleteOne(row.id),
     });
@@ -250,7 +253,9 @@ const deleteOne = async (id) => {
         });
 
         if (!res.ok) {
-            let msg = `Törlés sikertelen (HTTP ${res.status})`;
+            let msg = trans("companies.messages.delete_failed_http", {
+                status: res.status,
+            });
             try {
                 const body = await res.json();
                 msg = body?.message || msg;
@@ -260,8 +265,8 @@ const deleteOne = async (id) => {
 
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: "Cég törölve",
+            summary: trans("common.success"),
+            detail: trans("companies.messages.deleted_success"),
             life: 2500,
         });
 
@@ -271,8 +276,8 @@ const deleteOne = async (id) => {
     } catch (e) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: e?.message || "Ismeretlen hiba",
+            summary: trans("common.error"),
+            detail: e?.message || trans("common.unknown_error"),
             life: 3500,
         });
     } finally {
@@ -285,11 +290,13 @@ const confirmBulkDelete = () => {
     if (!ids.length) return;
 
     confirm.require({
-        message: `Biztos törlöd a kijelölt ${ids.length} céget?`,
-        header: "Bulk törlés",
+        message: trans("companies.dialogs.bulk_delete_confirm", {
+            count: ids.length,
+        }),
+        header: trans("companies.actions.bulk_delete"),
         icon: "pi pi-exclamation-triangle",
-        acceptLabel: "Törlés",
-        rejectLabel: "Mégse",
+        acceptLabel: trans("delete"),
+        rejectLabel: trans("common.cancel"),
         acceptClass: "p-button-danger",
         accept: () => bulkDelete(ids),
     });
@@ -309,7 +316,9 @@ const bulkDelete = async (ids) => {
         });
 
         if (!res.ok) {
-            let msg = `Bulk törlés sikertelen (HTTP ${res.status})`;
+            let msg = trans("companies.messages.bulk_delete_failed_http", {
+                status: res.status,
+            });
             try {
                 const body = await res.json();
                 msg = body?.message || msg;
@@ -319,8 +328,10 @@ const bulkDelete = async (ids) => {
 
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: `Törölve: ${ids.length} db`,
+            summary: trans("common.success"),
+            detail: trans("companies.messages.bulk_deleted_success", {
+                count: ids.length,
+            }),
             life: 2500,
         });
 
@@ -329,8 +340,8 @@ const bulkDelete = async (ids) => {
     } catch (e) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: e?.message || "Ismeretlen hiba",
+            summary: trans("common.error"),
+            detail: e?.message || trans("common.unknown_error"),
             life: 3500,
         });
     } finally {
@@ -345,7 +356,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <Head :title="props.title" />
+    <Head :title="title" />
 
     <Toast />
     <ConfirmDialog />
@@ -376,7 +387,7 @@ onMounted(() => {
                     <!-- CREATE -->
                     <Button
                         v-if="canCreate"
-                        label="Új cég"
+                        :label="$t('companies.actions.create')"
                         icon="pi pi-plus"
                         size="small"
                         @click="openCreate"
@@ -385,7 +396,7 @@ onMounted(() => {
 
                     <!-- FRISSÍTÉS -->
                     <Button
-                        label="Frissítés"
+                        :label="$t('companies.actions.refresh')"
                         icon="pi pi-refresh"
                         severity="secondary"
                         size="small"
@@ -398,7 +409,7 @@ onMounted(() => {
                     <!-- BULK DELETE -->
                     <Button
                         v-if="canDelete"
-                        label="Kijelöltek törlése"
+                        :label="$t('companies.actions.bulk_delete')"
                         icon="pi pi-trash"
                         severity="danger"
                         size="small"
@@ -411,13 +422,13 @@ onMounted(() => {
                     />
 
                     <div v-if="selected?.length" class="text-sm text-gray-600">
-                        Kijelölve: <b>{{ selected.length }}</b>
+                        {{ $t("companies.selected_count", { count: selected.length }) }}
                     </div>
                 </div>
             </div>
 
             <div v-if="error" class="mb-3 border p-3">
-                <div class="font-semibold">Hiba</div>
+                <div class="font-semibold">{{ $t("common.error") }}</div>
                 <div class="text-sm">{{ error }}</div>
             </div>
 
@@ -441,7 +452,7 @@ onMounted(() => {
                         <Button
                             type="button"
                             icon="pi pi-filter-slash"
-                            label="Clear"
+                            :label="$t('companies.filters.clear')"
                             variant="outlined"
                             @click="clearFilters()"
                         />
@@ -451,23 +462,28 @@ onMounted(() => {
                             </InputIcon>
                             <InputText
                                 v-model="filters['global'].value"
-                                placeholder="Keyword Search"
+                                :placeholder="$t('companies.filters.keyword_search')"
                             />
                         </IconField>
                     </div>
                 </template>
 
-                <template #empty>Nincs talalat.</template>
-                <template #loading>Betoltes...</template>
+                <template #empty>{{ $t("companies.states.empty") }}</template>
+                <template #loading>{{ $t("companies.states.loading") }}</template>
 
                 <!-- checkbox oszlop -->
                 <Column selectionMode="multiple" headerStyle="width: 3rem" />
 
-                <Column field="id" header="ID" sortable style="width: 90px" />
+                <Column
+                    field="id"
+                    :header="$t('columns.id')"
+                    sortable
+                    style="width: 90px"
+                />
                 <Column
                     field="name"
                     filterField="name"
-                    header="Név"
+                    :header="$t('columns.name')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -476,14 +492,14 @@ onMounted(() => {
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Nev keresese"
+                            :placeholder="$t('companies.filters.name')"
                         />
                     </template>
                 </Column>
                 <Column
                     field="email"
                     filterField="email"
-                    header="Email"
+                    :header="$t('columns.email')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -492,14 +508,14 @@ onMounted(() => {
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Email keresese"
+                            :placeholder="$t('companies.filters.email')"
                         />
                     </template>
                 </Column>
                 <Column
                     field="phone"
                     filterField="phone"
-                    header="Telefon"
+                    :header="$t('columns.phone')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -508,14 +524,14 @@ onMounted(() => {
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Telefon keresese"
+                            :placeholder="$t('companies.filters.phone')"
                         />
                     </template>
                 </Column>
                 <Column
                     field="active"
                     filterField="active"
-                    header="Aktív"
+                    :header="$t('columns.active')"
                     filter
                     sortable
                     style="width: 120px"
@@ -531,7 +547,7 @@ onMounted(() => {
                                     : 'bg-gray-100 text-gray-600'
                             "
                         >
-                            {{ data.active ? "Igen" : "Nem" }}
+                            {{ data.active ? $t("true") : $t("false") }}
                         </span>
                     </template>
                     <template #filter="{ filterModel }">
@@ -542,7 +558,7 @@ onMounted(() => {
                             optionValue="value"
                             class="w-full"
                             showClear
-                            placeholder="Statusz"
+                            :placeholder="$t('companies.filters.status')"
                         />
                     </template>
                 </Column>
@@ -550,7 +566,7 @@ onMounted(() => {
                 <!-- Actions -->
                 <Column
                     v-if="canAnyRowAction"
-                    header="Műveletek"
+                    :header="$t('columns.actions')"
                     headerStyle="width: 3rem"
                     bodyStyle="white-space: nowrap;"
                 >
@@ -559,7 +575,7 @@ onMounted(() => {
                             <RowActionMenu
                                 :items="buildRowMenuItems(data)"
                                 :disabled="actionLoading"
-                                :buttonTitle="`Műveletek: ${data.name}`"
+                                :buttonTitle="$t('companies.actions.edit_title', { name: data.name })"
                             />
                         </div>
                     </template>
