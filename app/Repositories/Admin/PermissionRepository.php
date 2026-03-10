@@ -20,11 +20,11 @@ use Prettus\Repository\Eloquent\BaseRepository;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Jogosultság repository osztály
- * 
- * Adatbázis műveletek kezelése jogosultságokhoz (Spatie Permission).
- * Cache támogatással, verziókezeléssel és lapozással.
- * Szerepkör és model kapcsolatok kezelésével.
+ * Jogosultságok repository rétege.
+ *
+ * A repository a landlord-szintű permission lekérdezésekért és írásokért felel,
+ * beleértve a cache-verziózás kezelését is. Authorization döntést nem hozhat,
+ * legfeljebb a landlord kontextus minimális védelmét ellenőrzi az írási műveletek előtt.
  */
 class PermissionRepository extends BaseRepository implements PermissionRepositoryInterface
 {
@@ -54,13 +54,13 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
     }
     
     /**
-     * Jogosultságok listázása lapozással, szűréssel és rendezéssel
-     * 
-     * Cache-elhető lekérdezés verziókezeléssel.
-     * Támogatja a keresést (név, guard_name), rendezést és lapozást.
-     * 
-     * @param Request $request HTTP kérés (search, field, order, per_page, page paraméterekkel)
-     * @return LengthAwarePaginator<int, Permission> Lapozott jogosultság lista
+     * Landlord scope-ban lapozott jogosultságlistát ad vissza.
+     *
+     * A lekérdezés nem tenant-scoped entitást kezel, ezért itt a landlord kontextus az elvárt
+     * működés. A cache kulcs csak a szűrőparaméterekből és a verzióból áll.
+     *
+     * @param Request $request
+     * @return LengthAwarePaginator<int, Permission>
      */
     #[Override]
     public function fetch(Request $request): LengthAwarePaginator
@@ -292,13 +292,10 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
     }
     
     /**
-     * Jogosultságok lekérése select listához
-     * 
-     * Egyszerűsített jogosultság lista (id, name) dropdown/select mezőkhöz.
-     * Cache-elhető.
-     * 
-     * @param array<string, mixed> $params Szűrési paraméterek (jelenleg nem használt)
-     * @return array<int, array{id:int, name:string}> Jogosultságok tömbje
+     * Egyszerűsített select lista a permission selector komponensekhez.
+     *
+     * @param array<string, mixed> $params
+     * @return array<int, array{id:int, name:string}>
      */
     #[Override]
     public function getToSelect(array $params = []): array
@@ -343,12 +340,7 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
     }
     
     /**
-     * Cache invalidálás jogosultság írási műveletek után
-     * 
-     * Növeli a verzió számokat a jogosultság listázás és selector cache-ekhez.
-     * DB commit után fut, így biztosítva a konzisztenciát.
-     * 
-     * @return void
+     * Commit után bumpolja a permission listázó és selector cache verziókat.
      */
     private function invalidateAfterPermissionWrite(): void
     {
@@ -405,6 +397,7 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
         $isSuperadmin = method_exists($user, 'hasRole') && $user->hasRole('superadmin');
         $isLandlordContext = TenantGroup::current() === null;
 
+        // A permission törzsadat globális, ezért tenant kontextusban nem módosítható biztonságosan.
         abort_if(! ($isSuperadmin && $isLandlordContext), 403, __('permissions.errors.landlord_only'));
     }
 

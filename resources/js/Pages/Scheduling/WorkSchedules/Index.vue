@@ -21,6 +21,13 @@ import WorkScheduleService from "@/services/WorkScheduleService";
 import { toYmd } from "@/helpers/functions.js";
 import { IconField, InputIcon } from "primevue";
 
+/**
+ * WorkSchedules index oldal.
+ *
+ * A munkabeosztások listáját jeleníti meg DataTable szűréssel, rendezéssel
+ * és CRUD műveletekkel. A page a company scope-ra épül, ezért a selector és
+ * az API hívások ugyanahhoz a kiválasztott céghez kötődnek.
+ */
 const { has } = usePermissions();
 
 const canCreate = has("work_schedules.create");
@@ -36,11 +43,14 @@ const props = defineProps({
 const toast = useToast();
 const confirm = useConfirm();
 
+// Táblázat state
 const loading = ref(false);
 const actionLoading = ref(false);
 const error = ref(null);
 const dt = ref(null);
 const rows = ref([]);
+
+// Dialog state
 const selected = ref([]);
 const companyId = ref(props.filter?.company_id ?? null);
 

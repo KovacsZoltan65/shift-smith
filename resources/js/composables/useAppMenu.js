@@ -3,10 +3,15 @@ import { usePage } from "@inertiajs/vue3";
 import { trans } from "laravel-vue-i18n";
 import { appMenuDefinition } from "@/menu/appMenuDefinition";
 
+/**
+ * A statikus menüdefinícióból tenant- és jogosultságfüggő, lefordított menüfát épít.
+ *
+ * A composable célja, hogy a render rétegnek már csak a rendezett és deduplikált menüt adja át.
+ */
 export function useAppMenu() {
     const page = usePage();
 
-    // Inertia props lehet ref is (page.props.value), de lehet sima object is.
+    // A page.props Inertia verziótól és adaptertől függően lehet ref vagy plain object is.
     const props = computed(() => page.props?.value ?? page.props ?? {});
     const translateLabel = (item) => {
         if (!item || typeof item !== "object") return item;
@@ -31,6 +36,7 @@ export function useAppMenu() {
     const itemIdentity = (item) =>
         String(item?.route ?? item?.key ?? item?.title ?? "");
 
+    // A duplikációszűrés route/key/title alapján fut, mert ugyanaz az elem több forrásból is bekerülhet.
     const dedupeItems = (items = []) => {
         const seen = new Set();
 
@@ -69,13 +75,13 @@ export function useAppMenu() {
         const isSuperadmin =
             Array.isArray(roles) && roles.includes("superadmin");
 
-        // menu_order -> index map
+        // A backend által küldött menu_order csak a ténylegesen ismert kulcsokra alkalmazható.
         const orderIndex = new Map();
         if (Array.isArray(menuOrder)) {
             menuOrder.forEach((k, idx) => orderIndex.set(String(k), idx));
         }
 
-        // UI jogosultság (most egyszerű)
+        // A superadmin minden menüpontot lát, más szerepkörök a permission listából szűrnek.
         const canSee = (item) => {
             if (isSuperadmin) return true;
             if (!item.can) return true;
@@ -83,7 +89,6 @@ export function useAppMenu() {
             return perms.includes(item.can);
         };
 
-        // csak akkor "rendez", ha benne van a kulcs a listában.
         const sortScore = (item) => {
             const k = String(item.key ?? item.route ?? "");
             return orderIndex.has(k) ? orderIndex.get(k) : null;
@@ -98,14 +103,9 @@ export function useAppMenu() {
                         const sa = sortScore(a);
                         const sb = sortScore(b);
 
-                        // ha egyik sincs a menu_order-ben, maradjon az eredeti sorrend
                         if (sa === null && sb === null) return 0;
-
-                        // amelyik benne van, az előre
                         if (sa === null) return 1;
                         if (sb === null) return -1;
-
-                        // mindkettő benne van -> menu_order szerinti sorrend
                         return sa - sb;
                     });
 

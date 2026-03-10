@@ -1,11 +1,20 @@
 import BaseService from "@/services/BaseService.js";
 
+/**
+ * Company API wrapper a Companies index és a selector komponensek számára.
+ *
+ * A service a tenant-scoped CRUD és selector végpontokat fogja össze,
+ * hogy a komponenseknek ne kelljen route- és payload-részleteket ismerniük.
+ */
 class CompanyService extends BaseService {
     constructor() {
         super();
         this.url = "companies";
     }
 
+    /**
+     * Lapozott céglistát kér le a Companies/Index.vue DataTable számára.
+     */
     getCompanies(params = {}) {
         return this.get(`${this.url}/fetch`, { params });
     }
@@ -36,6 +45,9 @@ class CompanyService extends BaseService {
     //    return this.delete(route(`${this.url}.force-delete`, id));
     //}
 
+    /**
+     * Cég selector adatot kér le dropdown és form mezők számára.
+     */
     getToSelect(params = {}) {
         return this.get(route("selectors.companies"), { params });
     }

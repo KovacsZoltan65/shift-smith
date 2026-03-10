@@ -10,8 +10,19 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
+/**
+ * Új app setting létrehozásának validációja és értéknormalizálása.
+ *
+ * A request csak az input szerződésért felel. A perzisztencia, cache invalidáció és
+ * domain döntések a service rétegben maradnak.
+ */
 class StoreRequest extends FormRequest
 {
+    /**
+     * A típusfüggő normalizáció eredménye, amelyet a service réteg már konzisztens formában kap meg.
+     *
+     * @var mixed
+     */
     private mixed $normalizedValue = null;
 
     public function authorize(): bool
@@ -34,6 +45,10 @@ class StoreRequest extends FormRequest
         ];
     }
 
+    /**
+     * A string mezőkből eltávolítja a felesleges whitespace-t, hogy az egyediség és a diff alapú
+     * setting összehasonlítás ne a nyers felhasználói inputtól függjön.
+     */
     protected function prepareForValidation(): void
     {
         $this->merge([
@@ -44,6 +59,9 @@ class StoreRequest extends FormRequest
         ]);
     }
 
+    /**
+     * A beépített validáció után végzi el a típusfüggő értékellenőrzést.
+     */
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
@@ -59,6 +77,8 @@ class StoreRequest extends FormRequest
     }
 
     /**
+     * A service réteg számára már normalizált payloadot ad vissza.
+     *
      * @return array{
      *   key: string,
      *   value: mixed,
@@ -83,6 +103,8 @@ class StoreRequest extends FormRequest
     }
 
     /**
+     * A kiválasztott setting típus alapján egységesíti a mentendő értéket.
+     *
      * @return array{valid: bool, value?: mixed, message?: string}
      */
     private function normalizeValue(): array

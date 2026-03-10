@@ -166,6 +166,10 @@ final class TenantManager
         return null;
     }
 
+    /**
+     * A request attribútumokba írja a tenant kontextust, hogy a későbbi rétegek ugyanazt a
+     * TenantGroup-forrást használják.
+     */
     private function injectContext(?Request $request, TenantGroup $tenant, ?int $companyId = null): void
     {
         if (! $request instanceof Request) {

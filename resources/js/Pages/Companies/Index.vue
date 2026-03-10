@@ -59,11 +59,10 @@ const dt = ref(null);
 
 const rows = ref([]);
 
-// checkbox selection
+// Táblázat state
 const selected = ref([]);
 
-// ------------------------
-// Row actions menu
+// Sor műveletek
 const buildRowMenuItems = (row) => [
     {
         label: trans("edit"),
@@ -78,9 +77,8 @@ const buildRowMenuItems = (row) => [
         command: () => confirmDeleteOne(row),
     },
 ];
-// ------------------------
 
-// lazy state (Users minta)
+// Szűrő állapot
 const globalFilterFields = ["name", "email", "phone", "active"];
 const booleanOptions = [
     { label: trans("true"), value: true },
@@ -152,6 +150,7 @@ const onSaved = async (msg = trans("common.success")) => {
     });
 };
 
+// A HQ lista és a tenant lista ugyanazt a komponenst használja, ezért az endpointok feloldása konfigurálható.
 const fetchUrl = () => {
     const query = {
         page: 1,
@@ -213,9 +212,7 @@ const fetchCompanies = async () => {
 
         const json = await res.json();
 
-        // Backend adapter:
-        // - régi: { data: [...] }
-        // - új (spatie data/egységes): { message, data: [...] } vagy { message, data: { data: [...] }, meta }
+        // A lista adaptere egyszerre kezeli a régi és az egységesített backend payload formátumot.
         const items = Array.isArray(json?.data)
             ? json.data
             : (json?.data?.data ?? []);
@@ -361,10 +358,8 @@ onMounted(() => {
     <Toast />
     <ConfirmDialog />
 
-    <!-- CREATE MODAL -->
     <CreateModal v-model="createOpen" @saved="onSaved" :canCreate="canCreate" />
 
-    <!-- EDIT MODAL -->
     <EditModal
         v-model="editOpen"
         :company="editCompany"
@@ -384,7 +379,6 @@ onMounted(() => {
                         {{ hqBadge }}
                     </span>
 
-                    <!-- CREATE -->
                     <Button
                         v-if="canCreate"
                         :label="$t('companies.actions.create')"
@@ -394,7 +388,6 @@ onMounted(() => {
                         data-testid="companies-create"
                     />
 
-                    <!-- FRISSÍTÉS -->
                     <Button
                         :label="$t('companies.actions.refresh')"
                         icon="pi pi-refresh"
@@ -406,7 +399,6 @@ onMounted(() => {
                         data-testid="companies-refresh"
                     />
 
-                    <!-- BULK DELETE -->
                     <Button
                         v-if="canDelete"
                         :label="$t('companies.actions.bulk_delete')"
@@ -479,7 +471,6 @@ onMounted(() => {
                     $t("companies.states.loading")
                 }}</template>
 
-                <!-- checkbox oszlop -->
                 <Column selectionMode="multiple" headerStyle="width: 3rem" />
 
                 <Column
@@ -571,7 +562,6 @@ onMounted(() => {
                     </template>
                 </Column>
 
-                <!-- Actions -->
                 <Column
                     v-if="canAnyRowAction"
                     :header="$t('columns.actions')"

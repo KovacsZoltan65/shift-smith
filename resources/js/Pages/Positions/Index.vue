@@ -24,6 +24,15 @@ import { csrfFetch } from "@/lib/csrfFetch";
 
 import { usePermissions } from "@/composables/usePermissions";
 import { IconField, InputIcon } from "primevue";
+
+/**
+ * Positions index oldal.
+ *
+ * A pozíciók listázását végzi company scope szerint, PrimeVue DataTable
+ * szűréssel és CRUD dialógusokkal. A kiválasztott company minden fetch és
+ * törlési művelet implicit bemenete.
+ */
+
 const { has } = usePermissions();
 const canCreate = has("positions.create");
 const canUpdate = has("positions.update");
@@ -54,6 +63,7 @@ const selected = ref([]);
 // A tenant scope kulcsa: fetch/delete hívások mindig ehhez a céghez mennek.
 const companyId = ref(props.filter?.company_id ?? null);
 
+// Sor műveletek
 const buildRowMenuItems = (row) => [
         {
             label: "Szerkesztés",
@@ -74,6 +84,8 @@ const booleanOptions = [
     { label: "Igen", value: true },
     { label: "Nem", value: false },
 ];
+
+// DataTable szűrő definíciók
 const createInitialFilters = () => ({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS },
     name: {

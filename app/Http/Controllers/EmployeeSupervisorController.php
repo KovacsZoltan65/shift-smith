@@ -14,6 +14,12 @@ use App\Services\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * A dolgozó-felettes kapcsolatok HTTP belépési pontja.
+ *
+ * A controller csak authorization, company scope és válaszformázás feladatot lát el.
+ * Az üzleti szabályok és a hierarchia integritásának védelme a service rétegben marad.
+ */
 final class EmployeeSupervisorController extends Controller
 {
     public function __construct(
@@ -23,6 +29,12 @@ final class EmployeeSupervisorController extends Controller
     ) {
     }
 
+    /**
+     * Létrehozza vagy frissíti az aktuális company scope-on belüli felettes kapcsolatot.
+     *
+     * A cache tag visszaadása azért történik a válaszban, hogy a frontend azonnal tudja,
+     * melyik tenant-szintű gráf nézet igényel frissítést.
+     */
     public function assign(EmployeeSupervisorAssignRequest $request, Employee $employee): JsonResponse
     {
         $this->authorize(EmployeePolicy::PERM_UPDATE, $employee);

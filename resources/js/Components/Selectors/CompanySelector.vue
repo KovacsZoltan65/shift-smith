@@ -3,6 +3,13 @@ import { ref, computed, onMounted, watch } from "vue";
 import Service from "@/services/CompanyService.js";
 import { Select } from "primevue";
 
+/**
+ * CompanySelector
+ *
+ * Cégválasztó komponens tenant oldali űrlapokhoz és szűrőkhöz.
+ * Statikus opciólistával is használható, egyébként a CompanyService selector
+ * végpontjáról tölti be az adatokat.
+ */
 const props = defineProps({
     modelValue: [String, Number, Object, null],
     onlyWithEmployees: {
@@ -40,10 +47,12 @@ const shouldUseFilter = computed(() => {
 });
 
 // ⚡ Választás visszaadása parentnek
+// A belső kiválasztott állapotot mindig visszatükrözzük a szülő v-model felé.
 watch(selectedCompany, (val) => {
     emit("update:modelValue", val);
 });
 
+// A modell és az opciólista külön is változhat, ezért a kiválasztott értéket újraszinkronizáljuk.
 const syncFromModel = () => {
     const modelId = props.modelValue === null ? null : Number(props.modelValue);
 
@@ -72,6 +81,7 @@ watch(
     { immediate: true },
 );
 
+// Csak akkor kérdezünk backendről, ha a szülő nem adott teljes opciólistát.
 onMounted(async () => {
     if (hasStaticOptions.value) {
         syncFromModel();

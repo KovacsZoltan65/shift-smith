@@ -57,6 +57,7 @@ const props = defineProps({
     },
 });
 
+// Kiinduló state a route query és a backendből kapott beosztások alapján
 const toast = useToast();
 const confirm = useConfirm();
 
@@ -120,6 +121,7 @@ const employeeOptions = ref([]);
 const shiftOptions = ref([]);
 const positionOptions = ref([]);
 
+// Jogosultságok és nézetből származó computed állapot
 const canPlanner = computed(() => !!props.permissions?.planner);
 const canAbsencePlanner = computed(() => !!props.permissions?.absencePlanner);
 const canCloseMonth = computed(() => !!props.permissions?.monthClosureClose);
@@ -195,6 +197,7 @@ const quickSelectOptions = computed(() => {
     return [];
 });
 
+// Dátum- és periódus segédfüggvények
 const yearOptions = computed(() => {
     const currentYear = new Date().getFullYear();
     return Array.from({ length: 11 }, (_, i) => {
@@ -359,6 +362,7 @@ const viewedMonthKey = computed(
         `${viewedMonthContext.value.year}-${String(viewedMonthContext.value.month).padStart(2, "0")}`,
 );
 
+// A selectorok külön töltődnek, hogy a naptár feed újratöltése ne kérje le újra a statikus listákat.
 const loadSelectors = async () => {
     const companyId = Number(props.current_company_id ?? 0);
     if (!companyId) return;
@@ -541,6 +545,7 @@ const buildQuickSelectTargetKeys = (type) => {
     return matched.map((day) => day.dateKey);
 };
 
+// A gyors kijelölés támogatja a felülírás, hozzáadás és kivonás módot is a billentyűk alapján.
 const applyQuickSelect = (type, mouseEvent) => {
     const additive = !!(mouseEvent?.ctrlKey || mouseEvent?.metaKey);
     const subtractive = !!mouseEvent?.altKey;
@@ -984,6 +989,7 @@ const toggleSelectedDate = (ymd) => {
     activeQuickSelect.value = null;
 };
 
+// CRUD műveletek és naptár feed lifecycle
 const handleBulk = async (payload) => {
     if (viewedMonthLock.value?.is_closed) {
         toast.add({
@@ -1180,6 +1186,7 @@ watch(
     (lock) => {
         if (!lock?.is_closed) return;
 
+        // Lezárt hónapnál minden szerkesztő állapotot azonnal vissza kell zárni, hogy a UI ne maradjon félrevezető.
         clearSelectedDatesState();
         createOpen.value = false;
         editOpen.value = false;

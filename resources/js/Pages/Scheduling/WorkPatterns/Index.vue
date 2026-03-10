@@ -23,6 +23,13 @@ import { csrfFetch } from "@/lib/csrfFetch";
 import { usePermissions } from "@/composables/usePermissions";
 import { IconField, InputIcon } from "primevue";
 
+/**
+ * WorkPatterns index oldal.
+ *
+ * A munkarendek DataTable nézetét és a kapcsolódó dolgozó-hozzárendelési
+ * műveleteket kezeli. A page egyszerre felel a lista állapotáért és a
+ * munkarendhez tartozó másodlagos dialogok megnyitásáért.
+ */
 const { has } = usePermissions();
 
 const canCreate = has("work_patterns.create");
@@ -39,6 +46,7 @@ const props = defineProps({
 const toast = useToast();
 const confirm = useConfirm();
 
+// Dialog state
 const createOpen = ref(false);
 const editOpen = ref(false);
 const editWorkPattern = ref(null);
@@ -46,6 +54,8 @@ const employeeAssignOpen = ref(false);
 const assignWorkPattern = ref(null);
 const employeesOpen = ref(false);
 const employeesWorkPattern = ref(null);
+
+// Táblázat és lista state
 
 const loading = ref(false);
 const actionLoading = ref(false);

@@ -14,6 +14,12 @@ use App\Services\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * A törölt dolgozó visszaállítási folyamat orchestration rétege.
+ *
+ * A service tenant- és company-scoped repository hívásokat koordinál, valamint gondoskodik
+ * a helyreállítás utáni cache invalidációról. HTTP válaszépítést nem végezhet.
+ */
 final class EmployeeRestoreService
 {
     public function __construct(
@@ -25,12 +31,22 @@ final class EmployeeRestoreService
     ) {
     }
 
+    /**
+     * Ellenőrzi, hogy létezik-e az emailhez tartozó soft deleted dolgozó az aktuális company scope-ban.
+     */
     public function findSoftDeletedByEmail(int $companyId, string $email): ?Employee
     {
         return $this->employeeRepository->findSoftDeletedByEmail($companyId, $email);
     }
 
     /**
+     * Előkészíti a visszaállítási dialógushoz szükséges minimális payloadot.
+     *
+     * Az aktív email ütközést itt kell blokkolni, mert a create folyamat és a restore folyamat
+     * ugyanazt az email egyediségi invariánst osztja meg company scope-on belül.
+     *
+     * @param int $companyId
+     * @param string $email
      * @return array{
      *   restore_available: true,
      *   employee: array{id:int,first_name:string,last_name:string,email:string,deleted_at:string|null},
@@ -71,6 +87,10 @@ final class EmployeeRestoreService
     }
 
     /**
+     * Visszaállítja a törölt dolgozót, majd újraépíti a szükséges cache-állapotokat.
+     *
+     * @param int $companyId
+     * @param int $employeeId
      * @param array{
      *   first_name:string,
      *   last_name:string,
@@ -82,6 +102,8 @@ final class EmployeeRestoreService
      *   hired_at?:string|null,
      *   active?:bool
      * } $data
+     * @param int|null $actorUserId
+     * @return Employee
      */
     public function restoreEmployee(int $companyId, int $employeeId, array $data, ?int $actorUserId = null): Employee
     {
@@ -135,11 +157,17 @@ final class EmployeeRestoreService
         return $employee;
     }
 
+    /**
+     * Az email összehasonlítás előtt egységesíti a whitespace és a kisbetűs alakot.
+     */
     private function normalizeEmail(string $email): string
     {
         return mb_strtolower(trim($email), 'UTF-8');
     }
 
+    /**
+     * A pozícióból származtatott szervezeti szintet oldja fel a restore művelethez.
+     */
     private function resolveOrgLevel(int $companyId, ?int $positionId): string
     {
         if (! \is_int($positionId) || $positionId <= 0) {
@@ -151,6 +179,10 @@ final class EmployeeRestoreService
         return $this->positionOrgLevelService->resolveOrgLevel($companyId, (string) $position->name);
     }
 
+    /**
+     * A visszaállítás után bumpolja azokat a tenant-scoped cache namespace-eket,
+     * amelyek dolgozó- vagy hierarchia adatot jelenítenek meg.
+     */
     private function invalidateCaches(int $companyId): void
     {
         $tenantGroupId = $this->tenantContext->currentTenantGroupIdOrFail();

@@ -67,6 +67,7 @@ const defaultCompanyId = computed(
     () => Number(page.props.companyContext?.current_company_id ?? 0) || null,
 );
 
+// Szűrő állapot
 const globalFilterFields = ["name", "email", "primary_role_name", "guard_name"];
 const booleanOptions = [
     { label: trans("true"), value: true },
@@ -117,6 +118,7 @@ const hasActiveFilters = computed(() => {
 
 const isSelf = (row) => Number(row?.id ?? 0) === authUserId.value;
 
+// A szerepkör címke több backend válaszformátumot tolerál a fokozatos átállás miatt.
 const roleLabel = (row) =>
     row?.primary_role_name ||
     (Array.isArray(row?.roles) && row.roles.length
@@ -135,6 +137,7 @@ const roleSeverity = (roleName) => {
     return "secondary";
 };
 
+// Sor műveletek
 const buildRowMenuItems = (row) => [
     {
         label: trans("edit"),
@@ -160,6 +163,7 @@ const buildRowMenuItems = (row) => [
     },
 ];
 
+// Dialógus műveletek
 const openCreate = () => {
     createOpen.value = true;
 };
@@ -185,6 +189,7 @@ const openPasswordResetModal = (row) => {
     pwOpen.value = true;
 };
 
+// A szerepkör lista csak első megnyitáskor töltődik le, hogy az index fetch ne hízzon fölöslegesen.
 const ensureRolesLoaded = async () => {
     if (roles.value.length) return;
 
@@ -200,6 +205,7 @@ const ensureRolesLoaded = async () => {
     }));
 };
 
+// A szerepkör modal a név és az id alapú backend válaszokat is tudja feloldani.
 const openRoleModal = async (row) => {
     if (!canManageUserRoles.value) return;
 

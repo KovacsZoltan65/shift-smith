@@ -1,3 +1,5 @@
+// A menüdefiníció csak translation key-eket és permission metaadatot tárol.
+// A tényleges címfeloldás és jogosultságszűrés a useAppMenu composable-ben történik.
 export const appMenuDefinition = [
     {
         titleKey: "home.title",

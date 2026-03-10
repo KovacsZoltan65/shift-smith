@@ -5,6 +5,13 @@ import { Select } from "primevue";
 import Service from "@/services/EmployeeService.js";
 import { csrfFetch } from "@/lib/csrfFetch";
 
+/**
+ * EmployeeSelector
+ *
+ * Dolgozóválasztó komponens normál select és szerveroldali kereső módban.
+ * Hierarchia- és scheduling-folyamatokban is használható, ezért támogatja
+ * a company scope-ot, az objektum-visszaadást és az elemek kizárását is.
+ */
 const props = defineProps({
     modelValue: { type: [String, Number, Object, null], default: null },
     companyId: { type: [String, Number, null], default: null },
@@ -33,6 +40,7 @@ const model = computed({
     set: (val) => emit("update:modelValue", val),
 });
 
+// A placeholder módváltástól függ: sima selector vagy szerveroldali kereső használata.
 const shouldUseFilter = computed(() => {
     if (props.filter === true) return true;
     if (props.filter === false) return false;
@@ -47,6 +55,7 @@ const placeholderText = computed(() => {
     return props.serverSearch ? "Dolgozó keresése..." : "Dolgozó kiválasztása";
 });
 
+// A kizárások Set formában olcsóbbak a gyakori szűrési ellenőrzésekhez.
 const excludedIds = computed(() =>
     new Set(
         (props.excludeEmployeeIds ?? [])
@@ -58,6 +67,7 @@ const excludedIds = computed(() =>
 const filterExcluded = (rows) =>
     (Array.isArray(rows) ? rows : []).filter((row) => !excludedIds.value.has(Number(row?.id)));
 
+// A modell lehet id vagy teljes objektum is, ezért az opciók közül mindig explicit feloldjuk.
 const resolveSelectedById = (id) => {
     if (id === null || id === undefined || id === "") {
         return null;

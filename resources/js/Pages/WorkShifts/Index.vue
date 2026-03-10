@@ -24,6 +24,12 @@ import EmployeesModal from "@/Pages/WorkShifts/EmployeesModal.vue";
 import WorkShiftService from "@/services/WorkShiftService.js";
 import { usePermissions } from "@/composables/usePermissions";
 
+/**
+ * WorkShifts index oldal.
+ *
+ * A műszak törzsadatok listáját, a DataTable szűrőit és a műszakhoz kötődő
+ * dolgozó/hozzárendelés dialogokat fogja össze egy nézetben.
+ */
 const { has } = usePermissions();
 
 const props = defineProps({
@@ -42,6 +48,7 @@ const canAnyRowAction = computed(
 const toast = useToast();
 const confirm = useConfirm();
 
+// Dialog state
 const createOpen = ref(false);
 const editOpen = ref(false);
 const editShift = ref(null);
@@ -50,6 +57,7 @@ const assignmentShift = ref(null);
 const employeesOpen = ref(false);
 const employeesShift = ref(null);
 
+// Táblázat state
 const loading = ref(false);
 const actionLoading = ref(false);
 const error = ref(null);
@@ -58,6 +66,7 @@ const dt = ref(null);
 const rows = ref([]);
 const selected = ref([]);
 
+// A sor műveletek a jogosultságtól és a futó API műveletektől is függenek.
 const globalFilterFields = [
     "name",
     "start_time",

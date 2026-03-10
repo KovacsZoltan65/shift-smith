@@ -16,6 +16,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Biztosítja, hogy a tenant oldali route-ok csak érvényes company + tenant kontextussal fussanak.
+ *
+ * A middleware tenant izolációs védőréteg: a sessionben tárolt company azonosítót mindig
+ * TenantGroup kontextussal együtt validálja, mielőtt a kérés elérné a controller réteget.
+ */
 final class EnsureCompanySelected
 {
     public function __construct(
@@ -24,6 +30,9 @@ final class EnsureCompanySelected
         private readonly CurrentTenantGroup $currentTenantGroup,
     ) {}
 
+    /**
+     * Szinkronban tartja a session company kiválasztást és a Spatie current tenant állapotot.
+     */
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user('web');
@@ -53,7 +62,7 @@ final class EnsureCompanySelected
             }
 
             if ($this->companyContext->userCanSelectCompany($user, $currentCompanyId)) {
-                // IDE:
+                // A company kiválasztás csak akkor fogadható el, ha a hozzá tartozó TenantGroup is feloldható.
                 $tenantGroupId = $this->companyContext->tenantGroupIdForCompany($user, $currentCompanyId);
 
                 if ($tenantGroupId !== null) {
@@ -114,6 +123,9 @@ final class EnsureCompanySelected
         abort(403, __('common.errors.no_company_assigned'));
     }
 
+    /**
+     * Ellenőrzi, hogy a sessionben tárolt company valóban az aktív TenantGroup része-e.
+     */
     private function isCurrentCompanyValidForTenant(User $user, int $companyId, int $tenantId): bool
     {
         $query = Company::query()
@@ -139,6 +151,9 @@ final class EnsureCompanySelected
         return is_string($routeName) && str_starts_with($routeName, 'hq.');
     }
 
+    /**
+     * A sessionből érkező tenant azonosítót összerendezi a Spatie current tenant állapottal.
+     */
     private function syncCurrentTenantGroup(int $tenantGroupId): bool
     {
         $currentTenant = TenantGroup::current();
@@ -166,6 +181,9 @@ final class EnsureCompanySelected
         return true;
     }
 
+    /**
+     * Törli az inkonzisztens company és tenant session állapotot, majd visszairányít a választó oldalra.
+     */
     private function resetAndRedirect(Request $request): RedirectResponse
     {
         $this->currentCompany->clearCurrentCompany($request);
