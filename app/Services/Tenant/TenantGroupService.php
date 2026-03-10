@@ -8,6 +8,7 @@ use App\Data\Tenant\TenantGroupData;
 use App\Models\TenantGroup;
 use App\Repositories\Tenant\TenantGroupRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use function __;
 
 /**
  * Application service a landlord oldali TenantGroup kezeléshez.
@@ -70,7 +71,7 @@ final class TenantGroupService
         if (($impact['company_count'] ?? 0) > 0 || ($impact['active_company_count'] ?? 0) > 0) {
             throw new TenantGroupDeletionBlockedException(
                 impact: $impact,
-                message: 'Tenant group deletion is blocked while companies still belong to it.',
+                message: __('tenant_groups.messages.delete_blocked'),
             );
         }
 

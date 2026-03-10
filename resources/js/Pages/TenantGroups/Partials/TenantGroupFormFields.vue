@@ -1,4 +1,5 @@
 <script setup>
+import { trans } from "laravel-vue-i18n";
 import Checkbox from "primevue/checkbox";
 import InputText from "primevue/inputtext";
 import Select from "primevue/select";
@@ -14,9 +15,9 @@ const props = defineProps({
 const emit = defineEmits(["update:modelValue"]);
 
 const statusOptions = [
-    { label: "Draft", value: "draft" },
-    { label: "Active", value: "active" },
-    { label: "Archived", value: "archived" },
+    { label: trans("tenant_groups.status.draft"), value: "draft" },
+    { label: trans("tenant_groups.status.active"), value: "active" },
+    { label: trans("tenant_groups.status.archived"), value: "archived" },
 ];
 
 // Részleges frissítéseket küld felfelé, így a szülő dialog marad az egyetlen adatforrás.
@@ -28,7 +29,7 @@ const update = (patch) => {
 <template>
     <div class="grid grid-cols-1 gap-4">
         <div>
-            <label class="mb-1 block text-sm font-medium">Name</label>
+            <label class="mb-1 block text-sm font-medium">{{ $t("tenant_groups.fields.name") }}</label>
             <InputText
                 class="w-full"
                 :disabled="disabled"
@@ -39,7 +40,7 @@ const update = (patch) => {
         </div>
 
         <div>
-            <label class="mb-1 block text-sm font-medium">Code</label>
+            <label class="mb-1 block text-sm font-medium">{{ $t("tenant_groups.fields.code") }}</label>
             <InputText
                 class="w-full"
                 :disabled="disabled"
@@ -50,7 +51,7 @@ const update = (patch) => {
         </div>
 
         <div>
-            <label class="mb-1 block text-sm font-medium">Status</label>
+            <label class="mb-1 block text-sm font-medium">{{ $t("tenant_groups.fields.status") }}</label>
             <Select
                 class="w-full"
                 :disabled="disabled"
@@ -59,14 +60,14 @@ const update = (patch) => {
                 optionLabel="label"
                 optionValue="value"
                 showClear
-                placeholder="Select status"
+                :placeholder="$t('tenant_groups.filters.status')"
                 @update:modelValue="(value) => update({ status: value })"
             />
             <div v-if="errors.status" class="mt-1 text-sm text-red-600">{{ errors.status }}</div>
         </div>
 
         <div>
-            <label class="mb-1 block text-sm font-medium">Notes</label>
+            <label class="mb-1 block text-sm font-medium">{{ $t("tenant_groups.fields.notes") }}</label>
             <Textarea
                 rows="4"
                 class="w-full"
@@ -85,7 +86,7 @@ const update = (patch) => {
                 :modelValue="!!modelValue.active"
                 @update:modelValue="(value) => update({ active: !!value })"
             />
-            <label for="tenant_group_active" class="text-sm text-gray-700">Active</label>
+            <label for="tenant_group_active" class="text-sm text-gray-700">{{ $t("tenant_groups.fields.active") }}</label>
             <div v-if="errors.active" class="text-sm text-red-600">{{ errors.active }}</div>
         </div>
     </div>

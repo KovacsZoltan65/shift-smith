@@ -39,7 +39,7 @@ final class TenantGroupController extends Controller
         $this->authorize('viewAny', TenantGroup::class);
 
         return Inertia::render('TenantGroups/Index', [
-            'title' => 'Tenant Groups',
+            'title' => __('tenant_groups.title'),
             'filter' => $request->validatedFilters(),
         ]);
     }
@@ -54,7 +54,7 @@ final class TenantGroupController extends Controller
         $tenantGroups = $this->service->fetch($request->validatedFilters());
 
         return response()->json([
-            'message' => 'Tenant groups fetched successfully.',
+            'message' => __('tenant_groups.messages.fetch_success'),
             'data' => TenantGroupListData::collect($tenantGroups->items()),
             'meta' => [
                 'current_page' => $tenantGroups->currentPage(),
@@ -71,7 +71,7 @@ final class TenantGroupController extends Controller
         $this->authorize('view', $tenantGroup);
 
         return response()->json([
-            'message' => 'Tenant group fetched successfully.',
+            'message' => __('tenant_groups.messages.show_success'),
             'data' => TenantGroupResource::make($tenantGroup),
         ], Response::HTTP_OK);
     }
@@ -90,7 +90,7 @@ final class TenantGroupController extends Controller
         ]));
 
         return response()->json([
-            'message' => 'Tenant group created successfully.',
+            'message' => __('tenant_groups.messages.created_success'),
             'data' => TenantGroupResource::make($tenantGroup),
         ], Response::HTTP_CREATED);
     }
@@ -109,7 +109,7 @@ final class TenantGroupController extends Controller
         ]));
 
         return response()->json([
-            'message' => 'Tenant group updated successfully.',
+            'message' => __('tenant_groups.messages.updated_success'),
             'data' => TenantGroupResource::make($updated),
         ], Response::HTTP_OK);
     }
@@ -136,7 +136,7 @@ final class TenantGroupController extends Controller
         }
 
         return response()->json([
-            'message' => 'Tenant group archived successfully.',
+            'message' => __('tenant_groups.messages.deleted_success'),
             'deleted' => true,
         ], Response::HTTP_OK);
     }
