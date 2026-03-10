@@ -24,7 +24,7 @@ class UpdateRequest extends StoreRequest
 
         return [
             'key' => ['required', 'string', 'max:190', Rule::unique('app_settings', 'key')->ignore($id, 'id')],
-            'type' => ['required', 'string', 'in:int,bool,string,json'],
+            'type' => ['required', 'string', 'in:int,bool,string,select,json'],
             'group' => ['required', 'string', 'max:100'],
             'label' => ['nullable', 'string', 'max:190'],
             'description' => ['nullable', 'string'],

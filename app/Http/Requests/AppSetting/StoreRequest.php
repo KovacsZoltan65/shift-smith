@@ -26,7 +26,7 @@ class StoreRequest extends FormRequest
     {
         return [
             'key' => ['required', 'string', 'max:190', Rule::unique('app_settings', 'key')],
-            'type' => ['required', 'string', 'in:int,bool,string,json'],
+            'type' => ['required', 'string', 'in:int,bool,string,select,json'],
             'group' => ['required', 'string', 'max:100'],
             'label' => ['nullable', 'string', 'max:190'],
             'description' => ['nullable', 'string'],
@@ -93,7 +93,7 @@ class StoreRequest extends FormRequest
         return match ($type) {
             'int' => $this->normalizeInt($value),
             'bool' => $this->normalizeBool($value),
-            'string' => $this->normalizeStringValue($value),
+            'string', 'select' => $this->normalizeStringValue($value),
             'json' => $this->normalizeJson($value),
             default => ['valid' => false, 'message' => 'Érvénytelen típus.'],
         };
@@ -137,6 +137,15 @@ class StoreRequest extends FormRequest
      */
     private function normalizeStringValue(mixed $value): array
     {
+        if ((string) $this->input('type') === 'select' && (string) $this->input('key') === 'app.locale') {
+            $normalized = $value === null ? null : (string) $value;
+            $supported = config('app.supported_locales', ['en', 'hu']);
+
+            if ($normalized !== null && ! in_array($normalized, $supported, true)) {
+                return ['valid' => false, 'message' => 'A locale értéknek támogatott nyelvnek kell lennie.'];
+            }
+        }
+
         if ($value === null) {
             return ['valid' => true, 'value' => null];
         }

@@ -65,6 +65,7 @@ use App\Repositories\UserRepository;
 use App\Repositories\UserSettingRepository;
 use App\Repositories\UserEmployeeRepository;
 use App\Repositories\UserEmployeeRepositoryInterface;
+use App\Services\LocaleSettingsService;
 use App\Repositories\UserAssignments\UserAssignmentRepository;
 use App\Repositories\UserAssignments\UserAssignmentRepositoryInterface;
 use App\Repositories\WorkPatternRepository;
@@ -236,25 +237,19 @@ class AppServiceProvider extends ServiceProvider
         if (!\defined('APP_TRUE'))     \define('APP_TRUE', true);
         if (!\defined('APP_FALSE'))    \define('APP_FALSE', false);
 
-        $available_locales = config('app.available_locales', ['English' => 'en', 'Hungarian' => 'hu']);
-        $supported_locales = config('app.supported_locales', ['en', 'hu']);
-        $locale = app()->getLocale();
-        $timezone = (Session::has('timezone')) ? Session::get('timezone') : config('app.timezone', 'UTC');
-        $theme = (Session::has('theme')) ? Session::get('theme') : 'system';
-
         Inertia::share([
             'errors' => function () {
                 return Session::get('errors')
                     ? Session::get('errors')->getBag('default')->getMessages()
                     : (object) [];
             },
-            'available_locales' => $available_locales,
-            'supported_locales' => $supported_locales,
-            'locale' => $locale,
-            'preferences' => [
-                'locale' => $locale,
-                'timezone' => $timezone,
-                'theme' => $theme,
+            'available_locales' => fn () => app(LocaleSettingsService::class)->availableLocales(),
+            'supported_locales' => fn () => app(LocaleSettingsService::class)->supportedLocales(),
+            'locale' => fn () => app()->getLocale(),
+            'preferences' => fn () => [
+                'locale' => app()->getLocale(),
+                'timezone' => Session::has('timezone') ? Session::get('timezone') : config('app.timezone', 'UTC'),
+                'theme' => Session::has('theme') ? Session::get('theme') : 'system',
             ],
         ]);
 

@@ -12,6 +12,7 @@ use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
 use App\Services\Company\CurrentCompanyResolver;
 use App\Services\EffectiveSettingsResolverService;
+use App\Services\LocaleSettingsService;
 use Illuminate\Support\Facades\Auth;
 
 class SettingsManager
@@ -23,6 +24,7 @@ class SettingsManager
         private readonly CurrentCompanyResolver $currentCompanyResolver,
         private readonly CacheService $cacheService,
         private readonly CacheVersionService $cacheVersionService,
+        private readonly LocaleSettingsService $localeSettings,
     ) {
     }
 
@@ -175,6 +177,49 @@ class SettingsManager
         $rows = $companyId === null
             ? $this->resolveAppOnlyRows($keys)
             : $this->resolver->getEffectiveMany($keys, $companyId, $userId);
+
+        if (in_array(LocaleSettingsService::KEY, $keys, true)) {
+            $rows = array_values(array_filter(
+                $rows,
+                static fn (EffectiveSettingData $row): bool => $row->key !== LocaleSettingsService::KEY
+            ));
+
+            $meta = $this->settingsRepository->metaByKey(LocaleSettingsService::KEY);
+            $source = 'default';
+
+            if ($userId !== null) {
+                $userValue = $this->settingsRepository->userValuesByKeys($userId, [LocaleSettingsService::KEY])[LocaleSettingsService::KEY] ?? null;
+                if ($this->localeSettings->isSupported($userValue)) {
+                    $source = 'user_legacy';
+                }
+            }
+
+            if ($source === 'default' && $companyId !== null) {
+                $companyValue = $this->settingsRepository->companyValue($companyId, LocaleSettingsService::KEY);
+                if ($this->localeSettings->isSupported($companyValue)) {
+                    $source = 'company';
+                }
+            }
+
+            if ($source === 'default') {
+                $appValue = $this->settingsRepository->appValue(LocaleSettingsService::KEY);
+                if ($this->localeSettings->isSupported($appValue)) {
+                    $source = 'app';
+                }
+            }
+
+            $rows[] = new EffectiveSettingData(
+                key: LocaleSettingsService::KEY,
+                effective_value: $this->localeSettings->resolve($companyId, $userId),
+                source: $source === 'default' ? 'app' : $source,
+                type: $meta?->type !== null ? (string) $meta->type : null,
+                group: $meta?->group !== null ? (string) $meta->group : null,
+                label: $meta?->label !== null ? (string) $meta->label : null,
+                description: $meta?->description !== null ? (string) $meta->description : null,
+                company_id: $companyId ?? 0,
+                user_id: $userId,
+            );
+        }
 
         $resolved = [];
 

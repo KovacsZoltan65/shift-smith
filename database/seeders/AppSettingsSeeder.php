@@ -11,6 +11,14 @@ class AppSettingsSeeder extends Seeder
     {
         $rows = [
             [
+                'key' => 'app.locale',
+                'value' => config('app.locale', 'hu'),
+                'type' => 'select',
+                'group' => 'localization',
+                'label' => 'Alkalmazás nyelve',
+                'description' => 'Az alkalmazás alapértelmezett nyelve. Company és User szinten felülírható.',
+            ],
+            [
                 'key' => 'autoplan.min_rest_minutes',
                 'value' => 660,
                 'type' => 'int',

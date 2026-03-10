@@ -67,3 +67,42 @@ it('helyes precedence-t alkalmaz: user > company > app > default', function (): 
     expect($companyResult['value'])->toBe(3)->and($companyResult['source'])->toBe('company');
     expect($userResult['value'])->toBe(4)->and($userResult['source'])->toBe('user');
 });
+
+it('az app.locale kulcs global user override-ot használ company felett', function (): void {
+    $company = Company::factory()->create();
+    $user = User::factory()->create();
+
+    SettingsMeta::query()->create([
+        'key' => 'app.locale',
+        'group' => 'localization',
+        'label' => 'Alkalmazás nyelve',
+        'type' => 'select',
+        'default_value' => 'hu',
+        'options' => [
+            ['label' => 'English', 'value' => 'en'],
+            ['label' => 'Magyar', 'value' => 'hu'],
+        ],
+        'validation' => ['required', 'in:en,hu'],
+        'order_index' => 1,
+        'is_editable' => true,
+        'is_visible' => true,
+    ]);
+
+    AppSetting::query()->create(['key' => 'app.locale', 'value' => 'hu']);
+    CompanySetting::query()->create(['company_id' => $company->id, 'key' => 'app.locale', 'value' => 'hu']);
+    UserSetting::query()->create([
+        'user_id' => $user->id,
+        'company_id' => null,
+        'key' => 'app.locale',
+        'value' => 'en',
+    ]);
+
+    $resolver = app(SettingsResolverService::class);
+    $result = $resolver->effectiveValue('app.locale', [
+        'company_id' => $company->id,
+        'user_id' => $user->id,
+    ]);
+
+    expect($result['value'])->toBe('en')
+        ->and($result['source'])->toBe('user');
+});

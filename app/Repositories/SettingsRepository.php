@@ -93,7 +93,10 @@ class SettingsRepository
 
     public function appValue(string $key): mixed
     {
-        return AppSetting::query()->where('key', $key)->value('value');
+        return AppSetting::query()
+            ->where('key', $key)
+            ->first()
+            ?->value;
     }
 
     public function companyValue(int $companyId, string $key): mixed
@@ -101,7 +104,8 @@ class SettingsRepository
         return CompanySetting::query()
             ->where('company_id', $companyId)
             ->where('key', $key)
-            ->value('value');
+            ->first()
+            ?->value;
     }
 
     public function userValue(int $userId, string $key, ?int $companyId = null, bool $allowLegacy = false): mixed
@@ -110,7 +114,8 @@ class SettingsRepository
             ->where('user_id', $userId)
             ->when($companyId !== null, fn ($query) => $query->where('company_id', $companyId))
             ->where('key', $key)
-            ->value('value');
+            ->first()
+            ?->value;
 
         if ($scoped !== null) {
             return $scoped;
@@ -121,7 +126,8 @@ class SettingsRepository
                 ->where('user_id', $userId)
                 ->whereNull('company_id')
                 ->where('key', $key)
-                ->value('value');
+                ->first()
+                ?->value;
         }
 
         return null;

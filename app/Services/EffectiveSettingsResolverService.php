@@ -66,12 +66,14 @@ class EffectiveSettingsResolverService
         $metaRows = $this->settingsRepository->metaByKeys($keys);
         $appValues = $this->appSettings->valuesByKeys($keys);
         $companyValues = $this->companySettings->valuesByKeys($companyId, $keys);
+        $globalUserKeys = $this->globalUserKeys($keys);
 
         $userScopedRows = $userId !== null
             ? $this->userSettings->findManyByUserCompanyKeys($userId, $companyId, $keys)->keyBy('key')
             : collect();
-        $userLegacyRows = $userId !== null && $allowLegacy
-            ? $this->userSettings->findManyLegacyByUserKeys($userId, $keys)->keyBy('key')
+        $userLegacyKeys = $allowLegacy ? $keys : $globalUserKeys;
+        $userLegacyRows = $userId !== null && $userLegacyKeys !== []
+            ? $this->userSettings->findManyLegacyByUserKeys($userId, $userLegacyKeys)->keyBy('key')
             : collect();
 
         $resolved = [];
@@ -111,6 +113,18 @@ class EffectiveSettingsResolverService
         }
 
         return $resolved;
+    }
+
+    /**
+     * @param list<string> $keys
+     * @return list<string>
+     */
+    private function globalUserKeys(array $keys): array
+    {
+        return array_values(array_filter(
+            $keys,
+            static fn (string $key): bool => $key === LocaleSettingsService::KEY
+        ));
     }
 
     private function legacyFallbackEnabled(): bool

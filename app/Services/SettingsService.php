@@ -18,7 +18,8 @@ class SettingsService
     public function __construct(
         private readonly SettingsRepository $repository,
         private readonly SettingsResolverService $resolver,
-        private readonly CacheVersionService $cacheVersionService
+        private readonly CacheVersionService $cacheVersionService,
+        private readonly LocaleSettingsService $localeSettings,
     ) {}
 
     /**
@@ -45,9 +46,17 @@ class SettingsService
         $effectiveMap = $this->resolver->effectiveMap($companyId, $userId);
         $appValues = $this->repository->appValuesByKeys($keys);
         $companyValues = $companyId !== null ? $this->repository->companyValuesByKeys($companyId, $keys) : [];
-            $userValues = ($userId !== null && $companyId !== null)
-                ? $this->repository->userValuesByKeysInCompany($userId, $companyId, $keys)
-                : [];
+        $userValues = ($userId !== null && $companyId !== null)
+            ? $this->repository->userValuesByKeysInCompany($userId, $companyId, $keys)
+            : [];
+
+        if ($userId !== null && in_array(LocaleSettingsService::KEY, $keys, true)) {
+            $localeValue = $this->repository->userValuesByKeys($userId, [LocaleSettingsService::KEY])[LocaleSettingsService::KEY] ?? null;
+
+            if ($localeValue !== null) {
+                $userValues[LocaleSettingsService::KEY] = $localeValue;
+            }
+        }
 
         $groups = [];
 
@@ -232,8 +241,12 @@ class SettingsService
             'company' => $companyId !== null
                 ? tap(true, fn () => $this->repository->deleteCompanyOverride($companyId, $key))
                 : false,
-                'user' => $userId !== null
-                ? tap(true, fn () => $this->repository->deleteUserOverride($userId, $companyId, $key))
+            'user' => $userId !== null
+                ? tap(true, fn () => $this->repository->deleteUserOverride(
+                    $userId,
+                    $this->usesGlobalUserScope($key) ? null : $companyId,
+                    $key
+                ))
                 : false,
             default => false,
         };
@@ -247,7 +260,13 @@ class SettingsService
                 ? tap(true, fn () => $this->repository->saveCompanyValue($companyId, $key, $value, $actorUserId))
                 : false,
             'user' => $userId !== null
-                ? tap(true, fn () => $this->repository->saveUserValue($userId, $companyId, $key, $value, $actorUserId))
+                ? tap(true, fn () => $this->repository->saveUserValue(
+                    $userId,
+                    $this->usesGlobalUserScope($key) ? null : $companyId,
+                    $key,
+                    $value,
+                    $actorUserId
+                ))
                 : false,
             default => false,
         };
@@ -265,5 +284,10 @@ class SettingsService
     private function valuesEqual(mixed $a, mixed $b): bool
     {
         return json_encode($a, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) === json_encode($b, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
+    private function usesGlobalUserScope(string $key): bool
+    {
+        return $key === LocaleSettingsService::KEY;
     }
 }

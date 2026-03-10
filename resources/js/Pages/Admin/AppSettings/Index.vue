@@ -1,7 +1,8 @@
 <script setup>
-import { Head } from "@inertiajs/vue3";
+import { Head, router } from "@inertiajs/vue3";
 import { computed, onMounted, ref } from "vue";
 import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
+import { loadLanguageAsync } from "laravel-vue-i18n";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import AppSettingsService from "@/services/AppSettingsService.js";
@@ -53,6 +54,7 @@ const typeOptions = ref([
     { label: "int", value: "int" },
     { label: "bool", value: "bool" },
     { label: "string", value: "string" },
+    { label: "select", value: "select" },
     { label: "json", value: "json" },
 ]);
 
@@ -122,7 +124,19 @@ const fetchAppSettings = async () => {
     }
 };
 
-const handleSaved = async (message) => {
+const reloadEffectiveLocale = async (locale) => {
+    if (locale) {
+        await loadLanguageAsync(locale);
+        document.documentElement.setAttribute("lang", locale);
+    }
+
+    await router.reload({ preserveState: true, preserveScroll: true });
+};
+
+const handleSaved = async (payload) => {
+    const message = typeof payload === "string" ? payload : payload?.message;
+    const item = typeof payload === "string" ? null : payload?.item;
+
     await fetchAppSettings();
     toast.add({
         severity: "success",
@@ -130,6 +144,10 @@ const handleSaved = async (message) => {
         detail: message,
         life: 2500,
     });
+
+    if (item?.key === "app.locale") {
+        await reloadEffectiveLocale(item?.value ?? null);
+    }
 };
 
 const handleDeleted = async (message) => {
@@ -160,6 +178,7 @@ const updatedAt = (row) =>
 const typeSeverity = (type) => {
     if (type === "bool") return "success";
     if (type === "int") return "info";
+    if (type === "select") return "contrast";
     if (type === "json") return "warning";
     return "secondary";
 };

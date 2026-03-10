@@ -44,7 +44,10 @@ const submit = async () => {
 
     try {
         const { data } = await AppSettingsService.store(form.value);
-        emit("saved", data?.message ?? "App setting létrehozva.");
+        emit("saved", {
+            message: data?.message ?? "App setting létrehozva.",
+            item: data?.data ?? null,
+        });
         close();
     } catch (error) {
         const bag = AppSettingsService.extractErrors(error) ?? {};

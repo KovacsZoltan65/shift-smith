@@ -14,7 +14,8 @@ class SettingsResolverService
         private readonly SettingsRepository $repository,
         private readonly EffectiveSettingsResolverService $effectiveResolver,
         private readonly CacheService $cacheService,
-        private readonly CacheVersionService $cacheVersionService
+        private readonly CacheVersionService $cacheVersionService,
+        private readonly LocaleSettingsService $localeSettings,
     ) {}
 
     /**
@@ -31,6 +32,17 @@ class SettingsResolverService
     {
         $companyId = isset($context['company_id']) ? (int) $context['company_id'] : null;
         $userId = isset($context['user_id']) ? (int) $context['user_id'] : null;
+
+        if ($key === LocaleSettingsService::KEY) {
+            return [
+                'key' => $key,
+                'value' => $this->localeSettings->resolve($companyId, $userId),
+                'source' => $this->resolveLocaleSource($companyId, $userId),
+                'inherited' => $this->resolveLocaleSource($companyId, $userId) !== 'user',
+                'overridden' => true,
+            ];
+        }
+
         $resolved = $companyId !== null
             ? $this->effectiveResolver->getEffectiveValue($key, $companyId, $userId)
             : $this->resolveAppOnly($key);
@@ -81,6 +93,11 @@ class SettingsResolverService
                 foreach ($metaRows as $meta) {
                     $k = (string) $meta->key;
                     $row = $resolvedByKey[$k] ?? null;
+
+                    if ($k === LocaleSettingsService::KEY) {
+                        $out[$k] = $this->localeSettings->resolve($companyId, $userId);
+                        continue;
+                    }
 
                     if ($row instanceof EffectiveSettingData && $row->source !== 'none') {
                         $out[$k] = $row->effective_value;
@@ -151,5 +168,32 @@ class SettingsResolverService
             'inherited' => $companyId !== null || $userId !== null || $meta !== null,
             'overridden' => false,
         ];
+    }
+
+    private function resolveLocaleSource(?int $companyId, ?int $userId): string
+    {
+        if ($userId !== null) {
+            $userValue = $this->repository->userValuesByKeys($userId, [LocaleSettingsService::KEY])[LocaleSettingsService::KEY] ?? null;
+
+            if ($this->localeSettings->isSupported($userValue)) {
+                return 'user';
+            }
+        }
+
+        if ($companyId !== null) {
+            $companyValue = $this->repository->companyValue($companyId, LocaleSettingsService::KEY);
+
+            if ($this->localeSettings->isSupported($companyValue)) {
+                return 'company';
+            }
+        }
+
+        $appValue = $this->repository->appValue(LocaleSettingsService::KEY);
+
+        if ($this->localeSettings->isSupported($appValue)) {
+            return 'app';
+        }
+
+        return 'default';
     }
 }

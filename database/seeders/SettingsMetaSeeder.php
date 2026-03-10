@@ -13,6 +13,19 @@ class SettingsMetaSeeder extends Seeder
     {
         $rows = [
             [
+                'key' => 'app.locale',
+                'group' => 'localization',
+                'label' => 'Alkalmazás nyelve',
+                'type' => 'select',
+                'default_value' => config('app.locale', 'hu'),
+                'description' => 'Az alkalmazás alapértelmezett nyelve. Company és User szinten felülírható.',
+                'options' => config('app.available_locales', []),
+                'validation' => ['required', 'in:'.implode(',', config('app.supported_locales', ['hu', 'en']))],
+                'order_index' => 1,
+                'is_editable' => true,
+                'is_visible' => true,
+            ],
+            [
                 'key' => 'ui.hierarchy.view_mode',
                 'group' => 'ui.hierarchy',
                 'label' => 'Hierarchia nézet mód',

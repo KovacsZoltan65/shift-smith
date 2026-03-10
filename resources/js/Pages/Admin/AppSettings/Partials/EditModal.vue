@@ -70,7 +70,10 @@ const submit = async () => {
 
     try {
         const { data } = await AppSettingsService.update(props.appSettingId, form.value);
-        emit("saved", data?.message ?? "App setting frissítve.");
+        emit("saved", {
+            message: data?.message ?? "App setting frissítve.",
+            item: data?.data ?? null,
+        });
         close();
     } catch (error) {
         const bag = AppSettingsService.extractErrors(error) ?? {};

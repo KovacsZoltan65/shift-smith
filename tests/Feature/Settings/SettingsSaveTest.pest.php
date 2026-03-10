@@ -164,3 +164,51 @@ it('ment user szinten', function (): void {
     ]);
 });
 
+it('app.locale user szinten global override-kent mentodik', function (): void {
+    $actor = $this->createSuperadminUser();
+    $targetUser = User::factory()->create();
+    $company = Company::factory()->create();
+
+    SettingsMeta::query()->create([
+        'key' => 'app.locale',
+        'group' => 'localization',
+        'label' => 'Alkalmazás nyelve',
+        'type' => 'select',
+        'default_value' => 'hu',
+        'options' => [
+            ['label' => 'English', 'value' => 'en'],
+            ['label' => 'Magyar', 'value' => 'hu'],
+        ],
+        'validation' => ['required', 'in:en,hu'],
+        'order_index' => 1,
+        'is_editable' => true,
+        'is_visible' => true,
+    ]);
+    AppSetting::query()->updateOrCreate(['key' => 'app.locale'], ['value' => 'hu']);
+
+    $this->actingAs($actor)
+        ->withSession(['current_company_id' => $company->id])
+        ->postJson(route('settings.save'), [
+            'level' => 'user',
+            'company_id' => $company->id,
+            'user_id' => $targetUser->id,
+            'values' => [
+                ['key' => 'app.locale', 'value' => 'en'],
+            ],
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.saved_count', 1);
+
+    $this->assertDatabaseHas('user_settings', [
+        'user_id' => $targetUser->id,
+        'company_id' => null,
+        'key' => 'app.locale',
+        'value' => 'en',
+    ]);
+
+    $this->assertDatabaseMissing('user_settings', [
+        'user_id' => $targetUser->id,
+        'company_id' => $company->id,
+        'key' => 'app.locale',
+    ]);
+});

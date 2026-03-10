@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import { Head } from "@inertiajs/vue3";
+import { Head, router } from "@inertiajs/vue3";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
@@ -11,6 +11,7 @@ import MultiSelect from "primevue/multiselect";
 import SelectButton from "primevue/selectbutton";
 import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
+import { loadLanguageAsync } from "laravel-vue-i18n";
 import CompanySelector from "@/Components/Selectors/CompanySelector.vue";
 import { csrfFetch } from "@/lib/csrfFetch";
 
@@ -156,6 +157,15 @@ const collectChanged = () => {
     return changed;
 };
 
+const reloadEffectiveLocale = async (locale) => {
+    if (locale) {
+        await loadLanguageAsync(locale);
+        document.documentElement.setAttribute("lang", locale);
+    }
+
+    await router.reload({ preserveState: true, preserveScroll: true });
+};
+
 const save = async () => {
     const values = collectChanged();
     if (!values.length) {
@@ -198,6 +208,11 @@ const save = async () => {
         });
 
         await fetchSettings();
+
+        const localeChanged = values.find((item) => item.key === "app.locale");
+        if (localeChanged) {
+            await reloadEffectiveLocale(localeChanged.value ?? null);
+        }
     } catch (e) {
         toast.add({
             severity: "error",

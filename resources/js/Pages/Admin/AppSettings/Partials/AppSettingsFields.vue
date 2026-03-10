@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from "vue";
+import { usePage } from "@inertiajs/vue3";
 import Checkbox from "primevue/checkbox";
 import Dropdown from "primevue/dropdown";
 import InputNumber from "primevue/inputnumber";
@@ -14,21 +15,45 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["update:modelValue"]);
+const page = usePage();
 
 const typeOptions = [
     { label: "int", value: "int" },
     { label: "bool", value: "bool" },
     { label: "string", value: "string" },
+    { label: "select", value: "select" },
     { label: "json", value: "json" },
 ];
 
 const isBoolType = computed(() => props.modelValue?.type === "bool");
 const isIntType = computed(() => props.modelValue?.type === "int");
-const isStringType = computed(() => props.modelValue?.type === "string");
 const isJsonType = computed(() => props.modelValue?.type === "json");
+const isLocaleSetting = computed(() => props.modelValue?.key === "app.locale");
+const isStringType = computed(
+    () => props.modelValue?.type === "string" && !isLocaleSetting.value,
+);
+const isSelectType = computed(
+    () => props.modelValue?.type === "select" || isLocaleSetting.value,
+);
+const localeOptions = computed(() =>
+    Array.isArray(page.props?.available_locales) && page.props.available_locales.length > 0
+        ? page.props.available_locales
+        : [
+              { label: "English", value: "en" },
+              { label: "Magyar", value: "hu" },
+          ],
+);
+const selectOptions = computed(() => (isLocaleSetting.value ? localeOptions.value : []));
 
 const patch = (changes) => {
-    emit("update:modelValue", { ...(props.modelValue ?? {}), ...changes });
+    const next = { ...(props.modelValue ?? {}), ...changes };
+
+    if (next.key === "app.locale") {
+        next.type = "select";
+        next.group = next.group || "localization";
+    }
+
+    emit("update:modelValue", next);
 };
 
 const onTypeChange = (type) => {
@@ -37,6 +62,7 @@ const onTypeChange = (type) => {
     if (type === "bool") next.value = Boolean(props.modelValue?.value);
     if (type === "int") next.value = props.modelValue?.value ?? null;
     if (type === "string") next.value = props.modelValue?.value ?? "";
+    if (type === "select") next.value = props.modelValue?.value ?? "";
     if (type === "json") {
         const current = props.modelValue?.value;
         next.value =
@@ -152,6 +178,17 @@ const onTypeChange = (type) => {
                 class="w-full"
                 :disabled="disabled"
                 :modelValue="modelValue.value"
+                @update:modelValue="(value) => patch({ value })"
+            />
+
+            <Select
+                v-else-if="isSelectType"
+                class="w-full"
+                :disabled="disabled"
+                :modelValue="modelValue.value"
+                :options="selectOptions"
+                optionLabel="label"
+                optionValue="value"
                 @update:modelValue="(value) => patch({ value })"
             />
 
