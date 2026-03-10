@@ -197,7 +197,7 @@ class SickLeaveCategoryRepository implements SickLeaveCategoryRepositoryInterfac
             };
         }
 
-        if (is_int($value)) {
+        if (\is_int($value)) {
             return match ($value) {
                 1 => true,
                 0 => false,

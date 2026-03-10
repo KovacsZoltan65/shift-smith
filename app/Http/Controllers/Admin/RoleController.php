@@ -44,7 +44,7 @@ class RoleController extends Controller
         $this->authorize(RolePolicy::PERM_VIEW_ANY, Role::class);
         
         return Inertia::render('Admin/Roles/Index', [
-            'title'  => 'Szerepkörök',
+            'title'  => __('roles.title'),
             'filter' => $request->validatedFilters(),
         ]);
     }
@@ -63,7 +63,7 @@ class RoleController extends Controller
         $items = RoleIndexData::collect($roles->items());
         
         return response()->json([
-            'message' => 'Szerepkörök sikeresen lekérve.',
+            'message' => __('roles.messages.fetch_success'),
             'data' => $items,
             'meta' => [
                 'current_page' => $roles->currentPage(),
@@ -87,7 +87,7 @@ class RoleController extends Controller
         $this->authorize(RolePolicy::PERM_VIEW, $role);
 
         return response()->json([
-            'message' => 'Szerepkör sikeresen lekérve.',
+            'message' => __('roles.messages.show_success'),
             'data' => RoleData::fromModel($role),
         ], Response::HTTP_OK);
     }
@@ -104,7 +104,7 @@ class RoleController extends Controller
         $this->authorize(RolePolicy::PERM_VIEW, $role);
 
         return response()->json([
-            'message' => 'Szerepkör sikeresen lekérve.',
+            'message' => __('roles.messages.show_success'),
             'data' => RoleData::fromModel($role),
         ], Response::HTTP_OK);
     }
@@ -133,7 +133,7 @@ class RoleController extends Controller
         $created = $this->service->store($data);
 
         return response()->json([
-            'message' => 'A szerepkör sikeresen létrehozva.',
+            'message' => __('roles.messages.created_success'),
             'data' => $created,
         ], Response::HTTP_CREATED);
     }
@@ -153,7 +153,7 @@ class RoleController extends Controller
         $updated = $this->service->update($data, $id);
 
         return response()->json([
-            'message' => 'Szerepkör sikeresen frissítve.',
+            'message' => __('roles.messages.updated_success'),
             'data' => $updated,
         ], Response::HTTP_OK);
     }
@@ -172,7 +172,7 @@ class RoleController extends Controller
         $deleted = $this->service->bulkDelete($data['ids']);
 
         return response()->json([
-            'message' => 'Sikeres törlés.',
+            'message' => __('common.delete_success'),
             'deleted' => $deleted,
         ], Response::HTTP_OK);
     }
@@ -201,7 +201,7 @@ class RoleController extends Controller
         $deleted = $this->service->destroy($id);
 
         return response()->json([
-            'message' => $deleted ? 'Törlés sikeres.' : 'Törlés sikertelen.',
+            'message' => $deleted ? __('roles.messages.deleted_success') : __('common.delete_failed'),
             'deleted' => (bool) $deleted,
         ], $deleted ? Response::HTTP_OK : Response::HTTP_INTERNAL_SERVER_ERROR);
     }

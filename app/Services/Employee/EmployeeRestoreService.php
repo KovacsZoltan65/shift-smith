@@ -48,7 +48,7 @@ final class EmployeeRestoreService
         $activeEmployee = $this->employeeRepository->findActiveByEmail($companyId, $normalizedEmail);
         if ($activeEmployee instanceof Employee) {
             throw ValidationException::withMessages([
-                'email' => 'Ezzel az e-mail címmel már létezik aktív dolgozó ebben a cégben.',
+                'email' => __('employees.messages.active_email_exists'),
             ]);
         }
 
@@ -66,7 +66,7 @@ final class EmployeeRestoreService
                 'email' => (string) $softDeletedEmployee->email,
                 'deleted_at' => $softDeletedEmployee->deleted_at?->toDateTimeString(),
             ],
-            'message' => 'Ehhez az email címhez tartozik egy korábban törölt dolgozó. Visszaállítod?',
+            'message' => __('employees.messages.restore_prompt'),
         ];
     }
 
@@ -112,7 +112,7 @@ final class EmployeeRestoreService
             $activeEmployee = $this->employeeRepository->findActiveByEmail($companyId, $normalizedEmail);
             if ($activeEmployee instanceof Employee && (int) $activeEmployee->id !== $employeeId) {
                 throw ValidationException::withMessages([
-                    'email' => 'Ezzel az e-mail címmel már létezik aktív dolgozó ebben a cégben.',
+                    'email' => __('employees.messages.active_email_exists'),
                 ]);
             }
 
@@ -142,7 +142,7 @@ final class EmployeeRestoreService
 
     private function resolveOrgLevel(int $companyId, ?int $positionId): string
     {
-        if (! is_int($positionId) || $positionId <= 0) {
+        if (! \is_int($positionId) || $positionId <= 0) {
             return Employee::ORG_LEVEL_STAFF;
         }
 

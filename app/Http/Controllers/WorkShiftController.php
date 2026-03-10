@@ -38,7 +38,7 @@ final class WorkShiftController extends Controller
         $filter['company_id'] = $currentCompanyId;
 
         return Inertia::render('WorkShifts/Index', [
-            'title' => 'Műszakok',
+            'title' => __('work_shifts.title'),
             'filter' => $filter,
         ]);
     }
@@ -54,7 +54,7 @@ final class WorkShiftController extends Controller
         $filter = $request->validatedFilters();
 
         return response()->json([
-            'message' => 'Műszakok sikeresen lekérve.',
+            'message' => __('work_shifts.messages.fetch_success'),
             'data' => $workShifts->items(),
             'meta' => [
                 'current_page' => $workShifts->currentPage(),
@@ -77,7 +77,7 @@ final class WorkShiftController extends Controller
         $this->authorize(WorkShiftPolicy::PERM_VIEW, $workShift);
 
         return response()->json([
-            'message' => 'Műszak sikeresen lekérve.',
+            'message' => __('work_shifts.messages.show_success'),
             'data' => $workShift,
         ], Response::HTTP_OK);
     }
@@ -94,7 +94,7 @@ final class WorkShiftController extends Controller
         $created = $this->service->store($data, $currentCompanyId);
 
         return response()->json([
-            'message' => 'A műszak sikeresen létrehozva.',
+            'message' => __('work_shifts.messages.created_success'),
             'data' => $created,
         ], Response::HTTP_CREATED);
     }
@@ -112,7 +112,7 @@ final class WorkShiftController extends Controller
         $updated = $this->service->update($id, $data, $currentCompanyId);
 
         return response()->json([
-            'message' => 'A műszak sikeresen frissítve.',
+            'message' => __('work_shifts.messages.updated_success'),
             'data' => $updated,
         ], Response::HTTP_OK);
     }
@@ -129,7 +129,7 @@ final class WorkShiftController extends Controller
         $deleted = $this->service->bulkDelete($data['ids'], $currentCompanyId);
 
         return response()->json([
-            'message' => 'Sikeres törlés.',
+            'message' => __('common.delete_success'),
             'deleted' => $deleted,
         ], Response::HTTP_OK);
     }
@@ -145,7 +145,7 @@ final class WorkShiftController extends Controller
         $deleted = $this->service->destroy($id, $currentCompanyId);
 
         return response()->json([
-            'message' => $deleted ? 'Törlés sikeres.' : 'Törlés sikertelen.',
+            'message' => $deleted ? __('work_shifts.messages.deleted_success') : __('common.delete_failed'),
             'deleted' => $deleted,
         ], $deleted ? Response::HTTP_OK : Response::HTTP_INTERNAL_SERVER_ERROR);
     }

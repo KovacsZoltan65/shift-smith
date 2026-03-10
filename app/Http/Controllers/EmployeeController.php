@@ -105,26 +105,6 @@ class EmployeeController extends Controller
             ],
             'filter' => $filter,
         ], Response::HTTP_OK);
-        
-        /*
-        $this->authorize(EmployeePolicy::PERM_VIEW_ANY, Employee::class);
-        
-        $employees = $this->service->fetch($request);
-
-        $items = EmployeeIndexData::collect($employees->items());
-
-        return response()->json([
-            'message' => 'Dolgozók sikeresen lekérdezve',
-            'data' => $items,
-            'meta' => [
-                'current_page' => $employees->currentPage(),
-                'per_page'     => $employees->perPage(),
-                'total'        => $employees->total(),
-                'last_page'    => $employees->lastPage(),
-            ],
-            'filter' => $request->validatedFilters(),
-        ], Response::HTTP_OK);
-        */
     }
     
     /**

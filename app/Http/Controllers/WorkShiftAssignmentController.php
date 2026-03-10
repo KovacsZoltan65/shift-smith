@@ -29,7 +29,7 @@ class WorkShiftAssignmentController extends Controller
         $items = WorkShiftAssignmentData::collect($this->service->listByWorkShift($work_shift));
 
         return response()->json([
-            'message' => 'Hozzárendelések sikeresen lekérve.',
+            'message' => __('work_shift_assignments.messages.fetch_success'),
             'data' => $items,
         ], Response::HTTP_OK);
     }
@@ -40,7 +40,7 @@ class WorkShiftAssignmentController extends Controller
     public function schedules(ListRequest $request, int $work_shift): JsonResponse
     {
         return response()->json([
-            'message' => 'Munkabeosztások sikeresen lekérve.',
+            'message' => __('work_shift_assignments.messages.schedules_fetch_success'),
             'data' => $this->service->getSchedulesForWorkShift($work_shift),
         ], Response::HTTP_OK);
     }
@@ -53,7 +53,7 @@ class WorkShiftAssignmentController extends Controller
         $assignment = $this->service->assign($work_shift, $request->validated());
 
         return response()->json([
-            'message' => 'Dolgozó sikeresen hozzárendelve a műszakhoz.',
+            'message' => __('work_shift_assignments.messages.created_success'),
             'data' => WorkShiftAssignmentData::fromModel($assignment),
         ], Response::HTTP_CREATED);
     }
@@ -66,7 +66,7 @@ class WorkShiftAssignmentController extends Controller
         $deleted = $this->service->unassign($work_shift, $id);
 
         return response()->json([
-            'message' => $deleted ? 'Hozzárendelés törölve.' : 'Törlés sikertelen.',
+            'message' => $deleted ? __('work_shift_assignments.messages.deleted_success') : __('common.delete_failed'),
             'deleted' => $deleted,
         ], $deleted ? Response::HTTP_OK : Response::HTTP_INTERNAL_SERVER_ERROR);
     }

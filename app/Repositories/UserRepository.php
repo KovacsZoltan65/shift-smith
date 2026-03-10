@@ -338,7 +338,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     public function bulkDelete(array $ids): int
     {
         $authUser = Auth::user();
-        abort_if($authUser && \in_array($authUser->id, $ids, true), 403, 'Saját fiókot nem törölhetsz.');
+        abort_if($authUser && \in_array($authUser->id, $ids, true), 403, __('users.messages.self_delete_forbidden'));
     
         return DB::transaction(function() use($ids): int {
             $users = User::query()
@@ -389,7 +389,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             abort_if(
                 $authUser && $authUser->id === $user->id, 
                 403, 
-                'Saját fiókot nem törölhetsz.'
+                __('users.messages.self_delete_forbidden')
             );
 
             $this->assertCanManageTargetUser($user);
@@ -487,7 +487,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
 
         $hasSharedTenant = ! empty(array_intersect($authTenantGroupIds, $targetTenantGroupIds));
 
-        abort_if(! $hasSharedTenant, 404, 'User not found.');
+        abort_if(! $hasSharedTenant, 404, __('users.messages.user_not_found'));
     }
 
     private function resolvePreferredCompany(User $user): ?Company

@@ -31,7 +31,7 @@ class MonthClosureController extends Controller
         );
 
         return response()->json([
-            'message' => 'A hónap sikeresen lezárva.',
+            'message' => __('month_closures.messages.created_success'),
             'data' => [
                 'id' => (int) $closure->id,
                 'company_id' => (int) $closure->company_id,
@@ -54,7 +54,7 @@ class MonthClosureController extends Controller
         $deleted = $this->service->reopen($companyId, $id);
 
         return response()->json([
-            'message' => $deleted ? 'A hónap sikeresen újranyitva.' : 'Az újranyitás sikertelen.',
+            'message' => $deleted ? __('month_closures.messages.reopened_success') : __('month_closures.messages.reopen_failed'),
             'deleted' => $deleted,
         ], $deleted ? Response::HTTP_OK : Response::HTTP_INTERNAL_SERVER_ERROR);
     }

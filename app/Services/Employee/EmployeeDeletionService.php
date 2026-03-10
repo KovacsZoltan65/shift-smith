@@ -171,7 +171,7 @@ final class EmployeeDeletionService
                     : $targetSupervisorId;
 
                 foreach ($subordinateIds as $subordinateId) {
-                    if (! is_int($nextSupervisorId) || $nextSupervisorId <= 0) {
+                    if (! \is_int($nextSupervisorId) || $nextSupervisorId <= 0) {
                         continue;
                     }
 
@@ -260,7 +260,7 @@ final class EmployeeDeletionService
             $newSupervisorId = $targetSupervisorId;
         }
 
-        if (! is_int($newSupervisorId) || $newSupervisorId <= 0) {
+        if (! \is_int($newSupervisorId) || $newSupervisorId <= 0) {
             throw ValidationException::withMessages([
                 'strategy' => 'Érvénytelen áthelyezési stratégia.',
             ]);

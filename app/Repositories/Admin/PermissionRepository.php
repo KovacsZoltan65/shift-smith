@@ -405,7 +405,7 @@ class PermissionRepository extends BaseRepository implements PermissionRepositor
         $isSuperadmin = method_exists($user, 'hasRole') && $user->hasRole('superadmin');
         $isLandlordContext = TenantGroup::current() === null;
 
-        abort_if(! ($isSuperadmin && $isLandlordContext), 403, 'Global permission mutation is landlord-only.');
+        abort_if(! ($isSuperadmin && $isLandlordContext), 403, __('permissions.errors.landlord_only'));
     }
 
     /**

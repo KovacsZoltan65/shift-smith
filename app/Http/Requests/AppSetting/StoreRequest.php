@@ -95,7 +95,7 @@ class StoreRequest extends FormRequest
             'bool' => $this->normalizeBool($value),
             'string', 'select' => $this->normalizeStringValue($value),
             'json' => $this->normalizeJson($value),
-            default => ['valid' => false, 'message' => 'Érvénytelen típus.'],
+            default => ['valid' => false, 'message' => __('app_settings.validation.invalid_type')],
         };
     }
 
@@ -109,7 +109,7 @@ class StoreRequest extends FormRequest
         }
 
         if (filter_var($value, FILTER_VALIDATE_INT) === false) {
-            return ['valid' => false, 'message' => 'Az értéknek egész számnak kell lennie.'];
+            return ['valid' => false, 'message' => __('app_settings.validation.int_required')];
         }
 
         return ['valid' => true, 'value' => (int) $value];
@@ -126,7 +126,7 @@ class StoreRequest extends FormRequest
 
         $normalized = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
         if ($normalized === null) {
-            return ['valid' => false, 'message' => 'Az értéknek logikai típusúnak kell lennie.'];
+            return ['valid' => false, 'message' => __('app_settings.validation.bool_required')];
         }
 
         return ['valid' => true, 'value' => $normalized];
@@ -142,7 +142,7 @@ class StoreRequest extends FormRequest
             $supported = config('app.supported_locales', ['en', 'hu']);
 
             if ($normalized !== null && ! in_array($normalized, $supported, true)) {
-                return ['valid' => false, 'message' => 'A locale értéknek támogatott nyelvnek kell lennie.'];
+                return ['valid' => false, 'message' => __('app_settings.validation.locale_unsupported')];
             }
         }
 
@@ -151,7 +151,7 @@ class StoreRequest extends FormRequest
         }
 
         if (is_array($value) || is_object($value)) {
-            return ['valid' => false, 'message' => 'Az értéknek szövegnek kell lennie.'];
+            return ['valid' => false, 'message' => __('app_settings.validation.string_required')];
         }
 
         return ['valid' => true, 'value' => (string) $value];
@@ -175,17 +175,17 @@ class StoreRequest extends FormRequest
         }
 
         if (!is_string($value)) {
-            return ['valid' => false, 'message' => 'A JSON érték csak objektum vagy tömb lehet.'];
+            return ['valid' => false, 'message' => __('app_settings.validation.json_object_or_array')];
         }
 
         try {
             $decoded = json_decode($value, true, 512, JSON_THROW_ON_ERROR);
         } catch (\JsonException) {
-            return ['valid' => false, 'message' => 'Érvénytelen JSON formátum.'];
+            return ['valid' => false, 'message' => __('app_settings.validation.json_invalid')];
         }
 
         if (!is_array($decoded)) {
-            return ['valid' => false, 'message' => 'A JSON érték csak objektum vagy tömb lehet.'];
+            return ['valid' => false, 'message' => __('app_settings.validation.json_object_or_array')];
         }
 
         return ['valid' => true, 'value' => $decoded];

@@ -103,7 +103,7 @@ final class OrgHierarchyDesignSettingsService
             return $value;
         }
 
-        if (is_int($value)) {
+        if (\is_int($value)) {
             return $value === 1;
         }
 

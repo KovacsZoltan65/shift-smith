@@ -42,7 +42,7 @@ class PermissionController extends Controller
         $this->authorize(PermissionPolicy::PERM_VIEW_ANY, Permission::class);
 
         return Inertia::render('Admin/Permissions/Index', [
-            'title' => 'Jogosultságok',
+            'title' => __('permissions.title'),
             'filter' => $request->validatedFilters(),
         ]);
     }
@@ -61,7 +61,7 @@ class PermissionController extends Controller
         $items = PermissionIndexData::collect($permissions->items());
 
         return response()->json([
-            'message' => 'Jogosultságok sikeresen lekérve.',
+            'message' => __('permissions.messages.fetch_success'),
             'data' => $items,
             'meta' => [
                 'current_page' => $permissions->currentPage(),
@@ -85,7 +85,7 @@ class PermissionController extends Controller
         $this->authorize(PermissionPolicy::PERM_VIEW, $permission);
 
         return response()->json([
-            'message' => 'Jogosultság sikeresen lekérve.',
+            'message' => __('permissions.messages.show_success'),
             'data' => PermissionData::fromModel($permission),
         ], Response::HTTP_OK);
     }
@@ -102,7 +102,7 @@ class PermissionController extends Controller
         $this->authorize(PermissionPolicy::PERM_VIEW, $permission);
 
         return response()->json([
-            'message' => 'Jogosultság sikeresen lekérve.',
+            'message' => __('permissions.messages.show_success'),
             'data' => PermissionData::fromModel($permission),
         ], Response::HTTP_OK);
     }
@@ -120,7 +120,7 @@ class PermissionController extends Controller
         $created = $this->service->store($data);
 
         return response()->json([
-            'message' => 'A jogosultság sikeresen létrehozva.',
+            'message' => __('permissions.messages.created_success'),
             'data' => $created,
         ], Response::HTTP_CREATED);
     }
@@ -140,7 +140,7 @@ class PermissionController extends Controller
         $updated = $this->service->update($data, $id);
 
         return response()->json([
-            'message' => 'Jogosultság sikeresen frissítve.',
+            'message' => __('permissions.messages.updated_success'),
             'data' => $updated,
         ], Response::HTTP_OK);
     }
@@ -159,7 +159,7 @@ class PermissionController extends Controller
         $deleted = $this->service->bulkDelete($data['ids']);
 
         return response()->json([
-            'message' => 'Sikeres törlés.',
+            'message' => __('common.delete_success'),
             'deleted' => $deleted,
         ], Response::HTTP_OK);
     }
@@ -188,7 +188,7 @@ class PermissionController extends Controller
         $deleted = $this->service->destroy($id);
 
         return response()->json([
-            'message' => $deleted ? 'Törlés sikeres.' : 'Törlés sikertelen.',
+            'message' => $deleted ? __('permissions.messages.deleted_success') : __('common.delete_failed'),
             'deleted' => (bool) $deleted,
         ], $deleted ? Response::HTTP_OK : Response::HTTP_INTERNAL_SERVER_ERROR);
     }

@@ -36,7 +36,7 @@ final class EmployeeSupervisorAssignRequest extends FormRequest
         $routeEmployee = $this->route('employee');
         $routeEmployeeId = is_numeric($routeEmployee) ? (int) $routeEmployee : (is_object($routeEmployee) ? (int) ($routeEmployee->id ?? 0) : null);
 
-        if (is_int($routeEmployeeId) && $routeEmployeeId > 0) {
+        if (\is_int($routeEmployeeId) && $routeEmployeeId > 0) {
             $this->merge(['employee_id' => $routeEmployeeId]);
         }
     }
@@ -49,7 +49,7 @@ final class EmployeeSupervisorAssignRequest extends FormRequest
             }
 
             $companyId = app(CurrentCompany::class)->currentCompanyId($this);
-            if (! is_int($companyId) || $companyId <= 0) {
+            if (! \is_int($companyId) || $companyId <= 0) {
                 $validator->errors()->add('employee_id', 'Hiányzó cég kontextus.');
                 return;
             }

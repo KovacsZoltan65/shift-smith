@@ -28,7 +28,7 @@ class AbsenceController extends Controller
         $this->authorize(EmployeeAbsencePolicy::PERM_VIEW_ANY, EmployeeAbsence::class);
 
         return response()->json([
-            'message' => 'Tavollet esemenyek sikeresen lekerve.',
+            'message' => __('absences.messages.fetch_success'),
             'data' => $this->service->fetchCalendarEvents($request->currentCompanyId(), $request->validated()),
         ], Response::HTTP_OK);
     }
@@ -39,7 +39,7 @@ class AbsenceController extends Controller
         $rows = $this->service->store($request->currentCompanyId(), (int) $request->user()->id, $request->validated());
 
         return response()->json([
-            'message' => 'Tavolletek sikeresen letrehozva.',
+            'message' => __('absences.messages.created_success'),
             'data' => $rows,
             'count' => count($rows),
         ], Response::HTTP_CREATED);
@@ -51,7 +51,7 @@ class AbsenceController extends Controller
         $this->authorize('view', $absence);
 
         return response()->json([
-            'message' => 'Tavollet sikeresen lekerve.',
+            'message' => __('absences.messages.show_success'),
             'data' => $this->service->show($request->currentCompanyId(), $id),
         ], Response::HTTP_OK);
     }
@@ -62,7 +62,7 @@ class AbsenceController extends Controller
         $this->authorize('update', $absence);
 
         return response()->json([
-            'message' => 'Tavollet sikeresen frissitve.',
+            'message' => __('absences.messages.updated_success'),
             'data' => $this->service->update($request->currentCompanyId(), $id, (int) $request->user()->id, $request->validated()),
         ], Response::HTTP_OK);
     }
@@ -74,7 +74,7 @@ class AbsenceController extends Controller
         $this->service->destroy($request->currentCompanyId(), $id);
 
         return response()->json([
-            'message' => 'Tavollet sikeresen torolve.',
+            'message' => __('absences.messages.deleted_success'),
             'deleted' => true,
         ], Response::HTTP_OK);
     }

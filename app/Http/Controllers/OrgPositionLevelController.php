@@ -44,12 +44,12 @@ final class OrgPositionLevelController extends Controller
     {
         $this->authorize(PositionOrgLevelPolicy::PERM_VIEW_ANY, PositionOrgLevel::class);
         $companyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($companyId) || $companyId <= 0, 403, __('common.errors.no_company_selected'));
+        abort_if(! \is_int($companyId) || $companyId <= 0, 403, __('common.errors.no_company_selected'));
 
         $paginator = $this->service->listMappings($companyId, $request->validated());
 
         return response()->json([
-            'message' => 'Position-szint mappingek lekérve.',
+            'message' => __('org_position_levels.messages.fetch_success'),
             'data' => $paginator->items(),
             'meta' => [
                 'current_page' => $paginator->currentPage(),
@@ -64,7 +64,7 @@ final class OrgPositionLevelController extends Controller
     {
         $this->authorize(PositionOrgLevelPolicy::PERM_CREATE, PositionOrgLevel::class);
         $companyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($companyId) || $companyId <= 0, 403, __('common.errors.no_company_selected'));
+        abort_if(! \is_int($companyId) || $companyId <= 0, 403, __('common.errors.no_company_selected'));
 
         $row = $this->service->upsertMapping(
             companyId: $companyId,
@@ -74,7 +74,7 @@ final class OrgPositionLevelController extends Controller
         );
 
         return response()->json([
-            'message' => 'Position-szint mapping mentve.',
+            'message' => __('org_position_levels.messages.created_success'),
             'data' => $row,
         ], Response::HTTP_CREATED);
     }
@@ -83,7 +83,7 @@ final class OrgPositionLevelController extends Controller
     {
         $this->authorize(PositionOrgLevelPolicy::PERM_UPDATE, PositionOrgLevel::class);
         $companyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($companyId) || $companyId <= 0, 403, __('common.errors.no_company_selected'));
+        abort_if(! \is_int($companyId) || $companyId <= 0, 403, __('common.errors.no_company_selected'));
 
         $row = $this->service->updateMapping(
             companyId: $companyId,
@@ -94,7 +94,7 @@ final class OrgPositionLevelController extends Controller
         );
 
         return response()->json([
-            'message' => 'Position-szint mapping frissítve.',
+            'message' => __('org_position_levels.messages.updated_success'),
             'data' => $row,
         ], Response::HTTP_OK);
     }
@@ -103,12 +103,12 @@ final class OrgPositionLevelController extends Controller
     {
         $this->authorize(PositionOrgLevelPolicy::PERM_DELETE, PositionOrgLevel::class);
         $companyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($companyId) || $companyId <= 0, 403, __('common.errors.no_company_selected'));
+        abort_if(! \is_int($companyId) || $companyId <= 0, 403, __('common.errors.no_company_selected'));
 
         $deleted = $this->service->deleteMapping($companyId, $id);
 
         return response()->json([
-            'message' => $deleted ? 'Position-szint mapping törölve.' : 'A mapping nem található.',
+            'message' => $deleted ? __('org_position_levels.messages.deleted_success') : __('org_position_levels.messages.not_found'),
             'deleted' => $deleted,
         ], $deleted ? Response::HTTP_OK : Response::HTTP_NOT_FOUND);
     }

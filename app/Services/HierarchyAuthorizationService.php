@@ -32,7 +32,7 @@ final class HierarchyAuthorizationService
         }
 
         $actorEmployeeId = $this->resolveUserEmployeeId($user, (int) $targetEmployee->company_id);
-        if (! is_int($actorEmployeeId) || $actorEmployeeId <= 0) {
+        if (! \is_int($actorEmployeeId) || $actorEmployeeId <= 0) {
             return false;
         }
 

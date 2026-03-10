@@ -51,7 +51,7 @@ class WorkPatternController extends Controller
         abort_if($currentCompanyId === null, 403, __('common.errors.no_company_selected'));
 
         return Inertia::render('Scheduling/WorkPatterns/Index', [
-            'title' => 'Munkarendek',
+            'title' => __('work_patterns.title'),
             'filter' => [
                 'search' => $request->string('search')->toString() ?: null,
                 'field' => $request->string('field')->toString() ?: 'name',
@@ -82,7 +82,7 @@ class WorkPatternController extends Controller
         $filter['company_id'] = $currentCompanyId;
 
         return response()->json([
-            'message' => 'Munkarendek sikeresen lekérve.',
+            'message' => __('work_patterns.messages.fetch_success'),
             'data' => $items,
             'meta' => [
                 'current_page' => $workPatterns->currentPage(),
@@ -110,7 +110,7 @@ class WorkPatternController extends Controller
         $this->authorize(WorkPatternPolicy::PERM_VIEW, $workPattern);
 
         return response()->json([
-            'message' => 'Munkarend sikeresen lekérve.',
+            'message' => __('work_patterns.messages.show_success'),
             'data' => WorkPatternData::fromModel($workPattern),
         ], Response::HTTP_OK);
     }
@@ -128,7 +128,7 @@ class WorkPatternController extends Controller
         $created = $this->service->store(WorkPatternData::from($request->validated()));
 
         return response()->json([
-            'message' => 'A munkarend sikeresen létrehozva.',
+            'message' => __('work_patterns.messages.created_success'),
             'data' => $created,
         ], Response::HTTP_CREATED);
     }
@@ -149,7 +149,7 @@ class WorkPatternController extends Controller
         $updated = $this->service->update($id, WorkPatternData::from($request->validated()));
 
         return response()->json([
-            'message' => 'Munkarend sikeresen frissítve.',
+            'message' => __('work_patterns.messages.updated_success'),
             'data' => $updated,
         ], Response::HTTP_OK);
     }
@@ -170,7 +170,7 @@ class WorkPatternController extends Controller
         );
 
         return response()->json([
-            'message' => 'Sikeres törlés.',
+            'message' => __('common.delete_success'),
             'deleted' => $deleted,
         ], Response::HTTP_OK);
     }
@@ -200,7 +200,7 @@ class WorkPatternController extends Controller
         $deleted = $this->service->destroy($id, $companyId);
 
         return response()->json([
-            'message' => $deleted ? 'Törlés sikeres.' : 'Törlés sikertelen.',
+            'message' => $deleted ? __('work_patterns.messages.deleted_success') : __('common.delete_failed'),
             'deleted' => (bool) $deleted,
         ], $deleted ? Response::HTTP_OK : Response::HTTP_INTERNAL_SERVER_ERROR);
     }
@@ -238,7 +238,7 @@ class WorkPatternController extends Controller
         $this->authorize(WorkPatternPolicy::PERM_VIEW, $workPattern);
 
         return response()->json([
-            'message' => 'Hozzárendelt dolgozók sikeresen lekérve.',
+            'message' => __('work_patterns.messages.assignees_fetch_success'),
             'data' => $this->service->getAssignedEmployees($id, $companyId),
         ], Response::HTTP_OK);
     }

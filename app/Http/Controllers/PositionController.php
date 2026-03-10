@@ -36,7 +36,7 @@ class PositionController extends Controller
         abort_if($currentCompanyId === null, 403, __('common.errors.no_company_selected'));
 
         return Inertia::render('HR/Positions/Index', [
-            'title' => 'Pozíciók',
+            'title' => __('positions.title'),
             'filter' => [
                 'search' => $request->string('search')->toString() ?: null,
                 'field' => $request->string('field')->toString() ?: 'id',
@@ -63,7 +63,7 @@ class PositionController extends Controller
         $filter['company_id'] = $currentCompanyId;
 
         return response()->json([
-            'message' => 'Pozíciók sikeresen lekérve.',
+            'message' => __('positions.messages.fetch_success'),
             'data' => $items,
             'meta' => [
                 'current_page' => $positions->currentPage(),
@@ -85,7 +85,7 @@ class PositionController extends Controller
         $this->authorize(PositionPolicy::PERM_VIEW, $position);
 
         return response()->json([
-            'message' => 'Pozíció sikeresen lekérve.',
+            'message' => __('positions.messages.show_success'),
             'data' => PositionData::fromModel($position),
         ], Response::HTTP_OK);
     }
@@ -97,7 +97,7 @@ class PositionController extends Controller
         $created = $this->service->store(PositionData::from($request->validated()));
 
         return response()->json([
-            'message' => 'A pozíció sikeresen létrehozva.',
+            'message' => __('positions.messages.created_success'),
             'data' => $created,
         ], Response::HTTP_CREATED);
     }
@@ -111,7 +111,7 @@ class PositionController extends Controller
         $updated = $this->service->update($id, PositionData::from($request->validated()));
 
         return response()->json([
-            'message' => 'Pozíció sikeresen frissítve.',
+            'message' => __('positions.messages.updated_success'),
             'data' => $updated,
         ], Response::HTTP_OK);
     }
@@ -126,7 +126,7 @@ class PositionController extends Controller
         );
 
         return response()->json([
-            'message' => 'Sikeres törlés.',
+            'message' => __('common.delete_success'),
             'deleted' => $deleted,
         ], Response::HTTP_OK);
     }
@@ -143,7 +143,7 @@ class PositionController extends Controller
         $deleted = $this->service->destroy($id, $companyId);
 
         return response()->json([
-            'message' => $deleted ? 'Törlés sikeres.' : 'Törlés sikertelen.',
+            'message' => $deleted ? __('positions.messages.deleted_success') : __('common.delete_failed'),
             'deleted' => (bool) $deleted,
         ], $deleted ? Response::HTTP_OK : Response::HTTP_INTERNAL_SERVER_ERROR);
     }

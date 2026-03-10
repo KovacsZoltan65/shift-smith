@@ -52,7 +52,7 @@ class WorkScheduleAssignmentController extends Controller
             ->all();
 
         return Inertia::render('Scheduling/Calendar/Index', [
-            'title' => 'Naptár tervező',
+            'title' => __('calendar.title'),
             'current_company_id' => $companyId,
             'schedules' => $schedules,
             'month_lock' => $this->monthClosureService->stateForMonth(
@@ -106,7 +106,7 @@ class WorkScheduleAssignmentController extends Controller
         );
 
         return response()->json([
-            'message' => 'Naptár események sikeresen lekérve.',
+            'message' => __('work_schedule_assignments.messages.feed_fetch_success'),
             'data' => $result['events'],
             'meta' => [
                 'range' => $result['range'],
@@ -134,7 +134,7 @@ class WorkScheduleAssignmentController extends Controller
         $created = $this->service->create($companyId, $request->validated());
 
         return response()->json([
-            'message' => 'Beosztás hozzárendelés létrehozva.',
+            'message' => __('work_schedule_assignments.messages.created_success'),
             'data' => $created,
         ], Response::HTTP_CREATED);
     }
@@ -147,7 +147,7 @@ class WorkScheduleAssignmentController extends Controller
         $updated = $this->service->update($companyId, $id, $request->validated());
 
         return response()->json([
-            'message' => 'Beosztás hozzárendelés frissítve.',
+            'message' => __('work_schedule_assignments.messages.updated_success'),
             'data' => $updated,
         ], Response::HTTP_OK);
     }
@@ -160,7 +160,7 @@ class WorkScheduleAssignmentController extends Controller
         $deleted = $this->service->delete($companyId, $id);
 
         return response()->json([
-            'message' => $deleted ? 'Beosztás hozzárendelés törölve.' : 'Törlés sikertelen.',
+            'message' => $deleted ? __('work_schedule_assignments.messages.deleted_success') : __('common.delete_failed'),
             'deleted' => $deleted,
         ], $deleted ? Response::HTTP_OK : Response::HTTP_INTERNAL_SERVER_ERROR);
     }
@@ -181,7 +181,7 @@ class WorkScheduleAssignmentController extends Controller
         );
 
         return response()->json([
-            'message' => 'Bulk hozzárendelés sikeres.',
+            'message' => __('work_schedule_assignments.messages.bulk_assign_success'),
             'data' => $rows,
             'count' => count($rows),
         ], Response::HTTP_OK);

@@ -28,7 +28,7 @@ final class EmployeeSupervisorController extends Controller
         $this->authorize(EmployeePolicy::PERM_UPDATE, $employee);
 
         $companyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($companyId) || $companyId <= 0, 403, 'No company selected');
+        abort_if(! \is_int($companyId) || $companyId <= 0, 403, __('common.errors.no_company_selected'));
 
         $created = $this->employeeSupervisorService->assignSupervisor(
             companyId: $companyId,
@@ -41,7 +41,7 @@ final class EmployeeSupervisorController extends Controller
         $tenantGroupId = $this->tenantContext->currentTenantGroupIdOrFail();
 
         return response()->json([
-            'message' => 'Felettes kapcsolat sikeresen rögzítve.',
+            'message' => __('employees.messages.supervisor_assigned'),
             'data' => [
                 'id' => (int) $created->id,
                 'employee_id' => (int) $created->employee_id,

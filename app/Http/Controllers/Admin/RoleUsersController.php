@@ -23,7 +23,7 @@ final class RoleUsersController extends Controller
         $updatedRole = $this->service->syncUsers($role, $request->validated('user_ids', []));
 
         return response()->json([
-            'message' => 'A szerepkör felhasználói sikeresen frissítve.',
+            'message' => __('roles.messages.users_updated_success'),
             'data' => [
                 'id' => (int) $updatedRole->id,
                 'users_count' => (int) $updatedRole->users_count,

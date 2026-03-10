@@ -30,7 +30,7 @@ class SickLeaveCategoryController extends Controller
         $this->authorize(SickLeaveCategoryPolicy::PERM_VIEW_ANY, SickLeaveCategory::class);
 
         return Inertia::render('Admin/SickLeaveCategories/Index', [
-            'title' => 'Betegszabadsag kategoriak',
+            'title' => __('sick_leave_categories.title'),
             'filter' => $request->validatedFilters(),
             'companyId' => $request->currentCompanyId(),
         ]);
@@ -42,7 +42,7 @@ class SickLeaveCategoryController extends Controller
         $payload = $this->service->fetch($request->currentCompanyId(), $request->validatedFilters());
 
         return response()->json([
-            'message' => 'Betegszabadsag kategoriak sikeresen lekerve.',
+            'message' => __('sick_leave_categories.messages.fetch_success'),
             'items' => $payload['items'],
             'meta' => $payload['meta'],
             'filter' => $payload['filters'],
@@ -63,7 +63,7 @@ class SickLeaveCategoryController extends Controller
         $this->authorize(SickLeaveCategoryPolicy::PERM_VIEW_ANY, SickLeaveCategory::class);
 
         return response()->json([
-            'message' => 'Betegszabadsag kategoria sikeresen lekerve.',
+            'message' => __('sick_leave_categories.messages.show_success'),
             'data' => $this->service->show($request->currentCompanyId(), $id),
         ], Response::HTTP_OK);
     }
@@ -73,7 +73,7 @@ class SickLeaveCategoryController extends Controller
         $this->authorize(SickLeaveCategoryPolicy::PERM_CREATE, SickLeaveCategory::class);
 
         return response()->json([
-            'message' => 'Betegszabadsag kategoria sikeresen letrehozva.',
+            'message' => __('sick_leave_categories.messages.created_success'),
             'data' => $this->service->store($request->currentCompanyId(), $request->validatedPayload()),
         ], Response::HTTP_CREATED);
     }
@@ -83,7 +83,7 @@ class SickLeaveCategoryController extends Controller
         $this->authorize(SickLeaveCategoryPolicy::PERM_UPDATE, SickLeaveCategory::class);
 
         return response()->json([
-            'message' => 'Betegszabadsag kategoria sikeresen frissitve.',
+            'message' => __('sick_leave_categories.messages.updated_success'),
             'data' => $this->service->update($request->currentCompanyId(), $id, $request->validatedPayload()),
         ], Response::HTTP_OK);
     }
@@ -94,7 +94,7 @@ class SickLeaveCategoryController extends Controller
         $this->service->destroy($request->currentCompanyId(), $id);
 
         return response()->json([
-            'message' => 'Betegszabadsag kategoria sikeresen torolve.',
+            'message' => __('sick_leave_categories.messages.deleted_success'),
             'deleted' => true,
         ], Response::HTTP_OK);
     }

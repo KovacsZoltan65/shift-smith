@@ -216,7 +216,7 @@ class SettingsRepository
     private function detectType(mixed $value): string
     {
         return match (true) {
-            is_int($value) => 'int',
+            \is_int($value) => 'int',
             is_bool($value) => 'bool',
             is_string($value) => 'string',
             default => 'json',

@@ -46,7 +46,7 @@ final class OrgHierarchyController extends Controller
         $this->authorize(OrgHierarchyPolicy::PERM_VIEW_ANY);
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
+        abort_if(! \is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
 
         $companies = $request->user() !== null
             ? $this->companyContextService->selectableCompanies($request->user())
@@ -70,7 +70,7 @@ final class OrgHierarchyController extends Controller
         $payload = $request->validatedPayload();
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
+        abort_if(! \is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
         abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, __('common.errors.company_scope_mismatch'));
 
         $graph = $this->graphService->getGraph(
@@ -81,7 +81,7 @@ final class OrgHierarchyController extends Controller
         );
 
         return response()->json([
-            'message' => 'Szervezeti graf sikeresen lekérve.',
+            'message' => __('hierarchy.messages.graph_fetch_success'),
             'data' => $graph->toArray(),
         ], Response::HTTP_OK);
     }
@@ -92,7 +92,7 @@ final class OrgHierarchyController extends Controller
         $payload = $request->validatedPayload();
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
+        abort_if(! \is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
         abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, __('common.errors.company_scope_mismatch'));
 
         $node = $this->graphService->getNode(
@@ -104,7 +104,7 @@ final class OrgHierarchyController extends Controller
         abort_if($node === null, 404, __('hierarchy.errors.node_not_found'));
 
         return response()->json([
-            'message' => 'Node adatai sikeresen lekérve.',
+            'message' => __('hierarchy.messages.node_fetch_success'),
             'data' => $node->toArray(),
         ], Response::HTTP_OK);
     }
@@ -115,7 +115,7 @@ final class OrgHierarchyController extends Controller
         $payload = $request->validatedPayload();
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
+        abort_if(! \is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
         abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, __('common.errors.company_scope_mismatch'));
 
         $rows = $this->graphService->searchEmployees(
@@ -125,7 +125,7 @@ final class OrgHierarchyController extends Controller
         );
 
         return response()->json([
-            'message' => 'Dolgozó keresés sikeres.',
+            'message' => __('hierarchy.messages.employee_search_success'),
             'data' => $rows,
         ], Response::HTTP_OK);
     }
@@ -136,7 +136,7 @@ final class OrgHierarchyController extends Controller
         $payload = $request->validatedPayload();
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
+        abort_if(! \is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
         abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, __('common.errors.company_scope_mismatch'));
 
         try {
@@ -155,7 +155,7 @@ final class OrgHierarchyController extends Controller
         }
 
         return response()->json([
-            'message' => 'Hierarchia útvonal sikeresen lekérve.',
+            'message' => __('hierarchy.messages.path_fetch_success'),
             'data' => $path,
         ], Response::HTTP_OK);
     }
@@ -166,7 +166,7 @@ final class OrgHierarchyController extends Controller
         $payload = $request->validatedPayload();
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
+        abort_if(! \is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
         abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, __('common.errors.company_scope_mismatch'));
 
         $saved = $this->designSettingsService->saveForUser(
@@ -181,7 +181,7 @@ final class OrgHierarchyController extends Controller
         );
 
         return response()->json([
-            'message' => 'Hierarchia UI beállítások mentve.',
+            'message' => __('hierarchy.messages.settings_saved'),
             'data' => $saved,
         ], Response::HTTP_OK);
     }
@@ -192,13 +192,13 @@ final class OrgHierarchyController extends Controller
         $payload = $request->validatedPayload();
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
+        abort_if(! \is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
         abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, __('common.errors.company_scope_mismatch'));
 
         $preview = $this->mutationService->previewMove($payload);
 
         return response()->json([
-            'message' => 'Hierarchia áthelyezés előnézet elkészült.',
+            'message' => __('hierarchy.messages.preview_success'),
             'data' => $preview,
         ], Response::HTTP_OK);
     }
@@ -209,13 +209,13 @@ final class OrgHierarchyController extends Controller
         $payload = $request->validatedPayload();
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
+        abort_if(! \is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
         abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, __('common.errors.company_scope_mismatch'));
 
         $result = $this->mutationService->move($payload, (int) $request->user()->id);
 
         return response()->json([
-            'message' => 'Hierarchia áthelyezés sikeres.',
+            'message' => __('hierarchy.messages.move_success'),
             'data' => $result,
         ], Response::HTTP_OK);
     }
@@ -226,7 +226,7 @@ final class OrgHierarchyController extends Controller
         $payload = $request->validatedPayload();
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
+        abort_if(! \is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
         abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, __('common.errors.company_scope_mismatch'));
 
         $report = $this->mutationService->companyIntegrityReport(
@@ -235,7 +235,7 @@ final class OrgHierarchyController extends Controller
         );
 
         return response()->json([
-            'message' => 'Hierarchia integritás riport elkészült.',
+            'message' => __('hierarchy.messages.integrity_report_success'),
             'data' => $report,
         ], Response::HTTP_OK);
     }

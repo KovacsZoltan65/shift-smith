@@ -68,7 +68,7 @@ class SettingsController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Beállítások sikeresen lekérve.',
+            'message' => __('settings.messages.fetch_success'),
             'data' => $data,
         ], Response::HTTP_OK);
     }
@@ -90,7 +90,7 @@ class SettingsController extends Controller
         );
 
         return response()->json([
-            'message' => 'Beállítások mentése sikeres.',
+            'message' => __('settings.messages.save_success'),
             'data' => $result,
         ], Response::HTTP_OK);
     }

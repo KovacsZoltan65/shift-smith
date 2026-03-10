@@ -29,7 +29,7 @@ class LeaveTypeController extends Controller
         $this->authorize(LeaveTypePolicy::PERM_VIEW_ANY, LeaveType::class);
 
         return Inertia::render('Admin/LeaveTypes/Index', [
-            'title' => 'Szabadsag tipusok',
+            'title' => __('leave_types.title'),
             'filter' => $request->validatedFilters(),
             'companyId' => $request->currentCompanyId(),
         ]);
@@ -41,7 +41,7 @@ class LeaveTypeController extends Controller
         $payload = $this->service->fetch($request->currentCompanyId(), $request->validatedFilters());
 
         return response()->json([
-            'message' => 'Leave types sikeresen lekerve.',
+            'message' => __('leave_types.messages.fetch_success'),
             'items' => $payload['items'],
             'meta' => $payload['meta'],
             'filter' => $payload['filters'],
@@ -54,7 +54,7 @@ class LeaveTypeController extends Controller
         $this->authorize(LeaveTypePolicy::PERM_VIEW_ANY, LeaveType::class);
 
         return response()->json([
-            'message' => 'Leave type selector sikeresen lekerve.',
+            'message' => __('leave_types.messages.selector_success'),
             'data' => $this->service->selector($request->currentCompanyId(), $request->validatedFilters()),
         ], Response::HTTP_OK);
     }
@@ -64,7 +64,7 @@ class LeaveTypeController extends Controller
         $this->authorize(LeaveTypePolicy::PERM_VIEW, LeaveType::class);
 
         return response()->json([
-            'message' => 'Leave type sikeresen lekerve.',
+            'message' => __('leave_types.messages.show_success'),
             'data' => $this->service->show($request->currentCompanyId(), $id),
         ], Response::HTTP_OK);
     }
@@ -74,7 +74,7 @@ class LeaveTypeController extends Controller
         $this->authorize(LeaveTypePolicy::PERM_CREATE, LeaveType::class);
 
         return response()->json([
-            'message' => 'Leave type sikeresen letrehozva.',
+            'message' => __('leave_types.messages.created_success'),
             'data' => $this->service->store($request->currentCompanyId(), $request->validatedPayload()),
         ], Response::HTTP_CREATED);
     }
@@ -84,7 +84,7 @@ class LeaveTypeController extends Controller
         $this->authorize(LeaveTypePolicy::PERM_UPDATE, LeaveType::class);
 
         return response()->json([
-            'message' => 'Leave type sikeresen frissitve.',
+            'message' => __('leave_types.messages.updated_success'),
             'data' => $this->service->update($request->currentCompanyId(), $id, $request->validatedPayload()),
         ], Response::HTTP_OK);
     }
@@ -95,7 +95,7 @@ class LeaveTypeController extends Controller
         $this->service->destroy($request->currentCompanyId(), $id);
 
         return response()->json([
-            'message' => 'Leave type sikeresen torolve.',
+            'message' => __('leave_types.messages.deleted_success'),
             'deleted' => true,
         ], Response::HTTP_OK);
     }

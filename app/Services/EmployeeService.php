@@ -217,7 +217,7 @@ class EmployeeService
 
     private function resolveOrgLevel(int $companyId, ?int $positionId): string
     {
-        if (! is_int($positionId) || $positionId <= 0) {
+        if (! \is_int($positionId) || $positionId <= 0) {
             return Employee::ORG_LEVEL_STAFF;
         }
 

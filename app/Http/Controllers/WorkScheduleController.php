@@ -36,7 +36,7 @@ class WorkScheduleController extends Controller
         abort_if($currentCompanyId === null, 403, __('common.errors.no_company_selected'));
 
         return Inertia::render('Scheduling/WorkSchedules/Index', [
-            'title' => 'Munkabeosztások',
+            'title' => __('work_schedules.title'),
             'filter' => [
                 'search' => $request->string('search')->toString() ?: null,
                 'field' => $request->string('field')->toString() ?: 'name',
@@ -61,7 +61,7 @@ class WorkScheduleController extends Controller
         $filter['company_id'] = $currentCompanyId;
 
         return response()->json([
-            'message' => 'Munkabeosztások sikeresen lekérve.',
+            'message' => __('work_schedules.messages.fetch_success'),
             'data' => $items,
             'meta' => [
                 'current_page' => $workSchedules->currentPage(),
@@ -83,7 +83,7 @@ class WorkScheduleController extends Controller
         $this->authorize(WorkSchedulePolicy::PERM_VIEW, $workSchedule);
 
         return response()->json([
-            'message' => 'Munkabeosztás sikeresen lekérve.',
+            'message' => __('work_schedules.messages.show_success'),
             'data' => WorkScheduleData::fromModel($workSchedule),
         ], Response::HTTP_OK);
     }
@@ -95,7 +95,7 @@ class WorkScheduleController extends Controller
         $created = $this->service->store(WorkScheduleData::from($request->validated()));
 
         return response()->json([
-            'message' => 'A munkabeosztás sikeresen létrehozva.',
+            'message' => __('work_schedules.messages.created_success'),
             'data' => $created,
         ], Response::HTTP_CREATED);
     }
@@ -109,7 +109,7 @@ class WorkScheduleController extends Controller
         $updated = $this->service->update($id, WorkScheduleData::from($request->validated()));
 
         return response()->json([
-            'message' => 'Munkabeosztás sikeresen frissítve.',
+            'message' => __('work_schedules.messages.updated_success'),
             'data' => $updated,
         ], Response::HTTP_OK);
     }
@@ -123,7 +123,7 @@ class WorkScheduleController extends Controller
         $deleted = $this->service->destroy($id, $companyId);
 
         return response()->json([
-            'message' => $deleted ? 'Törlés sikeres.' : 'Törlés sikertelen.',
+            'message' => $deleted ? __('work_schedules.messages.deleted_success') : __('common.delete_failed'),
             'deleted' => $deleted,
         ], $deleted ? Response::HTTP_OK : Response::HTTP_INTERNAL_SERVER_ERROR);
     }
@@ -138,7 +138,7 @@ class WorkScheduleController extends Controller
         );
 
         return response()->json([
-            'message' => 'Sikeres törlés.',
+            'message' => __('common.delete_success'),
             'deleted' => $deleted,
         ], Response::HTTP_OK);
     }

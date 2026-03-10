@@ -55,7 +55,7 @@ final class EmployeeSupervisorRepository implements EmployeeSupervisorRepository
 
         while ($queue !== [] && $depth < 200) {
             $currentSupervisorId = array_shift($queue);
-            if (! is_int($currentSupervisorId)) {
+            if (! \is_int($currentSupervisorId)) {
                 $depth++;
                 continue;
             }
