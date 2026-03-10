@@ -2,6 +2,7 @@
 import InputText from "primevue/inputtext";
 import Select from "primevue/select";
 import { watch } from "vue";
+import { trans } from "laravel-vue-i18n";
 
 const props = defineProps({
     modelValue: { type: Object, required: true }, // { name, email, company_id }
@@ -33,7 +34,7 @@ watch(
 <template>
     <div class="space-y-4">
         <div class="space-y-1">
-            <label class="text-sm font-medium">Név</label>
+            <label class="text-sm font-medium">{{ trans("columns.name") }}</label>
             <InputText
                 :modelValue="modelValue.name"
                 class="w-full"
@@ -45,7 +46,7 @@ watch(
         </div>
 
         <div class="space-y-1">
-            <label class="text-sm font-medium">Email</label>
+            <label class="text-sm font-medium">{{ trans("columns.email") }}</label>
             <InputText
                 :modelValue="modelValue.email"
                 class="w-full"
@@ -57,14 +58,14 @@ watch(
         </div>
 
         <div class="space-y-1">
-            <label class="text-sm font-medium">Cég</label>
+            <label class="text-sm font-medium">{{ trans("columns.company") }}</label>
             <Select
                 :modelValue="modelValue.company_id"
                 :options="companies"
                 optionLabel="label"
                 optionValue="value"
                 class="w-full"
-                placeholder="Cég kiválasztása"
+                :placeholder="trans('users.fields.company_select')"
                 :disabled="disabled"
                 @update:modelValue="(v) => set('company_id', v)"
             />

@@ -30,7 +30,7 @@ class UserSettingController extends Controller
         $this->authorize(UserSettingPolicy::PERM_VIEW_ANY, UserSetting::class);
 
         return Inertia::render('Admin/UserSettings/Index', [
-            'title' => 'User Settings',
+            'title' => __('user_settings.title'),
             'filter' => $request->validatedFilters(),
             'companyId' => $request->currentCompanyId(),
             'targetUserId' => $request->targetUserId(),
@@ -46,7 +46,7 @@ class UserSettingController extends Controller
         $payload = $this->service->fetch($companyId, $userId, $request->validatedFilters());
 
         return response()->json([
-            'message' => 'User settings sikeresen lekérve.',
+            'message' => __('user_settings.messages.fetch_success'),
             'items' => $payload['items'],
             'meta' => $payload['meta'],
             'filter' => $payload['filters'],
@@ -59,7 +59,7 @@ class UserSettingController extends Controller
         $this->authorize(UserSettingPolicy::PERM_VIEW, UserSetting::class);
 
         return response()->json([
-            'message' => 'User setting sikeresen lekérve.',
+            'message' => __('user_settings.messages.show_success'),
             'data' => $this->service->show($request->currentCompanyId(), $request->targetUserId(), $id),
         ], Response::HTTP_OK);
     }
@@ -69,7 +69,7 @@ class UserSettingController extends Controller
         $this->authorize(UserSettingPolicy::PERM_CREATE, UserSetting::class);
 
         return response()->json([
-            'message' => 'User setting sikeresen létrehozva.',
+            'message' => __('user_settings.messages.created_success'),
             'data' => $this->service->store($request->currentCompanyId(), $request->targetUserId(), $request->validatedPayload()),
         ], Response::HTTP_CREATED);
     }
@@ -79,7 +79,7 @@ class UserSettingController extends Controller
         $this->authorize(UserSettingPolicy::PERM_UPDATE, UserSetting::class);
 
         return response()->json([
-            'message' => 'User setting sikeresen frissítve.',
+            'message' => __('user_settings.messages.updated_success'),
             'data' => $this->service->update($request->currentCompanyId(), $request->targetUserId(), $id, $request->validatedPayload()),
         ], Response::HTTP_OK);
     }
@@ -90,7 +90,7 @@ class UserSettingController extends Controller
         $deleted = $this->service->destroy($request->currentCompanyId(), $request->targetUserId(), $id);
 
         return response()->json([
-            'message' => $deleted ? 'User setting sikeresen törölve.' : 'A törlés sikertelen.',
+            'message' => $deleted ? __('user_settings.messages.deleted_success') : __('user_settings.messages.delete_failed'),
             'deleted' => $deleted,
         ], $deleted ? Response::HTTP_OK : Response::HTTP_INTERNAL_SERVER_ERROR);
     }
@@ -100,7 +100,7 @@ class UserSettingController extends Controller
         $this->authorize(UserSettingPolicy::PERM_DELETE_ANY, UserSetting::class);
 
         return response()->json([
-            'message' => 'Bulk törlés sikeres.',
+            'message' => __('user_settings.messages.bulk_deleted_success'),
             'deleted' => $this->service->bulkDestroy($request->currentCompanyId(), $request->targetUserId(), $request->validated('ids')),
         ], Response::HTTP_OK);
     }

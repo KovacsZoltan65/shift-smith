@@ -42,7 +42,7 @@ final class UserAssignmentController extends Controller
         );
 
         return response()->json([
-            'message' => 'Felhasználók sikeresen lekérve.',
+            'message' => __('user_assignments.messages.users_fetch_success'),
             'data' => $payload['items'],
             'meta' => $payload['meta'],
         ], Response::HTTP_OK);
@@ -56,7 +56,7 @@ final class UserAssignmentController extends Controller
         $actor = $request->user();
 
         return response()->json([
-            'message' => 'Felhasználó hozzárendelések sikeresen lekérve.',
+            'message' => __('user_assignments.messages.fetch_success'),
             'data' => $this->service->fetchUserAssignments($actor, $user),
         ], Response::HTTP_OK);
     }
@@ -71,7 +71,7 @@ final class UserAssignmentController extends Controller
         $this->service->attachCompany($actor, $user, (int) $request->validated('company_id'));
 
         return response()->json([
-            'message' => 'Cég sikeresen hozzárendelve.',
+            'message' => __('user_assignments.messages.company_attach_success'),
             'data' => $this->service->fetchUserAssignments($actor, $user, false),
         ], Response::HTTP_OK);
     }
@@ -84,7 +84,7 @@ final class UserAssignmentController extends Controller
         $this->service->detachCompany($actor, $user, $company);
 
         return response()->json([
-            'message' => 'Cég hozzárendelés sikeresen eltávolítva.',
+            'message' => __('user_assignments.messages.company_detach_success'),
             'data' => $this->service->fetchUserAssignments($actor, $user, false),
         ], Response::HTTP_OK);
     }
@@ -99,7 +99,7 @@ final class UserAssignmentController extends Controller
         $this->service->assignEmployee($actor, $user, $company, (int) $request->validated('employee_id'));
 
         return response()->json([
-            'message' => 'Dolgozó-hozzárendelés sikeresen mentve.',
+            'message' => __('user_assignments.messages.employee_assign_success'),
             'data' => $this->service->fetchUserAssignments($actor, $user, false),
         ], Response::HTTP_OK);
     }
@@ -112,7 +112,7 @@ final class UserAssignmentController extends Controller
         $this->service->removeEmployee($actor, $user, $company);
 
         return response()->json([
-            'message' => 'Dolgozó-hozzárendelés sikeresen eltávolítva.',
+            'message' => __('user_assignments.messages.employee_remove_success'),
             'data' => $this->service->fetchUserAssignments($actor, $user, false),
         ], Response::HTTP_OK);
     }

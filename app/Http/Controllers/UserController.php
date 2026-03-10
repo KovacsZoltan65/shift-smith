@@ -50,7 +50,7 @@ class UserController extends Controller
         $this->authorize(UserPolicy::PERM_VIEW_ANY, User::class);
         
         return Inertia::render('Users/Index', [
-            'title'  => 'Felhasználók',
+            'title'  => __('users.title'),
             'filter' => $request->validatedFilters(),
         ]);
     }
@@ -104,7 +104,7 @@ class UserController extends Controller
             );
         } catch(Throwable $th) {
             return response()->json(
-                ['message' => 'Váratlan hiba történt'],
+                ['message' => __('users.messages.fetch_failed')],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
@@ -128,7 +128,7 @@ class UserController extends Controller
             );
         } catch(Throwable $th) {
             return response()->json(
-                ['message' => 'Váratlan hiba történt'],
+                ['message' => __('users.messages.fetch_failed')],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
@@ -160,7 +160,7 @@ class UserController extends Controller
             return response()->json($user, Response::HTTP_OK);
         } catch(Throwable $th) {
             return response()->json(
-                ['message' => 'Váratlan hiba történt'],
+                ['message' => __('users.messages.fetch_failed')],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
@@ -179,7 +179,7 @@ class UserController extends Controller
     {
         $this->authorize(UserPolicy::PERM_UPDATE, $user); // vagy külön ability
 
-        abort_if($request->user()->id === $user->id, 403, 'Saját magadnak innen ne.');
+        abort_if($request->user()->id === $user->id, 403, __('users.messages.self_reset_forbidden'));
 
         $status = Password::sendResetLink(['email' => $user->email]);
 
@@ -187,7 +187,7 @@ class UserController extends Controller
             return response()->json(['message' => __($status)], 422);
         }
 
-        return response()->json(['message' => 'Email elküldve.']);
+        return response()->json(['message' => __('users.messages.reset_sent')]);
     }
     
     /**
@@ -206,12 +206,12 @@ class UserController extends Controller
             $user = $this->service->update($request, $id);
 
             return response()->json([
-                'message' => 'A felhasználó sikeresen frissítve.',
+                'message' => __('users.messages.updated_success'),
                 'data' => $user,
             ], Response::HTTP_OK);
         } catch(Throwable $th) {
             return response()->json(
-                ['message' => 'Váratlan hiba történt'],
+                ['message' => __('users.messages.fetch_failed')],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
@@ -235,13 +235,13 @@ class UserController extends Controller
         } catch (Throwable $th) {
             if ($th instanceof HttpExceptionInterface) {
                 return response()->json(
-                    ['message' => $th->getMessage() !== '' ? $th->getMessage() : 'Váratlan hiba történt'],
+                    ['message' => $th->getMessage() !== '' ? $th->getMessage() : __('users.messages.fetch_failed')],
                     $th->getStatusCode()
                 );
             }
 
             return response()->json(
-                ['message' => 'Váratlan hiba történt'],
+                ['message' => __('users.messages.fetch_failed')],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
@@ -266,25 +266,25 @@ class UserController extends Controller
         $data = $request->validated();
         
         if (\in_array($authId, $data['ids'], true)) {
-            abort(403, 'Saját fiókot nem törölhetsz.');
+            abort(403, __('users.messages.self_delete_forbidden'));
         }
         
         try {
             $deleted = $this->service->bulkDelete($data['ids']);
             
             return response()->json([
-                'message' => 'Sikeres törlés.',
+                'message' => __('users.messages.deleted_success'),
                 'deleted' => $deleted,
             ], Response::HTTP_OK);
         } catch(Throwable $th) {
             if ($th instanceof HttpExceptionInterface) {
                 return response()->json([
-                    'message' => $th->getMessage() !== '' ? $th->getMessage() : 'Törlés sikertelen.',
+                    'message' => $th->getMessage() !== '' ? $th->getMessage() : __('users.messages.fetch_failed'),
                 ], $th->getStatusCode());
             }
 
             return response()->json([
-                'message' => 'Törlés sikertelen.',
+                'message' => __('users.messages.fetch_failed'),
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
         

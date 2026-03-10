@@ -23,7 +23,7 @@ final class UserRoleController extends Controller
         $updatedUser = $this->service->setPrimaryRole($user, (int) $request->validated('role_id'));
 
         return response()->json([
-            'message' => 'A felhasználó szerepköre sikeresen frissítve.',
+            'message' => __('users.messages.role_updated'),
             'data' => [
                 'id' => (int) $updatedUser->id,
                 'primary_role_name' => $updatedUser->roles->first()?->name,

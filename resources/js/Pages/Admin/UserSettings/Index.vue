@@ -2,6 +2,7 @@
 import { Head, usePage } from "@inertiajs/vue3";
 import { computed, onMounted, ref, watch } from "vue";
 import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
+import { trans } from "laravel-vue-i18n";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import UserService from "@/services/UserService.js";
@@ -40,7 +41,7 @@ const canDelete = computed(() => has("user_settings.delete"));
 const canDeleteAny = computed(() => has("user_settings.deleteAny"));
 const canManageOthers = computed(() => has("user_settings.manageOthers"));
 const companyName = computed(
-    () => page.props.companyContext?.current_company?.name ?? "Company",
+    () => page.props.companyContext?.current_company?.name ?? trans("user_settings.placeholders.company"),
 );
 
 const createOpen = ref(false);
@@ -157,7 +158,7 @@ const fetchUserSettings = async () => {
         }));
     } catch (err) {
         error.value =
-            err?.response?.data?.message ?? err?.message ?? "Betöltési hiba";
+            err?.response?.data?.message ?? err?.message ?? trans("user_settings.messages.fetch_failed");
     } finally {
         loading.value = false;
     }
@@ -167,7 +168,7 @@ const handleSaved = async (message) => {
     await fetchUserSettings();
     toast.add({
         severity: "success",
-        summary: "Siker",
+        summary: trans("common.success"),
         detail: message,
         life: 2500,
     });
@@ -179,7 +180,7 @@ const handleDeleted = async (message) => {
     await fetchUserSettings();
     toast.add({
         severity: "success",
-        summary: "Siker",
+        summary: trans("common.success"),
         detail: message,
         life: 2500,
     });
@@ -237,12 +238,12 @@ onMounted(async () => {
             <div class="flex flex-wrap items-center gap-2">
                 <Button
                     v-if="canCreate"
-                    label="Új"
+                    :label="trans('user_settings.actions.create')"
                     icon="pi pi-plus"
                     @click="createOpen = true"
                 />
                 <Button
-                    label="Frissítés"
+                    :label="trans('user_settings.actions.refresh')"
                     icon="pi pi-refresh"
                     severity="secondary"
                     :loading="loading"
@@ -250,7 +251,7 @@ onMounted(async () => {
                 />
                 <Button
                     v-if="canDeleteAny"
-                    label="Bulk delete"
+                    :label="trans('user_settings.actions.bulk_delete')"
                     icon="pi pi-trash"
                     severity="danger"
                     :disabled="!selected.length"
@@ -262,7 +263,7 @@ onMounted(async () => {
                     :options="users"
                     optionLabel="label"
                     optionValue="value"
-                    placeholder="Felhasználó"
+                    :placeholder="trans('user_settings.filters.user')"
                     class="w-72"
                 />
             </div>
@@ -295,7 +296,7 @@ onMounted(async () => {
                         <Button
                             type="button"
                             icon="pi pi-filter-slash"
-                            label="Clear"
+                            :label="trans('user_settings.filters.clear')"
                             variant="outlined"
                             @click="clearFilters()"
                         />
@@ -305,7 +306,7 @@ onMounted(async () => {
                             </InputIcon>
                             <InputText
                                 v-model="filters['global'].value"
-                                placeholder="Keyword Search"
+                                :placeholder="trans('user_settings.filters.keyword_search')"
                             />
                         </IconField>
                     </div>
@@ -315,7 +316,7 @@ onMounted(async () => {
                 <Column
                     field="key"
                     filterField="key"
-                    header="Kulcs"
+                    :header="trans('columns.key')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -324,14 +325,14 @@ onMounted(async () => {
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Kulcs keresese"
+                            :placeholder="trans('user_settings.filters.key')"
                         />
                     </template>
                 </Column>
                 <Column
                     field="group"
                     filterField="group"
-                    header="Csoport"
+                    :header="trans('columns.group')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -344,14 +345,14 @@ onMounted(async () => {
                             optionValue="value"
                             class="w-full"
                             showClear
-                            placeholder="Csoport"
+                            :placeholder="trans('user_settings.filters.group')"
                         />
                     </template>
                 </Column>
                 <Column
                     field="type"
                     filterField="type"
-                    header="Típus"
+                    :header="trans('columns.type')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -367,18 +368,18 @@ onMounted(async () => {
                             optionValue="value"
                             class="w-full"
                             showClear
-                            placeholder="Tipus"
+                            :placeholder="trans('user_settings.filters.type')"
                         />
                     </template>
                 </Column>
-                <Column header="Érték">
+                <Column :header="trans('columns.value')">
                     <template #body="{ data }">
                         <span class="font-mono text-sm">{{
                             data.value_preview || "-"
                         }}</span>
                     </template>
                 </Column>
-                <Column field="updated_at" header="Frissítve" sortable>
+                <Column field="updated_at" :header="trans('columns.updated_at')" sortable>
                     <template #body="{ data }">
                         {{
                             data.updated_at
@@ -394,7 +395,7 @@ onMounted(async () => {
                                 v-if="canUpdate"
                                 size="small"
                                 severity="secondary"
-                                label="Szerkesztés"
+                                :label="trans('edit')"
                                 @click="
                                     selectedItem = data;
                                     editOpen = true;
@@ -404,7 +405,7 @@ onMounted(async () => {
                                 v-if="canDelete"
                                 size="small"
                                 severity="danger"
-                                label="Törlés"
+                                :label="trans('delete')"
                                 @click="
                                     selectedItem = data;
                                     deleteOpen = true;

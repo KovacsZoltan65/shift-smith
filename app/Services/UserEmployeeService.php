@@ -71,7 +71,7 @@ final class UserEmployeeService
     {
         if (! $this->repository->employeeIsAssignableToUser($actor, $target, $employee)) {
             throw ValidationException::withMessages([
-                'employee_id' => 'A dolgozó nem rendelhető hozzá a kiválasztott felhasználóhoz.',
+                'employee_id' => __('user_employees.messages.employee_not_assignable'),
             ]);
         }
 
@@ -91,13 +91,13 @@ final class UserEmployeeService
     {
         if (! $this->repository->userHasEmployee($target, $employee)) {
             throw ValidationException::withMessages([
-                'employee_id' => 'A dolgozó nincs a felhasználóhoz rendelve.',
+                'employee_id' => __('user_employees.messages.employee_not_assigned'),
             ]);
         }
 
         if (! $this->repository->employeeIsManageableByActor($actor, $employee)) {
             throw ValidationException::withMessages([
-                'employee_id' => 'A dolgozó nem kezelhető a jelenlegi tenant/scope alapján.',
+                'employee_id' => __('user_employees.messages.employee_not_manageable'),
             ]);
         }
 

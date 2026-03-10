@@ -1,6 +1,7 @@
 <script setup>
 import { computed, reactive, ref, watch } from "vue";
 import { usePage } from "@inertiajs/vue3";
+import { trans } from "laravel-vue-i18n";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 
@@ -56,7 +57,7 @@ const send = async () => {
         emit("sent");
         close();
     } catch (e) {
-        errors._global = e?.message ?? "Ismeretlen hiba";
+        errors._global = e?.message ?? trans("common.unknown_error");
     } finally {
         loading.value = false;
     }
@@ -67,12 +68,12 @@ const send = async () => {
     <Dialog
         :visible="modelValue"
         modal
-        header="Jelszó módosítás"
+        :header="trans('users.dialogs.password_reset_title')"
         :style="{ width: '520px' }"
         @update:visible="emit('update:modelValue', $event)"
     >
         <div v-if="!hasUser" class="text-sm text-gray-600">
-            Nincs kiválasztott felhasználó.
+            {{ trans("users.dialogs.none_selected") }}
         </div>
 
         <div v-else class="space-y-3">
@@ -81,24 +82,24 @@ const send = async () => {
             </div>
 
             <div class="text-sm text-gray-700">
-                Küldünk egy emailt a felhasználónak jelszó beállításhoz:
+                {{ trans("users.messages.password_reset_intro") }}
                 <div class="mt-1 font-semibold">{{ props.user.email }}</div>
             </div>
 
             <div class="rounded border p-3 text-sm text-gray-600">
-                A link egyszer használatos és időkorlátos (Laravel password reset).
+                {{ trans("users.messages.password_reset_notice") }}
             </div>
         </div>
 
         <template #footer>
             <Button
-                label="Mégse"
+                :label="trans('common.cancel')"
                 severity="secondary"
                 :disabled="loading"
                 @click="close"
             />
             <Button
-                label="Email küldése"
+                :label="trans('users.actions.send_email')"
                 :loading="loading"
                 :disabled="!hasUser"
                 @click="send"

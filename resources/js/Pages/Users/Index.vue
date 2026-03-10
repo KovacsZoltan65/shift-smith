@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import { Head, usePage } from "@inertiajs/vue3";
 import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
+import { trans } from "laravel-vue-i18n";
 
 import RowActionMenu from "@/Components/DataTable/RowActionMenu.vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
@@ -32,9 +33,10 @@ const page = usePage();
 const { has } = usePermissions();
 
 const props = defineProps({
-    title: String,
-    filter: Object,
+    title: { type: String, default: "" },
+    filter: { type: Object, default: () => ({}) },
 });
+const title = computed(() => trans("users.title"));
 
 const createOpen = ref(false);
 const editOpen = ref(false);
@@ -67,8 +69,8 @@ const defaultCompanyId = computed(
 
 const globalFilterFields = ["name", "email", "primary_role_name", "guard_name"];
 const booleanOptions = [
-    { label: "Igen", value: true },
-    { label: "Nem", value: false },
+    { label: trans("true"), value: true },
+    { label: trans("false"), value: false },
 ];
 const createInitialFilters = () => ({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -122,6 +124,10 @@ const roleLabel = (row) =>
         : null) ||
     "—";
 
+const dateLocale = computed(
+    () => page.props.preferences?.locale || page.props.locale || "en",
+);
+
 const roleSeverity = (roleName) => {
     if (roleName === "superadmin") return "danger";
     if (roleName === "admin") return "warning";
@@ -130,29 +136,29 @@ const roleSeverity = (roleName) => {
 };
 
 const buildRowMenuItems = (row) => [
-        {
-            label: "Szerkesztés",
-            icon: "pi pi-pencil",
-            command: () => openEditModal(row),
-        },
-        {
-            label: "Szerepkör",
-            icon: "pi pi-user-edit",
-            disabled: actionLoading.value || !canManageUserRoles.value,
-            command: () => openRoleModal(row),
-        },
-        {
-            label: "Törlés",
-            icon: "pi pi-trash",
-            disabled: isSelf(row) || actionLoading.value,
-            command: () => confirmDeleteOne(row),
-        },
-        {
-            label: "Jelszó módosítás",
-            icon: "pi pi-key",
-            command: () => openPasswordResetModal(row),
-        },
-    ];
+    {
+        label: trans("edit"),
+        icon: "pi pi-pencil",
+        command: () => openEditModal(row),
+    },
+    {
+        label: trans("users.actions.change_role"),
+        icon: "pi pi-user-edit",
+        disabled: actionLoading.value || !canManageUserRoles.value,
+        command: () => openRoleModal(row),
+    },
+    {
+        label: trans("delete"),
+        icon: "pi pi-trash",
+        disabled: isSelf(row) || actionLoading.value,
+        command: () => confirmDeleteOne(row),
+    },
+    {
+        label: trans("users.actions.reset_password"),
+        icon: "pi pi-key",
+        command: () => openPasswordResetModal(row),
+    },
+];
 
 const openCreate = () => {
     createOpen.value = true;
@@ -163,8 +169,8 @@ const onSaved = async () => {
     await fetchUsers();
     toast.add({
         severity: "success",
-        summary: "Siker",
-        detail: "Mentve.",
+        summary: trans("common.success"),
+        detail: trans("users.messages.saved"),
         life: 2000,
     });
 };
@@ -215,8 +221,8 @@ const openRoleModal = async (row) => {
     } catch (e) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: e?.message || "Nem sikerült a szerepkörök betöltése.",
+            summary: trans("common.error"),
+            detail: e?.message || trans("users.messages.roles_load_failed"),
             life: 3500,
         });
     } finally {
@@ -244,8 +250,8 @@ const saveRole = async () => {
         closeRoleModal();
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: "Szerepkör frissítve.",
+            summary: trans("common.success"),
+            detail: trans("users.messages.role_updated"),
             life: 2500,
         });
 
@@ -253,8 +259,8 @@ const saveRole = async () => {
     } catch (e) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: e?.message || "A szerepkör mentése sikertelen.",
+            summary: trans("common.error"),
+            detail: e?.message || trans("users.messages.role_save_failed"),
             life: 3500,
         });
     } finally {
@@ -277,7 +283,7 @@ const fetchUsers = async () => {
 
         rows.value = Array.isArray(json?.data) ? json.data : [];
     } catch (e) {
-        error.value = e?.message || "Ismeretlen hiba";
+        error.value = e?.message || trans("users.messages.fetch_failed");
         rows.value = [];
     } finally {
         loading.value = false;
@@ -298,8 +304,8 @@ const fetchCompanyOptions = async () => {
     } catch (e) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: e?.message || "A céglista betöltése sikertelen.",
+            summary: trans("common.error"),
+            detail: e?.message || trans("users.messages.company_list_failed"),
             life: 3500,
         });
     }
@@ -309,7 +315,7 @@ const formatDate = (value) => {
     if (!value) return "";
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return String(value);
-    return new Intl.DateTimeFormat("hu-HU", {
+    return new Intl.DateTimeFormat(dateLocale.value, {
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
@@ -330,7 +336,9 @@ const deleteOne = async (id) => {
         });
 
         if (!res.ok) {
-            let msg = `Törlés sikertelen (HTTP ${res.status})`;
+            let msg = trans("users.messages.delete_failed_http", {
+                status: res.status,
+            });
             try {
                 const body = await res.json();
                 msg = body?.message || msg;
@@ -340,8 +348,8 @@ const deleteOne = async (id) => {
 
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: "Felhasználó törölve",
+            summary: trans("common.success"),
+            detail: trans("users.messages.deleted_success"),
             life: 2500,
         });
 
@@ -350,8 +358,8 @@ const deleteOne = async (id) => {
     } catch (e) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: e?.message || "Ismeretlen hiba",
+            summary: trans("common.error"),
+            detail: e?.message || trans("common.unknown_error"),
             life: 3500,
         });
     } finally {
@@ -362,19 +370,21 @@ const deleteOne = async (id) => {
 const onPasswordResetSent = () => {
     toast.add({
         severity: "success",
-        summary: "Siker",
-        detail: "Email elküldve.",
+        summary: trans("common.success"),
+        detail: trans("users.messages.reset_sent"),
         life: 2500,
     });
 };
 
 const confirmDeleteOne = (row) => {
     confirm.require({
-        message: `Biztos törlöd: ${row.name} (${row.email})?`,
-        header: "Megerősítés",
+        message: trans("users.dialogs.delete_confirm", {
+            name: `${row.name} (${row.email})`,
+        }),
+        header: trans("common.confirmation"),
         icon: "pi pi-exclamation-triangle",
-        acceptLabel: "Törlés",
-        rejectLabel: "Mégse",
+        acceptLabel: trans("delete"),
+        rejectLabel: trans("common.cancel"),
         acceptClass: "p-button-danger",
         accept: () => deleteOne(row.id),
     });
@@ -393,7 +403,9 @@ const bulkDelete = async (ids) => {
         });
 
         if (!res.ok) {
-            let msg = `Bulk törlés sikertelen (HTTP ${res.status})`;
+            let msg = trans("users.messages.bulk_delete_failed_http", {
+                status: res.status,
+            });
             try {
                 const body = await res.json();
                 msg = body?.message || msg;
@@ -403,8 +415,10 @@ const bulkDelete = async (ids) => {
 
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: `Törölve: ${ids.length} db`,
+            summary: trans("common.success"),
+            detail: trans("users.messages.bulk_deleted_success", {
+                count: ids.length,
+            }),
             life: 2500,
         });
 
@@ -413,8 +427,8 @@ const bulkDelete = async (ids) => {
     } catch (e) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: e?.message || "Ismeretlen hiba",
+            summary: trans("common.error"),
+            detail: e?.message || trans("common.unknown_error"),
             life: 3500,
         });
     } finally {
@@ -427,11 +441,13 @@ const confirmBulkDelete = () => {
     if (!ids.length) return;
 
     confirm.require({
-        message: `Biztos törlöd a kijelölt ${ids.length} felhasználót?`,
-        header: "Bulk törlés",
+        message: trans("users.dialogs.bulk_delete_confirm", {
+            count: ids.length,
+        }),
+        header: trans("users.actions.bulk_delete"),
         icon: "pi pi-exclamation-triangle",
-        acceptLabel: "Törlés",
-        rejectLabel: "Mégse",
+        acceptLabel: trans("delete"),
+        rejectLabel: trans("common.cancel"),
         acceptClass: "p-button-danger",
         accept: () => bulkDelete(ids),
     });
@@ -444,7 +460,7 @@ onMounted(async () => {
 </script>
 
 <template>
-    <Head title="Felhasználók" />
+    <Head :title="title" />
 
     <Toast />
     <ConfirmDialog />
@@ -474,14 +490,14 @@ onMounted(async () => {
                     <h1 class="text-2xl font-semibold">{{ title }}</h1>
 
                     <Button
-                        label="Új felhasználó"
+                        :label="trans('users.actions.create')"
                         icon="pi pi-plus"
                         size="small"
                         @click="openCreate"
                     />
 
                     <Button
-                        label="Kijelöltek törlése"
+                        :label="trans('users.actions.bulk_delete')"
                         icon="pi pi-trash"
                         severity="danger"
                         size="small"
@@ -493,13 +509,17 @@ onMounted(async () => {
                     />
 
                     <div v-if="selected?.length" class="text-sm text-gray-600">
-                        Kijelölve: <b>{{ selected.length }}</b>
+                        {{
+                            trans("users.selected_count", {
+                                count: selected.length,
+                            })
+                        }}
                     </div>
                 </div>
             </div>
 
             <div v-if="error" class="mb-3 border p-3">
-                <div class="font-semibold">Hiba</div>
+                <div class="font-semibold">{{ trans("common.error") }}</div>
                 <div class="text-sm">{{ error }}</div>
             </div>
 
@@ -524,7 +544,7 @@ onMounted(async () => {
                         <Button
                             type="button"
                             icon="pi pi-filter-slash"
-                            label="Clear"
+                            :label="trans('users.filters.clear')"
                             variant="outlined"
                             @click="clearFilters()"
                         />
@@ -534,14 +554,18 @@ onMounted(async () => {
                             </InputIcon>
                             <InputText
                                 v-model="filters['global'].value"
-                                placeholder="Keyword Search"
+                                :placeholder="
+                                    trans('users.filters.keyword_search')
+                                "
                             />
                         </IconField>
                     </div>
                 </template>
 
-                <template #empty>Nincs talalat.</template>
-                <template #loading>Betoltes...</template>
+                <template #empty>{{ trans("users.states.empty") }}</template>
+                <template #loading>{{
+                    trans("users.states.loading")
+                }}</template>
 
                 <Column
                     selectionMode="multiple"
@@ -549,11 +573,16 @@ onMounted(async () => {
                     :disabledSelection="(row) => isSelf(row)"
                 />
 
-                <Column field="id" header="ID" sortable style="width: 90px" />
+                <Column
+                    field="id"
+                    :header="trans('columns.id')"
+                    sortable
+                    style="width: 90px"
+                />
                 <Column
                     field="name"
                     filterField="name"
-                    header="Név"
+                    :header="trans('columns.name')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -562,14 +591,14 @@ onMounted(async () => {
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Nev keresese"
+                            :placeholder="trans('users.filters.name')"
                         />
                     </template>
                 </Column>
                 <Column
                     field="email"
                     filterField="email"
-                    header="Email"
+                    :header="trans('columns.email')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -578,14 +607,14 @@ onMounted(async () => {
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Email keresese"
+                            :placeholder="trans('users.filters.email')"
                         />
                     </template>
                 </Column>
                 <Column
                     field="primary_role_name"
                     filterField="primary_role_name"
-                    header="Role"
+                    :header="trans('columns.role')"
                     filter
                     :showFilterMatchModes="false"
                     style="width: 180px"
@@ -612,18 +641,22 @@ onMounted(async () => {
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Role keresese"
+                            :placeholder="trans('users.filters.role')"
                         />
                     </template>
                 </Column>
-                <Column field="created_at" header="Létrehozva" sortable>
+                <Column
+                    field="created_at"
+                    :header="trans('columns.created_at')"
+                    sortable
+                >
                     <template #body="{ data }">
                         {{ formatDate(data.created_at) }}
                     </template>
                 </Column>
 
                 <Column
-                    header="Műveletek"
+                    :header="trans('columns.actions')"
                     headerStyle="width: 3rem"
                     bodyStyle="white-space: nowrap;"
                 >
@@ -632,7 +665,11 @@ onMounted(async () => {
                             <RowActionMenu
                                 :items="buildRowMenuItems(data)"
                                 :disabled="actionLoading"
-                                :buttonTitle="`Műveletek: ${data.name}`"
+                                :buttonTitle="
+                                    trans('users.actions.edit_title', {
+                                        name: data.name,
+                                    })
+                                "
                             />
                         </div>
                     </template>
@@ -643,14 +680,16 @@ onMounted(async () => {
         <Dialog
             v-model:visible="roleOpen"
             modal
-            header="Szerepkör módosítása"
+            :header="trans('users.actions.role_title')"
             :style="{ width: '28rem', maxWidth: '95vw' }"
             :closable="!roleLoading"
             @hide="closeRoleModal"
         >
             <div class="space-y-4">
                 <div>
-                    <div class="text-sm text-slate-500">Felhasználó</div>
+                    <div class="text-sm text-slate-500">
+                        {{ trans("users.dialogs.role_user") }}
+                    </div>
                     <div class="font-medium">{{ roleUser?.name }}</div>
                     <div class="text-sm text-slate-500">
                         {{ roleUser?.email }}
@@ -658,15 +697,15 @@ onMounted(async () => {
                 </div>
 
                 <div class="space-y-2">
-                    <label class="block text-sm font-medium text-slate-700"
-                        >Role</label
-                    >
+                    <label class="block text-sm font-medium text-slate-700">{{
+                        trans("columns.role")
+                    }}</label>
                     <Select
                         v-model="selectedRoleId"
                         :options="roles"
                         optionLabel="label"
                         optionValue="value"
-                        placeholder="Szerepkör kiválasztása"
+                        :placeholder="trans('users.dialogs.role_select')"
                         class="w-full"
                         :loading="roleLoading"
                         :disabled="roleLoading"
@@ -677,14 +716,14 @@ onMounted(async () => {
             <template #footer>
                 <div class="flex justify-end gap-2">
                     <Button
-                        label="Mégse"
+                        :label="trans('common.cancel')"
                         severity="secondary"
                         text
                         :disabled="roleLoading"
                         @click="closeRoleModal"
                     />
                     <Button
-                        label="Mentés"
+                        :label="trans('common.save')"
                         icon="pi pi-check"
                         :loading="roleLoading"
                         :disabled="!selectedRoleId"

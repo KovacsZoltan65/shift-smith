@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from "vue";
 import { Head } from "@inertiajs/vue3";
+import { trans } from "laravel-vue-i18n";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { csrfFetch } from "@/lib/csrfFetch";
@@ -19,12 +20,13 @@ import Tag from "primevue/tag";
 import { Select } from "primevue";
 
 const props = defineProps({
-    title: { type: String, default: "User - Employee összerendelés" },
+    title: { type: String, default: "" },
     users: { type: Array, default: () => [] },
     selected_user_id: { type: Number, default: null },
     current_mapping: { type: Array, default: () => [] },
     selectable_employees: { type: Array, default: () => [] },
 });
+const title = computed(() => props.title || trans("user_employees.title"));
 
 const toast = useToast();
 const confirm = useConfirm();
@@ -81,7 +83,7 @@ const companyLabel = (employee) => {
     return names.length ? names.join(", ") : "-";
 };
 
-const parseError = async (error, fallback = "Váratlan hiba történt.") => {
+const parseError = async (error, fallback = trans("common.unknown_error")) => {
     if (error instanceof Error) {
         return error.message || fallback;
     }
@@ -99,7 +101,9 @@ const fetchMapping = async (userId, keepSelectedEmployee = false) => {
         });
 
         if (!response.ok) {
-            let message = `Lekérés sikertelen (HTTP ${response.status})`;
+            let message = trans("user_employees.messages.fetch_failed_http", {
+                status: response.status,
+            });
             try {
                 const body = await response.json();
                 message = body?.message || message;
@@ -122,9 +126,9 @@ const fetchMapping = async (userId, keepSelectedEmployee = false) => {
 
         const message = await parseError(
             error,
-            "Nem sikerült lekérni a hozzárendeléseket."
+            trans("user_employees.messages.fetch_failed")
         );
-        toast.add({ severity: "error", summary: "Hiba", detail: message, life: 3500 });
+        toast.add({ severity: "error", summary: trans("common.error"), detail: message, life: 3500 });
     } finally {
         loading.value = false;
     }
@@ -159,7 +163,9 @@ const addEmployee = async () => {
         });
 
         if (!response.ok) {
-            let message = `Mentés sikertelen (HTTP ${response.status})`;
+            let message = trans("user_employees.messages.save_failed_http", {
+                status: response.status,
+            });
             try {
                 const body = await response.json();
                 if (body?.errors?.employee_id?.[0]) {
@@ -178,8 +184,8 @@ const addEmployee = async () => {
 
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: "Dolgozó hozzárendelve.",
+            summary: trans("common.success"),
+            detail: trans("user_employees.messages.attach_success"),
             life: 2200,
         });
     } catch (error) {
@@ -188,8 +194,8 @@ const addEmployee = async () => {
             priority: "high",
         });
 
-        const message = await parseError(error, "Nem sikerült a hozzárendelés.");
-        toast.add({ severity: "error", summary: "Hiba", detail: message, life: 3500 });
+        const message = await parseError(error, trans("user_employees.messages.save_failed"));
+        toast.add({ severity: "error", summary: trans("common.error"), detail: message, life: 3500 });
     } finally {
         actionLoading.value = false;
     }
@@ -214,7 +220,9 @@ const removeEmployee = async (employee) => {
         );
 
         if (!response.ok) {
-            let message = `Eltávolítás sikertelen (HTTP ${response.status})`;
+            let message = trans("user_employees.messages.remove_failed_http", {
+                status: response.status,
+            });
             try {
                 const body = await response.json();
                 message = body?.message || message;
@@ -228,8 +236,8 @@ const removeEmployee = async (employee) => {
 
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: "Dolgozó kapcsolat eltávolítva.",
+            summary: trans("common.success"),
+            detail: trans("user_employees.messages.detach_success"),
             life: 2200,
         });
     } catch (error) {
@@ -238,8 +246,8 @@ const removeEmployee = async (employee) => {
             priority: "high",
         });
 
-        const message = await parseError(error, "Nem sikerült az eltávolítás.");
-        toast.add({ severity: "error", summary: "Hiba", detail: message, life: 3500 });
+        const message = await parseError(error, trans("user_employees.messages.remove_failed"));
+        toast.add({ severity: "error", summary: trans("common.error"), detail: message, life: 3500 });
     } finally {
         actionLoading.value = false;
     }
@@ -247,13 +255,13 @@ const removeEmployee = async (employee) => {
 
 const confirmRemove = (employee) => {
     confirm.require({
-        message: `Biztosan eltávolítod a kapcsolatot? (${
-            employee?.name ?? "ismeretlen dolgozó"
-        })`,
-        header: "Megerősítés",
+        message: trans("user_employees.dialogs.remove_confirm", {
+            name: employee?.name ?? trans("user_employees.messages.unknown_employee"),
+        }),
+        header: trans("user_employees.dialogs.remove_title"),
         icon: "pi pi-exclamation-triangle",
-        rejectLabel: "Mégse",
-        acceptLabel: "Eltávolítás",
+        rejectLabel: trans("common.cancel"),
+        acceptLabel: trans("user_assignments.actions.remove"),
         acceptClass: "p-button-danger",
         accept: () => removeEmployee(employee),
     });
@@ -273,7 +281,7 @@ const confirmRemove = (employee) => {
                 <h1 class="text-2xl font-semibold">{{ title }}</h1>
                 <Button
                     icon="pi pi-refresh"
-                    label="Frissítés"
+                    :label="trans('user_employees.actions.refresh')"
                     severity="secondary"
                     size="small"
                     :loading="loading"
@@ -285,10 +293,10 @@ const confirmRemove = (employee) => {
             <div class="grid gap-4 lg:grid-cols-2">
                 <section class="rounded border border-surface-200 bg-white p-4">
                     <div class="mb-3 flex items-center justify-between gap-3">
-                        <h2 class="text-lg font-semibold">Felhasználók</h2>
+                        <h2 class="text-lg font-semibold">{{ trans("user_employees.sections.users") }}</h2>
                         <InputText
                             v-model="search"
-                            placeholder="Keresés név/email szerint"
+                            :placeholder="trans('user_employees.placeholders.search_users')"
                             class="w-full max-w-64"
                         />
                     </div>
@@ -301,17 +309,17 @@ const confirmRemove = (employee) => {
                         :loading="loading"
                         @row-click="(event) => selectUser(event.data)"
                     >
-                        <template #empty>Nincs elérhető felhasználó.</template>
+                        <template #empty>{{ trans("user_employees.states.no_users") }}</template>
 
-                        <Column field="name" header="Név" />
-                        <Column field="email" header="Email" />
+                        <Column field="name" :header="trans('columns.name')" />
+                        <Column field="email" :header="trans('columns.email')" />
                     </DataTable>
                 </section>
 
                 <section class="rounded border border-surface-200 bg-white p-4">
                     <div class="mb-3">
                         <h2 class="text-lg font-semibold">
-                            Hozzárendelések
+                            {{ trans("user_employees.sections.assignments") }}
                             <span
                                 v-if="selectedUser"
                                 class="text-sm font-normal text-surface-500"
@@ -327,14 +335,14 @@ const confirmRemove = (employee) => {
                     >
                         <div class="w-full md:flex-1">
                             <label class="mb-1 block text-sm text-surface-600"
-                                >Hozzárendelhető dolgozó</label
+                                >{{ trans("user_employees.fields.assignable_employee") }}</label
                             >
                             <Select
                                 v-model="selectedEmployeeId"
                                 :options="selectableOptions"
                                 optionLabel="label"
                                 optionValue="value"
-                                placeholder="Válassz dolgozót"
+                                :placeholder="trans('user_employees.placeholders.select_employee')"
                                 class="w-full"
                                 :disabled="
                                     actionLoading || loading || !selectableOptions.length
@@ -342,7 +350,7 @@ const confirmRemove = (employee) => {
                             />
                         </div>
                         <Button
-                            label="Hozzáadás"
+                            :label="trans('user_employees.actions.add')"
                             icon="pi pi-plus"
                             :disabled="!selectedEmployeeId || actionLoading || loading"
                             :loading="actionLoading"
@@ -354,8 +362,7 @@ const confirmRemove = (employee) => {
                         v-if="selectedUserId && !selectableOptions.length"
                         class="mb-4 rounded border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800"
                     >
-                        Nincs hozzárendelhető dolgozó. Előbb szükséges a megfelelő
-                        <code>company_employee</code> kapcsolat és tenant scope.
+                        {{ trans("user_employees.states.no_selectable_employees") }}
                     </div>
 
                     <DataTable
@@ -363,20 +370,20 @@ const confirmRemove = (employee) => {
                         dataKey="id"
                         :loading="loading || actionLoading"
                     >
-                        <template #empty>Nincs hozzárendelt dolgozó.</template>
+                        <template #empty>{{ trans("user_employees.states.no_mappings") }}</template>
 
-                        <Column field="name" header="Dolgozó" />
-                        <Column header="Email">
+                        <Column field="name" :header="trans('columns.employee')" />
+                        <Column :header="trans('columns.email')">
                             <template #body="{ data }">
                                 {{ data.email || "-" }}
                             </template>
                         </Column>
-                        <Column header="Cégek">
+                        <Column :header="trans('columns.companies')">
                             <template #body="{ data }">
                                 <Tag :value="companyLabel(data)" />
                             </template>
                         </Column>
-                        <Column header="Művelet" style="width: 1%">
+                        <Column :header="trans('columns.actions')" style="width: 1%">
                             <template #body="{ data }">
                                 <Button
                                     icon="pi pi-trash"

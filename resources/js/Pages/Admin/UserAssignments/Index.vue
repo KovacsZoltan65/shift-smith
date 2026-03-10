@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import { Head } from "@inertiajs/vue3";
+import { trans } from "laravel-vue-i18n";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import UserAssignmentsService from "@/services/UserAssignmentsService.js";
@@ -21,8 +22,9 @@ import Tag from "primevue/tag";
 import { Select } from "primevue";
 
 const props = defineProps({
-    title: { type: String, default: "Felhasználó hozzárendelések" },
+    title: { type: String, default: "" },
 });
+const title = computed(() => props.title || trans("user_assignments.title"));
 
 const toast = useToast();
 const confirm = useConfirm();
@@ -145,8 +147,8 @@ const fetchUsers = async () => {
         });
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: await parseMessage(error, "A felhasználók betöltése sikertelen."),
+            summary: trans("common.error"),
+            detail: await parseMessage(error, trans("user_assignments.messages.users_fetch_failed")),
             life: 3500,
         });
     } finally {
@@ -169,11 +171,8 @@ const fetchUser = async (userId) => {
         });
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: await parseMessage(
-                error,
-                "A felhasználó hozzárendelései nem tölthetők be."
-            ),
+            summary: trans("common.error"),
+            detail: await parseMessage(error, trans("user_assignments.messages.user_fetch_failed")),
             life: 3500,
         });
     } finally {
@@ -211,8 +210,8 @@ const attachCompany = async () => {
         applyUserPayload(response?.data?.data ?? null);
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: "Cég hozzárendelve.",
+            summary: trans("common.success"),
+            detail: trans("user_assignments.messages.company_attached"),
             life: 2500,
         });
     } catch (error) {
@@ -222,8 +221,8 @@ const attachCompany = async () => {
         });
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: await parseMessage(error, "A cég hozzárendelése sikertelen."),
+            summary: trans("common.error"),
+            detail: await parseMessage(error, trans("user_assignments.messages.company_attach_failed")),
             life: 3500,
         });
     } finally {
@@ -242,8 +241,8 @@ const detachCompany = async (company) => {
         applyUserPayload(response?.data?.data ?? null);
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: "Cég eltávolítva.",
+            summary: trans("common.success"),
+            detail: trans("user_assignments.messages.company_detached"),
             life: 2500,
         });
     } catch (error) {
@@ -253,8 +252,8 @@ const detachCompany = async (company) => {
         });
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: await parseMessage(error, "A cég eltávolítása sikertelen."),
+            summary: trans("common.error"),
+            detail: await parseMessage(error, trans("user_assignments.messages.company_detach_failed")),
             life: 3500,
         });
     } finally {
@@ -293,8 +292,8 @@ const saveEmployeeAssignment = async () => {
         employeeDialogVisible.value = false;
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: "Dolgozó hozzárendelve.",
+            summary: trans("common.success"),
+            detail: trans("user_assignments.messages.employee_assigned"),
             life: 2500,
         });
     } catch (error) {
@@ -305,8 +304,8 @@ const saveEmployeeAssignment = async () => {
         });
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: await parseMessage(error, "A dolgozó hozzárendelése sikertelen."),
+            summary: trans("common.error"),
+            detail: await parseMessage(error, trans("user_assignments.messages.employee_assign_failed")),
             life: 3500,
         });
     } finally {
@@ -329,8 +328,8 @@ const removeEmployeeAssignment = async (company) => {
         }
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: "Dolgozó hozzárendelés törölve.",
+            summary: trans("common.success"),
+            detail: trans("user_assignments.messages.employee_removed"),
             life: 2500,
         });
     } catch (error) {
@@ -341,11 +340,8 @@ const removeEmployeeAssignment = async (company) => {
         });
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: await parseMessage(
-                error,
-                "A dolgozó hozzárendelés törlése sikertelen."
-            ),
+            summary: trans("common.error"),
+            detail: await parseMessage(error, trans("user_assignments.messages.employee_remove_failed")),
             life: 3500,
         });
     } finally {
@@ -355,11 +351,11 @@ const removeEmployeeAssignment = async (company) => {
 
 const confirmDetachCompany = (company) => {
     confirm.require({
-        message: `${company.name} hozzárendelése és a kapcsolódó employee mapping is törlődik.`,
-        header: "Cég eltávolítása",
+        message: trans("user_assignments.dialogs.detach_company_confirm", { name: company.name }),
+        header: trans("user_assignments.dialogs.detach_company_title"),
         icon: "pi pi-exclamation-triangle",
-        acceptLabel: "Eltávolítás",
-        rejectLabel: "Mégse",
+        acceptLabel: trans("user_assignments.actions.remove"),
+        rejectLabel: trans("common.cancel"),
         acceptClass: "p-button-danger",
         accept: () => detachCompany(company),
     });
@@ -367,11 +363,11 @@ const confirmDetachCompany = (company) => {
 
 const confirmRemoveEmployee = (company) => {
     confirm.require({
-        message: `${company.name} employee hozzárendelése törlődik.`,
-        header: "Dolgozó eltávolítása",
+        message: trans("user_assignments.dialogs.remove_employee_confirm", { name: company.name }),
+        header: trans("user_assignments.dialogs.remove_employee_title"),
         icon: "pi pi-exclamation-triangle",
-        acceptLabel: "Eltávolítás",
-        rejectLabel: "Mégse",
+        acceptLabel: trans("user_assignments.actions.remove"),
+        rejectLabel: trans("common.cancel"),
         acceptClass: "p-button-danger",
         accept: () => removeEmployeeAssignment(company),
     });
@@ -408,12 +404,12 @@ onMounted(async () => {
                 <div>
                     <h1 class="text-2xl font-semibold">{{ title }}</h1>
                     <p class="text-sm text-surface-500">
-                        TenantGroup-safe company és employee hozzárendelések.
+                        {{ trans("user_assignments.description") }}
                     </p>
                 </div>
                 <Button
                     icon="pi pi-refresh"
-                    label="Frissítés"
+                    :label="trans('user_assignments.actions.refresh')"
                     severity="secondary"
                     :loading="usersLoading || detailLoading"
                     :disabled="actionLoading"
@@ -426,14 +422,14 @@ onMounted(async () => {
                     class="rounded-xl border border-surface-200 bg-white p-4 shadow-sm"
                 >
                     <div class="mb-3 flex items-center justify-between gap-3">
-                        <h2 class="text-lg font-semibold">Felhasználók</h2>
+                        <h2 class="text-lg font-semibold">{{ trans("user_assignments.sections.users") }}</h2>
                         <Tag :value="String(usersMeta.total ?? 0)" severity="secondary" />
                     </div>
 
                     <InputText
                         v-model="search"
                         class="mb-3 w-full"
-                        placeholder="Keresés név vagy email alapján"
+                        :placeholder="trans('user_assignments.filters.search')"
                     />
 
                     <DataTable
@@ -446,9 +442,9 @@ onMounted(async () => {
                         :selection="selectedUserRow"
                         @row-click="(event) => selectUser(event.data)"
                     >
-                        <template #empty>Nincs megjeleníthető felhasználó.</template>
+                        <template #empty>{{ trans("user_assignments.states.users_empty") }}</template>
 
-                        <Column field="name" header="Név">
+                        <Column field="name" :header="trans('columns.name')">
                             <template #body="{ data }">
                                 <div class="flex flex-col">
                                     <span class="font-medium">{{ data.name }}</span>
@@ -459,7 +455,7 @@ onMounted(async () => {
                             </template>
                         </Column>
 
-                        <Column header="Role" style="width: 140px">
+                        <Column :header="trans('columns.role')" style="width: 140px">
                             <template #body="{ data }">
                                 <Tag
                                     :value="userRoleLabel(data)"
@@ -477,7 +473,7 @@ onMounted(async () => {
                         v-if="!selectedUser"
                         class="flex min-h-[240px] items-center justify-center text-surface-500"
                     >
-                        Válassz felhasználót a bal oldali listából.
+                        {{ trans("user_assignments.states.no_user_selected") }}
                     </div>
 
                     <template v-else>
@@ -489,17 +485,17 @@ onMounted(async () => {
                                     {{ selectedUser.user_name }}
                                 </h2>
                                 <p class="text-sm text-surface-500">
-                                    User ID: {{ selectedUser.user_id }}
+                                    {{ trans("user_assignments.fields.user_id") }}: {{ selectedUser.user_id }}
                                 </p>
                             </div>
 
                             <div class="flex flex-wrap items-center gap-2">
                                 <Tag
                                     v-if="selectedUser.is_superadmin"
-                                    value="superadmin"
+                                    :value="trans('user_assignments.roles.superadmin')"
                                     severity="contrast"
                                 />
-                                <Tag v-else value="normal user" severity="secondary" />
+                                <Tag v-else :value="trans('user_assignments.roles.normal_user')" severity="secondary" />
                             </div>
                         </div>
 
@@ -516,7 +512,7 @@ onMounted(async () => {
                         >
                             <div class="mb-3 flex items-center justify-between gap-3">
                                 <h3 class="text-base font-semibold">
-                                    Company hozzárendelés
+                                    {{ trans("user_assignments.sections.company_assignment") }}
                                 </h3>
                             </div>
 
@@ -526,7 +522,7 @@ onMounted(async () => {
                                     :options="selectableCompanies"
                                     optionLabel="label"
                                     optionValue="value"
-                                    placeholder="Válassz céget"
+                                    :placeholder="trans('user_assignments.placeholders.select_company')"
                                     class="md:flex-1"
                                     :disabled="
                                         selectedUser.read_only ||
@@ -536,7 +532,7 @@ onMounted(async () => {
                                     "
                                 />
                                 <Button
-                                    label="Hozzáadás"
+                                    :label="trans('user_assignments.actions.attach_company')"
                                     icon="pi pi-plus"
                                     :loading="actionLoading"
                                     :disabled="
@@ -554,11 +550,11 @@ onMounted(async () => {
                             dataKey="id"
                             :loading="detailLoading || actionLoading"
                         >
-                            <template #empty>Nincs company hozzárendelés.</template>
+                            <template #empty>{{ trans("user_assignments.states.companies_empty") }}</template>
 
-                            <Column field="name" header="Company" />
+                            <Column field="name" :header="trans('columns.company')" />
 
-                            <Column header="Assigned employee">
+                            <Column :header="trans('user_assignments.fields.assigned_employee')">
                                 <template #body="{ data }">
                                     <div
                                         v-if="data.assigned_employee"
@@ -575,11 +571,11 @@ onMounted(async () => {
                                 </template>
                             </Column>
 
-                            <Column header="Műveletek" style="width: 220px">
+                            <Column :header="trans('columns.actions')" style="width: 220px">
                                 <template #body="{ data }">
                                     <div class="flex flex-wrap gap-2">
                                         <Button
-                                            label="Set employee"
+                                            :label="trans('user_assignments.actions.assign_employee')"
                                             icon="pi pi-user-edit"
                                             severity="secondary"
                                             size="small"
@@ -627,7 +623,7 @@ onMounted(async () => {
         <Dialog
             v-model:visible="employeeDialogVisible"
             modal
-            header="Employee hozzárendelés"
+            :header="trans('user_assignments.dialogs.employee_assignment_title')"
             :style="{ width: '32rem' }"
             @hide="resetDialogState"
         >
@@ -638,19 +634,19 @@ onMounted(async () => {
                 >
                     <div class="font-medium">{{ employeeDialogCompany.name }}</div>
                     <div class="text-surface-500">
-                        Jelenlegi:
+                        {{ trans("user_assignments.fields.current") }}:
                         {{ employeeDialogCompany.assigned_employee?.name || "—" }}
                     </div>
                 </div>
 
                 <div class="flex flex-col gap-2">
-                    <label class="text-sm font-medium">Választható employee</label>
+                    <label class="text-sm font-medium">{{ trans("user_assignments.fields.selectable_employee") }}</label>
                     <Select
                         v-model="employeeSelection"
                         :options="dialogEmployeeOptions"
                         optionLabel="label"
                         optionValue="value"
-                        placeholder="Válassz employee-t"
+                        :placeholder="trans('user_assignments.placeholders.select_employee')"
                         :disabled="actionLoading"
                     />
                 </div>
@@ -669,7 +665,7 @@ onMounted(async () => {
             <template #footer>
                 <div class="flex w-full justify-between gap-2">
                     <Button
-                        label="Remove"
+                        :label="trans('user_assignments.actions.remove')"
                         icon="pi pi-trash"
                         severity="danger"
                         text
@@ -680,13 +676,13 @@ onMounted(async () => {
                     />
                     <div class="flex gap-2">
                         <Button
-                            label="Mégse"
+                            :label="trans('common.cancel')"
                             severity="secondary"
                             text
                             @click="employeeDialogVisible = false"
                         />
                         <Button
-                            label="Mentés"
+                            :label="trans('common.save')"
                             icon="pi pi-check"
                             :loading="actionLoading"
                             :disabled="!employeeSelection"

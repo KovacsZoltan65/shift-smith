@@ -32,7 +32,7 @@ final class UserEmployeeController extends Controller
         $actor = $request->user();
 
         return Inertia::render('Admin/UserEmployees/Index', [
-            'title' => 'User - Employee összerendelés',
+            'title' => __('user_employees.title'),
             ...$this->service->indexPayload($actor),
         ]);
     }
@@ -45,7 +45,7 @@ final class UserEmployeeController extends Controller
         $actor = $request->user();
 
         return response()->json([
-            'message' => 'Felhasználó dolgozó hozzárendelések sikeresen lekérve.',
+            'message' => __('user_employees.messages.fetch_success'),
             'data' => $this->service->fetchPayload($actor, $user),
         ], Response::HTTP_OK);
     }
@@ -61,7 +61,7 @@ final class UserEmployeeController extends Controller
         $this->service->attach($actor, $user, $employee);
 
         return response()->json([
-            'message' => 'Dolgozó sikeresen hozzárendelve a felhasználóhoz.',
+            'message' => __('user_employees.messages.store_success'),
             'data' => $this->service->fetchPayload($actor, $user),
         ], Response::HTTP_OK);
     }
@@ -76,7 +76,7 @@ final class UserEmployeeController extends Controller
         $this->service->detach($actor, $user, $employee);
 
         return response()->json([
-            'message' => 'Dolgozó hozzárendelés sikeresen eltávolítva.',
+            'message' => __('user_employees.messages.destroy_success'),
             'data' => $this->service->fetchPayload($actor, $user),
         ], Response::HTTP_OK);
     }

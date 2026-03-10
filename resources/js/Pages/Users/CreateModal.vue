@@ -1,5 +1,6 @@
 <script setup>
 import { reactive, ref, watch } from "vue";
+import { trans } from "laravel-vue-i18n";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 import UserFields from "./Partials/UserFields.vue";
@@ -44,7 +45,7 @@ const submit = async () => {
         if (res.status === 422) {
             const body = await res.json();
             const bag = body?.errors ?? {};
-            for (const k of Object.keys(bag)) errors[k] = bag[k]?.[0] ?? "Hiba";
+            for (const k of Object.keys(bag)) errors[k] = bag[k]?.[0] ?? trans("common.error");
             return;
         }
         if (!res.ok) {
@@ -55,7 +56,7 @@ const submit = async () => {
         emit("saved");
         close();
     } catch (e) {
-        errors._global = e?.message ?? "Ismeretlen hiba";
+        errors._global = e?.message ?? trans("common.unknown_error");
     } finally {
         loading.value = false;
     }
@@ -66,7 +67,7 @@ const submit = async () => {
     <Dialog
         :visible="modelValue"
         modal
-        header="Új felhasználó"
+        :header="trans('users.dialogs.create_title')"
         :style="{ width: '520px' }"
         @update:visible="emit('update:modelValue', $event)"
     >
@@ -83,18 +84,18 @@ const submit = async () => {
             />
 
             <div class="rounded border p-3 text-sm text-gray-700">
-                Mentés után automatikusan kiküldjük a jelszó beállító emailt.
+                {{ trans("users.messages.setup_email_notice") }}
             </div>
         </div>
 
         <template #footer>
             <Button
-                label="Mégse"
+                :label="trans('common.cancel')"
                 severity="secondary"
                 :disabled="loading"
                 @click="close"
             />
-            <Button label="Mentés" :loading="loading" @click="submit" />
+            <Button :label="trans('common.save')" :loading="loading" @click="submit" />
         </template>
     </Dialog>
 </template>

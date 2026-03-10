@@ -1,5 +1,6 @@
 import BaseService from "@/services/BaseService.js";
 import { csrfFetch } from "@/lib/csrfFetch.js";
+import { trans } from "laravel-vue-i18n";
 
 const resolveRoute = (name, params, fallback) => {
     try {
@@ -52,7 +53,7 @@ class UserService extends BaseService {
         );
 
         if (!response.ok) {
-            throw await toAxiosLikeError(response, "A felhasználó szerepkörének mentése sikertelen.");
+            throw await toAxiosLikeError(response, trans("users.messages.role_save_failed"));
         }
 
         return { data: await response.json() };

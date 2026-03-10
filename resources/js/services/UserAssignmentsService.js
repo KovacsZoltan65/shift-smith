@@ -1,5 +1,6 @@
 import BaseService from "@/services/BaseService.js";
 import { csrfFetch } from "@/lib/csrfFetch.js";
+import { trans } from "laravel-vue-i18n";
 
 const toAxiosLikeError = async (response, fallbackMessage) => {
     let data = null;
@@ -37,7 +38,7 @@ class UserAssignmentsService extends BaseService {
         });
 
         if (!response.ok) {
-            throw await toAxiosLikeError(response, "A cég hozzárendelése sikertelen.");
+            throw await toAxiosLikeError(response, trans("user_assignments.messages.company_attach_failed"));
         }
 
         return { data: await response.json() };
@@ -50,7 +51,7 @@ class UserAssignmentsService extends BaseService {
         );
 
         if (!response.ok) {
-            throw await toAxiosLikeError(response, "A cég eltávolítása sikertelen.");
+            throw await toAxiosLikeError(response, trans("user_assignments.messages.company_detach_failed"));
         }
 
         return { data: await response.json() };
@@ -67,7 +68,7 @@ class UserAssignmentsService extends BaseService {
         );
 
         if (!response.ok) {
-            throw await toAxiosLikeError(response, "A dolgozó hozzárendelése sikertelen.");
+            throw await toAxiosLikeError(response, trans("user_assignments.messages.employee_assign_failed"));
         }
 
         return { data: await response.json() };
@@ -80,7 +81,7 @@ class UserAssignmentsService extends BaseService {
         );
 
         if (!response.ok) {
-            throw await toAxiosLikeError(response, "A dolgozó hozzárendelés törlése sikertelen.");
+            throw await toAxiosLikeError(response, trans("user_assignments.messages.employee_remove_failed"));
         }
 
         return { data: await response.json() };

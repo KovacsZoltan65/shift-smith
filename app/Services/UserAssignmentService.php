@@ -26,7 +26,7 @@ final class UserAssignmentService
     public function indexPayload(): array
     {
         return [
-            'title' => 'Felhasználó hozzárendelések',
+            'title' => __('user_assignments.title'),
         ];
     }
 
@@ -101,7 +101,7 @@ final class UserAssignmentService
             'user_name' => (string) $target->name,
             'is_superadmin' => $isSuperadmin,
             'read_only' => $isSuperadmin,
-            'read_only_reason' => $isSuperadmin ? 'superadmin - nem szükséges hozzárendelés' : null,
+            'read_only_reason' => $isSuperadmin ? __('user_assignments.roles.superadmin_read_only') : null,
             'companies' => $userCompanies
                 ->map(fn (Company $company): array => $this->mapCompany($target, $company, ! $isSuperadmin))
                 ->values()
@@ -137,7 +137,7 @@ final class UserAssignmentService
 
         if (! $this->repository->userHasCompany($target, $tenantCompany)) {
             throw ValidationException::withMessages([
-                'company_id' => 'A felhasználó nincs ehhez a céghez rendelve.',
+                'company_id' => __('user_assignments.messages.user_not_assigned_to_company'),
             ]);
         }
 
@@ -154,20 +154,20 @@ final class UserAssignmentService
 
         if (! $this->repository->userHasCompany($target, $tenantCompany)) {
             throw ValidationException::withMessages([
-                'company_id' => 'A felhasználó nincs ehhez a céghez rendelve.',
+                'company_id' => __('user_assignments.messages.user_not_assigned_to_company'),
             ]);
         }
 
         $employee = $this->repository->findCompanyEmployeeById($tenantCompany, $employeeId);
         if (! $employee instanceof Employee) {
             throw ValidationException::withMessages([
-                'employee_id' => 'A dolgozó nem szerepel a company_employee pivotban a kiválasztott céghez.',
+                'employee_id' => __('user_assignments.messages.employee_not_in_company'),
             ]);
         }
 
         if ($this->repository->employeeAssignedToOtherUser($target, $tenantCompany, $employee)) {
             throw ValidationException::withMessages([
-                'employee_id' => 'Ez a dolgozó már hozzá van rendelve egy másik felhasználóhoz ebben a cégben.',
+                'employee_id' => __('user_assignments.messages.employee_already_assigned'),
             ]);
         }
 
@@ -184,13 +184,13 @@ final class UserAssignmentService
 
         if (! $this->repository->userHasCompany($target, $tenantCompany)) {
             throw ValidationException::withMessages([
-                'company_id' => 'A felhasználó nincs ehhez a céghez rendelve.',
+                'company_id' => __('user_assignments.messages.user_not_assigned_to_company'),
             ]);
         }
 
         if (! $this->repository->getAssignedEmployee($target, $tenantCompany) instanceof Employee) {
             throw ValidationException::withMessages([
-                'employee_id' => 'Ehhez a céghez nincs dolgozó hozzárendelés.',
+                'employee_id' => __('user_assignments.messages.no_employee_assignment'),
             ]);
         }
 
@@ -207,7 +207,7 @@ final class UserAssignmentService
         }
 
         throw ValidationException::withMessages([
-            'user_id' => 'A felhasználó nem érhető el az aktuális tenant groupban.',
+            'user_id' => __('user_assignments.messages.user_not_visible'),
         ]);
     }
 
@@ -217,7 +217,7 @@ final class UserAssignmentService
 
         if ($target->hasRole('superadmin')) {
             throw ValidationException::withMessages([
-                'user_id' => 'A superadmin felhasználóhoz nem szükséges hozzárendelés.',
+                'user_id' => __('user_assignments.roles.superadmin_read_only'),
             ]);
         }
     }
@@ -231,7 +231,7 @@ final class UserAssignmentService
         }
 
         throw ValidationException::withMessages([
-            'company_id' => 'A kiválasztott cég nem érhető el az aktuális tenant groupban.',
+            'company_id' => __('user_assignments.messages.company_not_available'),
         ]);
     }
 
@@ -279,7 +279,7 @@ final class UserAssignmentService
 
         if (! is_numeric($tenantGroupId)) {
             throw ValidationException::withMessages([
-                'tenant_group_id' => 'Nincs aktív tenant group kontextus.',
+                'tenant_group_id' => __('user_assignments.messages.no_tenant_context'),
             ]);
         }
 

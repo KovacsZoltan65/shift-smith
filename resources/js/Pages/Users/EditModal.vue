@@ -1,5 +1,6 @@
 <script setup>
 import { computed, reactive, ref, watch } from "vue";
+import { trans } from "laravel-vue-i18n";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 import UserFields from "./Partials/UserFields.vue";
@@ -67,7 +68,7 @@ const submit = async () => {
         if (res.status === 422) {
             const body = await res.json();
             const bag = body?.errors ?? {};
-            for (const k of Object.keys(bag)) errors[k] = bag[k]?.[0] ?? "Hiba";
+            for (const k of Object.keys(bag)) errors[k] = bag[k]?.[0] ?? trans("common.error");
             return;
         }
 
@@ -79,7 +80,7 @@ const submit = async () => {
         emit("saved");
         close();
     } catch (e) {
-        errors._global = e?.message ?? "Ismeretlen hiba";
+        errors._global = e?.message ?? trans("common.unknown_error");
     } finally {
         loading.value = false;
     }
@@ -90,12 +91,12 @@ const submit = async () => {
     <Dialog
         :visible="modelValue"
         modal
-        header="Felhasználó szerkesztése"
+        :header="trans('users.dialogs.edit_title')"
         :style="{ width: '520px' }"
         @update:visible="emit('update:modelValue', $event)"
     >
         <div v-if="!hasUser" class="text-sm text-gray-600">
-            Nincs kiválasztott felhasználó.
+            {{ trans("users.dialogs.none_selected") }}
         </div>
 
         <div v-else class="space-y-4">
@@ -112,13 +113,13 @@ const submit = async () => {
 
         <template #footer>
             <Button
-                label="Mégse"
+                :label="trans('common.cancel')"
                 severity="secondary"
                 :disabled="loading"
                 @click="close"
             />
             <Button
-                label="Mentés"
+                :label="trans('common.save')"
                 :loading="loading"
                 :disabled="!hasUser"
                 @click="submit"
