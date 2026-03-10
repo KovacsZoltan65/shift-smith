@@ -26,11 +26,11 @@ const fieldError = (key) => {
                     :disabled="disabled"
                     @update:model-value="emit('update:modelValue', { ...modelValue, is_disabled: !!$event })"
                 />
-                <label class="text-sm">Fogyatékosság / megváltozott munkaképesség</label>
+                <label class="text-sm">{{ $t("employees.leave_profile.disability") }}</label>
             </div>
 
             <div>
-                <label class="mb-1 block text-sm font-medium">Gyermekek száma</label>
+                <label class="mb-1 block text-sm font-medium">{{ $t("employees.leave_profile.children_count") }}</label>
                 <InputNumber
                     :model-value="modelValue.children_count"
                     inputClass="w-full"
@@ -47,7 +47,7 @@ const fieldError = (key) => {
             </div>
 
             <div>
-                <label class="mb-1 block text-sm font-medium">Fogyatékos gyermekek száma</label>
+                <label class="mb-1 block text-sm font-medium">{{ $t("employees.leave_profile.disabled_children_count") }}</label>
                 <InputNumber
                     :model-value="modelValue.disabled_children_count"
                     inputClass="w-full"

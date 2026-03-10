@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import { Head, usePage } from "@inertiajs/vue3";
 import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
+import { trans } from "laravel-vue-i18n";
 
 import RowActionMenu from "@/Components/DataTable/RowActionMenu.vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
@@ -31,7 +32,7 @@ import { usePermissions } from "@/composables/usePermissions";
 import { IconField, InputIcon } from "primevue";
 
 const props = defineProps({
-    title: { type: String, default: "Dolgozók" },
+    title: { type: String, default: trans("employees.title") },
     filter: { type: Object, default: () => ({}) },
     default_company_id: { type: [Number, String, null], default: null },
     endpointBase: { type: String, default: "/employees" },
@@ -76,26 +77,28 @@ const selected = ref([]);
 
 // ------------------------
 // Row actions menu
+const title = computed(() => props.title || trans("employees.title"));
+
 const buildRowMenuItems = (row) => [
-        {
-            label: "Szerkesztés",
-            icon: "pi pi-pencil",
-            disabled: actionLoading.value || !canUpdate,
-            command: () => openEditModal(row),
-        },
-        {
-            label: "Törlés",
-            icon: "pi pi-trash",
-            disabled: actionLoading.value || !canDelete,
-            command: () => confirmDeleteOne(row),
-        },
-        {
-            label: "Munkarend",
-            icon: "pi pi-calendar",
-            disabled: actionLoading.value || !canViewEmployeeWorkPatterns,
-            command: () => openWorkPatternModal(row),
-        },
-    ];
+    {
+        label: trans("edit"),
+        icon: "pi pi-pencil",
+        disabled: actionLoading.value || !canUpdate,
+        command: () => openEditModal(row),
+    },
+    {
+        label: trans("delete"),
+        icon: "pi pi-trash",
+        disabled: actionLoading.value || !canDelete,
+        command: () => confirmDeleteOne(row),
+    },
+    {
+        label: trans("employees.actions.work_pattern"),
+        icon: "pi pi-calendar",
+        disabled: actionLoading.value || !canViewEmployeeWorkPatterns,
+        command: () => openWorkPatternModal(row),
+    },
+];
 // ------------------------
 
 const companyId = ref(
@@ -113,8 +116,8 @@ const globalFilterFields = [
     "active",
 ];
 const booleanOptions = [
-    { label: "Igen", value: true },
-    { label: "Nem", value: false },
+    { label: trans("true"), value: true },
+    { label: trans("false"), value: false },
 ];
 const createInitialFilters = () => ({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -176,7 +179,7 @@ const openWorkPatternModal = (row) => {
     workPatternOpen.value = true;
 };
 
-const onSaved = async (msg = "Mentve.") => {
+const onSaved = async (msg = trans("common.success")) => {
     createOpen.value = false;
     editOpen.value = false;
     workPatternOpen.value = false;
@@ -185,7 +188,7 @@ const onSaved = async (msg = "Mentve.") => {
     await fetchEmployees();
     toast.add({
         severity: "success",
-        summary: "Siker",
+        summary: trans("common.success"),
         detail: msg,
         life: 2000,
     });
@@ -248,7 +251,7 @@ const fetchEmployees = async () => {
 
         rows.value = out.rows;
     } catch (e) {
-        error.value = e?.message || "Ismeretlen hiba";
+        error.value = e?.message || trans("common.unknown_error");
     } finally {
         loading.value = false;
     }
@@ -268,8 +271,8 @@ const onDeleted = async () => {
     deleteEmployee.value = null;
     toast.add({
         severity: "success",
-        summary: "Siker",
-        detail: "Dolgozó törölve",
+        summary: trans("common.success"),
+        detail: trans("employees.messages.deleted_success"),
         life: 2500,
     });
     await fetchEmployees();
@@ -280,11 +283,13 @@ const confirmBulkDelete = () => {
     if (!ids.length) return;
 
     confirm.require({
-        message: `Biztos törlöd a kijelölt ${ids.length} dolgozót?`,
-        header: "Bulk törlés",
+        message: trans("employees.dialogs.delete_confirm", {
+            count: ids.length,
+        }),
+        header: trans("employees.actions.bulk_delete"),
         icon: "pi pi-exclamation-triangle",
-        acceptLabel: "Törlés",
-        rejectLabel: "Mégse",
+        acceptLabel: trans("delete"),
+        rejectLabel: trans("common.cancel"),
         acceptClass: "p-button-danger",
         accept: () => bulkDelete(ids),
     });
@@ -304,7 +309,9 @@ const bulkDelete = async (ids) => {
         });
 
         if (!res.ok) {
-            let msg = `Bulk törlés sikertelen (HTTP ${res.status})`;
+            let msg = trans("employees.messages.bulk_delete_failed_http", {
+                status: res.status,
+            });
             try {
                 const body = await res.json();
                 msg = body?.message || msg;
@@ -314,8 +321,10 @@ const bulkDelete = async (ids) => {
 
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: `Törölve: ${ids.length} db`,
+            summary: trans("common.success"),
+            detail: trans("employees.messages.bulk_deleted_success", {
+                count: ids.length,
+            }),
             life: 2500,
         });
 
@@ -324,8 +333,8 @@ const bulkDelete = async (ids) => {
     } catch (e) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: e?.message || "Ismeretlen hiba",
+            summary: trans("common.error"),
+            detail: e?.message || trans("common.unknown_error"),
             life: 3500,
         });
     } finally {
@@ -340,7 +349,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <Head :title="props.title" />
+    <Head :title="title" />
 
     <Toast />
     <ConfirmDialog />
@@ -390,7 +399,7 @@ onMounted(() => {
                     <!-- CREATE -->
                     <Button
                         v-if="canCreate"
-                        label="Új dolgozó"
+                        :label="$t('employees.actions.create')"
                         icon="pi pi-plus"
                         size="small"
                         :disabled="loading"
@@ -400,7 +409,7 @@ onMounted(() => {
 
                     <!-- FRISSÍTÉS -->
                     <Button
-                        label="Frissítés"
+                        :label="$t('employees.actions.refresh')"
                         icon="pi pi-refresh"
                         severity="secondary"
                         size="small"
@@ -413,7 +422,7 @@ onMounted(() => {
                     <!-- BULK DELETE -->
                     <Button
                         v-if="canDelete"
-                        label="Kijelöltek törlése"
+                        :label="$t('employees.actions.bulk_delete')"
                         icon="pi pi-trash"
                         severity="danger"
                         size="small"
@@ -426,13 +435,17 @@ onMounted(() => {
                     />
 
                     <div v-if="selected?.length" class="text-sm text-gray-600">
-                        Kijelölve: <b>{{ selected.length }}</b>
+                        {{
+                            $t("employees.selected_count", {
+                                count: selected.length,
+                            })
+                        }}
                     </div>
                 </div>
             </div>
 
             <div v-if="error" class="mb-3 border p-3">
-                <div class="font-semibold">Hiba</div>
+                <div class="font-semibold">{{ $t("common.error") }}</div>
                 <div class="text-sm">{{ error }}</div>
             </div>
 
@@ -456,7 +469,7 @@ onMounted(() => {
                         <Button
                             type="button"
                             icon="pi pi-filter-slash"
-                            label="Clear"
+                            :label="$t('employees.filters.clear')"
                             variant="outlined"
                             @click="clearFilters()"
                         />
@@ -466,24 +479,33 @@ onMounted(() => {
                             </InputIcon>
                             <InputText
                                 v-model="filters['global'].value"
-                                placeholder="Keyword Search"
+                                :placeholder="
+                                    $t('employees.filters.keyword_search')
+                                "
                             />
                         </IconField>
                     </div>
                 </template>
 
-                <template #empty>Nincs talalat.</template>
-                <template #loading>Betoltes...</template>
+                <template #empty>{{ $t("employees.states.empty") }}</template>
+                <template #loading>{{
+                    $t("employees.states.loading")
+                }}</template>
 
                 <!-- checkbox oszlop -->
                 <Column selectionMode="multiple" headerStyle="width: 3rem" />
 
-                <Column field="id" header="ID" sortable style="width: 90px" />
+                <Column
+                    field="id"
+                    :header="$t('columns.id')"
+                    sortable
+                    style="width: 90px"
+                />
 
                 <Column
                     field="name"
                     filterField="name"
-                    header="Név"
+                    :header="$t('columns.name')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -506,7 +528,7 @@ onMounted(() => {
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Nev keresese"
+                            :placeholder="$t('employees.filters.name')"
                         />
                     </template>
                 </Column>
@@ -514,7 +536,7 @@ onMounted(() => {
                 <Column
                     field="email"
                     filterField="email"
-                    header="Email"
+                    :header="$t('columns.email')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -523,14 +545,14 @@ onMounted(() => {
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Email keresese"
+                            :placeholder="$t('employees.filters.email')"
                         />
                     </template>
                 </Column>
                 <Column
                     field="phone"
                     filterField="phone"
-                    header="Telefon"
+                    :header="$t('columns.phone')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -539,7 +561,7 @@ onMounted(() => {
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Telefon keresese"
+                            :placeholder="$t('employees.filters.phone')"
                         />
                     </template>
                 </Column>
@@ -547,7 +569,7 @@ onMounted(() => {
                 <!-- BELÉPÉS -->
                 <Column
                     field="hired_at"
-                    header="Belépés"
+                    :header="$t('columns.hired_at')"
                     sortable
                     style="width: 140px"
                 >
@@ -561,7 +583,7 @@ onMounted(() => {
                 <Column
                     field="active"
                     filterField="active"
-                    header="Aktív"
+                    :header="$t('columns.active')"
                     filter
                     sortable
                     style="width: 120px"
@@ -577,7 +599,7 @@ onMounted(() => {
                                     : 'bg-gray-100 text-gray-600'
                             "
                         >
-                            {{ data.active ? "Igen" : "Nem" }}
+                            {{ data.active ? $t("true") : $t("false") }}
                         </span>
                     </template>
                     <template #filter="{ filterModel }">
@@ -588,14 +610,14 @@ onMounted(() => {
                             optionValue="value"
                             class="w-full"
                             showClear
-                            placeholder="Statusz"
+                            :placeholder="$t('employees.filters.status')"
                         />
                     </template>
                 </Column>
 
                 <!-- Actions -->
                 <Column
-                    header="Műveletek"
+                    :header="$t('columns.actions')"
                     headerStyle="width: 3rem"
                     bodyStyle="white-space: nowrap;"
                 >
@@ -604,7 +626,11 @@ onMounted(() => {
                             <RowActionMenu
                                 :items="buildRowMenuItems(data)"
                                 :disabled="actionLoading"
-                                :buttonTitle="`Műveletek: ${data.name ?? data.id}`"
+                                :buttonTitle="
+                                    $t('employees.actions.edit_title', {
+                                        name: data.name ?? data.id,
+                                    })
+                                "
                             />
                         </div>
                     </template>

@@ -27,7 +27,7 @@ import { IconField, InputIcon } from "primevue";
 const { has } = usePermissions();
 
 const props = defineProps({
-    title: { type: String, default: "" },
+    title: { type: String, default: trans("companies.title") },
     filter: { type: Object, default: () => ({}) },
     endpointBase: { type: String, default: "/companies" },
     permissionPrefix: { type: String, default: "companies" },
@@ -422,7 +422,11 @@ onMounted(() => {
                     />
 
                     <div v-if="selected?.length" class="text-sm text-gray-600">
-                        {{ $t("companies.selected_count", { count: selected.length }) }}
+                        {{
+                            $t("companies.selected_count", {
+                                count: selected.length,
+                            })
+                        }}
                     </div>
                 </div>
             </div>
@@ -462,14 +466,18 @@ onMounted(() => {
                             </InputIcon>
                             <InputText
                                 v-model="filters['global'].value"
-                                :placeholder="$t('companies.filters.keyword_search')"
+                                :placeholder="
+                                    $t('companies.filters.keyword_search')
+                                "
                             />
                         </IconField>
                     </div>
                 </template>
 
                 <template #empty>{{ $t("companies.states.empty") }}</template>
-                <template #loading>{{ $t("companies.states.loading") }}</template>
+                <template #loading>{{
+                    $t("companies.states.loading")
+                }}</template>
 
                 <!-- checkbox oszlop -->
                 <Column selectionMode="multiple" headerStyle="width: 3rem" />
@@ -575,7 +583,11 @@ onMounted(() => {
                             <RowActionMenu
                                 :items="buildRowMenuItems(data)"
                                 :disabled="actionLoading"
-                                :buttonTitle="$t('companies.actions.edit_title', { name: data.name })"
+                                :buttonTitle="
+                                    $t('companies.actions.edit_title', {
+                                        name: data.name,
+                                    })
+                                "
                             />
                         </div>
                     </template>

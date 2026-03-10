@@ -22,11 +22,11 @@ const visible = computed({
     <Dialog
         v-model:visible="visible"
         modal
-        header="Munkarend hozzárendelése"
+        :header="$t('employees.dialogs.work_pattern_title')"
         :style="{ width: '72rem' }"
     >
         <div v-if="!props.employee?.id" class="text-sm text-gray-600">
-            Nincs kiválasztott dolgozó.
+            {{ $t("employees.dialogs.none_selected") }}
         </div>
         <EmployeeWorkPatternPanel
             v-else

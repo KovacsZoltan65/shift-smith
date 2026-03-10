@@ -1,5 +1,6 @@
 <script setup>
 import { ref, watch, computed } from "vue";
+import { trans } from "laravel-vue-i18n";
 
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
@@ -156,7 +157,7 @@ const loadLeaveProfile = async (employeeId) => {
         const response = await EmployeeLeaveProfileService.getProfile(employeeId);
         fillProfile(response?.data?.data ?? {});
     } catch (error) {
-        const message = error?.response?.data?.message || "A szabadság profil betöltése sikertelen.";
+        const message = error?.response?.data?.message || trans("employees.messages.leave_profile_load_failed");
         profileErrors.value = { _general: message };
         await ErrorService.logClientError(error, {
             category: "employee_leave_profile_load",
@@ -181,8 +182,8 @@ const loadEntitlement = async (employeeId) => {
         });
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: error?.response?.data?.message || "A jogosultság lekérése sikertelen.",
+            summary: trans("common.error"),
+            detail: error?.response?.data?.message || trans("employees.messages.leave_entitlement_load_failed"),
             life: 3500,
         });
     } finally {
@@ -324,14 +325,14 @@ const runSupervisorPreview = async () => {
 
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) {
-            throw new Error(payload?.message || "A felettes integritás ellenőrzése sikertelen.");
+            throw new Error(payload?.message || trans("employees.messages.supervisor_preview_failed"));
         }
 
         supervisorPreview.value = payload?.data ?? null;
     } catch (error) {
         supervisorPreview.value = {
             warnings: [],
-            errors: [error?.message || "A felettes integritás ellenőrzése sikertelen."],
+            errors: [error?.message || trans("employees.messages.supervisor_preview_failed")],
         };
     } finally {
         supervisorPreviewLoading.value = false;
@@ -355,7 +356,7 @@ const supervisorPreviewHasErrors = computed(
 const submit = async () => {
     const id = props.employee?.id;
     if (!id) {
-        errors.value = { _general: "Nincs kiválasztott dolgozó (id hiányzik)." };
+        errors.value = { _general: trans("employees.dialogs.none_selected") };
         return;
     }
 
@@ -369,7 +370,7 @@ const submit = async () => {
             if (supervisorPreviewHasErrors.value) {
                 errors.value = {
                     supervisor_employee_id: supervisorPreview.value?.errors ?? [
-                        "A felettes kapcsolat integritás ellenőrzése hibát talált.",
+                        trans("employees.messages.supervisor_preview_failed"),
                     ],
                 };
                 saving.value = false;
@@ -395,7 +396,9 @@ const submit = async () => {
         }
 
         if (!res.ok) {
-            let msg = `Mentés sikertelen (HTTP ${res.status})`;
+            let msg = trans("employees.messages.save_failed_http", {
+                status: res.status,
+            });
             try {
                 const body = await res.json();
                 msg = body?.message || msg;
@@ -435,7 +438,11 @@ const submit = async () => {
             }
 
             if (!supervisorRes.ok) {
-                throw new Error(`Felettes mentés sikertelen (HTTP ${supervisorRes.status})`);
+                throw new Error(
+                    trans("employees.messages.supervisor_save_failed_http", {
+                        status: supervisorRes.status,
+                    }),
+                );
             }
         }
 
@@ -443,13 +450,13 @@ const submit = async () => {
         fillProfile(profileResponse?.data?.data ?? {});
 
         visible.value = false;
-        emit("saved", "Dolgozó és szabadság profil frissítve.");
+        emit("saved", trans("employees.messages.updated_success"));
     } catch (e) {
         const profileValidationErrors = EmployeeLeaveProfileService.extractErrors(e);
         if (profileValidationErrors) {
             profileErrors.value = profileValidationErrors;
         } else {
-            errors.value = { _general: e?.message || "Ismeretlen hiba" };
+            errors.value = { _general: e?.message || trans("common.unknown_error") };
         }
 
         await ErrorService.logClientError(e, {
@@ -492,14 +499,14 @@ const close = () => {
     <Dialog
         v-model:visible="visible"
         modal
-        header="Dolgozó szerkesztése"
+        :header="$t('employees.dialogs.edit_title')"
         :style="{ width: '720px' }"
         :closable="!saving"
         :dismissableMask="!saving"
         @hide="reset"
     >
         <div v-if="errors?._general" class="mb-4 border p-3">
-            <div class="font-semibold">Hiba</div>
+            <div class="font-semibold">{{ $t("common.error") }}</div>
             <div class="text-sm">{{ errors._general }}</div>
         </div>
 
@@ -512,16 +519,17 @@ const close = () => {
 
         <section class="mt-4 rounded-lg border border-surface-200 p-4">
             <div class="mb-3">
-                <h3 class="text-lg font-semibold">Felettes kapcsolatok</h3>
+                <h3 class="text-lg font-semibold">{{ $t("employees.sections.supervisor") }}</h3>
             </div>
 
             <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div>
-                    <label class="mb-1 block text-sm font-medium">Új felettes</label>
+                    <label class="mb-1 block text-sm font-medium">{{ $t("employees.form.supervisor") }}</label>
                     <SupervisorSelector
                         v-model="form.supervisor_employee_id"
                         :company-id="form.company_id"
                         :employee-id="props.employee?.id"
+                        :placeholder="$t('employees.form.select_supervisor')"
                         :disabled="saving"
                     />
                     <div v-if="errors?.supervisor_employee_id" class="mt-1 text-sm text-red-600">
@@ -529,7 +537,7 @@ const close = () => {
                     </div>
                 </div>
                 <div>
-                    <label class="mb-1 block text-sm font-medium">Érvényes ettől</label>
+                    <label class="mb-1 block text-sm font-medium">{{ $t("employees.form.supervisor_valid_from") }}</label>
                     <DatePicker
                         v-model="form.supervisor_valid_from"
                         class="w-full"
@@ -542,7 +550,7 @@ const close = () => {
 
             <div v-if="form.supervisor_employee_id" class="mt-3 space-y-2">
                 <div class="text-xs text-surface-500">
-                    {{ supervisorPreviewLoading ? "Integritás ellenőrzés folyamatban..." : "Integritás ellenőrzés a hierarchy szabályai szerint." }}
+                    {{ supervisorPreviewLoading ? $t("employees.messages.preview_running") : $t("employees.messages.preview_help") }}
                 </div>
 
                 <Message
@@ -568,7 +576,7 @@ const close = () => {
                     severity="success"
                     :closable="false"
                 >
-                    A felettes kapcsolat integritása rendben van.
+                    {{ $t("employees.messages.supervisor_integrity_ok") }}
                 </Message>
             </div>
 
@@ -576,9 +584,9 @@ const close = () => {
                 <table class="min-w-full text-sm">
                     <thead>
                         <tr class="border-b">
-                            <th class="px-2 py-1 text-left">Érvényes ettől</th>
-                            <th class="px-2 py-1 text-left">Érvényes eddig</th>
-                            <th class="px-2 py-1 text-left">Felettes</th>
+                            <th class="px-2 py-1 text-left">{{ $t("columns.date_from") }}</th>
+                            <th class="px-2 py-1 text-left">{{ $t("columns.date_to") }}</th>
+                            <th class="px-2 py-1 text-left">{{ $t("employees.form.supervisor") }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -588,7 +596,7 @@ const close = () => {
                             <td class="px-2 py-1">{{ row.supervisor_name }}</td>
                         </tr>
                         <tr v-if="!supervisorHistory.length">
-                            <td class="px-2 py-2 text-surface-500" colspan="3">Nincs felettes történet.</td>
+                            <td class="px-2 py-2 text-surface-500" colspan="3">{{ $t("employees.messages.no_supervisor_history") }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -600,15 +608,15 @@ const close = () => {
         <section class="rounded-lg border border-surface-200 p-4">
             <div class="mb-4 flex items-center justify-between gap-3">
                 <div>
-                    <h3 class="text-lg font-semibold">Szabadság profil</h3>
+                    <h3 class="text-lg font-semibold">{{ $t("employees.sections.leave_profile") }}</h3>
                     <p class="text-sm text-surface-500">
-                        Az éves szabadság jogosultság kalkulációjához használt adatok.
+                        {{ $t("employees.sections.leave_profile_help") }}
                     </p>
                 </div>
 
                 <div class="flex gap-2">
                     <Button
-                        label="Jogosultság frissítése"
+                        :label="$t('employees.leave_profile.refresh_entitlement')"
                         icon="pi pi-refresh"
                         severity="secondary"
                         text
@@ -620,12 +628,12 @@ const close = () => {
             </div>
 
             <div v-if="profileErrors?._general" class="mb-4 rounded border p-3">
-                <div class="font-semibold">Hiba</div>
+                <div class="font-semibold">{{ $t("common.error") }}</div>
                 <div class="text-sm">{{ profileErrors._general }}</div>
             </div>
 
             <div v-if="profileLoading" class="py-4 text-sm text-surface-500">
-                Szabadság profil betöltése...
+                {{ $t("employees.messages.leave_profile_loading") }}
             </div>
 
             <div v-else class="space-y-4">
@@ -637,20 +645,20 @@ const close = () => {
 
                 <div class="rounded-md bg-surface-50 p-4">
                     <div class="mb-2 flex items-center justify-between gap-3">
-                        <div class="font-medium">Jogosultság ({{ entitlementYear }})</div>
-                        <div v-if="entitlementLoading" class="text-sm text-surface-500">Frissítés...</div>
+                        <div class="font-medium">{{ $t("employees.sections.entitlement", { year: entitlementYear }) }}</div>
+                        <div v-if="entitlementLoading" class="text-sm text-surface-500">{{ $t("employees.messages.entitlement_refreshing") }}</div>
                     </div>
 
                     <div v-if="entitlement" class="space-y-1 text-sm">
-                        <div><strong>Összesen:</strong> {{ entitlement.total_minutes }} perc</div>
-                        <div><strong>Alap:</strong> {{ entitlement.base_minutes }} perc</div>
-                        <div><strong>Életkor:</strong> {{ entitlement.age_bonus_minutes }} perc</div>
-                        <div><strong>Gyermek:</strong> {{ entitlement.child_bonus_minutes }} perc</div>
-                        <div><strong>Fiatal munkavállaló:</strong> {{ entitlement.youth_bonus_minutes }} perc</div>
-                        <div><strong>Fogyatékosság:</strong> {{ entitlement.disability_bonus_minutes }} perc</div>
+                        <div><strong>{{ $t("employees.leave_profile.total_minutes") }}:</strong> {{ entitlement.total_minutes }} {{ $t("common.minutes") }}</div>
+                        <div><strong>{{ $t("employees.leave_profile.base_minutes") }}:</strong> {{ entitlement.base_minutes }} {{ $t("common.minutes") }}</div>
+                        <div><strong>{{ $t("employees.leave_profile.age_bonus_minutes") }}:</strong> {{ entitlement.age_bonus_minutes }} {{ $t("common.minutes") }}</div>
+                        <div><strong>{{ $t("employees.leave_profile.child_bonus_minutes") }}:</strong> {{ entitlement.child_bonus_minutes }} {{ $t("common.minutes") }}</div>
+                        <div><strong>{{ $t("employees.leave_profile.youth_bonus_minutes") }}:</strong> {{ entitlement.youth_bonus_minutes }} {{ $t("common.minutes") }}</div>
+                        <div><strong>{{ $t("employees.leave_profile.disability_bonus_minutes") }}:</strong> {{ entitlement.disability_bonus_minutes }} {{ $t("common.minutes") }}</div>
                     </div>
                     <div v-else class="text-sm text-surface-500">
-                        Jogosultsági adat még nem érhető el.
+                        {{ $t("employees.messages.entitlement_unavailable") }}
                     </div>
                 </div>
             </div>
@@ -659,7 +667,7 @@ const close = () => {
         <template #footer>
             <!-- MÉGSEM -->
             <Button
-                label="Mégse"
+                :label="$t('common.cancel')"
                 severity="secondary"
                 text
                 :disabled="saving"
@@ -667,7 +675,7 @@ const close = () => {
             />
             <!-- MENTÉS -->
             <Button
-                label="Mentés"
+                :label="$t('common.save')"
                 icon="pi pi-check"
                 :loading="saving"
                 :disabled="saving || supervisorPreviewLoading || supervisorPreviewHasErrors || !props.canUpdate"

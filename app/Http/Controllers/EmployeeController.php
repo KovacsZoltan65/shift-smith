@@ -65,7 +65,7 @@ class EmployeeController extends Controller
         $filter['company_id'] = $currentCompanyId;
         
         return Inertia::render('HR/Employees/Index', [
-            'title'  => 'Dolgozók',
+            'title'  => __('employees.title'),
             'filter' => $filter,
             'default_company_id' => $currentCompanyId,
         ]);
@@ -95,7 +95,7 @@ class EmployeeController extends Controller
         $filter['company_id'] = $currentCompanyId;
 
         return response()->json([
-            'message' => 'Dolgozók sikeresen lekérve.',
+            'message' => __('employees.messages.fetch_success'),
             'data' => $items,
             'meta' => [
                 'current_page' => $employees->currentPage(),
@@ -149,7 +149,7 @@ class EmployeeController extends Controller
             );
         } catch(Throwable $th) {
             return response()->json(
-                ['message' => 'Váratlan hiba történt'],
+                ['message' => __('common.unknown_error')],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
@@ -173,7 +173,7 @@ class EmployeeController extends Controller
             );
         } catch(Throwable $th) {
             return response()->json(
-                ['message' => 'Váratlan hiba történt'],
+                ['message' => __('common.unknown_error')],
                 Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
@@ -205,7 +205,7 @@ class EmployeeController extends Controller
         $created = $this->service->storeFromPayload($payload);
 
         return response()->json([
-            'message' => 'A dolgozó sikeresen létrehozva.',
+            'message' => __('employees.messages.created_success'),
             'data' => $created,
         ], Response::HTTP_CREATED);
     }
@@ -227,7 +227,7 @@ class EmployeeController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'A dolgozó sikeresen visszaállítva. A hierarchia hozzárendelés külön szükséges.',
+            'message' => __('employees.messages.restore_success'),
             'data' => EmployeeIndexData::fromModel($restored),
         ], Response::HTTP_OK);
     }
@@ -247,7 +247,7 @@ class EmployeeController extends Controller
         $updated = $this->service->update($data, $id);
         
         return response()->json([
-            'message' => 'A dolgozó sikeresen frissítve.',
+            'message' => __('employees.messages.updated_success'),
             'data' => $updated,
         ], Response::HTTP_OK);
     }
@@ -272,12 +272,12 @@ class EmployeeController extends Controller
             $deleted = $this->service->bulkDelete($data['ids']);
             
             return response()->json([
-                'message' => 'Sikeres törlés.',
+                'message' => __('employees.messages.deleted_success'),
                 'deleted' => $deleted,
             ], Response::HTTP_OK);
         } catch(Throwable $th) {
             return response()->json([
-                'message' => 'Törlés sikertelen.',
+                'message' => __('employees.messages.delete_failed'),
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
@@ -309,7 +309,7 @@ class EmployeeController extends Controller
         );
 
         return response()->json([
-            'message' => 'Dolgozó törlés előnézet sikeresen elkészült.',
+            'message' => __('employees.delete.preview'),
             'data' => $preview,
         ], Response::HTTP_OK);
     }
@@ -332,7 +332,7 @@ class EmployeeController extends Controller
         );
 
         return response()->json([
-            'message' => 'A dolgozó törlése sikeres.',
+            'message' => __('employees.messages.deleted_success'),
             'data' => $deleted,
         ], Response::HTTP_OK);
     }
@@ -374,7 +374,7 @@ class EmployeeController extends Controller
             ]);
 
             return response()->json([
-                'message' => 'Dolgozó selector sikeresen lekérve.',
+                'message' => __('employees.messages.fetch_success'),
                 'data' => $rows,
             ], Response::HTTP_OK);
         }
@@ -382,7 +382,7 @@ class EmployeeController extends Controller
         $result = $this->service->getEligibleForAutoPlan($companyId, $this->eligibleParams($request));
 
         return response()->json([
-            'message' => 'AutoPlan-re jogosult dolgozók sikeresen lekérve.',
+            'message' => __('employees.messages.fetch_success'),
             'data' => $result['data'],
             'meta' => $result['meta'],
         ], Response::HTTP_OK);
@@ -399,7 +399,7 @@ class EmployeeController extends Controller
         $result = $this->service->getEligibleForAutoPlan($companyId, $this->eligibleParams($request));
 
         return response()->json([
-            'message' => 'AutoPlan-re jogosult dolgozók sikeresen lekérve.',
+            'message' => __('employees.messages.fetch_success'),
             'data' => $result['data'],
             'meta' => $result['meta'],
         ], Response::HTTP_OK);

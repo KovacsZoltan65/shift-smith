@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
+import { trans } from "laravel-vue-i18n";
 import Button from "primevue/button";
 import Column from "primevue/column";
 import DataTable from "primevue/datatable";
@@ -57,8 +58,8 @@ const load = async () => {
     } catch (e) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: e?.message || "Munkarend lista nem tölthető.",
+            summary: trans("common.error"),
+            detail: e?.message || trans("employees.messages.work_pattern_list_failed"),
             life: 3500,
         });
     } finally {
@@ -115,7 +116,7 @@ const submitAssign = async () => {
 
     try {
         if (!employeeIdInt.value) {
-            errors.value._global = "Hiányzó dolgozó azonosító.";
+            errors.value._global = trans("employees.messages.missing_employee_id");
             return;
         }
 
@@ -129,8 +130,8 @@ const submitAssign = async () => {
         await load();
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: data?.message || (isEdit ? "Hozzárendelés frissítve." : "Munkarend hozzárendelve."),
+            summary: trans("common.success"),
+            detail: data?.message || (isEdit ? trans("employees.messages.work_pattern_updated") : trans("employees.messages.work_pattern_assigned")),
             life: 2500,
         });
     } catch (e) {
@@ -141,7 +142,7 @@ const submitAssign = async () => {
             Object.keys(bag).forEach((k) => (flat[k] = bag[k]?.[0] ?? String(bag[k])));
             errors.value = flat;
         } else {
-            errors.value._global = e?.response?.data?.message || e?.message || "Mentési hiba.";
+            errors.value._global = e?.response?.data?.message || e?.message || trans("common.unknown_error");
         }
     } finally {
         saving.value = false;
@@ -150,22 +151,22 @@ const submitAssign = async () => {
 
 const unassign = async (row) => {
     if (!props.canUnassign) return;
-    if (!window.confirm(`Biztos törlöd a hozzárendelést: ${row.work_pattern_name}?`)) return;
+    if (!window.confirm(trans("employees.work_pattern.delete_confirm", { name: row.work_pattern_name }))) return;
 
     try {
         await EmployeeWorkPatternService.unassign(employeeIdInt.value, row.id);
         await load();
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: "Hozzárendelés törölve.",
+            summary: trans("common.success"),
+            detail: trans("employees.messages.work_pattern_deleted"),
             life: 2500,
         });
     } catch (e) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: e?.response?.data?.message || e?.message || "Törlés sikertelen.",
+            summary: trans("common.error"),
+            detail: e?.response?.data?.message || e?.message || trans("employees.messages.work_pattern_delete_failed"),
             life: 3500,
         });
     }
@@ -175,10 +176,10 @@ const unassign = async (row) => {
 <template>
     <div class="mt-6 rounded border p-4">
         <div class="mb-3 flex items-center justify-between gap-3">
-            <h3 class="text-base font-semibold">Munkarend</h3>
+            <h3 class="text-base font-semibold">{{ $t("employees.work_pattern.title") }}</h3>
             <div class="flex items-center gap-2">
                 <Button
-                    label="Frissítés"
+                    :label="$t('employees.actions.refresh')"
                     icon="pi pi-refresh"
                     severity="secondary"
                     size="small"
@@ -188,7 +189,7 @@ const unassign = async (row) => {
                 />
                 <Button
                     v-if="canAssign"
-                    label="Hozzárendelés"
+                    :label="$t('employees.work_pattern.assign')"
                     icon="pi pi-plus"
                     size="small"
                     :disabled="!employeeIdInt || !companyIdInt"
@@ -198,21 +199,21 @@ const unassign = async (row) => {
         </div>
 
         <DataTable :value="rows" dataKey="id" :loading="loading" size="small">
-            <template #empty>Nincs hozzárendelés.</template>
+            <template #empty>{{ $t("employees.work_pattern.empty") }}</template>
 
-            <Column field="work_pattern_name" header="Munkarend" />
-            <Column field="date_from" header="Ettől">
+            <Column field="work_pattern_name" :header="$t('employees.work_pattern.title')" />
+            <Column field="date_from" :header="$t('columns.date_from')">
                 <template #body="{ data }">{{ data.date_from || "-" }}</template>
             </Column>
-            <Column field="date_to" header="Eddig">
-                <template #body="{ data }">{{ data.date_to || "jelenleg" }}</template>
+            <Column field="date_to" :header="$t('columns.date_to')">
+                <template #body="{ data }">{{ data.date_to || $t("employees.work_pattern.current") }}</template>
             </Column>
-            <Column header="Művelet" style="width: 180px">
+            <Column :header="$t('columns.actions')" style="width: 180px">
                 <template #body="{ data }">
                     <div class="flex items-center gap-1">
                         <Button
                             v-if="canAssign"
-                            label="Szerkesztés"
+                            :label="$t('edit')"
                             icon="pi pi-pencil"
                             severity="secondary"
                             text
@@ -221,7 +222,7 @@ const unassign = async (row) => {
                         />
                         <Button
                             v-if="canUnassign"
-                            label="Törlés"
+                            :label="$t('delete')"
                             icon="pi pi-trash"
                             severity="danger"
                             text
@@ -237,18 +238,18 @@ const unassign = async (row) => {
     <Dialog
         v-model:visible="assignOpen"
         modal
-        :header="editingId ? 'Munkarend hozzárendelés szerkesztése' : 'Munkarend hozzárendelése'"
+        :header="editingId ? $t('employees.work_pattern.edit_title') : $t('employees.work_pattern.create_title')"
         :style="{ width: '38rem' }"
         :closable="!saving"
         :dismissableMask="!saving"
     >
         <div class="grid grid-cols-1 gap-4">
             <div>
-                <label class="mb-1 block text-sm">Munkarend</label>
+                <label class="mb-1 block text-sm">{{ $t("employees.work_pattern.title") }}</label>
                 <WorkPatternSelector
                     v-model="form.work_pattern_id"
                     :companyId="companyIdInt"
-                    placeholder="Válassz munkarendet..."
+                    :placeholder="$t('employees.work_pattern.select')"
                 />
                 <div v-if="errors?.work_pattern_id" class="mt-1 text-sm text-red-600">
                     {{ errors.work_pattern_id }}
@@ -256,7 +257,7 @@ const unassign = async (row) => {
             </div>
 
             <div>
-                <label class="mb-1 block text-sm">Érvényes ettől</label>
+                <label class="mb-1 block text-sm">{{ $t("columns.date_from") }}</label>
                 <DatePicker v-model="form.date_from" showIcon dateFormat="yy-mm-dd" class="w-full" />
                 <div v-if="errors?.date_from" class="mt-1 text-sm text-red-600">
                     {{ errors.date_from }}
@@ -264,7 +265,7 @@ const unassign = async (row) => {
             </div>
 
             <div>
-                <label class="mb-1 block text-sm">Érvényes eddig</label>
+                <label class="mb-1 block text-sm">{{ $t("columns.date_to") }}</label>
                 <DatePicker v-model="form.date_to" showIcon dateFormat="yy-mm-dd" class="w-full" />
                 <div v-if="errors?.date_to" class="mt-1 text-sm text-red-600">
                     {{ errors.date_to }}
@@ -279,13 +280,13 @@ const unassign = async (row) => {
         <template #footer>
             <div class="flex justify-end gap-2">
                 <Button
-                    label="Mégse"
+                    :label="$t('common.cancel')"
                     severity="secondary"
                     :disabled="saving"
                     @click="assignOpen = false; editingId = null"
                 />
                 <Button
-                    label="Mentés"
+                    :label="$t('common.save')"
                     icon="pi pi-check"
                     :loading="saving"
                     :disabled="saving || !canAssign"

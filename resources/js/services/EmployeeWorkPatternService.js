@@ -1,5 +1,6 @@
 import BaseService from "@/services/BaseService";
 import { csrfFetch } from "@/lib/csrfFetch.js";
+import { trans } from "laravel-vue-i18n";
 
 const toAxiosLikeError = async (res, fallbackMessage) => {
     let data = null;
@@ -27,7 +28,7 @@ class EmployeeWorkPatternService extends BaseService {
         });
 
         if (!res.ok) {
-            throw await toAxiosLikeError(res, "Munkarend hozzárendelése sikertelen.");
+            throw await toAxiosLikeError(res, trans("employees.messages.work_pattern_assign_failed"));
         }
 
         return { data: await res.json() };
@@ -41,7 +42,7 @@ class EmployeeWorkPatternService extends BaseService {
         });
 
         if (!res.ok) {
-            throw await toAxiosLikeError(res, "Munkarend hozzárendelés frissítése sikertelen.");
+            throw await toAxiosLikeError(res, trans("employees.messages.work_pattern_update_failed"));
         }
 
         return { data: await res.json() };
@@ -54,7 +55,7 @@ class EmployeeWorkPatternService extends BaseService {
         });
 
         if (!res.ok) {
-            throw await toAxiosLikeError(res, "Munkarend hozzárendelés törlése sikertelen.");
+            throw await toAxiosLikeError(res, trans("employees.messages.work_pattern_delete_failed"));
         }
 
         return { data: await res.json() };

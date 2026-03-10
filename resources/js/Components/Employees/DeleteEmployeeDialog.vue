@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch } from "vue";
+import { trans } from "laravel-vue-i18n";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 import DatePicker from "primevue/datepicker";
@@ -27,9 +28,9 @@ const effectiveFrom = ref(props.defaultEffectiveFrom ? new Date(props.defaultEff
 let previewTimer = null;
 
 const strategyOptions = [
-    { label: "Nincs áthelyezés", value: "none" },
-    { label: "Beosztottak áthelyezése a jelenlegi feletteshez", value: "reassign_to_old_supervisor" },
-    { label: "Beosztottak áthelyezése másik vezető alá", value: "reassign_to_specific_supervisor" },
+    { label: trans("employees.delete.no_reassignment"), value: "none" },
+    { label: trans("employees.delete.reassign_to_old_supervisor"), value: "reassign_to_old_supervisor" },
+    { label: trans("employees.delete.reassign_to_specific_supervisor"), value: "reassign_to_specific_supervisor" },
 ];
 
 const ymd = (value) => {
@@ -104,13 +105,13 @@ const runPreview = async () => {
         });
         const json = await response.json().catch(() => ({}));
         if (!response.ok) {
-            throw new Error(json?.message || "A törlés előnézete sikertelen.");
+            throw new Error(json?.message || trans("employees.messages.delete_preview_failed"));
         }
 
         previewData.value = json?.data ?? null;
     } catch (error) {
         previewData.value = null;
-        requestError.value = error instanceof Error ? error.message : "A törlés előnézete sikertelen.";
+        requestError.value = error instanceof Error ? error.message : trans("employees.messages.delete_preview_failed");
     } finally {
         previewLoading.value = false;
     }
@@ -151,13 +152,13 @@ const submitDelete = async () => {
         });
         const json = await response.json().catch(() => ({}));
         if (!response.ok) {
-            throw new Error(json?.message || "A törlés sikertelen.");
+            throw new Error(json?.message || trans("employees.messages.delete_failed"));
         }
 
         emit("deleted", json?.data ?? null);
         emit("update:visible", false);
     } catch (error) {
-        requestError.value = error instanceof Error ? error.message : "A törlés sikertelen.";
+        requestError.value = error instanceof Error ? error.message : trans("employees.messages.delete_failed");
     } finally {
         executeLoading.value = false;
     }
@@ -195,12 +196,12 @@ watch(
         modal
         :draggable="false"
         :style="{ width: '42rem', maxWidth: '96vw' }"
-        header="Dolgozó törlése"
+        :header="$t('employees.dialogs.delete_title')"
         @update:visible="emit('update:visible', $event)"
     >
         <div class="space-y-4">
             <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Érintett dolgozó</div>
+                <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ $t("employees.delete.affected_employee") }}</div>
                 <div class="mt-1 text-sm font-medium text-slate-800">
                     {{ employee?.name || `${employee?.first_name || ""} ${employee?.last_name || ""}`.trim() || `#${employee?.id}` }}
                 </div>
@@ -208,7 +209,7 @@ watch(
             </div>
 
             <div class="space-y-2">
-                <label class="block text-sm font-medium text-slate-700">Hatálybalépés</label>
+                <label class="block text-sm font-medium text-slate-700">{{ $t("employees.delete.effective_from") }}</label>
                 <DatePicker
                     v-model="effectiveFrom"
                     dateFormat="yy-mm-dd"
@@ -225,11 +226,11 @@ watch(
             <div v-if="visible" class="rounded-xl border border-slate-200 p-4">
                 <div class="mb-3 flex items-start justify-between gap-3">
                     <div>
-                        <div class="text-sm font-semibold text-slate-800">Előnézet</div>
-                        <div class="text-xs text-slate-500">A törlés előtt integritás és érintettség ellenőrzés fut.</div>
+                        <div class="text-sm font-semibold text-slate-800">{{ $t("employees.delete.preview") }}</div>
+                        <div class="text-xs text-slate-500">{{ $t("employees.delete.preview_help") }}</div>
                     </div>
                     <Button
-                        label="Frissítés"
+                        :label="$t('employees.actions.refresh')"
                         icon="pi pi-refresh"
                         severity="secondary"
                         :loading="previewLoading"
@@ -240,11 +241,11 @@ watch(
 
                 <div v-if="previewData" class="grid grid-cols-1 gap-3 md:grid-cols-2">
                     <div class="rounded-lg bg-slate-50 p-3">
-                        <div class="text-xs uppercase tracking-wide text-slate-500">Aktív beosztottak</div>
+                        <div class="text-xs uppercase tracking-wide text-slate-500">{{ $t("employees.delete.active_subordinates") }}</div>
                         <div class="mt-1 text-lg font-semibold text-slate-800">{{ previewData.subordinate_count || 0 }}</div>
                     </div>
                     <div class="rounded-lg bg-slate-50 p-3">
-                        <div class="text-xs uppercase tracking-wide text-slate-500">Érintett dolgozók</div>
+                        <div class="text-xs uppercase tracking-wide text-slate-500">{{ $t("employees.delete.affected_employees") }}</div>
                         <div class="mt-1 text-lg font-semibold text-slate-800">{{ previewData.affected_count || 0 }}</div>
                     </div>
                 </div>
@@ -255,7 +256,7 @@ watch(
                     :closable="false"
                     class="mt-3"
                 >
-                    A dolgozónak {{ subordinateCount }} aktív beosztottja van.
+                    {{ $t("employees.messages.employee_has_subordinates", { count: subordinateCount }) }}
                 </Message>
 
                 <Message
@@ -264,12 +265,12 @@ watch(
                     :closable="false"
                     class="mt-3"
                 >
-                    A CEO nem törölhető, amíg aktív beosztottjai vannak.
+                    {{ $t("employees.messages.ceo_delete_blocked") }}
                 </Message>
 
                 <div v-if="needsStrategy" class="mt-3 space-y-3">
                     <div class="space-y-2">
-                        <label class="block text-sm font-medium text-slate-700">Áthelyezési stratégia</label>
+                        <label class="block text-sm font-medium text-slate-700">{{ $t("employees.delete.reassignment_strategy") }}</label>
                         <Select
                             v-model="strategy"
                             :options="strategyOptions"
@@ -280,17 +281,17 @@ watch(
                     </div>
 
                     <div v-if="needsTargetSupervisor" class="space-y-2">
-                        <label class="block text-sm font-medium text-slate-700">Cél vezető</label>
+                        <label class="block text-sm font-medium text-slate-700">{{ $t("employees.delete.target_supervisor") }}</label>
                         <EmployeeSelector
                             v-model="targetSupervisorEmployeeId"
                             :company-id="companyId"
                             :server-search="true"
                             :exclude-employee-ids="[employee?.id]"
                             class="block w-full"
-                            placeholder="Cél vezető keresése..."
+                            :placeholder="$t('employees.form.select_supervisor')"
                         />
                         <div v-if="isPreviewPendingInput" class="text-xs text-slate-500">
-                            Válassz cél vezetőt az előnézethez.
+                            {{ $t("employees.messages.select_target_supervisor") }}
                         </div>
                     </div>
                 </div>
@@ -301,7 +302,7 @@ watch(
                         severity="info"
                         :closable="false"
                     >
-                        Válassz cél vezetőt az előnézethez.
+                        {{ $t("employees.messages.select_target_supervisor") }}
                     </Message>
 
                     <Message
@@ -327,7 +328,7 @@ watch(
                         severity="success"
                         :closable="false"
                     >
-                        A törlés végrehajtható.
+                        {{ $t("employees.messages.delete_allowed") }}
                     </Message>
                 </div>
             </div>
@@ -336,14 +337,14 @@ watch(
         <template #footer>
             <div class="flex items-center justify-end gap-2">
                 <Button
-                    label="Mégse"
+                    :label="$t('common.cancel')"
                     severity="secondary"
                     text
                     :disabled="executeLoading"
                     @click="emit('update:visible', false)"
                 />
                 <Button
-                    label="Törlés"
+                    :label="$t('delete')"
                     icon="pi pi-trash"
                     severity="danger"
                     :loading="executeLoading"

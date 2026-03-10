@@ -28,11 +28,11 @@ final class EmployeeLeaveProfileController extends Controller
         try {
             $profile = $this->profiles->show($id);
         } catch (DomainException) {
-            abort(Response::HTTP_NOT_FOUND, 'Dolgozó szabadság profil nem érhető el ebben a cég kontextusban.');
+            abort(Response::HTTP_NOT_FOUND, __('employees.messages.leave_profile_load_failed'));
         }
 
         return response()->json([
-            'message' => 'Dolgozó szabadság profil sikeresen lekérve.',
+            'message' => __('employees.messages.fetch_success'),
             'data' => $profile->toArray(),
         ], Response::HTTP_OK);
     }
@@ -46,7 +46,7 @@ final class EmployeeLeaveProfileController extends Controller
             $profile = $this->profiles->update($id, $request->validated());
         } catch (DomainException $exception) {
             if (str_contains($exception->getMessage(), 'current company scope')) {
-                abort(Response::HTTP_NOT_FOUND, 'Dolgozó szabadság profil nem érhető el ebben a cég kontextusban.');
+                abort(Response::HTTP_NOT_FOUND, __('employees.messages.leave_profile_load_failed'));
             }
 
             return response()->json([
@@ -55,7 +55,7 @@ final class EmployeeLeaveProfileController extends Controller
         }
 
         return response()->json([
-            'message' => 'Dolgozó szabadság profil sikeresen mentve.',
+            'message' => __('employees.messages.updated_success'),
             'data' => $profile->toArray(),
         ], Response::HTTP_OK);
     }

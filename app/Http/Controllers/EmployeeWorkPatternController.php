@@ -49,7 +49,7 @@ class EmployeeWorkPatternController extends Controller
         $items = $this->service->listByEmployee((int) $employeeModel->id, $companyId);
 
         return response()->json([
-            'message' => 'Dolgozó munkarendjei sikeresen lekérve.',
+            'message' => __('employees.messages.fetch_success'),
             'data' => $items,
         ], Response::HTTP_OK);
     }
@@ -74,7 +74,7 @@ class EmployeeWorkPatternController extends Controller
         $created = $this->service->assign(EmployeeWorkPatternData::from($payload));
 
         return response()->json([
-            'message' => 'Munkarend sikeresen hozzárendelve.',
+            'message' => __('employees.messages.work_pattern_assigned'),
             'data' => $created,
         ], Response::HTTP_CREATED);
     }
@@ -105,7 +105,7 @@ class EmployeeWorkPatternController extends Controller
         );
 
         return response()->json([
-            'message' => 'Hozzárendelés sikeresen frissítve.',
+            'message' => __('employees.messages.work_pattern_updated'),
             'data' => $updated,
         ], Response::HTTP_OK);
     }
@@ -127,7 +127,7 @@ class EmployeeWorkPatternController extends Controller
         $deleted = $this->service->unassign($id, (int) $employeeModel->id, $companyId);
 
         return response()->json([
-            'message' => $deleted ? 'Hozzárendelés törlése sikeres.' : 'Hozzárendelés törlése sikertelen.',
+            'message' => $deleted ? __('employees.messages.work_pattern_deleted') : __('employees.messages.work_pattern_delete_failed'),
             'deleted' => (bool) $deleted,
         ], $deleted ? Response::HTTP_OK : Response::HTTP_INTERNAL_SERVER_ERROR);
     }

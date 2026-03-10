@@ -1,5 +1,6 @@
 <script setup>
 import { ref, watch, computed } from "vue";
+import { trans } from "laravel-vue-i18n";
 
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
@@ -142,7 +143,9 @@ const submit = async () => {
         }
 
         if (!res.ok) {
-            let msg = `Mentés sikertelen (HTTP ${res.status})`;
+            let msg = trans("employees.messages.save_failed_http", {
+                status: res.status,
+            });
             try {
                 const body = await res.json();
                 msg = body?.message || msg;
@@ -174,14 +177,18 @@ const submit = async () => {
             }
 
             if (!supervisorResponse.ok) {
-                throw new Error(`Felettes mentés sikertelen (HTTP ${supervisorResponse.status})`);
+                throw new Error(
+                    trans("employees.messages.supervisor_save_failed_http", {
+                        status: supervisorResponse.status,
+                    }),
+                );
             }
         }
 
         visible.value = false;
-        emit("saved", "Dolgozó létrehozva.");
+        emit("saved", body?.message ?? trans("employees.messages.created_success"));
     } catch (e) {
-        errors.value = { _general: e?.message || "Ismeretlen hiba" };
+        errors.value = { _general: e?.message || trans("common.unknown_error") };
     } finally {
         saving.value = false;
     }
@@ -215,7 +222,9 @@ const submitRestore = async () => {
         }
 
         if (!res.ok) {
-            let msg = `Visszaállítás sikertelen (HTTP ${res.status})`;
+            let msg = trans("employees.messages.restore_failed_http", {
+                status: res.status,
+            });
             try {
                 const body = await res.json();
                 msg = body?.message || msg;
@@ -227,10 +236,10 @@ const submitRestore = async () => {
         visible.value = false;
         emit(
             "saved",
-            "Dolgozó visszaállítva. A hierarchia hozzárendelés külön szükséges.",
+            trans("employees.messages.restore_success"),
         );
     } catch (e) {
-        errors.value = { _general: e?.message || "Ismeretlen hiba" };
+        errors.value = { _general: e?.message || trans("common.unknown_error") };
     } finally {
         restoreLoading.value = false;
     }
@@ -245,7 +254,7 @@ const close = () => {
     <Dialog
         v-model:visible="visible"
         modal
-        header="Új dolgozó"
+        :header="$t('employees.dialogs.create_title')"
         :style="{ width: '720px' }"
         :closable="!saving"
         :dismissableMask="!saving"
@@ -260,7 +269,7 @@ const close = () => {
         />
 
         <div v-if="errors?._general" class="mb-4 border p-3">
-            <div class="font-semibold">Hiba</div>
+            <div class="font-semibold">{{ $t("common.error") }}</div>
             <div class="text-sm">{{ errors._general }}</div>
         </div>
 
@@ -268,10 +277,11 @@ const close = () => {
 
         <div class="mt-4 space-y-3">
             <div>
-                <label class="mb-1 block text-sm font-medium">Felettes</label>
+                <label class="mb-1 block text-sm font-medium">{{ $t("employees.form.supervisor") }}</label>
                 <SupervisorSelector
                     v-model="form.supervisor_employee_id"
                     :company-id="form.company_id"
+                    :placeholder="$t('employees.form.select_supervisor')"
                     :disabled="saving"
                 />
                 <div v-if="errors?.supervisor_employee_id" class="mt-1 text-sm text-red-600">
@@ -283,7 +293,7 @@ const close = () => {
         <template #footer>
             <!-- CANCEL -->
             <Button
-                label="Mégse"
+                :label="$t('common.cancel')"
                 severity="secondary"
                 text
                 :disabled="saving"
@@ -291,7 +301,7 @@ const close = () => {
             />
             <!-- SAVE -->
             <Button
-                label="Mentés"
+                :label="$t('common.save')"
                 icon="pi pi-check"
                 :loading="saving"
                 :disabled="saving || !props.canCreate"

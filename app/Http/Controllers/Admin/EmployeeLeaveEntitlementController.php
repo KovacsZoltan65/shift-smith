@@ -31,11 +31,11 @@ final class EmployeeLeaveEntitlementController extends Controller
                 year: (int) ($request->validated('year') ?? now()->year),
             );
         } catch (DomainException) {
-            abort(Response::HTTP_NOT_FOUND, 'Az éves szabadság jogosultság nem érhető el ebben a cég kontextusban.');
+            abort(Response::HTTP_NOT_FOUND, __('employees.messages.leave_entitlement_load_failed'));
         }
 
         return response()->json([
-            'message' => 'Éves szabadság jogosultság sikeresen lekérve.',
+            'message' => __('employees.messages.fetch_success'),
             'data' => $result->toArray(),
         ], Response::HTTP_OK);
     }
