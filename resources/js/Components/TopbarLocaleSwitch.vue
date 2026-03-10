@@ -1,17 +1,31 @@
 <script setup>
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import { usePage } from "@inertiajs/vue3";
 import { usePreferences } from "@/composables/usePreferences";
 import LocaleSelector from "@/Components/Selectors/LocaleSelector.vue";
 
-const { props } = usePage();
-const locale = ref(props.preferences?.locale ?? props.locale ?? "hu");
+const page = usePage();
+const resolveLocale = () =>
+    document.documentElement.getAttribute("lang") ??
+    page.props?.preferences?.locale ??
+    page.props?.locale ??
+    "hu";
+
+const locale = ref(resolveLocale());
 const { setLocale } = usePreferences();
+
+watch(
+    () => [page.props?.preferences?.locale, page.props?.locale],
+    () => {
+        locale.value = resolveLocale();
+    },
+);
+
 const change = async (val) => {
     try {
         await setLocale(val);
     } catch (error) {
-        locale.value = props.preferences?.locale ?? props.locale ?? "hu";
+        locale.value = resolveLocale();
         console.error("Locale switch failed", error);
     }
 };
