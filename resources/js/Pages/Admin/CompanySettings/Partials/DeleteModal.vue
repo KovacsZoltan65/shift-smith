@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from "vue";
+import { trans } from "laravel-vue-i18n";
 import Button from "primevue/button";
 import Dialog from "primevue/dialog";
 
@@ -13,7 +14,7 @@ const props = defineProps({
 const emit = defineEmits(["update:modelValue", "deleted"]);
 const loading = ref(false);
 const error = ref("");
-const title = computed(() => props.item?.key ?? "kiválasztott elem");
+const title = computed(() => props.item?.key ?? trans("company_settings.dialogs.item_fallback"));
 
 const close = () => emit("update:modelValue", false);
 
@@ -24,10 +25,10 @@ const submit = async () => {
 
     try {
         const { data } = await CompanySettingsService.destroy(props.item.id);
-        emit("deleted", data?.message ?? "Company setting törölve.");
+        emit("deleted", data?.message ?? trans("company_settings.messages.deleted_success"));
         close();
     } catch (err) {
-        error.value = err?.response?.data?.message ?? err?.message ?? "Törlési hiba";
+        error.value = err?.response?.data?.message ?? err?.message ?? trans("common.delete_failed");
     } finally {
         loading.value = false;
     }
@@ -35,15 +36,15 @@ const submit = async () => {
 </script>
 
 <template>
-    <Dialog :visible="modelValue" modal header="Company setting törlése" :style="{ width: '30rem' }" @update:visible="emit('update:modelValue', $event)">
+    <Dialog :visible="modelValue" modal :header="$t('company_settings.dialogs.delete_title')" :style="{ width: '30rem' }" @update:visible="emit('update:modelValue', $event)">
         <div class="space-y-3">
-            <p class="text-sm text-gray-700">Biztosan törlöd ezt a beállítást: <strong>{{ title }}</strong>?</p>
+            <p class="text-sm text-gray-700">{{ $t("company_settings.dialogs.delete_confirm", { name: title }) }}</p>
             <div v-if="error" class="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">{{ error }}</div>
         </div>
 
         <template #footer>
-            <Button label="Mégse" severity="secondary" :disabled="loading" @click="close" />
-            <Button label="Törlés" severity="danger" :loading="loading" @click="submit" />
+            <Button :label="$t('common.cancel')" severity="secondary" :disabled="loading" @click="close" />
+            <Button :label="$t('delete')" severity="danger" :loading="loading" @click="submit" />
         </template>
     </Dialog>
 </template>

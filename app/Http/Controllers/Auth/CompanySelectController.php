@@ -38,7 +38,7 @@ final class CompanySelectController extends Controller
                 return redirect()->intended(route('dashboard', absolute: false));
             }
 
-            abort(403, 'No company assigned');
+            abort(403, __('common.errors.no_company_assigned'));
         }
 
         if ($companyCount === 1) {
@@ -67,7 +67,7 @@ final class CompanySelectController extends Controller
         $companyId = (int) $validated['company_id'];
 
         if (!$this->companyContext->userCanSelectCompanyForSwitch($user, $companyId)) {
-            abort(403, 'The selected company is not assigned to the current user.');
+            abort(403, __('auth.errors.selected_company_not_assigned'));
         }
 
         $this->applyCompanyContext($request, $user, $companyId);
@@ -87,7 +87,7 @@ final class CompanySelectController extends Controller
             ]);
 
             $this->currentTenantGroup->clearCurrentTenantGroup($request);
-            abort(500, 'Company tenant group is missing');
+            abort(500, __('auth.errors.company_tenant_group_missing'));
         }
 
         $this->currentTenantGroup->setCurrentTenantGroupId($request, $tenantGroupId);

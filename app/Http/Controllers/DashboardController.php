@@ -17,7 +17,7 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $selectedCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if($selectedCompanyId === null, 403, 'No company selected');
+        abort_if($selectedCompanyId === null, 403, __('common.errors.no_company_selected'));
 
         $payload = $this->dashboardService->getDashboardStats($selectedCompanyId);
 

@@ -187,7 +187,7 @@ class WorkScheduleAssignmentService
 
         if (! $this->repository->employeesBelongToCompany($companyId, $employeeIds)) {
             throw ValidationException::withMessages([
-                'employee_ids' => 'A kiválasztott dolgozók között cégidegen elem található.',
+                'employee_ids' => __('work_schedules.validation.foreign_employee_selected'),
             ]);
         }
 
@@ -233,14 +233,14 @@ class WorkScheduleAssignmentService
         $employeeIds = $filters['employee_ids'] ?? [];
         if (!empty($employeeIds)) {
             if (! $this->repository->employeesBelongToCompany($companyId, $employeeIds)) {
-                throw ValidationException::withMessages(['employee_ids' => 'A kiválasztott dolgozók között cégidegen elem található.']);
+                throw ValidationException::withMessages(['employee_ids' => __('work_schedules.validation.foreign_employee_selected')]);
             }
         }
 
         $workShiftIds = $filters['work_shift_ids'] ?? [];
         if (!empty($workShiftIds)) {
             if (! $this->repository->shiftsBelongToCompany($companyId, $workShiftIds)) {
-                throw ValidationException::withMessages(['work_shift_ids' => 'A kiválasztott műszakok között cégidegen elem található.']);
+                throw ValidationException::withMessages(['work_shift_ids' => __('work_schedules.validation.foreign_work_shift_selected')]);
             }
         }
     }
@@ -249,7 +249,7 @@ class WorkScheduleAssignmentService
     {
         if ($this->repository->existsForEmployeeDate($companyId, $employeeId, $date, $ignoreId)) {
             throw ValidationException::withMessages([
-                'employee_id' => 'Az adott dolgozónak erre a napra már van műszakbeosztása.',
+                'employee_id' => __('work_schedules.validation.employee_assignment_exists'),
             ]);
         }
     }

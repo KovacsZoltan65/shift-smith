@@ -1,5 +1,6 @@
 <script setup>
 import { reactive, ref, watch } from "vue";
+import { trans } from "laravel-vue-i18n";
 import Button from "primevue/button";
 import Dialog from "primevue/dialog";
 
@@ -46,7 +47,7 @@ const hydrate = async () => {
                     : (setting?.value ?? (setting?.type === "bool" ? false : "")),
         };
     } catch (error) {
-        errors._global = error?.response?.data?.message ?? error?.message ?? "Betöltési hiba";
+        errors._global = error?.response?.data?.message ?? error?.message ?? trans("common.unknown_error");
     } finally {
         bootstrapLoading.value = false;
     }
@@ -71,17 +72,17 @@ const submit = async () => {
     try {
         const { data } = await AppSettingsService.update(props.appSettingId, form.value);
         emit("saved", {
-            message: data?.message ?? "App setting frissítve.",
+            message: data?.message ?? trans("app_settings.messages.updated_success"),
             item: data?.data ?? null,
         });
         close();
     } catch (error) {
         const bag = AppSettingsService.extractErrors(error) ?? {};
         Object.keys(bag).forEach((key) => {
-            errors[key] = bag[key]?.[0] ?? "Hiba";
+            errors[key] = bag[key]?.[0] ?? trans("common.error");
         });
         if (!Object.keys(bag).length) {
-            errors._global = error?.response?.data?.message ?? error?.message ?? "Ismeretlen hiba";
+            errors._global = error?.response?.data?.message ?? error?.message ?? trans("common.unknown_error");
         }
     } finally {
         loading.value = false;
@@ -93,7 +94,7 @@ const submit = async () => {
     <Dialog
         :visible="modelValue"
         modal
-        header="App setting szerkesztése"
+        :header="$t('app_settings.dialogs.edit_title')"
         :style="{ width: '44rem' }"
         @update:visible="emit('update:modelValue', $event)"
     >
@@ -102,13 +103,13 @@ const submit = async () => {
                 {{ errors._global }}
             </div>
 
-            <div v-if="bootstrapLoading" class="text-sm text-gray-600">Betöltés...</div>
+            <div v-if="bootstrapLoading" class="text-sm text-gray-600">{{ $t("common.loading") }}</div>
             <AppSettingsFields v-else v-model="form" :errors="errors" :disabled="loading" />
         </div>
 
         <template #footer>
-            <Button label="Mégse" severity="secondary" :disabled="loading || bootstrapLoading" @click="close" />
-            <Button label="Mentés" :loading="loading" :disabled="bootstrapLoading" @click="submit" />
+            <Button :label="$t('common.cancel')" severity="secondary" :disabled="loading || bootstrapLoading" @click="close" />
+            <Button :label="$t('common.save')" :loading="loading" :disabled="bootstrapLoading" @click="submit" />
         </template>
     </Dialog>
 </template>

@@ -66,7 +66,7 @@ class LeaveTypeService
         $leaveType = $this->repository->findByIdInCompany($id, $companyId);
 
         if (! $leaveType instanceof LeaveType) {
-            abort(404, 'A szabadsag tipus nem talalhato.');
+            abort(404, __('leave_types.errors.not_found'));
         }
 
         return $this->toArray($leaveType);
@@ -88,12 +88,12 @@ class LeaveTypeService
         $existing = $this->repository->findByIdInCompany($id, $companyId);
 
         if (! $existing instanceof LeaveType) {
-            abort(404, 'A szabadsag tipus nem talalhato.');
+            abort(404, __('leave_types.errors.not_found'));
         }
 
         if (array_key_exists('code', $data) && trim((string) $data['code']) !== $existing->code) {
             throw ValidationException::withMessages([
-                'code' => 'A kód nem módosítható.',
+                'code' => __('leave_types.validation.code_immutable'),
             ]);
         }
 

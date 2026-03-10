@@ -38,7 +38,7 @@ class AbsenceService
         $employeeIds = array_values(array_map('intval', $data['employee_ids'] ?? []));
         if (! $this->repository->employeesBelongToCompany($companyId, $employeeIds)) {
             throw ValidationException::withMessages([
-                'employee_ids' => 'A kiválasztott dolgozók között cégidegen elem található.',
+                'employee_ids' => __('absence.validation.foreign_employee_selected'),
             ]);
         }
 
@@ -101,7 +101,7 @@ class AbsenceService
         $absence = $this->repository->findByIdInCompany($id, $companyId);
 
         if (! $absence instanceof EmployeeAbsence) {
-            abort(404, 'A tavollet rekord nem talalhato.');
+            abort(404, __('absence.errors.not_found'));
         }
 
         return $absence;
@@ -250,23 +250,21 @@ class AbsenceService
         $overlap = $this->repository->findOverlappingAbsence($companyId, $employeeId, $dateFrom, $dateTo);
         if ($overlap instanceof EmployeeAbsence) {
             throw ValidationException::withMessages([
-                'employee_ids' => sprintf(
-                    'A dolgozó (#%d) számára már van távollét ebben az intervallumban (%s - %s).',
-                    $employeeId,
-                    $overlap->date_from?->format('Y-m-d') ?? $dateFrom,
-                    $overlap->date_to?->format('Y-m-d') ?? $dateTo,
-                ),
+                'employee_ids' => __('absence.validation.employee_overlap', [
+                    'employee_id' => $employeeId,
+                    'date_from' => $overlap->date_from?->format('Y-m-d') ?? $dateFrom,
+                    'date_to' => $overlap->date_to?->format('Y-m-d') ?? $dateTo,
+                ]),
             ]);
         }
 
         $assignment = $this->repository->findShiftAssignmentConflict($companyId, $employeeId, $dateFrom, $dateTo);
         if ($assignment !== null) {
             throw ValidationException::withMessages([
-                'employee_ids' => sprintf(
-                    'A dolgozó (#%d) számára már van beosztás ezen a napon: %s.',
-                    $employeeId,
-                    $assignment->date?->format('Y-m-d') ?? $dateFrom,
-                ),
+                'employee_ids' => __('absence.validation.employee_shift_conflict', [
+                    'employee_id' => $employeeId,
+                    'date' => $assignment->date?->format('Y-m-d') ?? $dateFrom,
+                ]),
             ]);
         }
     }

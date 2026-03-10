@@ -2,7 +2,7 @@
 import { Head, router } from "@inertiajs/vue3";
 import { computed, onMounted, ref } from "vue";
 import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
-import { loadLanguageAsync } from "laravel-vue-i18n";
+import { loadLanguageAsync, trans } from "laravel-vue-i18n";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import AppSettingsService from "@/services/AppSettingsService.js";
@@ -50,13 +50,14 @@ const error = ref("");
 const dt = ref(null);
 
 const groupOptions = ref([]);
-const typeOptions = ref([
-    { label: "int", value: "int" },
-    { label: "bool", value: "bool" },
-    { label: "string", value: "string" },
-    { label: "select", value: "select" },
-    { label: "json", value: "json" },
+const typeOptions = computed(() => [
+    { label: trans("common.types.int"), value: "int" },
+    { label: trans("common.types.bool"), value: "bool" },
+    { label: trans("common.types.string"), value: "string" },
+    { label: trans("common.types.select"), value: "select" },
+    { label: trans("common.types.json"), value: "json" },
 ]);
+const pageTitle = computed(() => trans("app_settings.title"));
 
 const globalFilterFields = ["label", "key", "group", "type", "value_preview"];
 const createInitialFilters = () => ({
@@ -118,7 +119,9 @@ const fetchAppSettings = async () => {
         }));
     } catch (err) {
         error.value =
-            err?.response?.data?.message ?? err?.message ?? "Betöltési hiba";
+            err?.response?.data?.message ??
+            err?.message ??
+            trans("common.unknown_error");
     } finally {
         loading.value = false;
     }
@@ -140,7 +143,7 @@ const handleSaved = async (payload) => {
     await fetchAppSettings();
     toast.add({
         severity: "success",
-        summary: "Siker",
+        summary: trans("common.success"),
         detail: message,
         life: 2500,
     });
@@ -156,7 +159,7 @@ const handleDeleted = async (message) => {
     await fetchAppSettings();
     toast.add({
         severity: "success",
-        summary: "Siker",
+        summary: trans("common.success"),
         detail: message,
         life: 2500,
     });
@@ -175,6 +178,14 @@ const openDelete = (row) => {
 const shortValue = (row) => row?.value_preview ?? "";
 const updatedAt = (row) =>
     row?.updated_at ? new Date(row.updated_at).toLocaleString() : "-";
+const typeLabel = (type) => {
+    if (type === "int") return trans("common.types.int");
+    if (type === "bool") return trans("common.types.bool");
+    if (type === "string") return trans("common.types.string");
+    if (type === "select") return trans("common.types.select");
+    if (type === "json") return trans("common.types.json");
+    return type ?? "-";
+};
 const typeSeverity = (type) => {
     if (type === "bool") return "success";
     if (type === "int") return "info";
@@ -190,7 +201,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <Head :title="title" />
+    <Head :title="pageTitle" />
 
     <Toast />
 
@@ -215,20 +226,20 @@ onMounted(() => {
         <div class="space-y-4 p-6">
             <div class="mb-4 flex items-center justify-between gap-3">
                 <div class="flex items-center gap-3">
-                    <h1 class="text-2xl font-semibold">{{ title }}</h1>
-                    <Badge value="landlord" severity="contrast" />
+                    <h1 class="text-2xl font-semibold">{{ pageTitle }}</h1>
+                    <Badge :value="$t('app_settings.badges.landlord')" severity="contrast" />
                 </div>
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
                 <Button
                     v-if="canCreate"
-                    label="Új"
+                    :label="$t('app_settings.actions.create')"
                     icon="pi pi-plus"
                     @click="createOpen = true"
                 />
                 <Button
-                    label="Frissítés"
+                    :label="$t('common.refresh')"
                     icon="pi pi-refresh"
                     severity="secondary"
                     :loading="loading"
@@ -236,7 +247,7 @@ onMounted(() => {
                 />
                 <Button
                     v-if="canDeleteAny"
-                    label="Bulk delete"
+                    :label="$t('app_settings.actions.bulk_delete')"
                     icon="pi pi-trash"
                     severity="danger"
                     :disabled="!selected.length"
@@ -272,7 +283,7 @@ onMounted(() => {
                         <Button
                             type="button"
                             icon="pi pi-filter-slash"
-                            label="Clear"
+                            :label="$t('common.clear')"
                             variant="outlined"
                             @click="clearFilters()"
                         />
@@ -282,21 +293,21 @@ onMounted(() => {
                             </InputIcon>
                             <InputText
                                 v-model="filters['global'].value"
-                                placeholder="Keyword Search"
+                                :placeholder="$t('common.keyword_search')"
                             />
                         </IconField>
                     </div>
                 </template>
 
-                <template #empty>Nincs talalat.</template>
-                <template #loading>Betoltes...</template>
+                <template #empty>{{ $t("common.no_results") }}</template>
+                <template #loading>{{ $t("common.loading") }}</template>
 
                 <Column selectionMode="multiple" headerStyle="width: 3rem" />
 
                 <Column
                     field="label"
                     filterField="label"
-                    header="Megnevezés"
+                    :header="$t('app_settings.fields.label')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -308,14 +319,14 @@ onMounted(() => {
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Megnevezes keresese"
+                            :placeholder="$t('app_settings.filters.label')"
                         />
                     </template>
                 </Column>
                 <Column
                     field="group"
                     filterField="group"
-                    header="Csoport"
+                    :header="$t('columns.group')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -328,21 +339,21 @@ onMounted(() => {
                             optionValue="value"
                             class="w-full"
                             showClear
-                            placeholder="Csoport"
+                            :placeholder="$t('app_settings.filters.group')"
                         />
                     </template>
                 </Column>
                 <Column
                     field="type"
                     filterField="type"
-                    header="Típus"
+                    :header="$t('columns.type')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
                 >
                     <template #body="{ data }">
                         <Tag
-                            :value="data.type"
+                            :value="typeLabel(data.type)"
                             :severity="typeSeverity(data.type)"
                         />
                     </template>
@@ -354,37 +365,37 @@ onMounted(() => {
                             optionValue="value"
                             class="w-full"
                             showClear
-                            placeholder="Tipus"
+                            :placeholder="$t('app_settings.filters.type')"
                         />
                     </template>
                 </Column>
-                <Column header="Érték">
+                <Column :header="$t('columns.value')">
                     <template #body="{ data }">
                         <span class="font-mono text-sm">{{
                             shortValue(data) || "-"
                         }}</span>
                     </template>
                 </Column>
-                <Column field="updated_at" header="Frissítve" sortable>
+                <Column field="updated_at" :header="$t('columns.updated_at')" sortable>
                     <template #body="{ data }">
                         {{ updatedAt(data) }}
                     </template>
                 </Column>
-                <Column header="" headerStyle="width: 12rem">
+                <Column :header="$t('columns.actions')" headerStyle="width: 12rem">
                     <template #body="{ data }">
                         <div class="flex justify-end gap-2">
                             <Button
                                 v-if="canUpdate"
                                 size="small"
                                 severity="secondary"
-                                label="Szerkesztés"
+                                :label="$t('edit')"
                                 @click="openEdit(data)"
                             />
                             <Button
                                 v-if="canDelete"
                                 size="small"
                                 severity="danger"
-                                label="Törlés"
+                                :label="$t('delete')"
                                 @click="openDelete(data)"
                             />
                         </div>

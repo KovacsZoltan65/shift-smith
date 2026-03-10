@@ -44,7 +44,7 @@ final class OrgPositionLevelController extends Controller
     {
         $this->authorize(PositionOrgLevelPolicy::PERM_VIEW_ANY, PositionOrgLevel::class);
         $companyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($companyId) || $companyId <= 0, 403, 'No company selected');
+        abort_if(! is_int($companyId) || $companyId <= 0, 403, __('common.errors.no_company_selected'));
 
         $paginator = $this->service->listMappings($companyId, $request->validated());
 
@@ -64,7 +64,7 @@ final class OrgPositionLevelController extends Controller
     {
         $this->authorize(PositionOrgLevelPolicy::PERM_CREATE, PositionOrgLevel::class);
         $companyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($companyId) || $companyId <= 0, 403, 'No company selected');
+        abort_if(! is_int($companyId) || $companyId <= 0, 403, __('common.errors.no_company_selected'));
 
         $row = $this->service->upsertMapping(
             companyId: $companyId,
@@ -83,7 +83,7 @@ final class OrgPositionLevelController extends Controller
     {
         $this->authorize(PositionOrgLevelPolicy::PERM_UPDATE, PositionOrgLevel::class);
         $companyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($companyId) || $companyId <= 0, 403, 'No company selected');
+        abort_if(! is_int($companyId) || $companyId <= 0, 403, __('common.errors.no_company_selected'));
 
         $row = $this->service->updateMapping(
             companyId: $companyId,
@@ -103,7 +103,7 @@ final class OrgPositionLevelController extends Controller
     {
         $this->authorize(PositionOrgLevelPolicy::PERM_DELETE, PositionOrgLevel::class);
         $companyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($companyId) || $companyId <= 0, 403, 'No company selected');
+        abort_if(! is_int($companyId) || $companyId <= 0, 403, __('common.errors.no_company_selected'));
 
         $deleted = $this->service->deleteMapping($companyId, $id);
 
@@ -113,4 +113,3 @@ final class OrgPositionLevelController extends Controller
         ], $deleted ? Response::HTTP_OK : Response::HTTP_NOT_FOUND);
     }
 }
-

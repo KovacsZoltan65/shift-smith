@@ -1,8 +1,8 @@
 <script setup>
 import { computed } from "vue";
 import { usePage } from "@inertiajs/vue3";
+import { trans } from "laravel-vue-i18n";
 import Checkbox from "primevue/checkbox";
-import Dropdown from "primevue/dropdown";
 import InputNumber from "primevue/inputnumber";
 import InputText from "primevue/inputtext";
 import Textarea from "primevue/textarea";
@@ -17,13 +17,13 @@ const props = defineProps({
 const emit = defineEmits(["update:modelValue"]);
 const page = usePage();
 
-const typeOptions = [
-    { label: "int", value: "int" },
-    { label: "bool", value: "bool" },
-    { label: "string", value: "string" },
-    { label: "select", value: "select" },
-    { label: "json", value: "json" },
-];
+const typeOptions = computed(() => [
+    { label: trans("common.types.int"), value: "int" },
+    { label: trans("common.types.bool"), value: "bool" },
+    { label: trans("common.types.string"), value: "string" },
+    { label: trans("common.types.select"), value: "select" },
+    { label: trans("common.types.json"), value: "json" },
+]);
 
 const isBoolType = computed(() => props.modelValue?.type === "bool");
 const isIntType = computed(() => props.modelValue?.type === "int");
@@ -79,7 +79,7 @@ const onTypeChange = (type) => {
     <div class="grid grid-cols-1 gap-4">
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-                <label class="mb-1 block text-sm font-medium">Kulcs</label>
+                <label class="mb-1 block text-sm font-medium">{{ trans("columns.key") }}</label>
                 <InputText
                     class="w-full"
                     :disabled="disabled"
@@ -92,7 +92,7 @@ const onTypeChange = (type) => {
             </div>
 
             <div>
-                <label class="mb-1 block text-sm font-medium">Típus</label>
+                <label class="mb-1 block text-sm font-medium">{{ trans("columns.type") }}</label>
                 <Select
                     class="w-full"
                     :disabled="disabled"
@@ -109,7 +109,7 @@ const onTypeChange = (type) => {
         </div>
 
         <div>
-            <label class="mb-1 block text-sm font-medium">Csoport</label>
+            <label class="mb-1 block text-sm font-medium">{{ trans("columns.group") }}</label>
             <InputText
                 class="w-full"
                 :disabled="disabled"
@@ -122,7 +122,7 @@ const onTypeChange = (type) => {
         </div>
 
         <div>
-            <label class="mb-1 block text-sm font-medium">Label</label>
+            <label class="mb-1 block text-sm font-medium">{{ trans("app_settings.fields.label") }}</label>
             <InputText
                 class="w-full"
                 :disabled="disabled"
@@ -135,7 +135,7 @@ const onTypeChange = (type) => {
         </div>
 
         <div>
-            <label class="mb-1 block text-sm font-medium">Leírás</label>
+            <label class="mb-1 block text-sm font-medium">{{ trans("app_settings.fields.description") }}</label>
             <Textarea
                 class="w-full"
                 rows="3"
@@ -149,7 +149,7 @@ const onTypeChange = (type) => {
         </div>
 
         <div>
-            <label class="mb-1 block text-sm font-medium">Érték</label>
+            <label class="mb-1 block text-sm font-medium">{{ trans("columns.value") }}</label>
 
             <InputNumber
                 v-if="isIntType"
@@ -168,9 +168,7 @@ const onTypeChange = (type) => {
                     :modelValue="Boolean(modelValue.value)"
                     @update:modelValue="(value) => patch({ value: Boolean(value) })"
                 />
-                <label for="app-setting-bool" class="text-sm text-gray-700"
-                    >Igaz / hamis</label
-                >
+                <label for="app-setting-bool" class="text-sm text-gray-700">{{ trans("common.true_false") }}</label>
             </div>
 
             <InputText

@@ -2,6 +2,7 @@
 import { Head, usePage } from "@inertiajs/vue3";
 import { computed, onMounted, ref } from "vue";
 import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
+import { trans } from "laravel-vue-i18n";
 
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import CompanySettingsService from "@/services/CompanySettingsService.js";
@@ -38,8 +39,9 @@ const canUpdate = computed(() => has("company_settings.update"));
 const canDelete = computed(() => has("company_settings.delete"));
 const canDeleteAny = computed(() => has("company_settings.deleteAny"));
 const companyName = computed(
-    () => page.props.companyContext?.current_company?.name ?? "Company",
+    () => page.props.companyContext?.current_company?.name ?? trans("columns.company"),
 );
+const pageTitle = computed(() => trans("company_settings.title"));
 
 const createOpen = ref(false);
 const editOpen = ref(false);
@@ -53,12 +55,13 @@ const error = ref("");
 const groupOptions = ref([]);
 const dt = ref(null);
 
-const typeOptions = [
-    { label: "int", value: "int" },
-    { label: "bool", value: "bool" },
-    { label: "string", value: "string" },
-    { label: "json", value: "json" },
-];
+const typeOptions = computed(() => [
+    { label: trans("common.types.int"), value: "int" },
+    { label: trans("common.types.bool"), value: "bool" },
+    { label: trans("common.types.string"), value: "string" },
+    { label: trans("common.types.select"), value: "select" },
+    { label: trans("common.types.json"), value: "json" },
+]);
 
 const globalFilterFields = [
     "key",
@@ -140,7 +143,9 @@ const fetchCompanySettings = async () => {
         }));
     } catch (err) {
         error.value =
-            err?.response?.data?.message ?? err?.message ?? "Betöltési hiba";
+            err?.response?.data?.message ??
+            err?.message ??
+            trans("common.unknown_error");
     } finally {
         loading.value = false;
     }
@@ -150,7 +155,7 @@ const handleSaved = async (message) => {
     await fetchCompanySettings();
     toast.add({
         severity: "success",
-        summary: "Siker",
+        summary: trans("common.success"),
         detail: message,
         life: 2500,
     });
@@ -162,10 +167,26 @@ const handleDeleted = async (message) => {
     await fetchCompanySettings();
     toast.add({
         severity: "success",
-        summary: "Siker",
+        summary: trans("common.success"),
         detail: message,
         life: 2500,
     });
+};
+
+const typeLabel = (type) => {
+    if (type === "int") return trans("common.types.int");
+    if (type === "bool") return trans("common.types.bool");
+    if (type === "string") return trans("common.types.string");
+    if (type === "select") return trans("common.types.select");
+    if (type === "json") return trans("common.types.json");
+    return type ?? "-";
+};
+const sourceLabel = (source) => {
+    if (source === "user") return trans("company_settings.source.user");
+    if (source === "user_legacy") return trans("company_settings.source.user_legacy");
+    if (source === "company") return trans("company_settings.source.company");
+    if (source === "app") return trans("company_settings.source.app");
+    return trans("company_settings.source.none");
 };
 
 const sourceSeverity = (source) => {
@@ -183,7 +204,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <Head :title="title" />
+    <Head :title="pageTitle" />
     <Toast />
 
     <CreateModal v-model="createOpen" @saved="handleSaved" />
@@ -206,19 +227,19 @@ onMounted(() => {
     <AuthenticatedLayout>
         <div class="space-y-4 p-6">
             <div class="mb-4 flex items-center gap-3">
-                <h1 class="text-2xl font-semibold">{{ title }}</h1>
+                <h1 class="text-2xl font-semibold">{{ pageTitle }}</h1>
                 <Badge :value="companyName" severity="contrast" />
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
                 <Button
                     v-if="canCreate"
-                    label="Új"
+                    :label="$t('company_settings.actions.create')"
                     icon="pi pi-plus"
                     @click="createOpen = true"
                 />
                 <Button
-                    label="Frissítés"
+                    :label="$t('common.refresh')"
                     icon="pi pi-refresh"
                     severity="secondary"
                     :loading="loading"
@@ -226,7 +247,7 @@ onMounted(() => {
                 />
                 <Button
                     v-if="canDeleteAny"
-                    label="Bulk delete"
+                    :label="$t('company_settings.actions.bulk_delete')"
                     icon="pi pi-trash"
                     severity="danger"
                     :disabled="!selected.length"
@@ -262,7 +283,7 @@ onMounted(() => {
                         <Button
                             type="button"
                             icon="pi pi-filter-slash"
-                            label="Clear"
+                            :label="$t('common.clear')"
                             variant="outlined"
                             @click="clearFilters()"
                         />
@@ -272,20 +293,20 @@ onMounted(() => {
                             </InputIcon>
                             <InputText
                                 v-model="filters['global'].value"
-                                placeholder="Keyword Search"
+                                :placeholder="$t('common.keyword_search')"
                             />
                         </IconField>
                     </div>
                 </template>
 
-                <template #empty>Nincs talalat.</template>
-                <template #loading>Betoltes...</template>
+                <template #empty>{{ $t("common.no_results") }}</template>
+                <template #loading>{{ $t("common.loading") }}</template>
 
                 <Column selectionMode="multiple" headerStyle="width: 3rem" />
                 <Column
                     field="key"
                     filterField="key"
-                    header="Kulcs"
+                    :header="$t('columns.key')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -294,14 +315,14 @@ onMounted(() => {
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Kulcs keresese"
+                            :placeholder="$t('company_settings.filters.key')"
                         />
                     </template>
                 </Column>
                 <Column
                     field="group"
                     filterField="group"
-                    header="Csoport"
+                    :header="$t('columns.group')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -314,20 +335,20 @@ onMounted(() => {
                             optionValue="value"
                             class="w-full"
                             showClear
-                            placeholder="Csoport"
+                            :placeholder="$t('company_settings.filters.group')"
                         />
                     </template>
                 </Column>
                 <Column
                     field="type"
                     filterField="type"
-                    header="Típus"
+                    :header="$t('columns.type')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
                 >
                     <template #body="{ data }">
-                        <Tag :value="data.type" severity="info" />
+                        <Tag :value="typeLabel(data.type)" severity="info" />
                     </template>
                     <template #filter="{ filterModel }">
                         <Select
@@ -337,22 +358,22 @@ onMounted(() => {
                             optionValue="value"
                             class="w-full"
                             showClear
-                            placeholder="Tipus"
+                            :placeholder="$t('company_settings.filters.type')"
                         />
                     </template>
                 </Column>
-                <Column header="Érték">
+                <Column :header="$t('columns.value')">
                     <template #body="{ data }">
                         <span class="font-mono text-sm">{{
                             data.value_preview || "-"
                         }}</span>
                     </template>
                 </Column>
-                <Column header="Effective">
+                <Column :header="$t('company_settings.fields.effective')">
                     <template #body="{ data }">
                         <div class="flex items-center gap-2">
                             <Tag
-                                :value="data.source || 'none'"
+                                :value="sourceLabel(data.source)"
                                 :severity="sourceSeverity(data.source)"
                             />
                             <span class="font-mono text-sm">{{
@@ -361,7 +382,7 @@ onMounted(() => {
                         </div>
                     </template>
                 </Column>
-                <Column field="updated_at" header="Frissítve" sortable>
+                <Column field="updated_at" :header="$t('columns.updated_at')" sortable>
                     <template #body="{ data }">
                         {{
                             data.updated_at
@@ -370,14 +391,14 @@ onMounted(() => {
                         }}
                     </template>
                 </Column>
-                <Column header="" headerStyle="width: 12rem">
+                <Column :header="$t('columns.actions')" headerStyle="width: 12rem">
                     <template #body="{ data }">
                         <div class="flex justify-end gap-2">
                             <Button
                                 v-if="canUpdate"
                                 size="small"
                                 severity="secondary"
-                                label="Szerkesztés"
+                                :label="$t('edit')"
                                 @click="
                                     selectedItem = data;
                                     editOpen = true;
@@ -387,7 +408,7 @@ onMounted(() => {
                                 v-if="canDelete"
                                 size="small"
                                 severity="danger"
-                                label="Törlés"
+                                :label="$t('delete')"
                                 @click="
                                     selectedItem = data;
                                     deleteOpen = true;

@@ -1,5 +1,6 @@
 <script setup>
 import { reactive, ref, watch } from "vue";
+import { trans } from "laravel-vue-i18n";
 import Button from "primevue/button";
 import Dialog from "primevue/dialog";
 
@@ -35,15 +36,15 @@ const submit = async () => {
 
     try {
         const { data } = await CompanySettingsService.store(form.value);
-        emit("saved", data?.message ?? "Company setting létrehozva.");
+        emit("saved", data?.message ?? trans("company_settings.messages.created_success"));
         close();
     } catch (error) {
         const bag = CompanySettingsService.extractErrors(error) ?? {};
         Object.keys(bag).forEach((key) => {
-            errors[key] = bag[key]?.[0] ?? "Hiba";
+            errors[key] = bag[key]?.[0] ?? trans("common.error");
         });
         if (!Object.keys(bag).length) {
-            errors._global = error?.response?.data?.message ?? error?.message ?? "Ismeretlen hiba";
+            errors._global = error?.response?.data?.message ?? error?.message ?? trans("common.unknown_error");
         }
     } finally {
         loading.value = false;
@@ -52,7 +53,7 @@ const submit = async () => {
 </script>
 
 <template>
-    <Dialog :visible="modelValue" modal header="Új company setting" :style="{ width: '44rem' }" @update:visible="emit('update:modelValue', $event)">
+    <Dialog :visible="modelValue" modal :header="$t('company_settings.dialogs.create_title')" :style="{ width: '44rem' }" @update:visible="emit('update:modelValue', $event)">
         <div class="space-y-4">
             <div v-if="errors._global" class="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">
                 {{ errors._global }}
@@ -61,8 +62,8 @@ const submit = async () => {
         </div>
 
         <template #footer>
-            <Button label="Mégse" severity="secondary" :disabled="loading" @click="close" />
-            <Button label="Mentés" :loading="loading" @click="submit" />
+            <Button :label="$t('common.cancel')" severity="secondary" :disabled="loading" @click="close" />
+            <Button :label="$t('common.save')" :loading="loading" @click="submit" />
         </template>
     </Dialog>
 </template>

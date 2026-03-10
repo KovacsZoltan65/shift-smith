@@ -62,7 +62,7 @@ class SickLeaveCategoryService
         $category = $this->repository->findByIdInCompany($id, $companyId);
 
         if (! $category instanceof SickLeaveCategory) {
-            abort(404, 'A betegszabadsag kategoria nem talalhato.');
+            abort(404, __('sick_leave_categories.errors.not_found'));
         }
 
         return $this->toArray($category);
@@ -84,12 +84,12 @@ class SickLeaveCategoryService
         $existing = $this->repository->findByIdInCompany($id, $companyId);
 
         if (! $existing instanceof SickLeaveCategory) {
-            abort(404, 'A betegszabadsag kategoria nem talalhato.');
+            abort(404, __('sick_leave_categories.errors.not_found'));
         }
 
         if (array_key_exists('code', $data) && trim((string) $data['code']) !== $existing->code) {
             throw ValidationException::withMessages([
-                'code' => 'A kód nem módosítható.',
+                'code' => __('sick_leave_categories.validation.code_immutable'),
             ]);
         }
 

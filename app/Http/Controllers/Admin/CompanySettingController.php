@@ -31,7 +31,7 @@ class CompanySettingController extends Controller
         $this->authorize(CompanySettingPolicy::PERM_VIEW_ANY, CompanySetting::class);
 
         return Inertia::render('Admin/CompanySettings/Index', [
-            'title' => 'Company Settings',
+            'title' => __('company_settings.title'),
             'filter' => $request->validatedFilters(),
             'companyId' => $request->currentCompanyId(),
         ]);
@@ -44,7 +44,7 @@ class CompanySettingController extends Controller
         $payload = $this->service->fetch($companyId, $request->validatedFilters());
 
         return response()->json([
-            'message' => 'Company settings sikeresen lekérve.',
+            'message' => __('company_settings.messages.fetch_success'),
             'items' => $payload['items'],
             'meta' => $payload['meta'],
             'filter' => $payload['filters'],
@@ -57,7 +57,7 @@ class CompanySettingController extends Controller
         $this->authorize(CompanySettingPolicy::PERM_VIEW, CompanySetting::class);
 
         return response()->json([
-            'message' => 'Company setting sikeresen lekérve.',
+            'message' => __('company_settings.messages.show_success'),
             'data' => $this->service->show($request->currentCompanyId(), $id),
         ], Response::HTTP_OK);
     }
@@ -67,7 +67,7 @@ class CompanySettingController extends Controller
         $this->authorize(CompanySettingPolicy::PERM_CREATE, CompanySetting::class);
 
         return response()->json([
-            'message' => 'Company setting sikeresen létrehozva.',
+            'message' => __('company_settings.messages.created_success'),
             'data' => $this->service->store($request->currentCompanyId(), $request->validatedPayload()),
         ], Response::HTTP_CREATED);
     }
@@ -77,7 +77,7 @@ class CompanySettingController extends Controller
         $this->authorize(CompanySettingPolicy::PERM_UPDATE, CompanySetting::class);
 
         return response()->json([
-            'message' => 'Company setting sikeresen frissítve.',
+            'message' => __('company_settings.messages.updated_success'),
             'data' => $this->service->update($request->currentCompanyId(), $id, $request->validatedPayload()),
         ], Response::HTTP_OK);
     }
@@ -88,7 +88,7 @@ class CompanySettingController extends Controller
         $deleted = $this->service->destroy($request->currentCompanyId(), $id);
 
         return response()->json([
-            'message' => $deleted ? 'Company setting sikeresen törölve.' : 'A törlés sikertelen.',
+            'message' => $deleted ? __('company_settings.messages.deleted_success') : __('common.delete_failed'),
             'deleted' => $deleted,
         ], $deleted ? Response::HTTP_OK : Response::HTTP_INTERNAL_SERVER_ERROR);
     }
@@ -98,7 +98,7 @@ class CompanySettingController extends Controller
         $this->authorize(CompanySettingPolicy::PERM_DELETE_ANY, CompanySetting::class);
 
         return response()->json([
-            'message' => 'Bulk törlés sikeres.',
+            'message' => __('company_settings.messages.bulk_deleted_success'),
             'deleted' => $this->service->bulkDestroy($request->currentCompanyId(), $request->validated('ids')),
         ], Response::HTTP_OK);
     }
@@ -117,7 +117,7 @@ class CompanySettingController extends Controller
         }
 
         return response()->json([
-            'message' => 'Effective settings sikeresen lekérve.',
+            'message' => __('company_settings.messages.effective_success'),
             'data' => $this->service->effective(
                 $companyId,
                 $keys,

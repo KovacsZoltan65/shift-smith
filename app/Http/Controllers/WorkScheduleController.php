@@ -33,7 +33,7 @@ class WorkScheduleController extends Controller
     {
         $this->authorize(WorkSchedulePolicy::PERM_VIEW_ANY, WorkSchedule::class);
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if($currentCompanyId === null, 403, 'No company selected');
+        abort_if($currentCompanyId === null, 403, __('common.errors.no_company_selected'));
 
         return Inertia::render('Scheduling/WorkSchedules/Index', [
             'title' => 'Munkabeosztások',
@@ -52,7 +52,7 @@ class WorkScheduleController extends Controller
     {
         $this->authorize(WorkSchedulePolicy::PERM_VIEW_ANY, WorkSchedule::class);
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if($currentCompanyId === null, 403, 'No company selected');
+        abort_if($currentCompanyId === null, 403, __('common.errors.no_company_selected'));
         $request->merge(['company_id' => $currentCompanyId]);
 
         $workSchedules = $this->service->fetch($request);

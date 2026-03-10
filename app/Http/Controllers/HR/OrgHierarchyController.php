@@ -46,7 +46,7 @@ final class OrgHierarchyController extends Controller
         $this->authorize(OrgHierarchyPolicy::PERM_VIEW_ANY);
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, 'No company selected');
+        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
 
         $companies = $request->user() !== null
             ? $this->companyContextService->selectableCompanies($request->user())
@@ -70,8 +70,8 @@ final class OrgHierarchyController extends Controller
         $payload = $request->validatedPayload();
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, 'No company selected');
-        abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, 'Company scope mismatch');
+        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
+        abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, __('common.errors.company_scope_mismatch'));
 
         $graph = $this->graphService->getGraph(
             companyId: $currentCompanyId,
@@ -92,8 +92,8 @@ final class OrgHierarchyController extends Controller
         $payload = $request->validatedPayload();
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, 'No company selected');
-        abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, 'Company scope mismatch');
+        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
+        abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, __('common.errors.company_scope_mismatch'));
 
         $node = $this->graphService->getNode(
             companyId: $currentCompanyId,
@@ -101,7 +101,7 @@ final class OrgHierarchyController extends Controller
             atDate: CarbonImmutable::parse($payload['at_date']),
         );
 
-        abort_if($node === null, 404, 'Node not found');
+        abort_if($node === null, 404, __('hierarchy.errors.node_not_found'));
 
         return response()->json([
             'message' => 'Node adatai sikeresen lekérve.',
@@ -115,8 +115,8 @@ final class OrgHierarchyController extends Controller
         $payload = $request->validatedPayload();
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, 'No company selected');
-        abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, 'Company scope mismatch');
+        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
+        abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, __('common.errors.company_scope_mismatch'));
 
         $rows = $this->graphService->searchEmployees(
             companyId: $currentCompanyId,
@@ -136,8 +136,8 @@ final class OrgHierarchyController extends Controller
         $payload = $request->validatedPayload();
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, 'No company selected');
-        abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, 'Company scope mismatch');
+        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
+        abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, __('common.errors.company_scope_mismatch'));
 
         try {
             $path = $this->pathService->getPath(
@@ -146,7 +146,7 @@ final class OrgHierarchyController extends Controller
                 atDate: CarbonImmutable::parse($payload['at_date']),
             );
         } catch (ModelNotFoundException) {
-            abort(404, 'Employee not found in current company.');
+            abort(404, __('hierarchy.errors.employee_not_found_in_current_company'));
         } catch (RuntimeException $exception) {
             return response()->json([
                 'message' => $exception->getMessage(),
@@ -166,8 +166,8 @@ final class OrgHierarchyController extends Controller
         $payload = $request->validatedPayload();
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, 'No company selected');
-        abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, 'Company scope mismatch');
+        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
+        abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, __('common.errors.company_scope_mismatch'));
 
         $saved = $this->designSettingsService->saveForUser(
             companyId: $currentCompanyId,
@@ -192,8 +192,8 @@ final class OrgHierarchyController extends Controller
         $payload = $request->validatedPayload();
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, 'No company selected');
-        abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, 'Company scope mismatch');
+        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
+        abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, __('common.errors.company_scope_mismatch'));
 
         $preview = $this->mutationService->previewMove($payload);
 
@@ -209,8 +209,8 @@ final class OrgHierarchyController extends Controller
         $payload = $request->validatedPayload();
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, 'No company selected');
-        abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, 'Company scope mismatch');
+        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
+        abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, __('common.errors.company_scope_mismatch'));
 
         $result = $this->mutationService->move($payload, (int) $request->user()->id);
 
@@ -226,8 +226,8 @@ final class OrgHierarchyController extends Controller
         $payload = $request->validatedPayload();
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, 'No company selected');
-        abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, 'Company scope mismatch');
+        abort_if(! is_int($currentCompanyId) || $currentCompanyId <= 0, 403, __('common.errors.no_company_selected'));
+        abort_if((int) $payload['company_id'] !== $currentCompanyId, 403, __('common.errors.company_scope_mismatch'));
 
         $report = $this->mutationService->companyIntegrityReport(
             companyId: $currentCompanyId,

@@ -1,5 +1,6 @@
 <script setup>
 import { reactive, ref, watch } from "vue";
+import { trans } from "laravel-vue-i18n";
 import Button from "primevue/button";
 import Dialog from "primevue/dialog";
 
@@ -35,7 +36,7 @@ const hydrate = async () => {
             value: setting?.type === "json" ? JSON.stringify(setting?.value ?? {}, null, 2) : (setting?.value ?? ""),
         };
     } catch (error) {
-        errors._global = error?.response?.data?.message ?? error?.message ?? "Betöltési hiba";
+        errors._global = error?.response?.data?.message ?? error?.message ?? trans("common.unknown_error");
     } finally {
         bootstrapLoading.value = false;
     }
@@ -53,15 +54,15 @@ const submit = async () => {
 
     try {
         const { data } = await CompanySettingsService.update(props.companySettingId, form.value);
-        emit("saved", data?.message ?? "Company setting frissítve.");
+        emit("saved", data?.message ?? trans("company_settings.messages.updated_success"));
         close();
     } catch (error) {
         const bag = CompanySettingsService.extractErrors(error) ?? {};
         Object.keys(bag).forEach((key) => {
-            errors[key] = bag[key]?.[0] ?? "Hiba";
+            errors[key] = bag[key]?.[0] ?? trans("common.error");
         });
         if (!Object.keys(bag).length) {
-            errors._global = error?.response?.data?.message ?? error?.message ?? "Ismeretlen hiba";
+            errors._global = error?.response?.data?.message ?? error?.message ?? trans("common.unknown_error");
         }
     } finally {
         loading.value = false;
@@ -70,18 +71,18 @@ const submit = async () => {
 </script>
 
 <template>
-    <Dialog :visible="modelValue" modal header="Company setting szerkesztése" :style="{ width: '44rem' }" @update:visible="emit('update:modelValue', $event)">
+    <Dialog :visible="modelValue" modal :header="$t('company_settings.dialogs.edit_title')" :style="{ width: '44rem' }" @update:visible="emit('update:modelValue', $event)">
         <div class="space-y-4">
             <div v-if="errors._global" class="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">
                 {{ errors._global }}
             </div>
-            <div v-if="bootstrapLoading" class="text-sm text-gray-600">Betöltés...</div>
+            <div v-if="bootstrapLoading" class="text-sm text-gray-600">{{ $t("common.loading") }}</div>
             <CompanySettingsFields v-else v-model="form" :errors="errors" :disabled="loading" />
         </div>
 
         <template #footer>
-            <Button label="Mégse" severity="secondary" :disabled="loading || bootstrapLoading" @click="close" />
-            <Button label="Mentés" :loading="loading" :disabled="bootstrapLoading" @click="submit" />
+            <Button :label="$t('common.cancel')" severity="secondary" :disabled="loading || bootstrapLoading" @click="close" />
+            <Button :label="$t('common.save')" :loading="loading" :disabled="bootstrapLoading" @click="submit" />
         </template>
     </Dialog>
 </template>

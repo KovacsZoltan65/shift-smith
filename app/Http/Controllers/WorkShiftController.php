@@ -32,7 +32,7 @@ final class WorkShiftController extends Controller
         $this->authorize(WorkShiftPolicy::PERM_VIEW, WorkShift::class);
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if($currentCompanyId === null, 403, 'No company selected');
+        abort_if($currentCompanyId === null, 403, __('common.errors.no_company_selected'));
 
         $filter = $request->validatedFilters();
         $filter['company_id'] = $currentCompanyId;
@@ -48,7 +48,7 @@ final class WorkShiftController extends Controller
         $this->authorize(WorkShiftPolicy::PERM_VIEW, WorkShift::class);
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if($currentCompanyId === null, 403, 'No company selected');
+        abort_if($currentCompanyId === null, 403, __('common.errors.no_company_selected'));
 
         $workShifts = $this->service->fetch($request, $currentCompanyId);
         $filter = $request->validatedFilters();
@@ -71,7 +71,7 @@ final class WorkShiftController extends Controller
         $this->authorize(WorkShiftPolicy::PERM_VIEW, WorkShift::class);
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if($currentCompanyId === null, 403, 'No company selected');
+        abort_if($currentCompanyId === null, 403, __('common.errors.no_company_selected'));
 
         $workShift = $this->service->find($id, $currentCompanyId);
         $this->authorize(WorkShiftPolicy::PERM_VIEW, $workShift);
@@ -87,7 +87,7 @@ final class WorkShiftController extends Controller
         $this->authorize(WorkShiftPolicy::PERM_CREATE, WorkShift::class);
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if($currentCompanyId === null, 403, 'No company selected');
+        abort_if($currentCompanyId === null, 403, __('common.errors.no_company_selected'));
 
         /** @var array<string, mixed> $data */
         $data = $request->validated();
@@ -102,7 +102,7 @@ final class WorkShiftController extends Controller
     public function update(UpdateRequest $request, int $id): JsonResponse
     {
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if($currentCompanyId === null, 403, 'No company selected');
+        abort_if($currentCompanyId === null, 403, __('common.errors.no_company_selected'));
 
         $workShift = $this->service->find($id, $currentCompanyId);
         $this->authorize(WorkShiftPolicy::PERM_UPDATE, $workShift);
@@ -122,7 +122,7 @@ final class WorkShiftController extends Controller
         $this->authorize(WorkShiftPolicy::PERM_DELETE_ANY, WorkShift::class);
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if($currentCompanyId === null, 403, 'No company selected');
+        abort_if($currentCompanyId === null, 403, __('common.errors.no_company_selected'));
 
         /** @var array{ids:list<int>} $data */
         $data = $request->validated();
@@ -137,7 +137,7 @@ final class WorkShiftController extends Controller
     public function destroy(DeleteRequest $request, int $id): JsonResponse
     {
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if($currentCompanyId === null, 403, 'No company selected');
+        abort_if($currentCompanyId === null, 403, __('common.errors.no_company_selected'));
 
         $workShift = $this->service->find($id, $currentCompanyId);
         $this->authorize(WorkShiftPolicy::PERM_DELETE, $workShift);
@@ -155,7 +155,7 @@ final class WorkShiftController extends Controller
         $this->authorize(WorkShiftPolicy::PERM_VIEW, WorkShift::class);
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if($currentCompanyId === null, 403, 'No company selected');
+        abort_if($currentCompanyId === null, 403, __('common.errors.no_company_selected'));
 
         $params = [
             'search' => $request->string('search')->toString() ?: null,

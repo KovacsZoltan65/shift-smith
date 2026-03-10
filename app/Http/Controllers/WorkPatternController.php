@@ -48,7 +48,7 @@ class WorkPatternController extends Controller
     {
         $this->authorize(WorkPatternPolicy::PERM_VIEW_ANY, WorkPattern::class);
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if($currentCompanyId === null, 403, 'No company selected');
+        abort_if($currentCompanyId === null, 403, __('common.errors.no_company_selected'));
 
         return Inertia::render('Scheduling/WorkPatterns/Index', [
             'title' => 'Munkarendek',
@@ -73,7 +73,7 @@ class WorkPatternController extends Controller
     {
         $this->authorize(WorkPatternPolicy::PERM_VIEW_ANY, WorkPattern::class);
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if($currentCompanyId === null, 403, 'No company selected');
+        abort_if($currentCompanyId === null, 403, __('common.errors.no_company_selected'));
         $request->merge(['company_id' => $currentCompanyId]);
 
         $workPatterns = $this->service->fetch($request);

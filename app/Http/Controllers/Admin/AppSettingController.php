@@ -30,7 +30,7 @@ class AppSettingController extends Controller
         $this->authorize(AppSettingPolicy::PERM_VIEW_ANY, AppSetting::class);
 
         return Inertia::render('Admin/AppSettings/Index', [
-            'title' => 'App Settings',
+            'title' => __('app_settings.title'),
             'filter' => $request->validatedFilters(),
         ]);
     }
@@ -42,7 +42,7 @@ class AppSettingController extends Controller
         $payload = $this->service->fetch($request->validatedFilters());
 
         return response()->json([
-            'message' => 'App settings sikeresen lekérve.',
+            'message' => __('app_settings.messages.fetch_success'),
             'items' => $payload['items'],
             'meta' => $payload['meta'],
             'filter' => $payload['filters'],
@@ -55,7 +55,7 @@ class AppSettingController extends Controller
         $this->authorize(AppSettingPolicy::PERM_VIEW, AppSetting::class);
 
         return response()->json([
-            'message' => 'App setting sikeresen lekérve.',
+            'message' => __('app_settings.messages.show_success'),
             'data' => $this->service->show($id),
         ], Response::HTTP_OK);
     }
@@ -65,7 +65,7 @@ class AppSettingController extends Controller
         $this->authorize(AppSettingPolicy::PERM_CREATE, AppSetting::class);
 
         return response()->json([
-            'message' => 'App setting sikeresen létrehozva.',
+            'message' => __('app_settings.messages.created_success'),
             'data' => $this->service->store($request->validatedPayload()),
         ], Response::HTTP_CREATED);
     }
@@ -75,7 +75,7 @@ class AppSettingController extends Controller
         $this->authorize(AppSettingPolicy::PERM_UPDATE, AppSetting::class);
 
         return response()->json([
-            'message' => 'App setting sikeresen frissítve.',
+            'message' => __('app_settings.messages.updated_success'),
             'data' => $this->service->update($id, $request->validatedPayload()),
         ], Response::HTTP_OK);
     }
@@ -87,7 +87,7 @@ class AppSettingController extends Controller
         $deleted = $this->service->destroy($id);
 
         return response()->json([
-            'message' => $deleted ? 'App setting sikeresen törölve.' : 'A törlés sikertelen.',
+            'message' => $deleted ? __('app_settings.messages.deleted_success') : __('common.delete_failed'),
             'deleted' => $deleted,
         ], $deleted ? Response::HTTP_OK : Response::HTTP_INTERNAL_SERVER_ERROR);
     }
@@ -97,7 +97,7 @@ class AppSettingController extends Controller
         $this->authorize(AppSettingPolicy::PERM_DELETE_ANY, AppSetting::class);
 
         return response()->json([
-            'message' => 'Bulk törlés sikeres.',
+            'message' => __('app_settings.messages.bulk_deleted_success'),
             'deleted' => $this->service->bulkDestroy($request->validated('ids')),
         ], Response::HTTP_OK);
     }

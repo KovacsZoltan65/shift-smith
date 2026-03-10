@@ -111,7 +111,7 @@ final class EnsureCompanySelected
             return $next($request);
         }
 
-        abort(403, 'No company assigned');
+        abort(403, __('common.errors.no_company_assigned'));
     }
 
     private function isCurrentCompanyValidForTenant(User $user, int $companyId, int $tenantId): bool

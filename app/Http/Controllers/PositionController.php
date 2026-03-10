@@ -33,7 +33,7 @@ class PositionController extends Controller
         $this->authorize(PositionPolicy::PERM_VIEW_ANY, Position::class);
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if($currentCompanyId === null, 403, 'No company selected');
+        abort_if($currentCompanyId === null, 403, __('common.errors.no_company_selected'));
 
         return Inertia::render('HR/Positions/Index', [
             'title' => 'Pozíciók',
@@ -53,7 +53,7 @@ class PositionController extends Controller
         $this->authorize(PositionPolicy::PERM_VIEW_ANY, Position::class);
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if($currentCompanyId === null, 403, 'No company selected');
+        abort_if($currentCompanyId === null, 403, __('common.errors.no_company_selected'));
         $request->merge(['company_id' => $currentCompanyId]);
 
         $positions = $this->service->fetch($request);

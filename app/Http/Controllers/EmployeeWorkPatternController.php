@@ -135,7 +135,7 @@ class EmployeeWorkPatternController extends Controller
     private function resolveCurrentCompanyId(Request $request): int
     {
         $companyId = $this->currentCompany->currentCompanyId($request);
-        abort_if($companyId === null, 403, 'No company selected');
+        abort_if($companyId === null, 403, __('common.errors.no_company_selected'));
 
         return $companyId;
     }

@@ -31,7 +31,7 @@ final class TenantManager
     {
         $tenant = $this->resolveCurrentTenant($request);
 
-        abort_if($tenant === null, Response::HTTP_UNPROCESSABLE_ENTITY, 'Missing tenant context');
+        abort_if($tenant === null, Response::HTTP_UNPROCESSABLE_ENTITY, __('tenant.errors.missing_tenant_context'));
 
         return $tenant;
     }
@@ -60,7 +60,7 @@ final class TenantManager
     {
         $companyId = $this->companyIdOrNull($request);
 
-        abort_if($companyId === null, Response::HTTP_UNPROCESSABLE_ENTITY, 'Missing company context');
+        abort_if($companyId === null, Response::HTTP_UNPROCESSABLE_ENTITY, __('tenant.errors.missing_company_context'));
 
         return $companyId;
     }
@@ -103,7 +103,7 @@ final class TenantManager
      */
     public function resolveTenantScopedCompany(int $companyId, ?Request $request = null): Company
     {
-        abort_if($companyId <= 0, Response::HTTP_UNPROCESSABLE_ENTITY, 'Missing company context');
+        abort_if($companyId <= 0, Response::HTTP_UNPROCESSABLE_ENTITY, __('tenant.errors.missing_company_context'));
 
         $tenant = $this->tenant($request);
 

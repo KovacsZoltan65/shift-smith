@@ -59,7 +59,7 @@ class EmployeeController extends Controller
         $this->authorize(EmployeePolicy::PERM_VIEW_ANY, Employee::class);
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if($currentCompanyId === null, 403, 'No company selected');
+        abort_if($currentCompanyId === null, 403, __('common.errors.no_company_selected'));
 
         $filter = $request->validatedFilters();
         $filter['company_id'] = $currentCompanyId;
@@ -84,7 +84,7 @@ class EmployeeController extends Controller
         $this->authorize(EmployeePolicy::PERM_VIEW_ANY, Employee::class);
 
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if($currentCompanyId === null, 403, 'No company selected');
+        abort_if($currentCompanyId === null, 403, __('common.errors.no_company_selected'));
         $request->merge(['company_id' => $currentCompanyId]);
         
         $employees = $this->service->fetch($request);
@@ -191,7 +191,7 @@ class EmployeeController extends Controller
 
         $payload = $request->validatedPayload();
         $currentCompanyId = $this->currentCompany->currentCompanyId($request) ?? (int) $payload['company_id'];
-        abort_if((int) $payload['company_id'] !== (int) $currentCompanyId, 403, 'Company scope mismatch');
+        abort_if((int) $payload['company_id'] !== (int) $currentCompanyId, 403, __('common.errors.company_scope_mismatch'));
 
         $restoreResponse = $this->employeeRestoreService->prepareRestoreResponse(
             (int) $currentCompanyId,
@@ -216,7 +216,7 @@ class EmployeeController extends Controller
 
         $payload = $request->validatedPayload();
         $currentCompanyId = $this->currentCompany->currentCompanyId($request) ?? (int) $payload['company_id'];
-        abort_if((int) $payload['company_id'] !== (int) $currentCompanyId, 403, 'Company scope mismatch');
+        abort_if((int) $payload['company_id'] !== (int) $currentCompanyId, 403, __('common.errors.company_scope_mismatch'));
 
         $restored = $this->employeeRestoreService->restoreEmployee(
             companyId: (int) $currentCompanyId,
@@ -297,8 +297,8 @@ class EmployeeController extends Controller
 
         $payload = $request->validatedPayload();
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if($currentCompanyId === null, 403, 'No company selected');
-        abort_if((int) $payload['company_id'] !== (int) $currentCompanyId, 403, 'Company scope mismatch');
+        abort_if($currentCompanyId === null, 403, __('common.errors.no_company_selected'));
+        abort_if((int) $payload['company_id'] !== (int) $currentCompanyId, 403, __('common.errors.company_scope_mismatch'));
 
         $preview = $this->employeeDeletionService->previewDelete(
             companyId: (int) $currentCompanyId,
@@ -319,8 +319,8 @@ class EmployeeController extends Controller
         $this->authorize('delete', $employee);
         $payload = $request->validatedPayload();
         $currentCompanyId = $this->currentCompany->currentCompanyId($request);
-        abort_if($currentCompanyId === null, 403, 'No company selected');
-        abort_if((int) $payload['company_id'] !== (int) $currentCompanyId, 403, 'Company scope mismatch');
+        abort_if($currentCompanyId === null, 403, __('common.errors.no_company_selected'));
+        abort_if((int) $payload['company_id'] !== (int) $currentCompanyId, 403, __('common.errors.company_scope_mismatch'));
 
         $deleted = $this->employeeDeletionService->deleteEmployee(
             companyId: (int) $currentCompanyId,
@@ -365,7 +365,7 @@ class EmployeeController extends Controller
     public function selector(EligibleSelectorRequest $request): JsonResponse
     {
         $companyId = $this->currentCompany->currentCompanyId($request);
-        abort_if($companyId === null, 403, 'No company selected');
+        abort_if($companyId === null, 403, __('common.errors.no_company_selected'));
 
         if (!$request->boolean('eligible_for_autoplan')) {
             $rows = $this->service->getToSelect([
@@ -394,7 +394,7 @@ class EmployeeController extends Controller
     public function getEligibleForAutoPlan(EligibleSelectorRequest $request): JsonResponse
     {
         $companyId = $this->currentCompany->currentCompanyId($request);
-        abort_if($companyId === null, 403, 'No company selected');
+        abort_if($companyId === null, 403, __('common.errors.no_company_selected'));
 
         $result = $this->service->getEligibleForAutoPlan($companyId, $this->eligibleParams($request));
 
