@@ -6,6 +6,7 @@ namespace App\Repositories;
 
 use App\Interfaces\PositionRepositoryInterface;
 use App\Models\Position;
+use App\Models\TenantGroup;
 use App\Services\Cache\CacheVersionService;
 use App\Services\CacheService;
 use Illuminate\Container\Container as AppContainer;
@@ -81,6 +82,53 @@ class PositionRepository extends BaseRepository implements PositionRepositoryInt
             ->where('company_id', $companyId)
             ->findOrFail($id);
         return $position;
+    }
+
+    public function findByNameInCompany(int $companyId, string $name): ?Position
+    {
+        $tenantId = TenantGroup::current()?->id;
+
+        /** @var Position|null $position */
+        $position = Position::query()
+            ->where('company_id', $companyId)
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower(trim($name), 'UTF-8')])
+            ->whereHas('company', function ($query) use ($tenantId, $companyId): void {
+                $query->whereKey($companyId)->where('active', true);
+
+                if (is_numeric($tenantId)) {
+                    $query->where('tenant_group_id', (int) $tenantId);
+                    return;
+                }
+
+                $query->whereRaw('1 = 0');
+            })
+            ->first();
+
+        return $position;
+    }
+
+    public function findFirstActiveNameInCompany(int $companyId): ?string
+    {
+        $tenantId = TenantGroup::current()?->id;
+
+        /** @var string|null $name */
+        $name = Position::query()
+            ->where('company_id', $companyId)
+            ->where('active', true)
+            ->whereHas('company', function ($query) use ($tenantId, $companyId): void {
+                $query->whereKey($companyId)->where('active', true);
+
+                if (is_numeric($tenantId)) {
+                    $query->where('tenant_group_id', (int) $tenantId);
+                    return;
+                }
+
+                $query->whereRaw('1 = 0');
+            })
+            ->orderBy('name')
+            ->value('name');
+
+        return $name;
     }
 
     public function store(array $data): Position

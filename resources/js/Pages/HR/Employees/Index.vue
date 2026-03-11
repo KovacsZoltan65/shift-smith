@@ -16,11 +16,14 @@ import { useConfirm } from "primevue/useconfirm";
 import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
 import Select from "primevue/select";
+import SplitButton from "primevue/splitbutton";
 
 import CreateModal from "@/Pages/HR/Employees/CreateModal.vue";
 import EditModal from "@/Pages/HR/Employees/EditModal.vue";
 import WorkPatternModal from "@/Pages/HR/Employees/WorkPatternModal.vue";
 import DeleteEmployeeDialog from "@/Components/Employees/DeleteEmployeeDialog.vue";
+import EmployeeImportDialog from "@/Components/Employees/EmployeeImportDialog.vue";
+import EmployeeService from "@/services/EmployeeService.js";
 
 import { csrfFetch } from "@/lib/csrfFetch";
 
@@ -45,6 +48,7 @@ const props = defineProps({
 });
 
 const { has } = usePermissions();
+const canViewAny = has(`${props.permissionPrefix}.viewAny`);
 const canCreate = has(`${props.permissionPrefix}.create`);
 const canUpdate = has(`${props.permissionPrefix}.update`);
 const canDelete = has(`${props.permissionPrefix}.delete`);
@@ -62,6 +66,7 @@ const editOpen = ref(false);
 const editEmployee = ref(null);
 const deleteOpen = ref(false);
 const deleteEmployee = ref(null);
+const importOpen = ref(false);
 const workPatternOpen = ref(false);
 const selectedEmployeeForWorkPattern = ref(null);
 
@@ -100,6 +105,13 @@ const buildRowMenuItems = (row) => [
     },
 ];
 // ------------------------
+
+const transferFormats = computed(() => [
+    { label: trans("common.formats.csv"), value: "csv" },
+    { label: trans("common.formats.json"), value: "json" },
+    { label: trans("common.formats.xml"), value: "xml" },
+    { label: trans("common.formats.xlsx"), value: "xlsx" },
+]);
 
 const companyId = ref(
     page.props?.companyContext?.current_company_id ??
@@ -169,6 +181,10 @@ const openCreate = () => {
     createOpen.value = true;
 };
 
+const openImport = () => {
+    importOpen.value = true;
+};
+
 const openEditModal = (row) => {
     editEmployee.value = row;
     editOpen.value = true;
@@ -193,6 +209,97 @@ const onSaved = async (msg = trans("common.success")) => {
         life: 2000,
     });
 };
+
+const onImportCompleted = async (summary) => {
+    if (!summary) {
+        return;
+    }
+
+    if ((summary.imported_count ?? 0) > 0) {
+        await fetchEmployees();
+    }
+
+    toast.add({
+        severity: summary.failed_count > 0 ? "warn" : "success",
+        summary: trans("common.success"),
+        detail: trans("employees.import.messages.completed"),
+        life: 2500,
+    });
+};
+
+const downloadExport = async (format) => {
+    actionLoading.value = true;
+
+    try {
+        const response = await EmployeeService.exportEmployees(format, {
+            company_id: companyId.value,
+        });
+
+        EmployeeService.saveDownload(
+            response,
+            `employees-export.${format}`,
+        );
+
+        toast.add({
+            severity: "success",
+            summary: trans("common.success"),
+            detail: trans("employees.import.messages.download_started"),
+            life: 2000,
+        });
+    } catch (error) {
+        toast.add({
+            severity: "error",
+            summary: trans("common.error"),
+            detail: error?.response?.data?.message || trans("employees.import.messages.export_failed"),
+            life: 3500,
+        });
+    } finally {
+        actionLoading.value = false;
+    }
+};
+
+const downloadTemplate = async (format) => {
+    actionLoading.value = true;
+
+    try {
+        const response = await EmployeeService.downloadEmployeeTemplate(format);
+
+        EmployeeService.saveDownload(
+            response,
+            `employees-template.${format}`,
+        );
+
+        toast.add({
+            severity: "success",
+            summary: trans("common.success"),
+            detail: trans("employees.import.messages.download_started"),
+            life: 2000,
+        });
+    } catch (error) {
+        toast.add({
+            severity: "error",
+            summary: trans("common.error"),
+            detail: error?.response?.data?.message || trans("employees.import.messages.template_failed"),
+            life: 3500,
+        });
+    } finally {
+        actionLoading.value = false;
+    }
+};
+
+const exportMenuItems = computed(() =>
+    transferFormats.value.map((item) => ({
+        label: item.label,
+        command: () => downloadExport(item.value),
+    })),
+);
+
+const templateMenuItems = computed(() =>
+    transferFormats.value.map((item) => ({
+        label: item.label,
+        command: () => downloadTemplate(item.value),
+    })),
+);
 
 const buildQuery = () => {
     const q = {
@@ -377,6 +484,11 @@ onMounted(() => {
         @deleted="onDeleted"
     />
 
+    <EmployeeImportDialog
+        v-model="importOpen"
+        @completed="onImportCompleted"
+    />
+
     <WorkPatternModal
         v-model="workPatternOpen"
         :employee="selectedEmployeeForWorkPattern"
@@ -405,6 +517,39 @@ onMounted(() => {
                         :disabled="loading"
                         @click="openCreate"
                         data-testid="employees-create"
+                    />
+
+                    <SplitButton
+                        v-if="canViewAny"
+                        :label="$t('employees.actions.export')"
+                        icon="pi pi-download"
+                        size="small"
+                        severity="secondary"
+                        :disabled="loading || actionLoading"
+                        :model="exportMenuItems"
+                        data-testid="employees-export"
+                    />
+
+                    <SplitButton
+                        v-if="canViewAny"
+                        :label="$t('employees.actions.download_template')"
+                        icon="pi pi-file-export"
+                        size="small"
+                        severity="secondary"
+                        :disabled="loading || actionLoading"
+                        :model="templateMenuItems"
+                        data-testid="employees-template"
+                    />
+
+                    <Button
+                        v-if="canCreate"
+                        :label="$t('employees.actions.import')"
+                        icon="pi pi-upload"
+                        severity="secondary"
+                        size="small"
+                        :disabled="loading || actionLoading"
+                        @click="openImport"
+                        data-testid="employees-import"
                     />
 
                     <!-- FRISSÍTÉS -->

@@ -29,6 +29,21 @@ interface EmployeeRepositoryInterface
     public function findTrashedByIdInCompany(int $employeeId, int $companyId): ?Employee;
 
     public function findLeaveEntitlementData(int $employeeId, int $companyId): EmployeeLeaveEntitlementData;
+
+    /**
+     * @return array<int, array{
+     *   last_name:string,
+     *   first_name:string,
+     *   email:string,
+     *   phone:string|null,
+     *   address:string|null,
+     *   position_name:string|null,
+     *   birth_date:string|null,
+     *   hired_at:string|null,
+     *   active:string
+     * }>
+     */
+    public function portableExportRows(int $companyId): array;
     
     public function getEmployeeByName(string $name): Employee;
 
@@ -48,6 +63,23 @@ interface EmployeeRepositoryInterface
      * @return Employee
      */
     public function store(array $data): Employee;
+
+    /**
+     * @param array{
+     *   company_id:int,
+     *   first_name:string,
+     *   last_name:string,
+     *   email:string,
+     *   birth_date:string,
+     *   address?:string|null,
+     *   phone?:string|null,
+     *   position_id?:int|null,
+     *   org_level?:string|null,
+     *   hired_at?:string|null,
+     *   active?:bool
+     * } $data
+     */
+    public function storeForImport(array $data): Employee;
     
     /**
      * Dolgozó frissítése azonosító alapján.

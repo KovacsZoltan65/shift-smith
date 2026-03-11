@@ -68,6 +68,8 @@ class CompanyController extends Controller
     
     /**
      * Cég lekérése azonosító alapján.
+     * @param int $id
+     * @return JsonResponse
      */
     public function getCompany(int $id): JsonResponse
     {
@@ -82,6 +84,8 @@ class CompanyController extends Controller
     
     /**
      * Cég lekérése név alapján.
+     * @param string $name
+     * @return JsonResponse
      */
     public function getCompanyByName(string $name): JsonResponse
     {
@@ -96,6 +100,8 @@ class CompanyController extends Controller
     
     /**
      * Új cég létrehozása.
+     * @param CompanyData $data
+     * @return JsonResponse
      */
     public function store(CompanyData $data): JsonResponse
     {
@@ -111,6 +117,9 @@ class CompanyController extends Controller
 
     /**
      * Cég adatainak frissítése.
+     * @param int $id
+     * @param CompanyData $data
+     * @return JsonResponse
      */
     public function update(int $id, CompanyData $data): JsonResponse
     {
@@ -127,6 +136,8 @@ class CompanyController extends Controller
     
     /**
      * Több cég törlése egyszerre.
+     * @param BulkDeleteRequest $request
+     * @return JsonResponse
      */
     public function bulkDelete(BulkDeleteRequest $request): JsonResponse
     {
@@ -143,6 +154,8 @@ class CompanyController extends Controller
     
     /**
      * Egy cég törlése.
+     * @param int $id
+     * @return JsonResponse
      */
     public function destroy(int $id): JsonResponse
     {
@@ -161,7 +174,7 @@ class CompanyController extends Controller
     
     /**
      * Cégek lekérése select listához.
-     *
+     * @param SelectorRequest $request
      * @return array<int, array{id:int, name:string}>
      */
     public function getToSelect(SelectorRequest $request): array
