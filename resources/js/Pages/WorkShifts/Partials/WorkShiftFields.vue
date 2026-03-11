@@ -1,8 +1,5 @@
 <script setup>
 import { computed, watch } from "vue";
-import InputText from "primevue/inputtext";
-import Checkbox from "primevue/checkbox";
-import Button from "primevue/button";
 
 const props = defineProps({
     modelValue: { type: Object, required: true },

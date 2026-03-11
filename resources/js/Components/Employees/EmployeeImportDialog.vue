@@ -2,13 +2,6 @@
 import { computed, ref, watch } from "vue";
 import { trans } from "laravel-vue-i18n";
 
-import Dialog from "primevue/dialog";
-import Button from "primevue/button";
-import Select from "primevue/select";
-import FileUpload from "primevue/fileupload";
-import Badge from "primevue/badge";
-import Message from "primevue/message";
-import ProgressBar from "primevue/progressbar";
 
 import EmployeeService from "@/services/EmployeeService.js";
 

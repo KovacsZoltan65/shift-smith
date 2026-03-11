@@ -1,9 +1,6 @@
 <script setup>
 import { computed } from "vue";
 import { usePage } from "@inertiajs/vue3";
-import Dialog from "primevue/dialog";
-import Button from "primevue/button";
-import Message from "primevue/message";
 
 const props = defineProps({
     visible: { type: Boolean, default: false },

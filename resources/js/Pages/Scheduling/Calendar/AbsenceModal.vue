@@ -1,10 +1,5 @@
 <script setup>
 import { computed, reactive, ref, watch } from "vue";
-import Dialog from "primevue/dialog";
-import Button from "primevue/button";
-import DatePicker from "primevue/datepicker";
-import InputText from "primevue/inputtext";
-import MultiSelect from "primevue/multiselect";
 import LeaveTypeSelector from "@/Components/Selectors/LeaveTypeSelector.vue";
 import SickLeaveCategorySelector from "@/Components/Selectors/SickLeaveCategorySelector.vue";
 

@@ -1,6 +1,5 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
-import { Select } from "primevue";
 import SickLeaveCategoryService from "@/services/SickLeaveCategoryService.js";
 
 const props = defineProps({

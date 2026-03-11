@@ -2,11 +2,6 @@
 import { computed } from "vue";
 import { usePage } from "@inertiajs/vue3";
 import { trans } from "laravel-vue-i18n";
-import Checkbox from "primevue/checkbox";
-import InputNumber from "primevue/inputnumber";
-import InputText from "primevue/inputtext";
-import Textarea from "primevue/textarea";
-import { Select } from "primevue";
 
 const props = defineProps({
     modelValue: { type: Object, required: true },

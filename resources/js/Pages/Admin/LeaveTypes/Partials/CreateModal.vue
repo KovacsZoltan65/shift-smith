@@ -1,8 +1,6 @@
 <script setup>
 import { computed, ref, watch } from "vue";
 
-import Button from "primevue/button";
-import Dialog from "primevue/dialog";
 
 import LeaveTypeFields from "@/Pages/Admin/LeaveTypes/Partials/LeaveTypeFields.vue";
 import LeaveTypeService from "@/services/LeaveTypeService.js";

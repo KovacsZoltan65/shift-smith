@@ -1,7 +1,5 @@
 <script setup>
 import { reactive, ref, watch } from "vue";
-import Dialog from "primevue/dialog";
-import Button from "primevue/button";
 
 import WorkShiftFields from "./Partials/WorkShiftFields.vue";
 import WorkShiftService from "@/services/WorkShiftService.js";

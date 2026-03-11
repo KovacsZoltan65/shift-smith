@@ -1,7 +1,5 @@
 <script setup>
 import { computed, ref, watch } from "vue";
-import Button from "primevue/button";
-import Dialog from "primevue/dialog";
 import SickLeaveCategoryFields from "@/Pages/Admin/SickLeaveCategories/Partials/SickLeaveCategoryFields.vue";
 import SickLeaveCategoryService from "@/services/SickLeaveCategoryService.js";
 

@@ -1,8 +1,5 @@
 <script setup>
 import { computed, ref } from "vue";
-import Button from "primevue/button";
-import DatePicker from "primevue/datepicker";
-import Dialog from "primevue/dialog";
 import EmployeeSelector from "@/Components/Selectors/EmployeeSelector.vue";
 import EmployeeWorkPatternService from "@/services/EmployeeWorkPatternService";
 import { toYmd } from "@/helpers/functions.js";

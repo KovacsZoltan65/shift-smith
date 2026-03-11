@@ -1,10 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 
-import InputText from "primevue/inputtext";
-import Dropdown from "primevue/dropdown";
-import MultiSelect from "primevue/multiselect";
-import { Select } from "primevue";
 
 const props = defineProps({
     modelValue: { type: Object, required: true }, // { name, guard_name, permission_ids: [] }

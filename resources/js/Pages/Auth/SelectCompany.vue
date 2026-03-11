@@ -1,9 +1,6 @@
 <script setup>
 import { computed, ref } from "vue";
 import { Head, useForm, usePage } from "@inertiajs/vue3";
-import Dialog from "primevue/dialog";
-import Button from "primevue/button";
-import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
 import CompanySelector from "@/Components/Selectors/CompanySelector.vue";
 

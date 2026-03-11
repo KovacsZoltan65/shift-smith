@@ -1,6 +1,4 @@
 <script setup>
-import Checkbox from "primevue/checkbox";
-import InputNumber from "primevue/inputnumber";
 
 const props = defineProps({
     modelValue: { type: Object, required: true },

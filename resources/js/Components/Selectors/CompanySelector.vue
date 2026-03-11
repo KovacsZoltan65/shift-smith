@@ -1,7 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import Service from "@/services/CompanyService.js";
-import { Select } from "primevue";
 
 /**
  * CompanySelector

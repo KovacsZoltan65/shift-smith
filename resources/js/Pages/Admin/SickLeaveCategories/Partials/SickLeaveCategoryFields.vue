@@ -1,8 +1,4 @@
 <script setup>
-import Checkbox from "primevue/checkbox";
-import InputNumber from "primevue/inputnumber";
-import InputText from "primevue/inputtext";
-import Textarea from "primevue/textarea";
 
 const props = defineProps({
     modelValue: { type: Object, required: true },

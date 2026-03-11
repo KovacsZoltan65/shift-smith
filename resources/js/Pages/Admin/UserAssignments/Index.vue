@@ -7,19 +7,8 @@ import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import UserAssignmentsService from "@/services/UserAssignmentsService.js";
 import ErrorService from "@/services/ErrorService.js";
 
-import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
-import ConfirmDialog from "primevue/confirmdialog";
 import { useConfirm } from "primevue/useconfirm";
-import DataTable from "primevue/datatable";
-import Column from "primevue/column";
-import Button from "primevue/button";
-import Dropdown from "primevue/dropdown";
-import InputText from "primevue/inputtext";
-import Dialog from "primevue/dialog";
-import Message from "primevue/message";
-import Tag from "primevue/tag";
-import { Select } from "primevue";
 
 const props = defineProps({
     title: { type: String, default: "" },

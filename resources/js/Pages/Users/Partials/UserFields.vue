@@ -1,6 +1,4 @@
 <script setup>
-import InputText from "primevue/inputtext";
-import Select from "primevue/select";
 import { watch } from "vue";
 import { trans } from "laravel-vue-i18n";
 

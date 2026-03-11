@@ -1,6 +1,5 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
-import { Select } from "primevue";
 import PositionService from "@/services/PositionService.js";
 
 const props = defineProps({

@@ -10,7 +10,6 @@ import { Link, router, usePage } from "@inertiajs/vue3";
 
 import { useAppMenu } from "@/composables/useAppMenu";
 
-import Button from "primevue/button";
 import TopbarLocaleSwitch from "@/Components/TopbarLocaleSwitch.vue";
 
 const showingNavigationDropdown = ref(false);

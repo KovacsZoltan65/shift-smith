@@ -1,10 +1,5 @@
 <script setup>
 import { computed, ref, watch } from "vue";
-import Dialog from "primevue/dialog";
-import Button from "primevue/button";
-import DatePicker from "primevue/datepicker";
-import Select from "primevue/select";
-import Message from "primevue/message";
 import EmployeeSelector from "@/Components/Selectors/EmployeeSelector.vue";
 import { csrfFetch } from "@/lib/csrfFetch";
 

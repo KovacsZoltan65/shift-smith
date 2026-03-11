@@ -2,14 +2,6 @@
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { Head, router } from "@inertiajs/vue3";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
-import Button from "primevue/button";
-import Checkbox from "primevue/checkbox";
-import InputText from "primevue/inputtext";
-import InputNumber from "primevue/inputnumber";
-import Select from "primevue/select";
-import MultiSelect from "primevue/multiselect";
-import SelectButton from "primevue/selectbutton";
-import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
 import { loadLanguageAsync } from "laravel-vue-i18n";
 import CompanySelector from "@/Components/Selectors/CompanySelector.vue";

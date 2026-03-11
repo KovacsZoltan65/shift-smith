@@ -2,8 +2,6 @@
 import { ref, watch, computed } from "vue";
 import { trans } from "laravel-vue-i18n";
 
-import Dialog from "primevue/dialog";
-import Button from "primevue/button";
 
 import EmployeeFields from "@/Pages/HR/Employees/Partials/EmployeeFields.vue";
 import SupervisorSelector from "@/Components/Selectors/SupervisorSelector.vue";

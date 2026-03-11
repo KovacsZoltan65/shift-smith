@@ -1,9 +1,6 @@
 <script setup>
 import { computed } from "vue";
 
-import InputText from "primevue/inputtext";
-import Checkbox from "primevue/checkbox";
-import DatePicker from "primevue/datepicker";
 
 import CompanySelector from "@/Components/Selectors/CompanySelector.vue";
 import PositionSelector from "@/Components/Selectors/PositionSelector.vue";

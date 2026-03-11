@@ -3,12 +3,6 @@ import GuestLayout from "@/Layouts/GuestLayout.vue";
 import { Head, Link, useForm } from "@inertiajs/vue3";
 
 // PrimeVue
-import Card from "primevue/card";
-import InputText from "primevue/inputtext";
-import Password from "primevue/password";
-import Button from "primevue/button";
-import Divider from "primevue/divider";
-import Message from "primevue/message";
 
 const form = useForm({
     name: "",

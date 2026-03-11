@@ -1,11 +1,6 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import { trans } from "laravel-vue-i18n";
-import Button from "primevue/button";
-import Column from "primevue/column";
-import DataTable from "primevue/datatable";
-import DatePicker from "primevue/datepicker";
-import Dialog from "primevue/dialog";
 import WorkPatternSelector from "@/Components/Selectors/WorkPatternSelector.vue";
 import EmployeeWorkPatternService from "@/services/EmployeeWorkPatternService";
 import { useToast } from "primevue/usetoast";

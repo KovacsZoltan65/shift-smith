@@ -1,6 +1,5 @@
 <script setup>
 import { computed } from "vue";
-import Select from "primevue/select";
 
 const props = defineProps({
     modelValue: { type: String, default: "" },

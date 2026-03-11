@@ -1,6 +1,5 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
-import Select from "primevue/select";
 import LeaveCategoryService from "@/services/LeaveCategoryService.js";
 
 const props = defineProps({

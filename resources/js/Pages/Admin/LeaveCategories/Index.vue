@@ -10,13 +10,6 @@ import EditModal from "@/Pages/Admin/LeaveCategories/Partials/EditModal.vue";
 import LeaveCategoryService from "@/services/LeaveCategoryService.js";
 import { usePermissions } from "@/composables/usePermissions";
 
-import Button from "primevue/button";
-import Column from "primevue/column";
-import DataTable from "primevue/datatable";
-import InputText from "primevue/inputtext";
-import Select from "primevue/select";
-import Tag from "primevue/tag";
-import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
 
 const props = defineProps({

@@ -7,16 +7,8 @@ import { trans } from "laravel-vue-i18n";
 import RowActionMenu from "@/Components/DataTable/RowActionMenu.vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 
-import DataTable from "primevue/datatable";
-import Column from "primevue/column";
-import Button from "primevue/button";
-import InputText from "primevue/inputtext";
-import ConfirmDialog from "primevue/confirmdialog";
 import { useConfirm } from "primevue/useconfirm";
-import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
-import Select from "primevue/select";
-import SplitButton from "primevue/splitbutton";
 
 import CreateModal from "@/Pages/HR/Employees/CreateModal.vue";
 import EditModal from "@/Pages/HR/Employees/EditModal.vue";
