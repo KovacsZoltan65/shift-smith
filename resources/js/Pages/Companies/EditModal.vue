@@ -12,12 +12,18 @@ const props = defineProps({
     modelValue: Boolean,
     company: { type: Object, default: null },
     canUpdate: { type: Boolean, default: false },
+    endpointBase: { type: String, default: "/companies" },
+    tenantGroupFieldEnabled: { type: Boolean, default: false },
+    tenantGroupReadOnly: { type: Boolean, default: false },
 });
 const emit = defineEmits(["update:modelValue", "saved"]);
 
 const loading = ref(false);
 const errors = reactive({});
 const form = ref({
+    tenant_group_id: null,
+    tenant_group_name: "",
+    tenant_group_code: "",
     name: "",
     email: "",
     address: "",
@@ -29,6 +35,9 @@ const hasCompany = computed(() => !!props.company?.id);
 
 const fill = () => {
     form.value = {
+        tenant_group_id: props.company?.tenantGroupId ?? props.company?.tenant_group_id ?? null,
+        tenant_group_name: props.company?.tenantGroupName ?? props.company?.tenant_group_name ?? "",
+        tenant_group_code: props.company?.tenantGroupCode ?? props.company?.tenant_group_code ?? "",
         name: props.company?.name ?? "",
         email: props.company?.email ?? "",
         address: props.company?.address ?? "",
@@ -58,7 +67,7 @@ const submit = async () => {
     Object.keys(errors).forEach((k) => delete errors[k]);
 
     try {
-        const res = await csrfFetch(`/companies/${props.company.id}`, {
+        const res = await csrfFetch(`${props.endpointBase}/${props.company.id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json", Accept: "application/json" },
             body: JSON.stringify(form.value),
@@ -104,7 +113,13 @@ const submit = async () => {
                 {{ errors._global }}
             </div>
 
-            <CompanyFields v-model="form" :errors="errors" :disabled="loading" />
+            <CompanyFields
+                v-model="form"
+                :errors="errors"
+                :disabled="loading"
+                :tenant-group-field-enabled="props.tenantGroupFieldEnabled"
+                :tenant-group-read-only="props.tenantGroupReadOnly"
+            />
         </div>
 
         <template #footer>

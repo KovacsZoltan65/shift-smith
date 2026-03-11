@@ -12,6 +12,8 @@ import { useToast } from "primevue/usetoast";
 
 import CreateModal from "@/Pages/Companies/CreateModal.vue";
 import EditModal from "@/Pages/Companies/EditModal.vue";
+import HqCreateModal from "@/Pages/Hq/Companies/CreateModal.vue";
+import HqEditModal from "@/Pages/Hq/Companies/EditModal.vue";
 
 import { csrfFetch } from "@/lib/csrfFetch";
 
@@ -28,6 +30,7 @@ const props = defineProps({
     fetchRouteName: { type: String, default: "" },
     detailRouteName: { type: String, default: "" },
     forbiddenRedirectRouteName: { type: String, default: "" },
+    tenantGroupFieldEnabled: { type: Boolean, default: false },
 });
 
 const title = computed(() => props.title || trans("companies.title"));
@@ -36,6 +39,13 @@ const canCreate = computed(() => has(`${props.permissionPrefix}.create`));
 const canUpdate = computed(() => has(`${props.permissionPrefix}.update`));
 const canDelete = computed(() => has(`${props.permissionPrefix}.delete`));
 const canAnyRowAction = computed(() => canUpdate.value || canDelete.value);
+const isHqMode = computed(() => props.permissionPrefix === "hq.companies");
+const resolvedCreateModal = computed(() =>
+    isHqMode.value ? HqCreateModal : CreateModal,
+);
+const resolvedEditModal = computed(() =>
+    isHqMode.value ? HqEditModal : EditModal,
+);
 
 const toast = useToast();
 const confirm = useConfirm();
@@ -72,7 +82,11 @@ const buildRowMenuItems = (row) => [
 ];
 
 // Szűrő állapot
-const globalFilterFields = ["name", "email", "phone", "active"];
+const globalFilterFields = computed(() =>
+    isHqMode.value
+        ? ["name", "email", "phone", "active", "tenantGroupCode", "tenantGroupName"]
+        : ["name", "email", "phone", "active"],
+);
 const booleanOptions = [
     { label: trans("true"), value: true },
     { label: trans("false"), value: false },
@@ -351,12 +365,22 @@ onMounted(() => {
     <Toast />
     <ConfirmDialog />
 
-    <CreateModal v-model="createOpen" @saved="onSaved" :canCreate="canCreate" />
+    <component
+        :is="resolvedCreateModal"
+        v-model="createOpen"
+        @saved="onSaved"
+        :canCreate="canCreate"
+        :endpointBase="props.endpointBase"
+        :tenantGroupFieldEnabled="props.tenantGroupFieldEnabled"
+    />
 
-    <EditModal
+    <component
+        :is="resolvedEditModal"
         v-model="editOpen"
         :company="editCompany"
         :canUpdate="canUpdate"
+        :endpointBase="props.endpointBase"
+        :tenantGroupFieldEnabled="props.tenantGroupFieldEnabled"
         @saved="onSaved"
     />
 
@@ -517,6 +541,40 @@ onMounted(() => {
                             v-model="filterModel.value"
                             class="w-full"
                             :placeholder="$t('companies.filters.phone')"
+                        />
+                    </template>
+                </Column>
+                <Column
+                    v-if="isHqMode"
+                    field="tenantGroupCode"
+                    filterField="tenantGroupCode"
+                    :header="$t('columns.tenant_group_code')"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
+                    <template #filter="{ filterModel }">
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            :placeholder="$t('companies.filters.tenant_group_code')"
+                        />
+                    </template>
+                </Column>
+                <Column
+                    v-if="isHqMode"
+                    field="tenantGroupName"
+                    filterField="tenantGroupName"
+                    :header="$t('columns.tenant_group_name')"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
+                    <template #filter="{ filterModel }">
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            :placeholder="$t('companies.filters.tenant_group_name')"
                         />
                     </template>
                 </Column>

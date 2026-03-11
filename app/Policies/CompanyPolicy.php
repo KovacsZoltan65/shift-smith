@@ -17,6 +17,9 @@ use App\Policies\BasePolicy;
  */
 final class CompanyPolicy extends BasePolicy
 {
+    public const PERM_HQ_VIEW = 'hq.companies.view';
+    public const PERM_HQ_CREATE = 'hq.companies.create';
+    public const PERM_HQ_UPDATE = 'hq.companies.update';
     /** Cégek listázás jogosultság */
     public const PERM_VIEW_ANY = 'companies.viewAny';
     /** Cég megtekintés jogosultság */

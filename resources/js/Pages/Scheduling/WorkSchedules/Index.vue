@@ -31,6 +31,7 @@ const canBulkDelete = has("work_schedules.deleteAny");
 const props = defineProps({
     title: { type: String, default: "Munkabeosztások" },
     filter: { type: Object, default: () => ({}) },
+    hqBadge: { type: String, default: "" },
 });
 
 const toast = useToast();

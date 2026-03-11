@@ -30,6 +30,11 @@ interface CompanyRepositoryInterface
     public function getCompany(int $id): Company;
 
     /**
+     * Landlord/HQ cég lekérése tenant scope nélkül.
+     */
+    public function getCompanyForHq(int $id): Company;
+
+    /**
      * Cég lekérése név alapján.
      */
     public function getCompanyByName(string $name): Company;
@@ -38,6 +43,7 @@ interface CompanyRepositoryInterface
      * Új cég létrehozása.
      *
      * @param array{
+     *   tenant_group_id: int,
      *   name: string,
      *   address?: string|null,
      *   phone?: string|null,
@@ -46,6 +52,28 @@ interface CompanyRepositoryInterface
      * } $data
      */
     public function store(array $data): Company;
+
+    /**
+     * @param array{
+     *   name: string,
+     *   address?: string|null,
+     *   phone?: string|null,
+     *   email?: string|null,
+     *   active?: bool
+     * } $data
+     */
+    public function createInExistingTenantGroup(array $data): Company;
+
+    /**
+     * @param array{
+     *   name: string,
+     *   address?: string|null,
+     *   phone?: string|null,
+     *   email?: string|null,
+     *   active?: bool
+     * } $data
+     */
+    public function provisionTenantGroupWithInitialCompany(array $data): Company;
 
     /**
      * Cég frissítése azonosító alapján.
@@ -60,6 +88,20 @@ interface CompanyRepositoryInterface
      * @param int $id
      */
     public function update(array $data, int $id): Company;
+
+    /**
+     * HQ frissítés reassignment nélkül.
+     *
+     * @param array{
+     *    tenant_group_id: int,
+     *    name: string,
+     *    email?: string|null,
+     *    address?: string|null,
+     *    phone?: string|null,
+     *    active?: bool
+     * } $data
+     */
+    public function updateForHq(array $data, int $id): Company;
 
     /**
      * @param list<int> $ids

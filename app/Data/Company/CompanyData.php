@@ -22,7 +22,7 @@ class CompanyData extends Data
     /**
      * @param ?int $id Cég azonosító
      * @param string $name Cég név
-     * @param string $email Cég e-mail cím
+     * @param ?string $email Cég e-mail cím
      * @param ?string $address Cég címe
      * @param ?string $phone Cég telefonszáma
      * @param bool $active Aktív státusz
@@ -34,8 +34,8 @@ class CompanyData extends Data
         #[Required, StringType, Max(150)]
         public string $name,
 
-        #[Required, Email, Max(150), Unique('companies', 'email', null, new RouteParameterReference('id', null, true), null, true)]
-        public string $email,
+        #[Nullable, Email, Max(150), Unique('companies', 'email', null, new RouteParameterReference('id', null, true), null, true)]
+        public ?string $email,
 
         #[Nullable, StringType, Max(255)]
         public ?string $address,

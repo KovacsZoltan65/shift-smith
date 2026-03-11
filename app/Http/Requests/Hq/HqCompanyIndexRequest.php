@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Hq;
 
+use App\Policies\HqCompanyPolicy;
 use Illuminate\Foundation\Http\FormRequest;
 
 class HqCompanyIndexRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can(HqCompanyPolicy::PERM_VIEW) ?? false;
     }
 
     /**

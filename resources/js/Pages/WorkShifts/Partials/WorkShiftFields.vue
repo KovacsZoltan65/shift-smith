@@ -97,16 +97,21 @@ const breakTotalMinutes = computed(() =>
 
 const workTimeMinutes = computed(() => Math.max(0, shiftDurationMinutes.value - breakTotalMinutes.value));
 
-const syncComputed = () => {
-    update({
-        break_minutes: breakTotalMinutes.value,
-        work_time_minutes: workTimeMinutes.value,
-    });
-};
-
 watch(
-    () => [props.modelValue?.start_time, props.modelValue?.end_time, JSON.stringify(breaks.value)],
-    syncComputed,
+    () => [breakTotalMinutes.value, workTimeMinutes.value],
+    ([nextBreakMinutes, nextWorkTimeMinutes]) => {
+        if (
+            props.modelValue?.break_minutes === nextBreakMinutes &&
+            props.modelValue?.work_time_minutes === nextWorkTimeMinutes
+        ) {
+            return;
+        }
+
+        update({
+            break_minutes: nextBreakMinutes,
+            work_time_minutes: nextWorkTimeMinutes,
+        });
+    },
     { immediate: true }
 );
 

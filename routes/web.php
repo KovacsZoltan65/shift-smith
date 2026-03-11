@@ -350,6 +350,7 @@ Route::middleware(['auth', 'verified', 'ensure.company', 'ensure.tenant'])
         Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
         Route::get('/fetch', 'fetch')->name('fetch')->middleware('throttle:60,1');
         Route::get('/{id}', 'getCompany')->whereNumber('id')->name('by_id')->middleware('throttle:60,1');
+        Route::get('/name/{name}', 'getCompanyByName')->where('name', '[A-Za-z0-9_.@\- ]+')->name('by_name')->middleware('throttle:60,1');
         
         // Írási műveletek
         Route::post('/', 'store')->name('store')->middleware('throttle:20,1');
@@ -371,6 +372,8 @@ Route::middleware(['auth', 'verified', 'superadmin', 'hq.landlord'])
         Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
         Route::get('/fetch', 'fetch')->name('fetch')->middleware('throttle:60,1');
         Route::get('/{id}', 'getCompany')->whereNumber('id')->name('by_id')->middleware('throttle:60,1');
+        Route::post('/', 'store')->name('store')->middleware('throttle:20,1');
+        Route::put('/{id}', 'update')->whereNumber('id')->name('update')->middleware('throttle:30,1');
     });
 
 Route::middleware(['auth', 'verified', 'superadmin', 'hq.landlord'])

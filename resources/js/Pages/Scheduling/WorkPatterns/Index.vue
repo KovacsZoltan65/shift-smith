@@ -33,6 +33,7 @@ const canAssignEmployee = has("employee_work_patterns.assign");
 const props = defineProps({
     title: { type: String, default: "Munkarendek" },
     filter: { type: Object, default: () => ({}) },
+    hqBadge: { type: String, default: "" },
 });
 
 const toast = useToast();

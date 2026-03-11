@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 // use Illuminate\Support\Facades\Gate;
+use App\Policies\HqCompanyPolicy;
 use App\Policies\UserAssignmentPolicy;
 use App\Policies\OrgHierarchyPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
@@ -63,6 +64,24 @@ class AuthServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerPolicies();
+
+        Gate::define(HqCompanyPolicy::PERM_VIEW, function (\App\Models\User $user): bool {
+            $policy = app(HqCompanyPolicy::class);
+
+            return $policy->viewAny($user);
+        });
+
+        Gate::define(HqCompanyPolicy::PERM_CREATE, function (\App\Models\User $user): bool {
+            $policy = app(HqCompanyPolicy::class);
+
+            return $policy->create($user);
+        });
+
+        Gate::define(HqCompanyPolicy::PERM_UPDATE, function (\App\Models\User $user): bool {
+            $policy = app(HqCompanyPolicy::class);
+
+            return $policy->update($user);
+        });
 
         Gate::define(UserAssignmentPolicy::PERM_VIEW_ANY, function (\App\Models\User $user): bool {
             $policy = app(UserAssignmentPolicy::class);

@@ -47,11 +47,14 @@ it('fetch returns only current tenant companies', function (): void {
     expect($ids)->not->toContain($companyTwo->id);
 });
 
-it('fetch returns empty list without tenant for non superadmin', function (): void {
+it('fetch bootstraps the single selectable company tenant for non superadmin', function (): void {
     $tenant = TenantGroup::factory()->create();
-    Company::factory()->count(3)->create(['tenant_group_id' => $tenant->id]);
+    $company = Company::factory()->create([
+        'tenant_group_id' => $tenant->id,
+        'name' => 'Bootstrapped Tenant Company',
+    ]);
 
-    $user = $this->createAdminUser();
+    $user = $this->createAdminUser($company);
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
 
@@ -65,5 +68,31 @@ it('fetch returns empty list without tenant for non superadmin', function (): vo
 
     $response
         ->assertOk()
-        ->assertJsonCount(0, 'data');
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.id', $company->id);
+});
+
+it('by-name lookup does not leak companies across tenant groups', function (): void {
+    $tenantOne = TenantGroup::factory()->create();
+    $tenantTwo = TenantGroup::factory()->create();
+
+    $companyOne = Company::factory()->create([
+        'tenant_group_id' => $tenantOne->id,
+        'name' => 'Tenant Scoped Name',
+    ]);
+
+    Company::factory()->create([
+        'tenant_group_id' => $tenantTwo->id,
+        'name' => 'Tenant Scoped Name',
+    ]);
+
+    $user = $this->createAdminUser($companyOne);
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+    $user->refresh();
+
+    $this->actingAs($user)
+        ->withSession(['current_tenant_group_id' => $tenantOne->id])
+        ->getJson(route('companies.by_name', ['name' => 'Tenant Scoped Name']))
+        ->assertOk()
+        ->assertJsonPath('data.id', $companyOne->id);
 });

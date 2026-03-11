@@ -11,6 +11,8 @@ return new class extends Migration
 {
     public function up(): void
     {
+        $driver = Schema::getConnection()->getDriverName();
+
         if (!Schema::hasColumn('companies', 'tenant_group_id')) {
             throw new \RuntimeException('Missing companies.tenant_group_id column. Run previous tenancy migrations first.');
         }
@@ -23,9 +25,11 @@ return new class extends Migration
             throw new \RuntimeException('Backfill is required before enforcing NOT NULL. Run: php artisan tenancy:backfill-tenant-groups');
         }
 
-        DB::statement('ALTER TABLE companies MODIFY tenant_group_id BIGINT UNSIGNED NOT NULL');
+        Schema::table('companies', function (Blueprint $table): void {
+            $table->unsignedBigInteger('tenant_group_id')->nullable(false)->change();
+        });
 
-        if (! $this->hasTenantGroupForeignKey()) {
+        if ($driver === 'mysql' && ! $this->hasTenantGroupForeignKey()) {
             Schema::table('companies', function (Blueprint $table): void {
                 $table->foreign('tenant_group_id')
                     ->references('id')
@@ -37,14 +41,17 @@ return new class extends Migration
 
     public function down(): void
     {
-        $foreignKeyName = $this->getTenantGroupForeignKeyName();
+        $driver = Schema::getConnection()->getDriverName();
+        $foreignKeyName = $driver === 'mysql' ? $this->getTenantGroupForeignKeyName() : null;
 
         if ($foreignKeyName !== null) {
             DB::statement(sprintf('ALTER TABLE companies DROP FOREIGN KEY `%s`', $foreignKeyName));
         }
 
         if (Schema::hasColumn('companies', 'tenant_group_id')) {
-            DB::statement('ALTER TABLE companies MODIFY tenant_group_id BIGINT UNSIGNED NULL');
+            Schema::table('companies', function (Blueprint $table): void {
+                $table->unsignedBigInteger('tenant_group_id')->nullable()->change();
+            });
         }
     }
 
