@@ -1,9 +1,5 @@
 <script setup>
 import { trans } from "laravel-vue-i18n";
-import Checkbox from "primevue/checkbox";
-import InputText from "primevue/inputtext";
-import Select from "primevue/select";
-import Textarea from "primevue/textarea";
 
 // Közös űrlapmezők a létrehozó és szerkesztő dialoghoz, hogy a két folyamat ugyanazt a mezőkészletet használja.
 const props = defineProps({

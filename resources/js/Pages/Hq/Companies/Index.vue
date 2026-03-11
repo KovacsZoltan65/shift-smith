@@ -22,5 +22,6 @@ const hqBadge = computed(() => trans("companies.hq_badge"));
         fetch-route-name="hq.companies.fetch"
         detail-route-name="hq.companies.by_id"
         forbidden-redirect-route-name="dashboard"
+        :tenant-group-field-enabled="true"
     />
 </template>

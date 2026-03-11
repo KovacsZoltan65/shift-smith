@@ -1,11 +1,6 @@
 <script setup>
 import { computed, ref, watch } from "vue";
 import { trans } from "laravel-vue-i18n";
-import Dialog from "primevue/dialog";
-import Button from "primevue/button";
-import DatePicker from "primevue/datepicker";
-import Message from "primevue/message";
-import Select from "primevue/select";
 import EmployeeSelector from "@/Components/Selectors/EmployeeSelector.vue";
 import { csrfFetch } from "@/lib/csrfFetch";
 

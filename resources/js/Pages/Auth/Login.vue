@@ -3,13 +3,6 @@ import GuestLayout from "@/Layouts/GuestLayout.vue";
 import { Head, Link, useForm, usePage } from "@inertiajs/vue3";
 
 // PrimeVue
-import Card from "primevue/card";
-import InputText from "primevue/inputtext";
-import Password from "primevue/password";
-import Checkbox from "primevue/checkbox";
-import Button from "primevue/button";
-import Message from "primevue/message";
-import Divider from "primevue/divider";
 
 defineProps({
     canResetPassword: { type: Boolean, default: false },

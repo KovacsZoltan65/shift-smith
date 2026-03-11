@@ -1,11 +1,5 @@
 <script setup>
 import { Head, Link, useForm, usePage } from "@inertiajs/vue3";
-import Card from "primevue/card";
-import InputText from "primevue/inputtext";
-import Password from "primevue/password";
-import Checkbox from "primevue/checkbox";
-import Button from "primevue/button";
-import Toast from "primevue/toast";
 import { ref } from "vue";
 
 const props = defineProps({

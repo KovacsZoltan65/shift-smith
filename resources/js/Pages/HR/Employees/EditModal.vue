@@ -2,11 +2,6 @@
 import { ref, watch, computed } from "vue";
 import { trans } from "laravel-vue-i18n";
 
-import Dialog from "primevue/dialog";
-import Button from "primevue/button";
-import Divider from "primevue/divider";
-import DatePicker from "primevue/datepicker";
-import Message from "primevue/message";
 import { useToast } from "primevue/usetoast";
 
 import EmployeeFields from "@/Pages/HR/Employees/Partials/EmployeeFields.vue";

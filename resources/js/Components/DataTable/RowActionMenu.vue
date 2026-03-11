@@ -1,8 +1,6 @@
 <script setup>
 import { computed, ref } from "vue";
 
-import Button from "primevue/button";
-import Menu from "primevue/menu";
 
 const props = defineProps({
     items: { type: Array, default: () => [] },

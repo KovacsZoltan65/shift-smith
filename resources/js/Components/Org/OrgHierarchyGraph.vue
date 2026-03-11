@@ -1,8 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import cytoscape from "cytoscape";
-import Card from "primevue/card";
-import ProgressSpinner from "primevue/progressspinner";
 
 const props = defineProps({
     companyId: { type: Number, required: true },

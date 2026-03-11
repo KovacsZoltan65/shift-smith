@@ -6,17 +6,8 @@ import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
 import RowActionMenu from "@/Components/DataTable/RowActionMenu.vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 
-import DataTable from "primevue/datatable";
-import Column from "primevue/column";
-import Button from "primevue/button";
-import InputText from "primevue/inputtext";
-import ConfirmDialog from "primevue/confirmdialog";
 import { useConfirm } from "primevue/useconfirm";
-import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
-import Tag from "primevue/tag";
-import Dialog from "primevue/dialog";
-import MultiSelect from "primevue/multiselect";
 
 import CreateModal from "@/Pages/Admin/Roles/CreateModal.vue";
 import EditModal from "@/Pages/Admin/Roles/EditModal.vue";

@@ -1,6 +1,5 @@
 <script setup>
 import { computed } from "vue";
-import Dialog from "primevue/dialog";
 import EmployeeWorkPatternPanel from "@/Pages/HR/Employees/Partials/EmployeeWorkPatternPanel.vue";
 
 const props = defineProps({

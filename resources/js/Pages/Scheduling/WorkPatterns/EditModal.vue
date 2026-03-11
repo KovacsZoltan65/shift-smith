@@ -1,7 +1,5 @@
 <script setup>
 import { computed, ref, watch } from "vue";
-import Button from "primevue/button";
-import Dialog from "primevue/dialog";
 import WorkPatternFields from "@/Pages/Scheduling/WorkPatterns/Partials/WorkPatternFields.vue";
 import { csrfFetch } from "@/lib/csrfFetch";
 

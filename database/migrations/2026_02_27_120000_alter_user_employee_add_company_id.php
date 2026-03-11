@@ -45,7 +45,9 @@ return new class extends Migration
         }
 
         if (! UserEmployee::query()->whereNull('company_id')->exists()) {
-            DB::statement('ALTER TABLE user_employee MODIFY company_id BIGINT UNSIGNED NOT NULL');
+            Schema::table('user_employee', function (Blueprint $table): void {
+                $table->unsignedBigInteger('company_id')->nullable(false)->change();
+            });
         }
     }
 
@@ -160,6 +162,19 @@ return new class extends Migration
 
     private function indexExists(string $table, string $indexName): bool
     {
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            /** @var array<int, object{name:string}> $indexes */
+            $indexes = DB::select(sprintf('PRAGMA index_list(%s)', $table));
+
+            foreach ($indexes as $index) {
+                if (($index->name ?? null) === $indexName) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         $database = (string) DB::getDatabaseName();
 
         $result = DB::selectOne(
@@ -177,6 +192,19 @@ return new class extends Migration
 
     private function foreignKeyExists(string $table, string $foreignKeyName): bool
     {
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            /** @var array<int, object{table:string,from:string}> $foreignKeys */
+            $foreignKeys = DB::select(sprintf('PRAGMA foreign_key_list(%s)', $table));
+
+            foreach ($foreignKeys as $foreignKey) {
+                if (($foreignKey->table ?? null) === 'companies' && ($foreignKey->from ?? null) === 'company_id') {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         $database = (string) DB::getDatabaseName();
 
         $result = DB::selectOne(

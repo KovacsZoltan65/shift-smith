@@ -41,6 +41,8 @@ it('validates required fields on store', function (): void {
 
 it('allows admin to store a company and bumps cache versions', function (): void {
     $user = $this->createAdminUser();
+    $currentCompany = $user->companies()->firstOrFail();
+    $tenantGroupId = (int) $currentCompany->tenant_group_id;
 
     app(PermissionRegistrar::class)->forgetCachedPermissions();
     $user->refresh();
@@ -48,15 +50,22 @@ it('allows admin to store a company and bumps cache versions', function (): void
     $versioner = app(CacheVersionService::class);
     $companiesFetchBefore = $versioner->get('companies.fetch');
     $companiesSelectorBefore = $versioner->get('selectors.companies');
+    $tenantGroupCountBefore = \App\Models\TenantGroup::query()->count();
 
-    // Factory által generált "biztosan elfogadott" formátum
-    $payload = Company::factory()->make([
+    $payload = [
         'name' => 'Test Company Kft.',
+        'email' => fake()->unique()->safeEmail(),
+        'address' => '1111 Budapest, Teszt utca 1.',
+        'phone' => '+3612345678',
         'active' => true,
-    ])->only(['name', 'email', 'address', 'phone', 'active']);
+    ];
 
     $this
         ->actingAs($user)
+        ->withSession([
+            'current_company_id' => (int) $currentCompany->id,
+            'current_tenant_group_id' => $tenantGroupId,
+        ])
         ->postJson(route('companies.store'), $payload)
         ->assertCreated();
 
@@ -64,7 +73,10 @@ it('allows admin to store a company and bumps cache versions', function (): void
         'name' => 'Test Company Kft.',
         'email' => $payload['email'],
         'active' => 1,
+        'tenant_group_id' => $tenantGroupId,
     ]);
+
+    expect(\App\Models\TenantGroup::query()->count())->toBe($tenantGroupCountBefore);
 
     expect($versioner->get('companies.fetch'))->toBeGreaterThan($companiesFetchBefore);
     expect($versioner->get('selectors.companies'))->toBeGreaterThan($companiesSelectorBefore);

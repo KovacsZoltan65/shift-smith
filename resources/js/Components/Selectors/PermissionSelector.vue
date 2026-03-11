@@ -1,7 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import Service from "@/services/Auth/PermissionService.js";
-import Select from "primevue/select";
 
 const props = defineProps({
     modelValue: { type: [String, Number, Object], default: null },

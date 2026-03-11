@@ -1,7 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import cytoscape from "cytoscape";
-import ProgressSpinner from "primevue/progressspinner";
 import {
     buildOrgHierarchyStyles,
     buildOrgNodeLabel,

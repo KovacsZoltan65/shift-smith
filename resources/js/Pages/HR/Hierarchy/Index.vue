@@ -7,15 +7,6 @@ import HierarchyMoveDialog from "@/Components/Org/HierarchyMoveDialog.vue";
 import DeleteEmployeeDialog from "@/Components/Employees/DeleteEmployeeDialog.vue";
 import CompanySelector from "@/Components/Selectors/CompanySelector.vue";
 import EmployeeSelector from "@/Components/Selectors/EmployeeSelector.vue";
-import Button from "primevue/button";
-import Card from "primevue/card";
-import DatePicker from "primevue/datepicker";
-import Dialog from "primevue/dialog";
-import Message from "primevue/message";
-import ProgressBar from "primevue/progressbar";
-import SelectButton from "primevue/selectbutton";
-import Tag from "primevue/tag";
-import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
 import { csrfFetch } from "@/lib/csrfFetch";
 

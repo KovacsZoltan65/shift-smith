@@ -44,6 +44,10 @@ interface PositionRepositoryInterface
 
     public function destroy(int $id, int $companyId): bool;
 
+    public function findByNameInCompany(int $companyId, string $name): ?Position;
+
+    public function findFirstActiveNameInCompany(int $companyId): ?string;
+
     /**
      * @param int $companyId
      * @param bool $onlyActive

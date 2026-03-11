@@ -4,10 +4,6 @@ import GuestLayout from "@/Layouts/GuestLayout.vue";
 import { Head, Link, useForm } from "@inertiajs/vue3";
 
 // PrimeVue
-import Card from "primevue/card";
-import Button from "primevue/button";
-import Message from "primevue/message";
-import Divider from "primevue/divider";
 
 const props = defineProps({
     status: { type: String, default: "" },

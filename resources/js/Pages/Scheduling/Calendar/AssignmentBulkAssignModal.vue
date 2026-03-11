@@ -1,8 +1,5 @@
 <script setup>
 import { computed, reactive, watch } from "vue";
-import Dialog from "primevue/dialog";
-import Button from "primevue/button";
-import MultiSelect from "primevue/multiselect";
 import WorkShiftSelector from "@/Components/Selectors/WorkShiftSelector.vue";
 
 const props = defineProps({

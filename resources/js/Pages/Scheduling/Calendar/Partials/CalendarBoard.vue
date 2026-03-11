@@ -1,6 +1,5 @@
 <script setup>
 import { computed } from "vue";
-import Button from "primevue/button";
 
 const props = defineProps({
     events: { type: Array, default: () => [] },

@@ -1,8 +1,6 @@
 <script setup>
 import { reactive, ref, watch } from "vue";
 import { trans } from "laravel-vue-i18n";
-import Dialog from "primevue/dialog";
-import Button from "primevue/button";
 import UserFields from "./Partials/UserFields.vue";
 import { csrfFetch } from "@/lib/csrfFetch";
 

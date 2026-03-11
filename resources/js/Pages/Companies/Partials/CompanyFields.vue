@@ -1,11 +1,12 @@
 <script setup>
-import InputText from "primevue/inputtext";
-import Checkbox from "primevue/checkbox";
+import TenantGroupSelector from "@/Components/Selectors/TenantGroupSelector.vue";
 
 const props = defineProps({
     modelValue: { type: Object, required: true },
     errors: { type: Object, default: () => ({}) },
     disabled: { type: Boolean, default: false },
+    tenantGroupFieldEnabled: { type: Boolean, default: false },
+    tenantGroupReadOnly: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(["update:modelValue"]);
@@ -17,6 +18,31 @@ const update = (patch) => {
 
 <template>
     <div class="grid grid-cols-1 gap-4">
+        <div v-if="tenantGroupFieldEnabled">
+            <label class="block text-sm font-medium mb-1">{{ $t("companies.fields.tenant_group") }}</label>
+            <InputText
+                v-if="tenantGroupReadOnly"
+                class="w-full"
+                :disabled="true"
+                :modelValue="modelValue.tenant_group_name || modelValue.tenant_group_code || ''"
+            />
+            <TenantGroupSelector
+                v-else
+                :modelValue="modelValue.tenant_group_id"
+                :placeholder="$t('companies.form.tenant_group_placeholder')"
+                @update:modelValue="(v) => update({ tenant_group_id: v })"
+            />
+            <div v-if="errors.tenant_group_id" class="text-sm text-red-600 mt-1">
+                {{ errors.tenant_group_id }}
+            </div>
+            <div
+                v-else-if="tenantGroupReadOnly"
+                class="mt-1 text-sm text-gray-500"
+            >
+                {{ $t("companies.hq.messages.reassignment_locked") }}
+            </div>
+        </div>
+
         <!-- NAME -->
         <div>
             <label class="block text-sm font-medium mb-1">{{ $t("columns.name") }}</label>

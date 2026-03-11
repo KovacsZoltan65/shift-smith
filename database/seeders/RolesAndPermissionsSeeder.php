@@ -110,6 +110,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'user_settings.deleteAny',
             'user_settings.manageOthers',
             'hq.companies.view',
+            'hq.companies.create',
+            'hq.companies.update',
             'tenant-groups.view',
             'tenant-groups.viewAny',
             'tenant-groups.create',

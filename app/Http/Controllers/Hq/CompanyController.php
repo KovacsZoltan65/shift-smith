@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Hq;
 
-use App\Data\Company\CompanyData;
 use App\Data\Company\CompanyIndexData;
+use App\Data\Company\CompanyData;
+use App\Data\Company\HqCompanyData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Hq\HqCompanyIndexRequest;
+use App\Http\Requests\Hq\HqCompanyStoreRequest;
+use App\Http\Requests\Hq\HqCompanyUpdateRequest;
+use App\Policies\HqCompanyPolicy;
 use App\Services\CompanyService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -48,11 +53,62 @@ final class CompanyController extends Controller
 
     public function getCompany(int $id): JsonResponse
     {
-        $company = $this->service->find($id);
+        $company = $this->service->findHq($id);
 
         return response()->json([
             'message' => __('companies.hq.messages.show_success'),
-            'data' => CompanyData::fromModel($company),
+            'data' => HqCompanyData::fromModel($company),
+        ], Response::HTTP_OK);
+    }
+
+    public function store(HqCompanyStoreRequest $request): JsonResponse
+    {
+        Gate::authorize(HqCompanyPolicy::PERM_CREATE);
+
+        $validated = $request->validated();
+
+        $created = $this->service->createInTenantGroup(
+            (int) $validated['tenant_group_id'],
+            CompanyData::from([
+                'id' => null,
+                'name' => (string) $validated['name'],
+                'email' => $validated['email'] ?? null,
+                'address' => $validated['address'] ?? null,
+                'phone' => $validated['phone'] ?? null,
+                'active' => (bool) ($validated['active'] ?? true),
+                'created_at' => null,
+            ]),
+        );
+
+        return response()->json([
+            'message' => __('companies.hq.messages.created_success'),
+            'data' => $created,
+        ], Response::HTTP_CREATED);
+    }
+
+    public function update(int $id, HqCompanyUpdateRequest $request): JsonResponse
+    {
+        Gate::authorize(HqCompanyPolicy::PERM_UPDATE);
+
+        $validated = $request->validated();
+
+        $updated = $this->service->updateInTenantGroup(
+            (int) $validated['tenant_group_id'],
+            $id,
+            CompanyData::from([
+                'id' => $id,
+                'name' => (string) $validated['name'],
+                'email' => $validated['email'] ?? null,
+                'address' => $validated['address'] ?? null,
+                'phone' => $validated['phone'] ?? null,
+                'active' => (bool) ($validated['active'] ?? true),
+                'created_at' => null,
+            ]),
+        );
+
+        return response()->json([
+            'message' => __('companies.hq.messages.updated_success'),
+            'data' => $updated,
         ], Response::HTTP_OK);
     }
 }

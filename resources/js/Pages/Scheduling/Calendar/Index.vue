@@ -2,15 +2,6 @@
 import { Head } from "@inertiajs/vue3";
 import { computed, onMounted, ref, watch } from "vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
-import Button from "primevue/button";
-import ConfirmDialog from "primevue/confirmdialog";
-import Select from "primevue/select";
-import SelectButton from "primevue/selectbutton";
-import MultiSelect from "primevue/multiselect";
-import ToggleSwitch from "primevue/toggleswitch";
-import InputNumber from "primevue/inputnumber";
-import DatePicker from "primevue/datepicker";
-import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
 import { useConfirm } from "primevue/useconfirm";
 

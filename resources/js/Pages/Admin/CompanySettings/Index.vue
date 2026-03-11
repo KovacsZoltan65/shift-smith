@@ -8,20 +8,12 @@ import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import CompanySettingsService from "@/services/CompanySettingsService.js";
 import { usePermissions } from "@/composables/usePermissions";
 
-import Badge from "primevue/badge";
-import Button from "primevue/button";
-import Column from "primevue/column";
-import DataTable from "primevue/datatable";
-import InputText from "primevue/inputtext";
-import Tag from "primevue/tag";
-import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
 
 import BulkDeleteModal from "./Partials/BulkDeleteModal.vue";
 import CreateModal from "./Partials/CreateModal.vue";
 import DeleteModal from "./Partials/DeleteModal.vue";
 import EditModal from "./Partials/EditModal.vue";
-import Select from "primevue/select";
 import { IconField, InputIcon } from "primevue";
 
 const props = defineProps({

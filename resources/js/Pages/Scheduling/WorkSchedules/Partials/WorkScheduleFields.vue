@@ -1,7 +1,4 @@
 <script setup>
-import DatePicker from "primevue/datepicker";
-import InputText from "primevue/inputtext";
-import Select from "primevue/select";
 
 const props = defineProps({
     modelValue: { type: Object, required: true },

@@ -3,10 +3,6 @@ import GuestLayout from "@/Layouts/GuestLayout.vue";
 import { Head, useForm } from "@inertiajs/vue3";
 
 // PrimeVue
-import Card from "primevue/card";
-import InputText from "primevue/inputtext";
-import Button from "primevue/button";
-import Message from "primevue/message";
 
 defineProps({
     status: { type: String, default: "" },

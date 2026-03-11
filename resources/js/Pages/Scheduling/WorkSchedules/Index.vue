@@ -4,13 +4,6 @@ import { computed, onMounted, ref } from "vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
 import RowActionMenu from "@/Components/DataTable/RowActionMenu.vue";
-import Button from "primevue/button";
-import Column from "primevue/column";
-import ConfirmDialog from "primevue/confirmdialog";
-import DataTable from "primevue/datatable";
-import InputText from "primevue/inputtext";
-import Select from "primevue/select";
-import Toast from "primevue/toast";
 import { useConfirm } from "primevue/useconfirm";
 import { useToast } from "primevue/usetoast";
 import CompanySelector from "@/Components/Selectors/CompanySelector.vue";
@@ -38,6 +31,7 @@ const canBulkDelete = has("work_schedules.deleteAny");
 const props = defineProps({
     title: { type: String, default: "Munkabeosztások" },
     filter: { type: Object, default: () => ({}) },
+    hqBadge: { type: String, default: "" },
 });
 
 const toast = useToast();

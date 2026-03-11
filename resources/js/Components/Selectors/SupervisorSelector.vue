@@ -1,6 +1,5 @@
 <script setup>
 import { computed, ref, watch } from "vue";
-import Select from "primevue/select";
 import EmployeeService from "@/services/EmployeeService.js";
 
 const props = defineProps({

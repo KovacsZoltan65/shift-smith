@@ -1,8 +1,6 @@
 <script setup>
 import { computed } from "vue";
 
-import InputText from "primevue/inputtext";
-import Select from "primevue/select";
 
 const props = defineProps({
     modelValue: { type: Object, required: true }, // { name, guard_name }

@@ -1,6 +1,5 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
-import { Select } from "primevue";
 import LeaveTypeService from "@/services/LeaveTypeService.js";
 
 const props = defineProps({

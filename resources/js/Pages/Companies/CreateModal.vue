@@ -1,8 +1,6 @@
 <script setup>
 import { reactive, ref, watch } from "vue";
 import { trans } from "laravel-vue-i18n";
-import Dialog from "primevue/dialog";
-import Button from "primevue/button";
 
 import CompanyFields from "./Partials/CompanyFields.vue";
 import { csrfFetch } from "@/lib/csrfFetch";
@@ -13,12 +11,15 @@ import { csrfFetch } from "@/lib/csrfFetch";
 const props = defineProps({
     modelValue: Boolean,
     canCreate: { type: Boolean, default: false },
+    endpointBase: { type: String, default: "/companies" },
+    tenantGroupFieldEnabled: { type: Boolean, default: false },
 });
 const emit = defineEmits(["update:modelValue", "saved"]);
 
 const loading = ref(false);
 const errors = reactive({});
 const form = ref({
+    tenant_group_id: null,
     name: "",
     email: "",
     address: "",
@@ -32,6 +33,7 @@ watch(
         if (!open) return;
 
         form.value = {
+            tenant_group_id: null,
             name: "",
             email: "",
             address: "",
@@ -50,7 +52,7 @@ const submit = async () => {
     Object.keys(errors).forEach((k) => delete errors[k]);
 
     try {
-        const res = await csrfFetch("/companies", {
+        const res = await csrfFetch(props.endpointBase, {
             method: "POST",
             headers: { "Content-Type": "application/json", Accept: "application/json" },
             body: JSON.stringify(form.value),
@@ -92,7 +94,12 @@ const submit = async () => {
                 {{ errors._global }}
             </div>
 
-            <CompanyFields v-model="form" :errors="errors" :disabled="loading" />
+            <CompanyFields
+                v-model="form"
+                :errors="errors"
+                :disabled="loading"
+                :tenant-group-field-enabled="props.tenantGroupFieldEnabled"
+            />
         </div>
 
         <template #footer>

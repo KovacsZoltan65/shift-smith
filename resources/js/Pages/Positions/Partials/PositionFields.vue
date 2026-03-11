@@ -1,7 +1,4 @@
 <script setup>
-import InputText from "primevue/inputtext";
-import Textarea from "primevue/textarea";
-import Checkbox from "primevue/checkbox";
 import CompanySelector from "@/Components/Selectors/CompanySelector.vue";
 
 const props = defineProps({

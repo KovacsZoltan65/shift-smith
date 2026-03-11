@@ -1,9 +1,5 @@
 <script setup>
 import { computed, ref, watch } from "vue";
-import Button from "primevue/button";
-import Column from "primevue/column";
-import DataTable from "primevue/datatable";
-import Dialog from "primevue/dialog";
 import { useToast } from "primevue/usetoast";
 
 import WorkShiftAssignmentService from "@/services/WorkShiftAssignmentService";

@@ -1,8 +1,6 @@
 <script setup>
 import { computed, ref } from "vue";
 import { trans } from "laravel-vue-i18n";
-import Button from "primevue/button";
-import Dialog from "primevue/dialog";
 
 import AppSettingsService from "@/services/AppSettingsService.js";
 

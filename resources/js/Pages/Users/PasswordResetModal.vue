@@ -2,8 +2,6 @@
 import { computed, reactive, ref, watch } from "vue";
 import { usePage } from "@inertiajs/vue3";
 import { trans } from "laravel-vue-i18n";
-import Dialog from "primevue/dialog";
-import Button from "primevue/button";
 
 const page = usePage();
 

@@ -2,15 +2,7 @@
 import { Head } from "@inertiajs/vue3";
 import { onMounted, ref } from "vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
-import DataTable from "primevue/datatable";
-import Column from "primevue/column";
-import Button from "primevue/button";
-import InputText from "primevue/inputtext";
-import Select from "primevue/select";
-import Checkbox from "primevue/checkbox";
-import Dialog from "primevue/dialog";
 import { useToast } from "primevue/usetoast";
-import Toast from "primevue/toast";
 import PositionOrgLevelService from "@/services/PositionOrgLevelService.js";
 
 const props = defineProps({

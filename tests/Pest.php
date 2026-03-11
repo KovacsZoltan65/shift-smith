@@ -1,6 +1,6 @@
 <?php
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
 use App\Models\User;
@@ -20,7 +20,7 @@ use Spatie\Permission\PermissionRegistrar;
 
 uses(
     Tests\TestCase::class, 
-    Illuminate\Foundation\Testing\RefreshDatabase::class)
+    Illuminate\Foundation\Testing\LazilyRefreshDatabase::class)
     ->in('Feature', 'Unit');
 
 

@@ -11,7 +11,9 @@ use App\Services\CacheService;
 use App\Traits\Functions;
 use Illuminate\Container\Container as AppContainer;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Prettus\Repository\Criteria\RequestCriteria;
@@ -60,7 +62,7 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     public function fetch(Request $request): LengthAwarePaginator
     {
         $needCache = (bool) config('cache.enable_companies', false);
-        $currentTenantId = TenantGroup::current()?->id;
+        $currentTenantId = $this->resolveTenantGroupId($request);
         $user = $request->user();
         $isSuperadmin = $user !== null && method_exists($user, 'hasRole') && $user->hasRole('superadmin');
         
@@ -85,6 +87,7 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
         
         $queryCallback = function() use($term, $field, $direction, $perPage, $page, $appendQuery, $currentTenantId, $isSuperadmin): LengthAwarePaginator {
             $q = Company::query()
+                ->with('tenantGroup:id,name,code')
                 ->when(
                     $currentTenantId !== null,
                     fn ($qq) => $qq->where('tenant_group_id', $currentTenantId)
@@ -173,6 +176,7 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
 
         $queryCallback = function () use ($term, $field, $direction, $perPage, $page, $appendQuery): LengthAwarePaginator {
             $q = Company::query()
+                ->with('tenantGroup:id,name,code')
                 ->when($term, function ($qq) use ($term) {
                     $qq->where(function ($q) use ($term) {
                         $q->where('name', 'like', "%{$term}%")
@@ -227,9 +231,23 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
      */
     public function getCompany(int $id): Company
     {
+        $currentTenantId = $this->currentTenantGroupId();
+
         /** @var Company $company */
-        $company = Company::findOrFail($id);
+        $company = Company::query()
+            ->when($currentTenantId !== null, fn ($query) => $query->where('tenant_group_id', $currentTenantId))
+            ->findOrFail($id);
         
+        return $company;
+    }
+
+    public function getCompanyForHq(int $id): Company
+    {
+        /** @var Company $company */
+        $company = Company::query()
+            ->with('tenantGroup:id,name,code')
+            ->findOrFail($id);
+
         return $company;
     }
     
@@ -240,8 +258,17 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
      */
     public function getCompanyByName(string $name): Company
     {
+        $currentTenantId = $this->currentTenantGroupId();
+
+        if ($currentTenantId === null) {
+            throw (new ModelNotFoundException())->setModel(Company::class, [$name]);
+        }
+
         /** @var Company $company */
-        $company = Company::where('name', '=', $name)->firstOrFail();
+        $company = Company::query()
+            ->where('tenant_group_id', $currentTenantId)
+            ->where('name', '=', $name)
+            ->firstOrFail();
 
         return $company;
     }
@@ -255,7 +282,7 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     public function getToSelect(array $params): array
     {
         $needCache = (bool) config('cache.enable_companyToSelect', false);
-        $currentTenantId = TenantGroup::current()?->id;
+        $currentTenantId = $this->currentTenantGroupId();
 
         // normalize
         $params['only_with_employees'] = !empty($params['only_with_employees']);
@@ -310,6 +337,7 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
      * Új cég létrehozása.
      *
      * @param array{
+     *   tenant_group_id: int,
      *   name: string,
      *   address?: string|null,
      *   phone?: string|null,
@@ -319,7 +347,59 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
      */
     public function store(array $data): Company
     {
-        return DB::transaction(function() use($data): Company {
+        return $this->createInExistingTenantGroup($data);
+    }
+
+    /**
+     * @param array{
+     *   name: string,
+     *   address?: string|null,
+     *   phone?: string|null,
+     *   email?: string|null,
+     *   active?: bool
+     * } $data
+     */
+    public function createInExistingTenantGroup(array $data): Company
+    {
+        return DB::transaction(function () use ($data): Company {
+            $tenantGroupId = (int) ($data['tenant_group_id'] ?? 0);
+            if ($tenantGroupId <= 0) {
+                throw new \InvalidArgumentException('Missing tenant_group_id for company creation.');
+            }
+
+            TenantGroup::query()
+                ->whereKey($tenantGroupId)
+                ->where('active', true)
+                ->firstOrFail();
+
+            /** @var Company $company */
+            $company = Company::query()->create([
+                ...$data,
+                'tenant_group_id' => $tenantGroupId,
+            ]);
+
+            $this->createDefaultSettings($company);
+            $this->invalidateAfterCompanyWrite();
+
+            return $company;
+        });
+    }
+
+    /**
+     * A provisioning külön use case marad: tenant létrehozása és az első company bootstrap egyben.
+     * TODO: expose this only from a dedicated tenant provisioning workflow.
+     *
+     * @param array{
+     *   name: string,
+     *   address?: string|null,
+     *   phone?: string|null,
+     *   email?: string|null,
+     *   active?: bool
+     * } $data
+     */
+    public function provisionTenantGroupWithInitialCompany(array $data): Company
+    {
+        return DB::transaction(function () use ($data): Company {
             $tenantGroup = TenantGroup::query()->create([
                 'name' => (string) $data['name'],
                 'code' => $this->makeUniqueTenantGroupCode((string) $data['name']),
@@ -327,17 +407,10 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
                 'active' => true,
             ]);
 
-            $data['tenant_group_id'] = $tenantGroup->id;
-
-            /** @var Company $company */
-            $company = Company::query()->create($data);
-            
-            $this->createDefaultSettings($company);
-            
-            // Cache ürítése
-            $this->invalidateAfterCompanyWrite();
-            
-            return $company;
+            return $this->createInExistingTenantGroup([
+                ...$data,
+                'tenant_group_id' => (int) $tenantGroup->id,
+            ]);
         });
     }
 
@@ -392,8 +465,12 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     public function update(array $data, $id): Company
     {
         return DB::transaction(function() use($data, $id) {
+            $currentTenantId = $this->currentTenantGroupId();
             /** @var Company $company */
-            $company = Company::query()->lockForUpdate()->findOrFail($id);
+            $company = Company::query()
+                ->when($currentTenantId !== null, fn ($query) => $query->where('tenant_group_id', $currentTenantId))
+                ->lockForUpdate()
+                ->findOrFail($id);
             
             $company->fill($data);
             $company->save();
@@ -407,6 +484,33 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
             return $company;
         });
     }
+
+    public function updateForHq(array $data, int $id): Company
+    {
+        return DB::transaction(function () use ($data, $id): Company {
+            $tenantGroupId = (int) ($data['tenant_group_id'] ?? 0);
+
+            /** @var Company $company */
+            $company = Company::query()
+                ->lockForUpdate()
+                ->findOrFail($id);
+
+            if ($tenantGroupId <= 0 || $tenantGroupId !== (int) $company->tenant_group_id) {
+                throw new \InvalidArgumentException('TenantGroup reassignment is not supported in this phase.');
+            }
+
+            unset($data['tenant_group_id']);
+
+            $company->fill($data);
+            $company->save();
+            $company->refresh();
+
+            $this->updateDefaultSettings($company);
+            $this->invalidateAfterCompanyWrite();
+
+            return $company;
+        });
+    }
     
     /**
      * Több cég törlése egyszerre.
@@ -416,7 +520,12 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     public function bulkDelete(array $ids): int
     {
         return DB::transaction(function() use($ids): int {
-            $deleted = Company::query()->whereIn('id', $ids)->delete();
+            $currentTenantId = $this->currentTenantGroupId();
+
+            $deleted = Company::query()
+                ->when($currentTenantId !== null, fn ($query) => $query->where('tenant_group_id', $currentTenantId))
+                ->whereIn('id', $ids)
+                ->delete();
             
             $this->invalidateAfterCompanyWrite();
             
@@ -430,8 +539,12 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
     public function destroy(int $id): bool
     {
         return DB::transaction(function() use($id) {
+            $currentTenantId = $this->currentTenantGroupId();
             /** @var Company $company */
-            $company = Company::query()->lockForUpdate()->findOrFail($id);
+            $company = Company::query()
+                ->when($currentTenantId !== null, fn ($query) => $query->where('tenant_group_id', $currentTenantId))
+                ->lockForUpdate()
+                ->findOrFail($id);
             
             $deleted = (bool) $company->delete();
             
@@ -475,6 +588,50 @@ class CompanyRepository extends BaseRepository implements CompanyRepositoryInter
      * Alapértelmezett beállítások törlése.
      */
     private function deleteDefaultSettings(Company $company): void{}
+
+    private function currentTenantGroupId(): ?int
+    {
+        $request = App::bound('request') ? App::make('request') : null;
+
+        if ($request instanceof Request && $request->hasSession() && $request->session()->has('current_tenant_group_id')) {
+            $sessionTenantId = $request->session()->get('current_tenant_group_id');
+
+            if (! is_numeric($sessionTenantId)) {
+                return null;
+            }
+
+            $value = (int) $sessionTenantId;
+
+            return $value > 0 ? $value : null;
+        }
+
+        $tenantId = TenantGroup::current()?->id;
+
+        if (! is_numeric($tenantId)) {
+            return null;
+        }
+
+        $value = (int) $tenantId;
+
+        return $value > 0 ? $value : null;
+    }
+
+    private function resolveTenantGroupId(?Request $request = null): ?int
+    {
+        if ($request instanceof Request && $request->hasSession() && $request->session()->has('current_tenant_group_id')) {
+            $sessionTenantId = $request->session()->get('current_tenant_group_id');
+
+            if (! is_numeric($sessionTenantId)) {
+                return null;
+            }
+
+            $value = (int) $sessionTenantId;
+
+            return $value > 0 ? $value : null;
+        }
+
+        return $this->currentTenantGroupId();
+    }
     
     /**
      * Repository model osztály megadása.

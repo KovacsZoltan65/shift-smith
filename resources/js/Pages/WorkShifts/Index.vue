@@ -6,13 +6,6 @@ import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
 import RowActionMenu from "@/Components/DataTable/RowActionMenu.vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 
-import Button from "primevue/button";
-import Column from "primevue/column";
-import ConfirmDialog from "primevue/confirmdialog";
-import DataTable from "primevue/datatable";
-import InputText from "primevue/inputtext";
-import Select from "primevue/select";
-import Toast from "primevue/toast";
 import { useConfirm } from "primevue/useconfirm";
 import { useToast } from "primevue/usetoast";
 

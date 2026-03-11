@@ -66,6 +66,46 @@ class EmployeeService extends BaseService {
             },
         });
     }
+
+    exportEmployees(format, params = {}) {
+        return this.apiClient.get(route(`${this.url}.export`, format), {
+            params,
+            responseType: "blob",
+        });
+    }
+
+    downloadEmployeeTemplate(format) {
+        return this.apiClient.get(route(`${this.url}.template`, format), {
+            responseType: "blob",
+        });
+    }
+
+    importEmployees(file, format) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        return this.post(route(`${this.url}.import`, format), formData, {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        });
+    }
+
+    saveDownload(response, fallbackFileName) {
+        const blob = response?.data;
+        const disposition = response?.headers?.["content-disposition"] ?? "";
+        const fileNameMatch = disposition.match(/filename="?([^"]+)"?/i);
+        const fileName = fileNameMatch?.[1] ?? fallbackFileName;
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+
+        anchor.href = downloadUrl;
+        anchor.download = fileName;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        window.URL.revokeObjectURL(downloadUrl);
+    }
 }
 
 export default new EmployeeService();

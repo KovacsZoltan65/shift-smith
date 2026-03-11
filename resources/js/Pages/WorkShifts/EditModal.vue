@@ -1,7 +1,5 @@
 <script setup>
 import { computed, reactive, ref, watch } from "vue";
-import Dialog from "primevue/dialog";
-import Button from "primevue/button";
 
 import WorkShiftFields from "./Partials/WorkShiftFields.vue";
 import WorkShiftService from "@/services/WorkShiftService.js";
@@ -12,6 +10,11 @@ const props = defineProps({
     canUpdate: { type: Boolean, default: false },
 });
 const emit = defineEmits(["update:modelValue", "saved"]);
+
+const open = computed({
+    get: () => props.modelValue,
+    set: (value) => emit("update:modelValue", value),
+});
 
 const loading = ref(false);
 const errors = reactive({});
@@ -26,6 +29,20 @@ const form = ref({
 });
 
 const hasWorkShift = computed(() => !!props.workShift?.id);
+
+const reset = () => {
+    loading.value = false;
+    form.value = {
+        name: "",
+        start_time: null,
+        end_time: null,
+        work_time_minutes: null,
+        break_minutes: null,
+        breaks: [],
+        active: true,
+    };
+    Object.keys(errors).forEach((k) => delete errors[k]);
+};
 
 const fill = () => {
     form.value = {
@@ -48,15 +65,24 @@ const fill = () => {
 
 watch(
     () => props.modelValue,
-    (open) => open && fill()
+    (isOpen) => {
+        if (!isOpen) {
+            reset();
+            return;
+        }
+
+        fill();
+    },
 );
 
 watch(
     () => props.workShift,
-    () => props.modelValue && fill()
+    () => props.modelValue && fill(),
 );
 
-const close = () => emit("update:modelValue", false);
+const close = () => {
+    open.value = false;
+};
 
 const submit = async () => {
     if (!hasWorkShift.value || !props.canUpdate) return;
@@ -86,11 +112,13 @@ const submit = async () => {
 
 <template>
     <Dialog
-        :visible="modelValue"
+        v-model:visible="open"
         modal
         header="Műszak szerkesztése"
         :style="{ width: '520px' }"
-        @update:visible="emit('update:modelValue', $event)"
+        :closable="!loading"
+        :dismissableMask="!loading"
+        @hide="reset"
         data-testid="work-shifts-edit-modal"
     >
         <div v-if="!hasWorkShift" class="text-sm text-gray-600">

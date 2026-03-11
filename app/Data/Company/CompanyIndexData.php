@@ -28,6 +28,9 @@ class CompanyIndexData extends Data
         public ?string $address,
         public ?string $phone,
         public bool $active,
+        public ?int $tenantGroupId,
+        public ?string $tenantGroupCode,
+        public ?string $tenantGroupName,
         public ?string $createdAt,
     ) {}
 
@@ -46,6 +49,9 @@ class CompanyIndexData extends Data
             address: (string) $company->address,
             phone: $company->phone,
             active: (bool) $company->active,
+            tenantGroupId: is_numeric($company->tenant_group_id) ? (int) $company->tenant_group_id : null,
+            tenantGroupCode: $company->tenantGroup?->code,
+            tenantGroupName: $company->tenantGroup?->name,
             createdAt: optional($company->created_at)?->toDateTimeString(),
         );
     }

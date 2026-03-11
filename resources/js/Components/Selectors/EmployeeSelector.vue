@@ -1,7 +1,5 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
-import AutoComplete from "primevue/autocomplete";
-import { Select } from "primevue";
 import Service from "@/services/EmployeeService.js";
 import { csrfFetch } from "@/lib/csrfFetch";
 

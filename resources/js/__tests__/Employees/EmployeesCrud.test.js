@@ -62,6 +62,20 @@ vi.mock("@/lib/csrfFetch", () => ({
     csrfFetch: (...args) => csrfFetchMock(...args),
 }));
 
+const { employeeServiceMock } = vi.hoisted(() => ({
+    employeeServiceMock: {
+        exportEmployees: vi.fn(),
+        downloadEmployeeTemplate: vi.fn(),
+        importEmployees: vi.fn(),
+        saveDownload: vi.fn(),
+        extractErrors: vi.fn(() => null),
+    },
+}));
+
+vi.mock("@/services/EmployeeService.js", () => ({
+    default: employeeServiceMock,
+}));
+
 // -----------------------------------------------------------------------------
 // Teszt adatok (fixture)
 // -----------------------------------------------------------------------------
@@ -151,6 +165,26 @@ const stubs = {
 
     Column: { template: "<div><slot /></div>" },
     Menu: { template: "<div />" },
+    Dialog: {
+        props: ["visible"],
+        template: `<div v-if="visible"><slot /></div>`,
+    },
+    SplitButton: {
+        props: ["label", "model", "disabled"],
+        template: `
+          <div>
+            <button :disabled="disabled">{{ label }}</button>
+            <button
+              v-for="item in (model ?? [])"
+              :key="item.label"
+              :data-testid="'split-' + item.label"
+              @click="item.command?.()"
+            >
+              {{ item.label }}
+            </button>
+          </div>
+        `,
+    },
 
     // CompanySelector stub: csak update:modelValue emit
     CompanySelector: {
@@ -202,8 +236,42 @@ const stubs = {
                             $emit('update:modelValue', false)">
               save
             </button>
+            </div>
+        `,
+    },
+    DeleteEmployeeDialog: {
+        name: "DeleteEmployeeDialog",
+        props: ["visible"],
+        emits: ["update:visible", "deleted"],
+        template: `<div v-if="visible" data-testid="delete-dialog"></div>`,
+    },
+    WorkPatternModal: {
+        name: "WorkPatternModal",
+        props: ["modelValue"],
+        emits: ["update:modelValue"],
+        template: `<div v-if="modelValue" data-testid="work-pattern-modal"></div>`,
+    },
+    EmployeeImportDialog: {
+        name: "EmployeeImportDialog",
+        props: ["modelValue"],
+        emits: ["update:modelValue", "completed"],
+        template: `
+          <div v-if="modelValue" data-testid="employee-import-dialog">
+            <button
+              data-testid="employee-import-complete"
+              @click="$emit('completed', { total_rows: 1, imported_count: 1, failed_count: 0, skipped_count: 0, rows: [] })"
+            >
+              complete
+            </button>
           </div>
         `,
+    },
+};
+
+const globalMount = {
+    stubs,
+    mocks: {
+        $t: (key) => key,
     },
 };
 
@@ -251,6 +319,15 @@ describe("Employees CRUD (Index.vue)", () => {
             status: 200,
             json: async () => ({ message: "ok" }),
         });
+
+        employeeServiceMock.exportEmployees.mockResolvedValue({
+            data: new Blob(["csv"]),
+            headers: {},
+        });
+        employeeServiceMock.downloadEmployeeTemplate.mockResolvedValue({
+            data: new Blob(["csv"]),
+            headers: {},
+        });
     });
 
     afterEach(() => {
@@ -263,7 +340,7 @@ describe("Employees CRUD (Index.vue)", () => {
     it("onMounted lefut és rendereli a listát", async () => {
         const wrapper = mount(Index, {
             props: { title: "Dolgozók", filter: {} },
-            global: { stubs },
+            global: globalMount,
         });
 
         await flushPromises();
@@ -279,7 +356,7 @@ describe("Employees CRUD (Index.vue)", () => {
     it("Create flow: open modal -> saved -> új fetch + toast", async () => {
         const wrapper = mount(Index, {
             props: { default_company_id: 1 },
-            global: { stubs },
+            global: globalMount,
         });
 
         await flushPromises();
@@ -307,7 +384,7 @@ describe("Employees CRUD (Index.vue)", () => {
     it("Edit flow: openEditModal -> saved -> toast", async () => {
         const wrapper = mount(Index, {
             props: {},
-            global: { stubs },
+            global: globalMount,
         });
 
         await flushPromises();
@@ -329,25 +406,20 @@ describe("Employees CRUD (Index.vue)", () => {
     // -------------------------------------------------------------------------
     // Single delete
     // -------------------------------------------------------------------------
-    it("Delete one: confirm -> accept -> DELETE -> toast + refresh", async () => {
+    it("Delete one: opens dialog and deleted callback refreshes the list", async () => {
         const wrapper = mount(Index, {
-            global: { stubs },
+            global: globalMount,
         });
 
         await flushPromises();
 
         wrapper.vm.confirmDeleteOne(employeesList[0]);
-
-        expect(confirmRequire).toHaveBeenCalledTimes(1);
-        expect(confirmAccept).toBeTypeOf("function");
-
-        await confirmAccept();
         await flushPromises();
 
-        expect(csrfFetchMock).toHaveBeenCalledWith(
-            "/employees/1",
-            expect.objectContaining({ method: "DELETE" }),
-        );
+        expect(wrapper.find('[data-testid="delete-dialog"]').exists()).toBe(true);
+
+        await wrapper.vm.onDeleted();
+        await flushPromises();
 
         expect(toastAdd).toHaveBeenCalled();
     });
@@ -357,7 +429,7 @@ describe("Employees CRUD (Index.vue)", () => {
     // -------------------------------------------------------------------------
     it("confirmBulkDelete: üres selection -> nem hív confirmot", async () => {
         const wrapper = mount(Index, {
-            global: { stubs },
+            global: globalMount,
         });
 
         await flushPromises();
@@ -372,7 +444,7 @@ describe("Employees CRUD (Index.vue)", () => {
     // -------------------------------------------------------------------------
     it("bulkDelete(ids): POST destroy_bulk -> selected ürül + toast", async () => {
         const wrapper = mount(Index, {
-            global: { stubs },
+            global: globalMount,
         });
 
         await flushPromises();
@@ -396,7 +468,7 @@ describe("Employees CRUD (Index.vue)", () => {
 
     it("bulkDelete hiba esetén error toast és a selected nem ürül", async () => {
         const wrapper = mount(Index, {
-            global: { stubs },
+            global: globalMount,
         });
 
         await flushPromises();
@@ -424,26 +496,20 @@ describe("Employees CRUD (Index.vue)", () => {
     // -------------------------------------------------------------------------
     // Search debounce
     // -------------------------------------------------------------------------
-    it("Search debounce: 300ms után fetch", async () => {
+    it("Export action smoke: letöltés service hívás fut", async () => {
         const wrapper = mount(Index, {
-            global: { stubs },
+            global: globalMount,
         });
 
         await flushPromises();
 
-        const initial = globalThis.fetch.mock.calls.length;
-
-        const input = wrapper.find('input[placeholder="Keresés..."]');
-        await input.setValue("kov");
-        await input.trigger("input");
-
-        // még nem fut
-        expect(globalThis.fetch.mock.calls.length).toBe(initial);
-
-        vi.advanceTimersByTime(310);
+        await wrapper.vm.downloadExport("csv");
         await flushPromises();
 
-        expect(globalThis.fetch.mock.calls.length).toBeGreaterThan(initial);
+        expect(employeeServiceMock.exportEmployees).toHaveBeenCalledWith("csv", {
+            company_id: null,
+        });
+        expect(employeeServiceMock.saveDownload).toHaveBeenCalled();
     });
 
     // -------------------------------------------------------------------------
@@ -452,7 +518,7 @@ describe("Employees CRUD (Index.vue)", () => {
     it("default_company_id bekerül az első fetch query-be", async () => {
         mount(Index, {
             props: { default_company_id: 5 },
-            global: { stubs },
+            global: globalMount,
         });
 
         await flushPromises();
@@ -460,5 +526,24 @@ describe("Employees CRUD (Index.vue)", () => {
         expect(globalThis.fetch).toHaveBeenCalled();
         const firstCallUrl = String(globalThis.fetch.mock.calls[0][0]);
         expect(firstCallUrl).toContain("company_id=5");
+    });
+
+    it("Import flow: dialog megnyílik és completion után refresh fut", async () => {
+        const wrapper = mount(Index, {
+            global: globalMount,
+        });
+
+        await flushPromises();
+
+        const fetchCountBefore = globalThis.fetch.mock.calls.length;
+
+        await wrapper.find('[data-testid="employees-import"]').trigger("click");
+        expect(wrapper.find('[data-testid="employee-import-dialog"]').exists()).toBe(true);
+
+        await wrapper.find('[data-testid="employee-import-complete"]').trigger("click");
+        await flushPromises();
+
+        expect(globalThis.fetch.mock.calls.length).toBeGreaterThan(fetchCountBefore);
+        expect(toastAdd).toHaveBeenCalled();
     });
 });

@@ -1,5 +1,6 @@
 <script setup>
 import { Head, Link } from "@inertiajs/vue3";
+import { trans } from "laravel-vue-i18n";
 
 defineProps({
     canLogin: {
@@ -38,7 +39,9 @@ function handleImageError() {
             class="relative flex min-h-screen flex-col items-center justify-center selection:bg-[#FF2D20] selection:text-white"
         >
             <div class="relative w-full max-w-2xl px-6 lg:max-w-7xl">
-                <header class="grid grid-cols-2 items-center gap-2 py-10 lg:grid-cols-3">
+                <header
+                    class="grid grid-cols-2 items-center gap-2 py-10 lg:grid-cols-3"
+                >
                     <div class="flex lg:col-start-2 lg:justify-center">
                         <svg
                             class="h-12 w-auto text-white lg:h-16 lg:text-[#FF2D20]"
@@ -66,7 +69,7 @@ function handleImageError() {
                                 :href="route('login')"
                                 class="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
                             >
-                                Log in
+                                {{ trans("login") }}
                             </Link>
 
                             <Link
@@ -74,19 +77,30 @@ function handleImageError() {
                                 :href="route('register')"
                                 class="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
                             >
-                                Register
+                                {{ trans("register") }}
                             </Link>
                         </template>
                     </nav>
                 </header>
 
                 <!-- Hero -->
-                <section class="mb-8 rounded-lg bg-white p-8 shadow dark:bg-zinc-900">
-                    <div class="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
+                <section
+                    class="mb-8 rounded-lg bg-white p-8 shadow dark:bg-zinc-900"
+                >
+                    <div
+                        class="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between"
+                    >
                         <div>
-                            <h1 class="text-3xl font-extrabold text-black dark:text-white">Shift Smith</h1>
-                            <p class="mt-2 text-sm text-gray-600 dark:text-gray-300 max-w-xl">
-                                Smarter shift planning and employee management — built with Laravel.
+                            <h1
+                                class="text-3xl font-extrabold text-black dark:text-white"
+                            >
+                                Shift Smith
+                            </h1>
+                            <p
+                                class="mt-2 text-sm text-gray-600 dark:text-gray-300 max-w-xl"
+                            >
+                                Smarter shift planning and employee management —
+                                built with Laravel.
                             </p>
                         </div>
 
@@ -96,7 +110,7 @@ function handleImageError() {
                                 :href="route('dashboard')"
                                 class="inline-flex items-center rounded-md bg-[#FF2D20] px-4 py-2 text-sm font-semibold text-white shadow hover:bg-[#e0261a]"
                             >
-                                Open Dashboard
+                                {{ trans("open.dashboard") }}
                             </Link>
 
                             <template v-else>
@@ -105,7 +119,7 @@ function handleImageError() {
                                     :href="route('login')"
                                     class="inline-flex items-center rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 shadow hover:bg-zinc-50 dark:bg-zinc-800 dark:text-white"
                                 >
-                                    Log in
+                                    {{ trans("login") }}
                                 </Link>
 
                                 <Link
@@ -113,7 +127,7 @@ function handleImageError() {
                                     :href="route('register')"
                                     class="inline-flex items-center rounded-md bg-transparent px-4 py-2 text-sm font-semibold text-zinc-900 underline hover:text-black dark:text-white"
                                 >
-                                    Register
+                                    {{ trans("register") }}
                                 </Link>
                             </template>
                         </div>
@@ -147,7 +161,9 @@ function handleImageError() {
                                 ></div>
                             </div>
 
-                            <div class="relative flex items-center gap-6 lg:items-end">
+                            <div
+                                class="relative flex items-center gap-6 lg:items-end"
+                            >
                                 <div
                                     id="docs-card-content"
                                     class="flex items-start gap-6 lg:flex-col"
@@ -180,11 +196,13 @@ function handleImageError() {
                                         </h2>
 
                                         <p class="mt-4 text-sm/relaxed">
-                                            Laravel has wonderful documentation covering
-                                            every aspect of the framework. Whether you are
-                                            a newcomer or have prior experience with
-                                            Laravel, we recommend reading our
-                                            documentation from beginning to end.
+                                            Laravel has wonderful documentation
+                                            covering every aspect of the
+                                            framework. Whether you are a
+                                            newcomer or have prior experience
+                                            with Laravel, we recommend reading
+                                            our documentation from beginning to
+                                            end.
                                         </p>
                                     </div>
                                 </div>
@@ -234,9 +252,10 @@ function handleImageError() {
                                 </h2>
 
                                 <p class="mt-4 text-sm/relaxed">
-                                    Laracasts offers thousands of video tutorials on
-                                    Laravel, PHP, and JavaScript development. Check them
-                                    out, see for yourself, and massively level up your
+                                    Laracasts offers thousands of video
+                                    tutorials on Laravel, PHP, and JavaScript
+                                    development. Check them out, see for
+                                    yourself, and massively level up your
                                     development skills in the process.
                                 </p>
                             </div>
@@ -291,10 +310,11 @@ function handleImageError() {
                                 </h2>
 
                                 <p class="mt-4 text-sm/relaxed">
-                                    Laravel News is a community driven portal and
-                                    newsletter aggregating all of the latest and most
-                                    important news in the Laravel ecosystem, including new
-                                    package releases and tutorials.
+                                    Laravel News is a community driven portal
+                                    and newsletter aggregating all of the latest
+                                    and most important news in the Laravel
+                                    ecosystem, including new package releases
+                                    and tutorials.
                                 </p>
                             </div>
 
@@ -341,8 +361,8 @@ function handleImageError() {
                                 </h2>
 
                                 <p class="mt-4 text-sm/relaxed">
-                                    Laravel's robust library of first-party tools and
-                                    libraries, such as
+                                    Laravel's robust library of first-party
+                                    tools and libraries, such as
                                     <a
                                         href="https://forge.laravel.com"
                                         class="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white dark:focus-visible:ring-[#FF2D20]"
@@ -368,8 +388,9 @@ function handleImageError() {
                                         class="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
                                         >Herd</a
                                     >
-                                    help you take your projects to the next level. Pair
-                                    them with powerful open source libraries like
+                                    help you take your projects to the next
+                                    level. Pair them with powerful open source
+                                    libraries like
                                     <a
                                         href="https://laravel.com/docs/billing"
                                         class="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
@@ -406,7 +427,9 @@ function handleImageError() {
                     </div>
                 </main>
 
-                <footer class="py-16 text-center text-sm text-black dark:text-white/70">
+                <footer
+                    class="py-16 text-center text-sm text-black dark:text-white/70"
+                >
                     Laravel v{{ laravelVersion }} (PHP v{{ phpVersion }})
                 </footer>
             </div>

@@ -1,7 +1,6 @@
 <script setup>
 import { computed, onMounted, ref, watch } from "vue";
 import WorkPatternService from "@/services/WorkPatternService.js";
-import { Select } from "primevue";
 
 const props = defineProps({
     modelValue: [String, Number, null],

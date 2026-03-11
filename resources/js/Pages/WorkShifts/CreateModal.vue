@@ -1,7 +1,5 @@
 <script setup>
-import { reactive, ref, watch } from "vue";
-import Dialog from "primevue/dialog";
-import Button from "primevue/button";
+import { computed, reactive, ref, watch } from "vue";
 
 import WorkShiftFields from "./Partials/WorkShiftFields.vue";
 import WorkShiftService from "@/services/WorkShiftService.js";
@@ -12,9 +10,14 @@ const props = defineProps({
 });
 const emit = defineEmits(["update:modelValue", "saved"]);
 
+const open = computed({
+    get: () => props.modelValue,
+    set: (value) => emit("update:modelValue", value),
+});
+
 const loading = ref(false);
 const errors = reactive({});
-const form = ref({
+const createEmptyForm = () => ({
     name: "",
     start_time: null,
     end_time: null,
@@ -23,27 +26,29 @@ const form = ref({
     breaks: [],
     active: true,
 });
+const form = ref(createEmptyForm());
+
+const reset = () => {
+    loading.value = false;
+    form.value = createEmptyForm();
+    Object.keys(errors).forEach((k) => delete errors[k]);
+};
 
 watch(
     () => props.modelValue,
     (open) => {
-        if (!open) return;
+        if (!open) {
+            reset();
+            return;
+        }
 
-        form.value = {
-            name: "",
-            start_time: null,
-            end_time: null,
-            work_time_minutes: null,
-            break_minutes: null,
-            breaks: [],
-            active: true,
-        };
-
-        Object.keys(errors).forEach((k) => delete errors[k]);
-    }
+        reset();
+    },
 );
 
-const close = () => emit("update:modelValue", false);
+const close = () => {
+    open.value = false;
+};
 
 const submit = async () => {
     if (!props.canCreate) return;
@@ -73,11 +78,13 @@ const submit = async () => {
 
 <template>
     <Dialog
-        :visible="modelValue"
+        v-model:visible="open"
         modal
         header="Új műszak"
         :style="{ width: '520px' }"
-        @update:visible="emit('update:modelValue', $event)"
+        :closable="!loading"
+        :dismissableMask="!loading"
+        @hide="reset"
         data-testid="work-shifts-create-modal"
     >
         <div class="space-y-4">

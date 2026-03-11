@@ -21,6 +21,7 @@ use App\Http\Controllers\EmployeeWorkPatternController;
 use App\Http\Controllers\EmployeeSupervisorController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\EmployeeImportExportController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WorkPatternController;
@@ -349,6 +350,7 @@ Route::middleware(['auth', 'verified', 'ensure.company', 'ensure.tenant'])
         Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
         Route::get('/fetch', 'fetch')->name('fetch')->middleware('throttle:60,1');
         Route::get('/{id}', 'getCompany')->whereNumber('id')->name('by_id')->middleware('throttle:60,1');
+        Route::get('/name/{name}', 'getCompanyByName')->where('name', '[A-Za-z0-9_.@\- ]+')->name('by_name')->middleware('throttle:60,1');
         
         // Írási műveletek
         Route::post('/', 'store')->name('store')->middleware('throttle:20,1');
@@ -370,6 +372,8 @@ Route::middleware(['auth', 'verified', 'superadmin', 'hq.landlord'])
         Route::get('/', 'index')->name('index')->middleware('throttle:60,1');
         Route::get('/fetch', 'fetch')->name('fetch')->middleware('throttle:60,1');
         Route::get('/{id}', 'getCompany')->whereNumber('id')->name('by_id')->middleware('throttle:60,1');
+        Route::post('/', 'store')->name('store')->middleware('throttle:20,1');
+        Route::put('/{id}', 'update')->whereNumber('id')->name('update')->middleware('throttle:30,1');
     });
 
 Route::middleware(['auth', 'verified', 'superadmin', 'hq.landlord'])
@@ -424,6 +428,25 @@ Route::middleware(['auth', 'verified', 'ensure.company', 'ensure.tenant'])
         Route::get('/{employee}/delete-preview', 'deletePreview')->whereNumber('employee')->name('delete_preview')->middleware('throttle:60,1');
         Route::delete('/{employee}', 'destroy')->whereNumber('employee')->name('destroy')->middleware('throttle:20,1');
         Route::delete('/destroy_bulk', 'bulkDelete')->name('destroy_bulk')->middleware('throttle:10,1');
+    });
+
+Route::middleware(['auth', 'verified', 'ensure.company', 'ensure.tenant'])
+    ->prefix('employees')
+    ->as('employees.')
+    ->controller(EmployeeImportExportController::class)
+    ->group(function (): void {
+        Route::get('/export/{format}', 'export')
+            ->where('format', 'csv|json|xml|xlsx')
+            ->name('export')
+            ->middleware('throttle:20,1');
+        Route::get('/template/{format}', 'template')
+            ->where('format', 'csv|json|xml|xlsx')
+            ->name('template')
+            ->middleware('throttle:20,1');
+        Route::post('/import/{format}', 'import')
+            ->where('format', 'csv|json|xml|xlsx')
+            ->name('import')
+            ->middleware('throttle:10,1');
     });
 
 Route::middleware(['auth', 'verified', 'ensure.company', 'ensure.tenant'])

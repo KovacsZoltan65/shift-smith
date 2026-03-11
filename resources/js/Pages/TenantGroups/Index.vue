@@ -10,18 +10,8 @@ import TenantGroupService from "@/services/TenantGroupService.js";
 import ErrorService from "@/services/ErrorService.js";
 import { usePermissions } from "@/composables/usePermissions";
 
-import Button from "primevue/button";
-import Checkbox from "primevue/checkbox";
-import Column from "primevue/column";
-import ConfirmDialog from "primevue/confirmdialog";
-import DataTable from "primevue/datatable";
-import Dialog from "primevue/dialog";
 import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
 import { IconField, InputIcon } from "primevue";
-import InputText from "primevue/inputtext";
-import Select from "primevue/select";
-import Tag from "primevue/tag";
-import Toast from "primevue/toast";
 import { useConfirm } from "primevue/useconfirm";
 import { useToast } from "primevue/usetoast";
 

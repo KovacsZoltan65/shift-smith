@@ -384,6 +384,42 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
         );
     }
 
+    public function portableExportRows(int $companyId): array
+    {
+        /** @var array<int, array{
+         *   last_name:string,
+         *   first_name:string,
+         *   email:string,
+         *   phone:string|null,
+         *   address:string|null,
+         *   position_name:string|null,
+         *   birth_date:string|null,
+         *   hired_at:string|null,
+         *   active:string
+         * }> $rows
+         */
+        $rows = $this->companyAccessService
+            ->scopeEmployeesToCompany(Employee::query()->with('position:id,name'), $companyId)
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get()
+            ->map(static fn (Employee $employee): array => [
+                'last_name' => (string) $employee->last_name,
+                'first_name' => (string) $employee->first_name,
+                'email' => (string) $employee->email,
+                'phone' => $employee->phone,
+                'address' => $employee->address,
+                'position_name' => $employee->position?->name,
+                'birth_date' => $employee->birth_date?->toDateString(),
+                'hired_at' => $employee->hired_at?->toDateString(),
+                'active' => $employee->active ? 'true' : 'false',
+            ])
+            ->values()
+            ->all();
+
+        return $rows;
+    }
+
     /**
      * Munkavállaló lekérése keresztnév alapján
      * 
@@ -427,6 +463,18 @@ class EmployeeRepository extends BaseRepository implements EmployeeRepositoryInt
             // Cache ürítése
             $this->invalidateAfterEmployeeWrite(true);
             
+            return $employee;
+        });
+    }
+
+    public function storeForImport(array $data): Employee
+    {
+        return DB::transaction(function () use ($data): Employee {
+            /** @var Employee $employee */
+            $employee = Employee::query()->create($data);
+
+            $this->createDefaultSettings($employee);
+
             return $employee;
         });
     }
