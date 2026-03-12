@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch } from "vue";
+import { trans } from "laravel-vue-i18n";
 
 
 import RoleFields from "@/Pages/Admin/Roles/Partials/RoleFields.vue";
@@ -91,10 +92,12 @@ const submit = async () => {
                 );
                 errors.value = flat;
 
-                throw new Error(body?.message || "Validációs hiba.");
+                throw new Error(body?.message || trans("validation.invalid"));
             }
 
-            let msg = `Mentés sikertelen (HTTP ${res.status})`;
+            let msg = trans("roles.messages.save_failed_http", {
+                status: res.status,
+            });
             try {
                 const body = await res.json();
                 msg = body?.message || msg;
@@ -102,7 +105,7 @@ const submit = async () => {
             throw new Error(msg);
         }
 
-        emit("saved", "Role frissítve.");
+        emit("saved", trans("roles.messages.updated_success"));
         close();
     } catch (e) {
         console.error(e);
@@ -116,12 +119,12 @@ const submit = async () => {
     <Dialog
         v-model:visible="open"
         modal
-        header="Role szerkesztése"
+        :header="trans('roles.dialogs.edit_title')"
         :style="{ width: '48rem' }"
         :closable="!saving"
         :dismissableMask="!saving"
     >
-        <div v-if="!role" class="text-sm text-gray-600">Nincs kiválasztott role.</div>
+        <div v-if="!role" class="text-sm text-gray-600">{{ trans("roles.dialogs.none_selected") }}</div>
 
         <RoleFields
             v-else
@@ -135,7 +138,7 @@ const submit = async () => {
             <div class="flex justify-end gap-2">
                 <!-- CANCEL -->
                 <Button
-                    label="Mégse"
+                    :label="trans('common.cancel')"
                     severity="secondary"
                     :disabled="saving"
                     @click="close"
@@ -143,7 +146,7 @@ const submit = async () => {
 
                 <!-- MENTÉS -->
                 <Button
-                    label="Mentés"
+                    :label="trans('common.save')"
                     icon="pi pi-check"
                     :loading="saving"
                     :disabled="!role || !props.canUpdate"

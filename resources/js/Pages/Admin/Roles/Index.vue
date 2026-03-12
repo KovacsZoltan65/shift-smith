@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from "vue";
 import { Head } from "@inertiajs/vue3";
 import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
+import { trans } from "laravel-vue-i18n";
 
 import RowActionMenu from "@/Components/DataTable/RowActionMenu.vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
@@ -24,7 +25,7 @@ const canUpdate = has("roles.update");
 const canDelete = has("roles.delete");
 
 const props = defineProps({
-    title: { type: String, default: "Roles" },
+    title: { type: String, default: trans("roles.title") },
     filter: { type: Object, default: () => ({}) },
 });
 
@@ -91,24 +92,24 @@ const usersModalSummary = computed(() => {
     const count = Array.isArray(usersModalSelectedIds.value)
         ? usersModalSelectedIds.value.length
         : 0;
-    return `${count} felhasználó kijelölve`;
+    return trans("roles.selected_users_count", { count });
 });
 
 const buildRowMenuItems = (row) => [
         {
-            label: "Szerkesztés",
+            label: trans("edit"),
             icon: "pi pi-pencil",
             disabled: actionLoading.value || !canUpdate,
             command: () => openEditModal(row),
         },
         {
-            label: "Felhasználók",
+            label: trans("roles.actions.manage_users"),
             icon: "pi pi-users",
             disabled: actionLoading.value || !canUpdate,
             command: () => openUsersModal(row),
         },
         {
-            label: "Törlés",
+            label: trans("delete"),
             icon: "pi pi-trash",
             disabled: actionLoading.value || !canDelete,
             command: () => confirmDeleteOne(row),
@@ -130,8 +131,8 @@ const openEditModal = (row) => {
         } catch (e) {
             toast.add({
                 severity: "error",
-                summary: "Hiba",
-                detail: e?.message || "Nem sikerült a role betöltése.",
+                summary: trans("common.error"),
+                detail: e?.message || trans("roles.messages.show_failed"),
                 life: 3500,
             });
         } finally {
@@ -140,12 +141,12 @@ const openEditModal = (row) => {
     })();
 };
 
-const onSaved = async (msg = "Mentve.") => {
+const onSaved = async (msg = trans("common.success")) => {
     selected.value = [];
     await fetchRoles();
     toast.add({
         severity: "success",
-        summary: "Siker",
+        summary: trans("common.success"),
         detail: msg,
         life: 2000,
     });
@@ -169,7 +170,7 @@ const fetchRoles = async () => {
             : (json?.data?.data ?? []);
         rows.value = items;
     } catch (e) {
-        error.value = e?.message || "Ismeretlen hiba";
+        error.value = e?.message || trans("common.unknown_error");
         rows.value = [];
     } finally {
         loading.value = false;
@@ -220,9 +221,9 @@ const openUsersModal = async (row) => {
     } catch (e) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
+            summary: trans("common.error"),
             detail:
-                e?.message || "Nem sikerült a role felhasználóit betölteni.",
+                e?.message || trans("roles.messages.users_load_failed"),
             life: 3500,
         });
     } finally {
@@ -250,8 +251,8 @@ const saveUsersModal = async () => {
         closeUsersModal();
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: "A role felhasználói frissítve.",
+            summary: trans("common.success"),
+            detail: trans("roles.messages.users_updated_success"),
             life: 2500,
         });
 
@@ -259,11 +260,11 @@ const saveUsersModal = async () => {
     } catch (e) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
+            summary: trans("common.error"),
             detail:
                 e?.response?.data?.message ||
                 e?.message ||
-                "A mentés sikertelen.",
+                trans("roles.messages.users_save_failed"),
             life: 3500,
         });
     } finally {
@@ -273,11 +274,11 @@ const saveUsersModal = async () => {
 
 const confirmDeleteOne = (row) => {
     confirm.require({
-        message: `Biztos törlöd: ${row.name}?`,
-        header: "Megerősítés",
+        message: trans("roles.dialogs.delete_confirm", { name: row.name }),
+        header: trans("common.confirmation"),
         icon: "pi pi-exclamation-triangle",
-        acceptLabel: "Törlés",
-        rejectLabel: "Mégse",
+        acceptLabel: trans("delete"),
+        rejectLabel: trans("common.cancel"),
         acceptClass: "p-button-danger",
         accept: () => deleteOne(row.id),
     });
@@ -296,7 +297,9 @@ const deleteOne = async (id) => {
         });
 
         if (!res.ok) {
-            let msg = `Törlés sikertelen (HTTP ${res.status})`;
+            let msg = trans("roles.messages.delete_failed_http", {
+                status: res.status,
+            });
             try {
                 const body = await res.json();
                 msg = body?.message || msg;
@@ -306,8 +309,8 @@ const deleteOne = async (id) => {
 
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: "Role törölve",
+            summary: trans("common.success"),
+            detail: trans("roles.messages.deleted_success"),
             life: 2500,
         });
 
@@ -316,8 +319,8 @@ const deleteOne = async (id) => {
     } catch (e) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: e?.message || "Ismeretlen hiba",
+            summary: trans("common.error"),
+            detail: e?.message || trans("common.unknown_error"),
             life: 3500,
         });
     } finally {
@@ -330,11 +333,13 @@ const confirmBulkDelete = () => {
     if (!ids.length) return;
 
     confirm.require({
-        message: `Biztos törlöd a kijelölt ${ids.length} role-t?`,
-        header: "Bulk törlés",
+        message: trans("roles.dialogs.bulk_delete_confirm", {
+            count: ids.length,
+        }),
+        header: trans("roles.actions.bulk_delete"),
         icon: "pi pi-exclamation-triangle",
-        acceptLabel: "Törlés",
-        rejectLabel: "Mégse",
+        acceptLabel: trans("delete"),
+        rejectLabel: trans("common.cancel"),
         acceptClass: "p-button-danger",
         accept: () => bulkDelete(ids),
     });
@@ -354,7 +359,9 @@ const bulkDelete = async (ids) => {
         });
 
         if (!res.ok) {
-            let msg = `Bulk törlés sikertelen (HTTP ${res.status})`;
+            let msg = trans("roles.messages.bulk_delete_failed_http", {
+                status: res.status,
+            });
             try {
                 const body = await res.json();
                 msg = body?.message || msg;
@@ -364,8 +371,10 @@ const bulkDelete = async (ids) => {
 
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: `Törölve: ${ids.length} db`,
+            summary: trans("common.success"),
+            detail: trans("roles.messages.bulk_deleted_success", {
+                count: ids.length,
+            }),
             life: 2500,
         });
 
@@ -374,8 +383,8 @@ const bulkDelete = async (ids) => {
     } catch (e) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: e?.message || "Ismeretlen hiba",
+            summary: trans("common.error"),
+            detail: e?.message || trans("common.unknown_error"),
             life: 3500,
         });
     } finally {
@@ -412,7 +421,7 @@ onMounted(() => {
 
                     <Button
                         v-if="canCreate"
-                        label="Új role"
+                        :label="trans('roles.actions.create')"
                         icon="pi pi-plus"
                         size="small"
                         @click="openCreate"
@@ -421,7 +430,7 @@ onMounted(() => {
 
                     <Button
                         v-if="canDelete"
-                        label="Kijelöltek törlése"
+                        :label="trans('roles.actions.bulk_delete')"
                         icon="pi pi-trash"
                         severity="danger"
                         size="small"
@@ -433,13 +442,13 @@ onMounted(() => {
                     />
 
                     <div v-if="selected?.length" class="text-sm text-gray-600">
-                        Kijelölve: <b>{{ selected.length }}</b>
+                        {{ trans("roles.selected_count", { count: selected.length }) }}
                     </div>
                 </div>
             </div>
 
             <div v-if="error" class="mb-3 border p-3">
-                <div class="font-semibold">Hiba</div>
+                <div class="font-semibold">{{ trans("common.error") }}</div>
                 <div class="text-sm">{{ error }}</div>
             </div>
 
@@ -463,7 +472,7 @@ onMounted(() => {
                         <Button
                             type="button"
                             icon="pi pi-filter-slash"
-                            label="Clear"
+                            :label="trans('roles.filters.clear')"
                             variant="outlined"
                             @click="clearFilters()"
                         />
@@ -473,21 +482,21 @@ onMounted(() => {
                             </InputIcon>
                             <InputText
                                 v-model="filters['global'].value"
-                                placeholder="Keyword Search"
+                                :placeholder="trans('roles.filters.keyword_search')"
                             />
                         </IconField>
                     </div>
                 </template>
 
-                <template #empty>Nincs talalat.</template>
-                <template #loading>Betoltes...</template>
+                <template #empty>{{ trans("roles.states.empty") }}</template>
+                <template #loading>{{ trans("roles.states.loading") }}</template>
 
                 <Column selectionMode="multiple" headerStyle="width: 3rem" />
-                <Column field="id" header="ID" sortable style="width: 90px" />
+                <Column field="id" :header="trans('columns.id')" sortable style="width: 90px" />
                 <Column
                     field="name"
                     filterField="name"
-                    header="Név"
+                    :header="trans('columns.name')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -496,14 +505,14 @@ onMounted(() => {
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Nev keresese"
+                            :placeholder="trans('roles.filters.name')"
                         />
                     </template>
                 </Column>
                 <Column
                     field="guard_name"
                     filterField="guard_name"
-                    header="Guard"
+                    :header="trans('roles.fields.guard_name')"
                     filter
                     sortable
                     style="width: 140px"
@@ -516,13 +525,13 @@ onMounted(() => {
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Guard keresese"
+                            :placeholder="trans('roles.filters.guard_name')"
                         />
                     </template>
                 </Column>
                 <Column
                     field="users_count"
-                    header="Users"
+                    :header="trans('roles.fields.users')"
                     sortable
                     style="width: 140px"
                 >
@@ -539,13 +548,13 @@ onMounted(() => {
                 </Column>
                 <Column
                     field="created_at"
-                    header="Létrehozva"
+                    :header="trans('columns.created_at')"
                     sortable
                     style="width: 220px"
                 />
 
                 <Column
-                    header="Műveletek"
+                    :header="trans('columns.actions')"
                     headerStyle="width: 3rem"
                     bodyStyle="white-space: nowrap;"
                 >
@@ -554,7 +563,7 @@ onMounted(() => {
                             <RowActionMenu
                                 :items="buildRowMenuItems(data)"
                                 :disabled="actionLoading"
-                                :buttonTitle="`Műveletek: ${data.name}`"
+                                :buttonTitle="trans('roles.actions.edit_title', { name: data.name })"
                             />
                         </div>
                     </template>
@@ -565,7 +574,7 @@ onMounted(() => {
         <Dialog
             v-model:visible="usersModalOpen"
             modal
-            header="Role felhasználók szerkesztése"
+            :header="trans('roles.dialogs.users_title')"
             :style="{ width: '34rem', maxWidth: '95vw' }"
             :closable="!usersModalLoading"
             @hide="closeUsersModal"
@@ -580,14 +589,14 @@ onMounted(() => {
 
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-slate-700"
-                        >Felhasználók</label
+                        >{{ trans("roles.fields.users") }}</label
                     >
                     <MultiSelect
                         v-model="usersModalSelectedIds"
                         :options="userOptions"
                         optionLabel="label"
                         optionValue="value"
-                        placeholder="Felhasználók kiválasztása"
+                        :placeholder="trans('roles.placeholders.users')"
                         class="w-full"
                         display="chip"
                         filter
@@ -600,14 +609,14 @@ onMounted(() => {
             <template #footer>
                 <div class="flex justify-end gap-2">
                     <Button
-                        label="Mégse"
+                        :label="trans('common.cancel')"
                         severity="secondary"
                         text
                         :disabled="usersModalLoading"
                         @click="closeUsersModal"
                     />
                     <Button
-                        label="Mentés"
+                        :label="trans('common.save')"
                         icon="pi pi-check"
                         :loading="usersModalLoading"
                         @click="saveUsersModal"

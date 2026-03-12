@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from "vue";
 import { Head, useForm, usePage } from "@inertiajs/vue3";
+import { trans } from "laravel-vue-i18n";
 import { useToast } from "primevue/usetoast";
 import CompanySelector from "@/Components/Selectors/CompanySelector.vue";
 

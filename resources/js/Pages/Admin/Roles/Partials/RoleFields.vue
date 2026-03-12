@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
+import { trans } from "laravel-vue-i18n";
 
 
 const props = defineProps({
@@ -17,8 +18,8 @@ const form = computed({
 });
 
 const guardOptions = [
-    { label: "web", value: "web" },
-    { label: "api", value: "api" },
+    { label: trans("roles.guards.web"), value: "web" },
+    { label: trans("roles.guards.api"), value: "api" },
 ];
 
 const permissions = ref([]); // [{id,name}]
@@ -64,13 +65,13 @@ onMounted(async () => {
     <div class="space-y-4">
         <!-- Name -->
         <div>
-            <label class="block text-sm mb-1">Név</label>
+            <label class="block text-sm mb-1">{{ trans("columns.name") }}</label>
 
             <InputText
                 :modelValue="form.name"
                 class="w-full"
                 :disabled="disabled"
-                placeholder="pl. manager"
+                :placeholder="trans('roles.form.name_placeholder')"
                 @update:modelValue="(v) => set('name', v)"
             />
 
@@ -81,7 +82,7 @@ onMounted(async () => {
 
         <!-- Guard -->
         <div>
-            <label class="block text-sm mb-1">Guard</label>
+            <label class="block text-sm mb-1">{{ trans("roles.fields.guard_name") }}</label>
 
             <Select
                 :modelValue="form.guard_name || defaultGuard"
@@ -90,7 +91,7 @@ onMounted(async () => {
                 :options="guardOptions"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="Válassz guard-ot"
+                :placeholder="trans('roles.form.guard_placeholder')"
                 @update:modelValue="(v) => set('guard_name', v)"
             />
 
@@ -101,7 +102,7 @@ onMounted(async () => {
 
         <!-- Permissions -->
         <div>
-            <label class="block text-sm mb-1">Permissions</label>
+            <label class="block text-sm mb-1">{{ trans("permissions.title") }}</label>
 
             <MultiSelect
                 :modelValue="form.permission_ids"
@@ -114,7 +115,7 @@ onMounted(async () => {
                 :filter="shouldUseFilter"
                 :filterFields="['name']"
                 display="chip"
-                placeholder="Válassz jogosultságokat"
+                :placeholder="trans('roles.form.permissions_placeholder')"
                 @update:modelValue="(v) => set('permission_ids', v)"
             />
 
@@ -126,7 +127,7 @@ onMounted(async () => {
             </div>
 
             <div class="mt-2 text-xs text-gray-500">
-                Tipp: ha sok permission van, automatikusan megjelenik a kereső.
+                {{ trans("roles.form.permissions_help") }}
             </div>
         </div>
     </div>
