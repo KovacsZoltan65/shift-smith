@@ -76,6 +76,14 @@ final class LeaveTypesSeeder extends Seeder
                 'requires_approval' => false,
                 'active' => true,
             ],
+            [
+                'code' => 'carried_over_leave',
+                'name' => 'Áthozott szabadság',
+                'category' => 'leave',
+                'affects_leave_balance' => true,
+                'requires_approval' => true,
+                'active' => true,
+            ],
         ];
 
         Company::query()->each(function (Company $company) use ($defaultTypes) {

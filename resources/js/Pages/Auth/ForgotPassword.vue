@@ -19,17 +19,19 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Elfelejtett jelszó" />
+        <Head :title="$t('auth.forgot_password.title')" />
 
         <div class="mx-auto w-full max-w-md px-4 py-10">
             <Card class="shadow-sm">
                 <template #title>
-                    <div class="text-xl font-semibold">Elfelejtett jelszó</div>
+                    <div class="text-xl font-semibold">
+                        {{ $t("auth.forgot_password.title") }}
+                    </div>
                 </template>
 
                 <template #subtitle>
                     <div class="text-sm text-gray-500">
-                        Add meg az emailed, és küldünk egy jelszó-visszaállító linket.
+                        {{ $t("auth.forgot_password.description") }}
                     </div>
                 </template>
 
@@ -47,6 +49,10 @@ const submit = () => {
                     <form @submit.prevent="submit" class="space-y-4">
                         <div>
                             <span class="p-float-label w-full">
+                                <label for="email">{{
+                                    $t("columns.email")
+                                }}</label>
+
                                 <InputText
                                     id="email"
                                     v-model="form.email"
@@ -57,7 +63,6 @@ const submit = () => {
                                     autofocus
                                     required
                                 />
-                                <label for="email">Email</label>
                             </span>
 
                             <small
@@ -70,7 +75,7 @@ const submit = () => {
 
                         <Button
                             type="submit"
-                            label="Jelszó-visszaállító link küldése"
+                            :label="$t('auth.forgot_password.submit')"
                             icon="pi pi-envelope"
                             class="w-full"
                             :loading="form.processing"

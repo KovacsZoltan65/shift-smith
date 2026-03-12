@@ -20,17 +20,19 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Regisztráció" />
+        <Head :title="$t('register')" />
 
         <div class="mx-auto w-full max-w-md px-4 py-10">
             <Card class="shadow-sm">
                 <template #title>
-                    <div class="text-xl font-semibold">Regisztráció</div>
+                    <div class="text-xl font-semibold">
+                        {{ $t("register") }}
+                    </div>
                 </template>
 
                 <template #subtitle>
                     <div class="text-sm text-gray-500">
-                        Hozz létre fiókot pár lépésben.
+                        {{ $t("register.description") }}
                     </div>
                 </template>
 
@@ -38,7 +40,8 @@ const submit = () => {
                     <!-- Globális hiba (ha van ilyen) -->
                     <Message
                         v-if="
-                            form.hasErrors && (form.errors?.message || form.errors?.error)
+                            form.hasErrors &&
+                            (form.errors?.message || form.errors?.error)
                         "
                         severity="error"
                         :closable="false"
@@ -51,6 +54,10 @@ const submit = () => {
                         <!-- Name -->
                         <div>
                             <span class="p-float-label w-full">
+                                <label for="name">{{
+                                    $t("columns.name")
+                                }}</label>
+
                                 <InputText
                                     id="name"
                                     v-model="form.name"
@@ -61,7 +68,6 @@ const submit = () => {
                                     autofocus
                                     required
                                 />
-                                <label for="name">Név</label>
                             </span>
 
                             <small
@@ -75,6 +81,10 @@ const submit = () => {
                         <!-- Email -->
                         <div>
                             <span class="p-float-label w-full">
+                                <label for="email">{{
+                                    $t("columns.email")
+                                }}</label>
+
                                 <InputText
                                     id="email"
                                     v-model="form.email"
@@ -84,7 +94,6 @@ const submit = () => {
                                     :invalid="!!form.errors.email"
                                     required
                                 />
-                                <label for="email">Email</label>
                             </span>
 
                             <small
@@ -98,6 +107,10 @@ const submit = () => {
                         <!-- Password -->
                         <div>
                             <span class="p-float-label w-full">
+                                <label for="password">{{
+                                    $t("auth.password")
+                                }}</label>
+
                                 <Password
                                     id="password"
                                     v-model="form.password"
@@ -109,7 +122,6 @@ const submit = () => {
                                     :invalid="!!form.errors.password"
                                     required
                                 />
-                                <label for="password">Jelszó</label>
                             </span>
 
                             <small
@@ -123,6 +135,10 @@ const submit = () => {
                         <!-- Password confirmation -->
                         <div>
                             <span class="p-float-label w-full">
+                                <label for="password_confirmation">{{
+                                    $t("auth.password_confirmation")
+                                }}</label>
+
                                 <Password
                                     id="password_confirmation"
                                     v-model="form.password_confirmation"
@@ -131,10 +147,11 @@ const submit = () => {
                                     inputClass="w-full"
                                     class="w-full"
                                     autocomplete="new-password"
-                                    :invalid="!!form.errors.password_confirmation"
+                                    :invalid="
+                                        !!form.errors.password_confirmation
+                                    "
                                     required
                                 />
-                                <label for="password_confirmation">Jelszó újra</label>
                             </span>
 
                             <small
@@ -151,7 +168,7 @@ const submit = () => {
                         <div class="space-y-3">
                             <Button
                                 type="submit"
-                                label="Regisztráció"
+                                :label="$t('register')"
                                 icon="pi pi-user-plus"
                                 class="w-full"
                                 :loading="form.processing"
@@ -163,7 +180,7 @@ const submit = () => {
                                     :href="route('login')"
                                     class="text-sm text-gray-600 hover:text-gray-900 hover:underline"
                                 >
-                                    Van már fiókod? Jelentkezz be
+                                    {{ $t("register.have_account") }}
                                 </Link>
                             </div>
                         </div>

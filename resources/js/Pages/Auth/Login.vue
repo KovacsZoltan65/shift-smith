@@ -18,7 +18,9 @@ const form = useForm({
 const page = usePage();
 const csrf =
     page.props?.csrf_token ??
-    document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ??
+    document
+        .querySelector('meta[name="csrf-token"]')
+        ?.getAttribute("content") ??
     "";
 
 const submit = () => {
@@ -32,18 +34,18 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Bejelentkezés" />
+        <Head :title="$t('login')" />
 
         <!-- Centered container -->
         <div class="mx-auto w-full max-w-md px-4 py-10">
             <Card class="shadow-sm">
                 <template #title>
-                    <div class="text-xl font-semibold">Bejelentkezés</div>
+                    <div class="text-xl font-semibold">{{ $t("login") }}</div>
                 </template>
 
                 <template #subtitle>
                     <div class="text-sm text-gray-500">
-                        Lépj be a fiókodba a folytatáshoz.
+                        {{ $t("login.description") }}
                     </div>
                 </template>
 
@@ -62,6 +64,10 @@ const submit = () => {
                         <!-- Email -->
                         <div>
                             <span class="p-float-label w-full">
+                                <label for="email">{{
+                                    $t("columns.email")
+                                }}</label>
+
                                 <InputText
                                     id="email"
                                     v-model="form.email"
@@ -72,7 +78,6 @@ const submit = () => {
                                     autofocus
                                     required
                                 />
-                                <label for="email">Email</label>
                             </span>
 
                             <small
@@ -86,6 +91,9 @@ const submit = () => {
                         <!-- Password -->
                         <div>
                             <span class="p-float-label w-full">
+                                <label for="password">{{
+                                    $t("auth.password")
+                                }}</label>
                                 <Password
                                     id="password"
                                     v-model="form.password"
@@ -97,7 +105,6 @@ const submit = () => {
                                     :invalid="!!form.errors.password"
                                     required
                                 />
-                                <label for="password">Jelszó</label>
                             </span>
 
                             <small
@@ -120,7 +127,7 @@ const submit = () => {
                                     for="remember"
                                     class="cursor-pointer text-sm text-gray-600"
                                 >
-                                    Emlékezz rám
+                                    {{ $t("auth.remember_me") }}
                                 </label>
                             </div>
 
@@ -129,7 +136,7 @@ const submit = () => {
                                 :href="route('password.request')"
                                 class="text-sm text-gray-600 hover:text-gray-900 hover:underline"
                             >
-                                Elfelejtetted?
+                                {{ $t("auth.forgot_password") }}
                             </Link>
                         </div>
 
@@ -138,7 +145,7 @@ const submit = () => {
                         <!-- Submit -->
                         <Button
                             type="submit"
-                            label="Belépés"
+                            :label="$t('login')"
                             icon="pi pi-sign-in"
                             class="w-full"
                             :loading="form.processing"

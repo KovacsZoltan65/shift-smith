@@ -17,29 +17,35 @@ const submit = () => {
 
 <template>
     <GuestLayout>
-        <Head title="Jelszó megerősítése" />
+        <Head :title="$t('auth.password_confirmation')" />
 
         <div class="mx-auto w-full max-w-md px-4 py-10">
             <Card class="shadow-sm">
                 <template #title>
-                    <div class="text-xl font-semibold">Jelszó megerősítése</div>
+                    <div class="text-xl font-semibold">
+                        {{ $t("auth.password_confirmation") }}
+                    </div>
                 </template>
 
                 <template #subtitle>
                     <div class="text-sm text-gray-500">
-                        Biztonsági okból kérjük, erősítsd meg a jelszavad.
+                        {{ $t("auth.confirm_password.description") }}
                     </div>
                 </template>
 
                 <template #content>
                     <!-- Ha szeretnéd, ez lehet sima szöveg is, de a Message szépen Prime-os -->
                     <Message severity="info" :closable="false" class="mb-4">
-                        Ez egy védett terület. A folytatáshoz add meg a jelszavad.
+                        {{ $t("auth.confirm_password.protected_area") }}
                     </Message>
 
                     <form @submit.prevent="submit" class="space-y-4">
                         <div>
                             <span class="p-float-label w-full">
+                                <label for="password">{{
+                                    $t("auth.password")
+                                }}</label>
+
                                 <Password
                                     id="password"
                                     v-model="form.password"
@@ -52,7 +58,6 @@ const submit = () => {
                                     autofocus
                                     required
                                 />
-                                <label for="password">Jelszó</label>
                             </span>
 
                             <small
@@ -65,7 +70,7 @@ const submit = () => {
 
                         <Button
                             type="submit"
-                            label="Megerősítés"
+                            :label="$t('auth.confirm_password.submit')"
                             icon="pi pi-check"
                             class="w-full"
                             :loading="form.processing"

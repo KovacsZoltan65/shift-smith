@@ -35,11 +35,11 @@ const selectedCompanyName = computed(() => {
 
 const submit = () => {
     if (!selectedCompanyId.value) {
-        form.setError("company_id", "Válassz egy céget.");
+        form.setError("company_id", trans("auth.select_company.validation.required"));
         toast.add({
             severity: "warn",
-            summary: "Figyelem",
-            detail: "Cég kiválasztása kötelező.",
+            summary: trans("common.warning"),
+            detail: trans("auth.select_company.validation.required"),
             life: 3000,
         });
         return;
@@ -60,8 +60,8 @@ const submit = () => {
 
             toast.add({
                 severity: "error",
-                summary: "Hiba",
-                detail: detail || "A kiválasztás mentése sikertelen.",
+                summary: trans("common.error"),
+                detail: detail || trans("auth.select_company.messages.save_failed"),
                 life: 4000,
             });
         },
@@ -70,7 +70,7 @@ const submit = () => {
 </script>
 
 <template>
-    <Head title="Cég kiválasztása" />
+    <Head :title="$t('auth.select_company.title')" />
 
     <div class="min-h-screen bg-gray-100">
         <Toast />
@@ -81,18 +81,18 @@ const submit = () => {
             :draggable="false"
             :closable="false"
             :dismissableMask="false"
-            header="Cég kiválasztása"
+            :header="$t('auth.select_company.title')"
             class="w-[95vw] max-w-xl"
         >
             <div class="space-y-4">
                 <p class="text-sm text-gray-700">
-                    Válaszd ki, melyik cégen belül szeretnél dolgozni.
+                    {{ $t("auth.select_company.description") }}
                 </p>
 
                 <CompanySelector
                     v-model="selectedCompanyId"
                     :options="companies"
-                    placeholder="Cég kiválasztása"
+                    :placeholder="$t('auth.select_company.placeholder')"
                     class="w-full"
                     :filter="true"
                 />
@@ -102,13 +102,14 @@ const submit = () => {
                 </div>
 
                 <div class="text-sm text-gray-700">
-                    Kiválasztott cég: <b>{{ selectedCompanyName ?? "-" }}</b>
+                    {{ $t("auth.select_company.selected_label") }}:
+                    <b>{{ selectedCompanyName ?? "-" }}</b>
                 </div>
             </div>
 
             <template #footer>
                 <Button
-                    label="Kiválaszt"
+                    :label="$t('auth.select_company.submit')"
                     icon="pi pi-check"
                     :loading="form.processing"
                     @click="submit"
