@@ -44,7 +44,6 @@ class RoleController extends Controller
         $this->authorize(RolePolicy::PERM_VIEW_ANY, Role::class);
         
         return Inertia::render('Admin/Roles/Index', [
-            'title'  => __('roles.title'),
             'filter' => $request->validatedFilters(),
         ]);
     }

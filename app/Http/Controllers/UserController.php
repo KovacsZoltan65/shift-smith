@@ -50,7 +50,6 @@ class UserController extends Controller
         $this->authorize(UserPolicy::PERM_VIEW_ANY, User::class);
         
         return Inertia::render('Users/Index', [
-            'title'  => __('users.title'),
             'filter' => $request->validatedFilters(),
         ]);
     }

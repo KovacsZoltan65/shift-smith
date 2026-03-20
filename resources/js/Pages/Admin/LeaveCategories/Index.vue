@@ -2,6 +2,7 @@
 import { Head } from "@inertiajs/vue3";
 import { computed, onMounted, ref } from "vue";
 import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
+import { trans } from "laravel-vue-i18n";
 import RowActionMenu from "@/Components/DataTable/RowActionMenu.vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import CreateModal from "@/Pages/Admin/LeaveCategories/Partials/CreateModal.vue";
@@ -13,12 +14,14 @@ import { usePermissions } from "@/composables/usePermissions";
 import { useToast } from "primevue/usetoast";
 
 const props = defineProps({
-    title: { type: String, default: "Szabadsag kategoriak" },
     filter: { type: Object, default: () => ({}) },
 });
 
+const title = trans("leave_categories.title");
+
 const { has } = usePermissions();
 const toast = useToast();
+const $t = trans;
 
 const canCreate = computed(() => has("leave_categories.create"));
 const canUpdate = computed(() => has("leave_categories.update"));
@@ -36,16 +39,28 @@ const deleteTarget = ref(null);
 const globalFilterFields = ["code", "name", "description"];
 
 const booleanOptions = [
-    { label: "Aktiv", value: true },
-    { label: "Inaktiv", value: false },
+    { label: trans("status.active"), value: true },
+    { label: trans("status.inactive"), value: false },
 ];
 
 const createInitialFilters = () => ({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    code: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }] },
-    name: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }] },
-    description: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }] },
-    active: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }] },
+    code: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+    },
+    name: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+    },
+    description: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }],
+    },
+    active: {
+        operator: FilterOperator.AND,
+        constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }],
+    },
 });
 
 const filters = ref(createInitialFilters());
@@ -66,7 +81,10 @@ const hasActiveFilters = computed(() => {
         if (!entry || typeof entry !== "object") return false;
         if ("value" in entry) return entry.value !== null && entry.value !== "";
         if (Array.isArray(entry.constraints)) {
-            return entry.constraints.some((constraint) => constraint?.value !== null && constraint?.value !== "");
+            return entry.constraints.some(
+                (constraint) =>
+                    constraint?.value !== null && constraint?.value !== "",
+            );
         }
 
         return false;
@@ -87,8 +105,11 @@ const fetchRows = async () => {
     } catch (error) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: error?.response?.data?.message ?? error?.message ?? "Lista betoltese sikertelen.",
+            summary: trans("common.error"),
+            detail:
+                error?.response?.data?.message ??
+                error?.message ??
+                trans("leave_categories.messages.fetch_failed"),
             life: 3500,
         });
     } finally {
@@ -107,19 +128,19 @@ const openDeleteModal = (row) => {
 };
 
 const buildRowMenuItems = (row) => [
-        {
-            label: "Szerkesztes",
-            icon: "pi pi-pencil",
-            disabled: loading.value || !canUpdate.value,
-            command: () => openEditModal(row),
-        },
-        {
-            label: "Torles",
-            icon: "pi pi-trash",
-            disabled: loading.value || !canDelete.value,
-            command: () => openDeleteModal(row),
-        },
-    ];
+    {
+        label: trans("edit"),
+        icon: "pi pi-pencil",
+        disabled: loading.value || !canUpdate.value,
+        command: () => openEditModal(row),
+    },
+    {
+        label: trans("delete"),
+        icon: "pi pi-trash",
+        disabled: loading.value || !canDelete.value,
+        command: () => openDeleteModal(row),
+    },
+];
 
 const onSaved = async (message) => {
     createOpen.value = false;
@@ -130,7 +151,7 @@ const onSaved = async (message) => {
     await fetchRows();
     toast.add({
         severity: "success",
-        summary: "Siker",
+        summary: trans("common.success"),
         detail: message,
         life: 2500,
     });
@@ -148,8 +169,18 @@ onMounted(() => {
     <Toast />
 
     <CreateModal v-model="createOpen" :canCreate="canCreate" @saved="onSaved" />
-    <EditModal v-model="editOpen" :category="editTarget" :canUpdate="canUpdate" @saved="onSaved" />
-    <DeleteModal v-model="deleteOpen" :category="deleteTarget" :canDelete="canDelete" @deleted="onSaved" />
+    <EditModal
+        v-model="editOpen"
+        :category="editTarget"
+        :canUpdate="canUpdate"
+        @saved="onSaved"
+    />
+    <DeleteModal
+        v-model="deleteOpen"
+        :category="deleteTarget"
+        :canDelete="canDelete"
+        @deleted="onSaved"
+    />
 
     <AuthenticatedLayout>
         <div class="space-y-4 p-6">
@@ -159,7 +190,7 @@ onMounted(() => {
 
                     <Button
                         v-if="canCreate"
-                        label="Uj kategoria"
+                        :label="$t('leave_categories.actions.create')"
                         icon="pi pi-plus"
                         size="small"
                         data-testid="leave-categories-create"
@@ -167,7 +198,7 @@ onMounted(() => {
                     />
 
                     <Button
-                        label="Frissites"
+                        :label="$t('common.refresh')"
                         icon="pi pi-refresh"
                         severity="secondary"
                         size="small"
@@ -193,11 +224,13 @@ onMounted(() => {
                 :globalFilterFields="globalFilterFields"
             >
                 <template #header>
-                    <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div
+                        class="flex flex-wrap items-center justify-between gap-3"
+                    >
                         <Button
                             type="button"
                             icon="pi pi-filter-slash"
-                            label="Szurok torlese"
+                            :label="$t('leave_categories.filters.clear')"
                             severity="secondary"
                             size="small"
                             :disabled="!hasActiveFilters"
@@ -209,50 +242,98 @@ onMounted(() => {
                             <InputText
                                 v-model="filters.global.value"
                                 class="w-72"
-                                placeholder="Kereses..."
+                                :placeholder="$t('common.keyword_search')"
                                 data-testid="leave-categories-search"
                             />
                         </span>
                     </div>
                 </template>
 
-                <template #empty>Nincs talalat.</template>
-                <template #loading>Betoltes...</template>
+                <template #empty>{{ $t("common.no_results") }}</template>
+                <template #loading>{{ $t("common.loading") }}</template>
 
-                <Column field="code" filterField="code" header="Kod" filter sortable :showFilterMatchModes="false">
+                <Column
+                    field="code"
+                    filterField="code"
+                    :header="$t('columns.code')"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
                     <template #filter="{ filterModel }">
-                        <InputText v-model="filterModel.value" class="w-full" placeholder="Kod keresese" />
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            :placeholder="$t('leave_categories.filters.code')"
+                        />
                     </template>
                 </Column>
 
-                <Column field="name" filterField="name" header="Nev" filter sortable :showFilterMatchModes="false">
+                <Column
+                    field="name"
+                    filterField="name"
+                    :header="$t('columns.name')"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
                     <template #filter="{ filterModel }">
-                        <InputText v-model="filterModel.value" class="w-full" placeholder="Nev keresese" />
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            :placeholder="$t('leave_categories.filters.name')"
+                        />
                     </template>
                 </Column>
 
-                <Column field="description" filterField="description" header="Leiras" filter sortable :showFilterMatchModes="false">
+                <Column
+                    field="description"
+                    filterField="description"
+                    :header="$t('columns.description')"
+                    filter
+                    sortable
+                    :showFilterMatchModes="false"
+                >
                     <template #body="{ data }">
-                        <span class="text-sm text-slate-700">{{ data.description || "-" }}</span>
+                        <span class="text-sm text-slate-700">{{
+                            data.description || "-"
+                        }}</span>
                     </template>
                     <template #filter="{ filterModel }">
-                        <InputText v-model="filterModel.value" class="w-full" placeholder="Leiras keresese" />
+                        <InputText
+                            v-model="filterModel.value"
+                            class="w-full"
+                            :placeholder="
+                                $t('leave_categories.filters.description')
+                            "
+                        />
                     </template>
                 </Column>
 
-                <Column field="order_index" header="Sorrend" sortable />
+                <Column
+                    field="order_index"
+                    :header="$t('columns.order_index')"
+                    sortable
+                />
 
                 <Column
                     field="active"
                     filterField="active"
-                    header="Aktiv"
+                    :header="$t('columns.active')"
                     filter
                     sortable
                     dataType="boolean"
                     :showFilterMatchModes="false"
                 >
                     <template #body="{ data }">
-                        <Tag :value="data.active ? 'Aktiv' : 'Inaktiv'" :severity="data.active ? 'success' : 'danger'" />
+                        <Tag
+                            :value="
+                                data.active
+                                    ? $t('status.active')
+                                    : $t('status.inactive')
+                            "
+                            :severity="data.active ? 'success' : 'danger'"
+                        />
                     </template>
                     <template #filter="{ filterModel }">
                         <Select
@@ -262,18 +343,22 @@ onMounted(() => {
                             optionValue="value"
                             class="w-full"
                             showClear
-                            placeholder="Statusz"
+                            :placeholder="$t('leave_categories.filters.status')"
                         />
                     </template>
                 </Column>
 
-                <Column v-if="canAnyRowAction" header="Muveletek" bodyStyle="white-space: nowrap;">
+                <Column
+                    v-if="canAnyRowAction"
+                    :header="$t('columns.actions')"
+                    bodyStyle="white-space: nowrap;"
+                >
                     <template #body="{ data }">
                         <div class="flex justify-end gap-2">
                             <RowActionMenu
                                 :items="buildRowMenuItems(data)"
                                 :disabled="loading"
-                                buttonTitle="Műveletek"
+                                :buttonTitle="$t('columns.actions')"
                             />
                         </div>
                     </template>

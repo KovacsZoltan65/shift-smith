@@ -3,24 +3,26 @@ import { computed, onMounted, reactive, ref, watch } from "vue";
 import { Head, router } from "@inertiajs/vue3";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { useToast } from "primevue/usetoast";
-import { loadLanguageAsync } from "laravel-vue-i18n";
+import { loadLanguageAsync, trans } from "laravel-vue-i18n";
 import CompanySelector from "@/Components/Selectors/CompanySelector.vue";
 import { csrfFetch } from "@/lib/csrfFetch";
 
 const props = defineProps({
-    title: { type: String, default: "Beállítások" },
     initialLevel: { type: String, default: "app" },
     current_company_id: { type: [Number, null], default: null },
 });
 
+const pageTitle = trans("settings.title");
 const toast = useToast();
+const $t = trans;
 
-const normalizeLevel = (value) => (["app", "company", "user"].includes(value) ? value : "app");
+const normalizeLevel = (value) =>
+    ["app", "company", "user"].includes(value) ? value : "app";
 const level = ref(normalizeLevel(props.initialLevel));
 const levelOptions = [
-    { label: "App", value: "app" },
-    { label: "Company", value: "company" },
-    { label: "User", value: "user" },
+    { label: trans("settings.levels.app"), value: "app" },
+    { label: trans("settings.levels.company"), value: "company" },
+    { label: trans("settings.levels.user"), value: "user" },
 ];
 
 const loading = ref(false);
@@ -36,17 +38,35 @@ const userQuery = ref("");
 const userOptions = ref([]);
 let searchTimer = null;
 
-const showCompanySelector = computed(() => level.value === "company" || level.value === "user");
+const showCompanySelector = computed(
+    () => level.value === "company" || level.value === "user",
+);
 const showUserSelector = computed(() => level.value === "user");
 
 const sourceBadge = (source) => {
-    if (source === "user") return { text: "User override", class: "bg-cyan-100 text-cyan-800" };
-    if (source === "company") return { text: "Company override", class: "bg-amber-100 text-amber-800" };
-    if (source === "app") return { text: "App override", class: "bg-indigo-100 text-indigo-800" };
-    return { text: "Default", class: "bg-slate-100 text-slate-700" };
+    if (source === "user")
+        return {
+            text: trans("settings.source.user_override"),
+            class: "bg-cyan-100 text-cyan-800",
+        };
+    if (source === "company")
+        return {
+            text: trans("settings.source.company_override"),
+            class: "bg-amber-100 text-amber-800",
+        };
+    if (source === "app")
+        return {
+            text: trans("settings.source.app_override"),
+            class: "bg-indigo-100 text-indigo-800",
+        };
+    return {
+        text: trans("settings.source.default"),
+        class: "bg-slate-100 text-slate-700",
+    };
 };
 
-const deepCopy = (value) => (value === undefined ? undefined : JSON.parse(JSON.stringify(value)));
+const deepCopy = (value) =>
+    value === undefined ? undefined : JSON.parse(JSON.stringify(value));
 const isEqual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 const normalizeErrorBag = (bag) => {
@@ -71,8 +91,8 @@ const buildQuery = () => {
     const resolvedLevel = normalizeLevel(level.value);
     const q = {
         level: resolvedLevel,
-        company_id: showCompanySelector.value ? companyId.value ?? "" : "",
-        user_id: showUserSelector.value ? userId.value ?? "" : "",
+        company_id: showCompanySelector.value ? (companyId.value ?? "") : "",
+        user_id: showUserSelector.value ? (userId.value ?? "") : "",
         search: search.value?.trim() || "",
         changed_only: changedOnly.value ? 1 : 0,
     };
@@ -95,7 +115,10 @@ const fetchSettings = async () => {
     loading.value = true;
     try {
         const res = await fetch(`/settings/fetch?${buildQuery()}`, {
-            headers: { "X-Requested-With": "XMLHttpRequest", Accept: "application/json" },
+            headers: {
+                "X-Requested-With": "XMLHttpRequest",
+                Accept: "application/json",
+            },
         });
 
         if (!res.ok) {
@@ -108,8 +131,8 @@ const fetchSettings = async () => {
     } catch (e) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: e?.message || "A beállítások lekérése sikertelen.",
+            summary: trans("common.error"),
+            detail: e?.message || trans("settings.messages.fetch_failed"),
             life: 3500,
         });
     } finally {
@@ -119,7 +142,8 @@ const fetchSettings = async () => {
 
 const parentValueForLevel = (item) => {
     if (level.value === "app") return deepCopy(item.default_value);
-    if (level.value === "company") return deepCopy(item.app_value ?? item.default_value);
+    if (level.value === "company")
+        return deepCopy(item.app_value ?? item.default_value);
     return deepCopy(item.company_value ?? item.app_value ?? item.default_value);
 };
 
@@ -161,7 +185,12 @@ const reloadEffectiveLocale = async (locale) => {
 const save = async () => {
     const values = collectChanged();
     if (!values.length) {
-        toast.add({ severity: "info", summary: "Info", detail: "Nincs mentendő változás.", life: 2000 });
+        toast.add({
+            severity: "info",
+            summary: trans("settings.messages.info"),
+            detail: trans("settings.messages.no_changes"),
+            life: 2000,
+        });
         return;
     }
 
@@ -171,7 +200,10 @@ const save = async () => {
     try {
         const res = await csrfFetch("/settings/save", {
             method: "POST",
-            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+            },
             body: JSON.stringify({
                 level: normalizeLevel(level.value),
                 company_id: showCompanySelector.value ? companyId.value : null,
@@ -183,7 +215,7 @@ const save = async () => {
         if (res.status === 422) {
             const body = await res.json().catch(() => ({}));
             normalizeErrorBag(body?.errors ?? {});
-            throw new Error(body?.message || "Validációs hiba.");
+            throw new Error(body?.message || trans("validation.invalid"));
         }
 
         if (!res.ok) {
@@ -194,8 +226,8 @@ const save = async () => {
         const body = await res.json();
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: body?.message || "Beállítások mentve.",
+            summary: trans("common.success"),
+            detail: body?.message || trans("settings.messages.save_success"),
             life: 2500,
         });
 
@@ -208,8 +240,8 @@ const save = async () => {
     } catch (e) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: e?.message || "Mentés sikertelen.",
+            summary: trans("common.error"),
+            detail: e?.message || trans("settings.messages.save_failed"),
             life: 3500,
         });
     } finally {
@@ -228,7 +260,9 @@ const mapUserRows = (json) => {
 
     return rows.map((r) => ({
         id: Number(r.id),
-        label: r.name ?? (`${r.first_name ?? ""} ${r.last_name ?? ""}`.trim() || `#${r.id}`),
+        label:
+            r.name ??
+            (`${r.first_name ?? ""} ${r.last_name ?? ""}`.trim() || `#${r.id}`),
     }));
 };
 
@@ -242,7 +276,10 @@ const fetchUsers = async (term = "") => {
             search: term,
         });
         const res = await fetch(`/users/fetch?${q.toString()}`, {
-            headers: { "X-Requested-With": "XMLHttpRequest", Accept: "application/json" },
+            headers: {
+                "X-Requested-With": "XMLHttpRequest",
+                Accept: "application/json",
+            },
         });
         if (!res.ok) return;
         const json = await res.json();
@@ -280,19 +317,27 @@ onMounted(async () => {
 </script>
 
 <template>
-    <Head :title="title" />
+    <Head :title="pageTitle" />
 
     <Toast />
 
     <AuthenticatedLayout>
         <div class="p-6 space-y-4">
             <div class="flex flex-wrap items-center gap-3">
-                <h1 class="text-2xl font-semibold">{{ title }}</h1>
+                <h1 class="text-2xl font-semibold">{{ pageTitle }}</h1>
 
-                <SelectButton v-model="level" :options="levelOptions" optionLabel="label" optionValue="value" />
+                <SelectButton
+                    v-model="level"
+                    :options="levelOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                />
 
                 <div v-if="showCompanySelector" class="min-w-[260px]">
-                    <CompanySelector v-model="companyId" placeholder="Cég kiválasztása..." />
+                    <CompanySelector
+                        v-model="companyId"
+                        :placeholder="$t('auth.select_company.placeholder')"
+                    />
                 </div>
 
                 <div v-if="showUserSelector" class="min-w-[260px]">
@@ -303,37 +348,79 @@ onMounted(async () => {
                         optionValue="id"
                         filter
                         v-model:filterValue="userQuery"
-                        placeholder="Felhasználó kiválasztása..."
+                        :placeholder="$t('settings.placeholders.user')"
                         class="w-full"
                     />
                 </div>
 
                 <span class="p-input-icon-left">
                     <i class="pi pi-search" />
-                    <InputText v-model="search" placeholder="Keresés kulcs/név szerint..." />
+                    <InputText
+                        v-model="search"
+                        :placeholder="$t('settings.placeholders.search')"
+                    />
                 </span>
 
                 <div class="flex items-center gap-2">
-                    <Checkbox v-model="changedOnly" binary inputId="changedOnly" />
-                    <label for="changedOnly" class="text-sm text-slate-700">Csak módosított</label>
+                    <Checkbox
+                        v-model="changedOnly"
+                        binary
+                        inputId="changedOnly"
+                    />
+                    <label for="changedOnly" class="text-sm text-slate-700">{{
+                        $t("settings.filters.changed_only")
+                    }}</label>
                 </div>
 
-                <Button label="Reset all" severity="secondary" :disabled="saving || loading" @click="resetAll" />
-                <Button label="Mentés" icon="pi pi-save" :loading="saving" :disabled="loading || saving" @click="save" />
+                <Button
+                    :label="$t('settings.actions.reset_all')"
+                    severity="secondary"
+                    :disabled="saving || loading"
+                    @click="resetAll"
+                />
+                <Button
+                    :label="$t('common.save')"
+                    icon="pi pi-save"
+                    :loading="saving"
+                    :disabled="loading || saving"
+                    @click="save"
+                />
             </div>
 
-            <div v-if="!groups.length && !loading" class="rounded border border-slate-200 bg-white p-4 text-slate-600">
-                Nincs megjeleníthető beállítás a kiválasztott szűrőkkel.
+            <div
+                v-if="!groups.length && !loading"
+                class="rounded border border-slate-200 bg-white p-4 text-slate-600"
+            >
+                {{ $t("settings.states.empty") }}
             </div>
 
-            <div v-for="group in groups" :key="group.group" class="rounded border border-slate-200 bg-white">
-                <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-                    <button class="text-left font-semibold text-slate-800" @click="group.open = !group.open">
+            <div
+                v-for="group in groups"
+                :key="group.group"
+                class="rounded border border-slate-200 bg-white"
+            >
+                <div
+                    class="flex items-center justify-between border-b border-slate-200 px-4 py-3"
+                >
+                    <button
+                        class="text-left font-semibold text-slate-800"
+                        @click="group.open = !group.open"
+                    >
                         {{ group.group }}
                     </button>
                     <div class="flex items-center gap-2">
-                        <Button label="Reset group" text size="small" @click="resetGroup(group)" />
-                        <i class="pi" :class="group.open ? 'pi-chevron-up' : 'pi-chevron-down'" />
+                        <Button
+                            :label="$t('settings.actions.reset_group')"
+                            text
+                            size="small"
+                            @click="resetGroup(group)"
+                        />
+                        <i
+                            class="pi"
+                            :class="
+                                group.open ? 'pi-chevron-up' : 'pi-chevron-down'
+                            "
+                        />
                     </div>
                 </div>
 
@@ -342,22 +429,33 @@ onMounted(async () => {
                         v-for="item in group.items"
                         :key="item.key"
                         class="p-4"
-                        :class="{ 'opacity-70': item.inherited, 'bg-slate-50': item.overridden_at_level }"
+                        :class="{
+                            'opacity-70': item.inherited,
+                            'bg-slate-50': item.overridden_at_level,
+                        }"
                     >
                         <div class="mb-2 flex flex-wrap items-center gap-2">
-                            <div class="font-medium text-slate-900">{{ item.label }}</div>
-                            <code class="rounded bg-slate-100 px-2 py-0.5 text-xs">{{ item.key }}</code>
+                            <div class="font-medium text-slate-900">
+                                {{ item.label }}
+                            </div>
+                            <code
+                                class="rounded bg-slate-100 px-2 py-0.5 text-xs"
+                                >{{ item.key }}</code
+                            >
                             <span
                                 class="rounded px-2 py-0.5 text-xs font-medium"
                                 :class="sourceBadge(item.source).class"
                             >
                                 {{ sourceBadge(item.source).text }}
                             </span>
-                            <span v-if="item.overridden_at_level" class="rounded bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">
-                                Override ezen a szinten
+                            <span
+                                v-if="item.overridden_at_level"
+                                class="rounded bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800"
+                            >
+                                {{ $t("settings.badges.overridden_at_level") }}
                             </span>
                             <Button
-                                label="Visszaállítás erre a szintre"
+                                :label="$t('settings.actions.reset_at_level')"
                                 size="small"
                                 text
                                 :disabled="saving"
@@ -365,11 +463,21 @@ onMounted(async () => {
                             />
                         </div>
 
-                        <div v-if="item.description" class="mb-2 text-sm text-slate-600">{{ item.description }}</div>
+                        <div
+                            v-if="item.description"
+                            class="mb-2 text-sm text-slate-600"
+                        >
+                            {{ item.description }}
+                        </div>
 
                         <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                             <div>
-                                <label class="mb-1 block text-xs text-slate-600">Effective value</label>
+                                <label
+                                    class="mb-1 block text-xs text-slate-600"
+                                    >{{
+                                        $t("settings.fields.effective_value")
+                                    }}</label
+                                >
 
                                 <Checkbox
                                     v-if="item.type === 'bool'"
@@ -419,11 +527,17 @@ onMounted(async () => {
                                 <InputText
                                     v-else-if="item.type === 'json'"
                                     class="w-full font-mono"
-                                    :modelValue="JSON.stringify(item.edit_value ?? {})"
+                                    :modelValue="
+                                        JSON.stringify(item.edit_value ?? {})
+                                    "
                                     :disabled="saving"
                                     @update:modelValue="
                                         (v) => {
-                                            try { item.edit_value = JSON.parse(v || '{}'); } catch (_) {}
+                                            try {
+                                                item.edit_value = JSON.parse(
+                                                    v || '{}',
+                                                );
+                                            } catch (_) {}
                                         }
                                     "
                                 />
@@ -435,16 +549,31 @@ onMounted(async () => {
                                     :disabled="saving"
                                 />
 
-                                <div v-if="fieldError(item.key)" class="mt-1 text-sm text-red-600">
+                                <div
+                                    v-if="fieldError(item.key)"
+                                    class="mt-1 text-sm text-red-600"
+                                >
                                     {{ fieldError(item.key) }}
                                 </div>
                             </div>
 
                             <div class="text-xs text-slate-600 space-y-1">
-                                <div><b>Default:</b> {{ JSON.stringify(item.default_value) }}</div>
-                                <div><b>App:</b> {{ JSON.stringify(item.app_value) }}</div>
-                                <div><b>Company:</b> {{ JSON.stringify(item.company_value) }}</div>
-                                <div><b>User:</b> {{ JSON.stringify(item.user_value) }}</div>
+                                <div>
+                                    <b>{{ $t("settings.values.default") }}:</b>
+                                    {{ JSON.stringify(item.default_value) }}
+                                </div>
+                                <div>
+                                    <b>{{ $t("settings.values.app") }}:</b>
+                                    {{ JSON.stringify(item.app_value) }}
+                                </div>
+                                <div>
+                                    <b>{{ $t("settings.values.company") }}:</b>
+                                    {{ JSON.stringify(item.company_value) }}
+                                </div>
+                                <div>
+                                    <b>{{ $t("settings.values.user") }}:</b>
+                                    {{ JSON.stringify(item.user_value) }}
+                                </div>
                             </div>
                         </div>
                     </div>

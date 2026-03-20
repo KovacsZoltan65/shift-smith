@@ -39,7 +39,6 @@ final class TenantGroupController extends Controller
         $this->authorize('viewAny', TenantGroup::class);
 
         return Inertia::render('TenantGroups/Index', [
-            'title' => __('tenant_groups.title'),
             'filter' => $request->validatedFilters(),
         ]);
     }

@@ -38,7 +38,6 @@ final class WorkShiftController extends Controller
         $filter['company_id'] = $currentCompanyId;
 
         return Inertia::render('WorkShifts/Index', [
-            'title' => __('work_shifts.title'),
             'filter' => $filter,
         ]);
     }

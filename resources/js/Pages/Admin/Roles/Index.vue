@@ -25,9 +25,10 @@ const canUpdate = has("roles.update");
 const canDelete = has("roles.delete");
 
 const props = defineProps({
-    title: { type: String, default: trans("roles.title") },
     filter: { type: Object, default: () => ({}) },
 });
+
+const title = trans("roles.title");
 
 const toast = useToast();
 const confirm = useConfirm();
@@ -96,25 +97,25 @@ const usersModalSummary = computed(() => {
 });
 
 const buildRowMenuItems = (row) => [
-        {
-            label: trans("edit"),
-            icon: "pi pi-pencil",
-            disabled: actionLoading.value || !canUpdate,
-            command: () => openEditModal(row),
-        },
-        {
-            label: trans("roles.actions.manage_users"),
-            icon: "pi pi-users",
-            disabled: actionLoading.value || !canUpdate,
-            command: () => openUsersModal(row),
-        },
-        {
-            label: trans("delete"),
-            icon: "pi pi-trash",
-            disabled: actionLoading.value || !canDelete,
-            command: () => confirmDeleteOne(row),
-        },
-    ];
+    {
+        label: trans("edit"),
+        icon: "pi pi-pencil",
+        disabled: actionLoading.value || !canUpdate,
+        command: () => openEditModal(row),
+    },
+    {
+        label: trans("roles.actions.manage_users"),
+        icon: "pi pi-users",
+        disabled: actionLoading.value || !canUpdate,
+        command: () => openUsersModal(row),
+    },
+    {
+        label: trans("delete"),
+        icon: "pi pi-trash",
+        disabled: actionLoading.value || !canDelete,
+        command: () => confirmDeleteOne(row),
+    },
+];
 
 const openCreate = () => {
     createOpen.value = true;
@@ -222,8 +223,7 @@ const openUsersModal = async (row) => {
         toast.add({
             severity: "error",
             summary: trans("common.error"),
-            detail:
-                e?.message || trans("roles.messages.users_load_failed"),
+            detail: e?.message || trans("roles.messages.users_load_failed"),
             life: 3500,
         });
     } finally {
@@ -442,7 +442,11 @@ onMounted(() => {
                     />
 
                     <div v-if="selected?.length" class="text-sm text-gray-600">
-                        {{ trans("roles.selected_count", { count: selected.length }) }}
+                        {{
+                            trans("roles.selected_count", {
+                                count: selected.length,
+                            })
+                        }}
                     </div>
                 </div>
             </div>
@@ -482,17 +486,26 @@ onMounted(() => {
                             </InputIcon>
                             <InputText
                                 v-model="filters['global'].value"
-                                :placeholder="trans('roles.filters.keyword_search')"
+                                :placeholder="
+                                    trans('roles.filters.keyword_search')
+                                "
                             />
                         </IconField>
                     </div>
                 </template>
 
                 <template #empty>{{ trans("roles.states.empty") }}</template>
-                <template #loading>{{ trans("roles.states.loading") }}</template>
+                <template #loading>{{
+                    trans("roles.states.loading")
+                }}</template>
 
                 <Column selectionMode="multiple" headerStyle="width: 3rem" />
-                <Column field="id" :header="trans('columns.id')" sortable style="width: 90px" />
+                <Column
+                    field="id"
+                    :header="trans('columns.id')"
+                    sortable
+                    style="width: 90px"
+                />
                 <Column
                     field="name"
                     filterField="name"
@@ -563,7 +576,11 @@ onMounted(() => {
                             <RowActionMenu
                                 :items="buildRowMenuItems(data)"
                                 :disabled="actionLoading"
-                                :buttonTitle="trans('roles.actions.edit_title', { name: data.name })"
+                                :buttonTitle="
+                                    trans('roles.actions.edit_title', {
+                                        name: data.name,
+                                    })
+                                "
                             />
                         </div>
                     </template>
@@ -588,9 +605,9 @@ onMounted(() => {
                 </div>
 
                 <div class="space-y-2">
-                    <label class="block text-sm font-medium text-slate-700"
-                        >{{ trans("roles.fields.users") }}</label
-                    >
+                    <label class="block text-sm font-medium text-slate-700">{{
+                        trans("roles.fields.users")
+                    }}</label>
                     <MultiSelect
                         v-model="usersModalSelectedIds"
                         :options="userOptions"

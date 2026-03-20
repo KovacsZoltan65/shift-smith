@@ -29,7 +29,7 @@ final class CompanySelectController extends Controller
         abort_unless($user instanceof User, 401);
 
         $companies = $this->companyContext->selectableCompaniesForSwitch($user);
-        $companyCount = count($companies);
+        $companyCount = \count($companies);
 
         if ($companyCount === 0) {
             if ($this->companyContext->isSuperadmin($user)) {

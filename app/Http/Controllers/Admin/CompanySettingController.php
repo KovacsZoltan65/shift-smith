@@ -31,7 +31,6 @@ class CompanySettingController extends Controller
         $this->authorize(CompanySettingPolicy::PERM_VIEW_ANY, CompanySetting::class);
 
         return Inertia::render('Admin/CompanySettings/Index', [
-            'title' => __('company_settings.title'),
             'filter' => $request->validatedFilters(),
             'companyId' => $request->currentCompanyId(),
         ]);

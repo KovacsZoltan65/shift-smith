@@ -30,7 +30,6 @@ class SickLeaveCategoryController extends Controller
         $this->authorize(SickLeaveCategoryPolicy::PERM_VIEW_ANY, SickLeaveCategory::class);
 
         return Inertia::render('Admin/SickLeaveCategories/Index', [
-            'title' => __('sick_leave_categories.title'),
             'filter' => $request->validatedFilters(),
             'companyId' => $request->currentCompanyId(),
         ]);

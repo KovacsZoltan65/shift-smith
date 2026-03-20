@@ -1,6 +1,7 @@
 <script setup>
 import { Head } from "@inertiajs/vue3";
 import { computed, onMounted, ref } from "vue";
+import { trans } from "laravel-vue-i18n";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
 import RowActionMenu from "@/Components/DataTable/RowActionMenu.vue";
@@ -29,13 +30,14 @@ const canDelete = has("work_schedules.delete");
 const canBulkDelete = has("work_schedules.deleteAny");
 
 const props = defineProps({
-    title: { type: String, default: "Munkabeosztások" },
     filter: { type: Object, default: () => ({}) },
     hqBadge: { type: String, default: "" },
 });
 
+const title = trans("work_schedules.title");
 const toast = useToast();
 const confirm = useConfirm();
+const $t = trans;
 
 // Táblázat state
 const loading = ref(false);
@@ -53,8 +55,8 @@ const editOpen = ref(false);
 const editWorkSchedule = ref(null);
 
 const statusOptions = [
-    { label: "Draft", value: "draft" },
-    { label: "Publikált", value: "published" },
+    { label: trans("work_schedules.status.draft"), value: "draft" },
+    { label: trans("work_schedules.status.published"), value: "published" },
 ];
 
 const globalFilterFields = [
@@ -111,22 +113,22 @@ const hasActiveFilters = computed(() =>
 );
 
 const buildRowMenuItems = (row) => [
-        {
-            label: "Szerkesztés",
-            icon: "pi pi-pencil",
-            disabled: actionLoading.value || !canUpdate,
-            command: () => {
-                editWorkSchedule.value = row;
-                editOpen.value = true;
-            },
+    {
+        label: trans("edit"),
+        icon: "pi pi-pencil",
+        disabled: actionLoading.value || !canUpdate,
+        command: () => {
+            editWorkSchedule.value = row;
+            editOpen.value = true;
         },
-        {
-            label: "Törlés",
-            icon: "pi pi-trash",
-            disabled: actionLoading.value || !canDelete,
-            command: () => confirmDeleteOne(row),
-        },
-    ];
+    },
+    {
+        label: trans("delete"),
+        icon: "pi pi-trash",
+        disabled: actionLoading.value || !canDelete,
+        command: () => confirmDeleteOne(row),
+    },
+];
 
 const fetchWorkSchedules = async () => {
     if (!companyId.value) {
@@ -150,7 +152,8 @@ const fetchWorkSchedules = async () => {
             ? response.data.data
             : [];
     } catch (err) {
-        error.value = err?.message ?? "Betöltési hiba.";
+        error.value =
+            err?.message ?? trans("work_schedules.messages.fetch_failed");
         rows.value = [];
     } finally {
         loading.value = false;
@@ -163,14 +166,14 @@ const onCompanyChanged = async () => {
     await fetchWorkSchedules();
 };
 
-const onSaved = async (message = "Mentve.") => {
+const onSaved = async (message = trans("work_schedules.messages.saved")) => {
     createOpen.value = false;
     editOpen.value = false;
     selected.value = [];
     await fetchWorkSchedules();
     toast.add({
         severity: "success",
-        summary: "Siker",
+        summary: trans("common.success"),
         detail: message,
         life: 2500,
     });
@@ -178,11 +181,13 @@ const onSaved = async (message = "Mentve.") => {
 
 const confirmDeleteOne = (row) => {
     confirm.require({
-        message: `Biztos törlöd: ${row?.name ?? `#${row?.id}`}?`,
-        header: "Megerősítés",
+        message: trans("work_schedules.dialogs.delete_confirm", {
+            name: row?.name ?? `#${row?.id}`,
+        }),
+        header: trans("common.confirmation"),
         icon: "pi pi-exclamation-triangle",
-        acceptLabel: "Törlés",
-        rejectLabel: "Mégse",
+        acceptLabel: trans("delete"),
+        rejectLabel: trans("common.cancel"),
         acceptClass: "p-button-danger",
         accept: () => deleteOne(row.id),
     });
@@ -195,12 +200,13 @@ const deleteOne = async (id) => {
             id,
             Number(companyId.value),
         );
-        await onSaved("Munkabeosztás törölve.");
+        await onSaved(trans("work_schedules.messages.deleted_success"));
     } catch (err) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: err?.message ?? "Törlés sikertelen.",
+            summary: trans("common.error"),
+            detail:
+                err?.message ?? trans("work_schedules.messages.delete_failed"),
             life: 3500,
         });
     } finally {
@@ -213,11 +219,13 @@ const confirmBulkDelete = () => {
     if (!ids.length) return;
 
     confirm.require({
-        message: `Biztos törlöd a kijelölt ${ids.length} munkabeosztást?`,
-        header: "Megerősítés",
+        message: trans("work_schedules.dialogs.bulk_delete_confirm", {
+            count: ids.length,
+        }),
+        header: trans("common.confirmation"),
         icon: "pi pi-exclamation-triangle",
-        acceptLabel: "Törlés",
-        rejectLabel: "Mégse",
+        acceptLabel: trans("delete"),
+        rejectLabel: trans("common.cancel"),
         acceptClass: "p-button-danger",
         accept: () => deleteMany(ids),
     });
@@ -230,12 +238,18 @@ const deleteMany = async (ids) => {
             ids,
             Number(companyId.value),
         );
-        await onSaved("Kijelölt munkabeosztások törölve.");
+        await onSaved(
+            trans("work_schedules.messages.bulk_deleted_success", {
+                count: ids.length,
+            }),
+        );
     } catch (err) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: err?.message ?? "Bulk törlés sikertelen.",
+            summary: trans("common.error"),
+            detail:
+                err?.message ??
+                trans("work_schedules.messages.bulk_delete_failed"),
             life: 3500,
         });
     } finally {
@@ -281,12 +295,12 @@ onMounted(fetchWorkSchedules);
 
                     <Button
                         v-if="canCreate"
-                        label="Új munkabeosztás"
+                        :label="$t('work_schedules.actions.create')"
                         icon="pi pi-plus"
                         @click="createOpen = true"
                     />
                     <Button
-                        label="Frissítés"
+                        :label="$t('common.refresh')"
                         icon="pi pi-refresh"
                         severity="secondary"
                         :loading="loading"
@@ -294,7 +308,7 @@ onMounted(fetchWorkSchedules);
                     />
                     <Button
                         v-if="canBulkDelete"
-                        label="Kijelöltek törlése"
+                        :label="$t('work_schedules.actions.bulk_delete')"
                         icon="pi pi-trash"
                         severity="danger"
                         outlined
@@ -303,13 +317,19 @@ onMounted(fetchWorkSchedules);
                     />
 
                     <div v-if="selected?.length" class="text-sm text-gray-600">
-                        Kijelölve: <b>{{ selected.length }}</b>
+                        {{
+                            $t("work_schedules.selected_count", {
+                                count: selected.length,
+                            })
+                        }}
                     </div>
 
                     <div class="min-w-[260px]">
                         <CompanySelector
                             v-model="companyId"
-                            placeholder="Cég szűrő..."
+                            :placeholder="
+                                $t('work_schedules.placeholders.company')
+                            "
                             @update:modelValue="onCompanyChanged"
                         />
                     </div>
@@ -317,7 +337,7 @@ onMounted(fetchWorkSchedules);
             </div>
 
             <div v-if="error" class="mb-3 border p-3">
-                <div class="font-semibold">Hiba</div>
+                <div class="font-semibold">{{ $t("common.error") }}</div>
                 <div class="text-sm">{{ error }}</div>
             </div>
 
@@ -341,7 +361,7 @@ onMounted(fetchWorkSchedules);
                         <Button
                             type="button"
                             icon="pi pi-filter-slash"
-                            label="Clear"
+                            :label="$t('work_schedules.filters.clear')"
                             variant="outlined"
                             @click="clearFilters()"
                         />
@@ -351,20 +371,24 @@ onMounted(fetchWorkSchedules);
                             </InputIcon>
                             <InputText
                                 v-model="filters['global'].value"
-                                placeholder="Keyword Search"
+                                :placeholder="
+                                    $t('work_schedules.filters.keyword_search')
+                                "
                             />
                         </IconField>
                     </div>
                 </template>
 
-                <template #empty>Nincs munkabeosztás.</template>
+                <template #empty>{{
+                    $t("work_schedules.states.empty")
+                }}</template>
 
                 <Column selectionMode="multiple" headerStyle="width: 3rem" />
 
                 <Column
                     field="name"
                     filterField="name"
-                    header="Név"
+                    :header="$t('columns.name')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -376,7 +400,7 @@ onMounted(fetchWorkSchedules);
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Név keresése"
+                            :placeholder="$t('work_schedules.filters.name')"
                         />
                     </template>
                 </Column>
@@ -384,7 +408,7 @@ onMounted(fetchWorkSchedules);
                 <Column
                     field="date_from"
                     filterField="date_from"
-                    header="Kezdet"
+                    :header="$t('work_schedules.fields.date_from')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -396,7 +420,7 @@ onMounted(fetchWorkSchedules);
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Dátum keresése"
+                            :placeholder="$t('work_schedules.filters.date')"
                         />
                     </template>
                 </Column>
@@ -404,7 +428,7 @@ onMounted(fetchWorkSchedules);
                 <Column
                     field="date_to"
                     filterField="date_to"
-                    header="Vége"
+                    :header="$t('work_schedules.fields.date_to')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -416,7 +440,7 @@ onMounted(fetchWorkSchedules);
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Dátum keresése"
+                            :placeholder="$t('work_schedules.filters.date')"
                         />
                     </template>
                 </Column>
@@ -424,7 +448,7 @@ onMounted(fetchWorkSchedules);
                 <Column
                     field="status"
                     filterField="status"
-                    header="Státusz"
+                    :header="$t('work_schedules.fields.status')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -440,8 +464,8 @@ onMounted(fetchWorkSchedules);
                         >
                             {{
                                 data.status === "published"
-                                    ? "Publikált"
-                                    : "Draft"
+                                    ? $t("work_schedules.status.published")
+                                    : $t("work_schedules.status.draft")
                             }}
                         </span>
                     </template>
@@ -451,21 +475,25 @@ onMounted(fetchWorkSchedules);
                             :options="statusOptions"
                             optionLabel="label"
                             optionValue="value"
-                            placeholder="Mind"
+                            :placeholder="$t('work_schedules.filters.all')"
                             class="min-w-40"
                             showClear
                         />
                     </template>
                 </Column>
 
-                <Column field="assignments_count" header="Beosztások" sortable>
+                <Column
+                    field="assignments_count"
+                    :header="$t('work_schedules.fields.assignments')"
+                    sortable
+                >
                     <template #body="{ data }">
                         {{ Number(data.assignments_count ?? 0) }}
                     </template>
                 </Column>
 
                 <Column
-                    header="Műveletek"
+                    :header="$t('columns.actions')"
                     bodyClass="text-right"
                     headerClass="text-right"
                 >
@@ -473,7 +501,7 @@ onMounted(fetchWorkSchedules);
                         <RowActionMenu
                             :items="buildRowMenuItems(data)"
                             :disabled="actionLoading"
-                            buttonTitle="Műveletek"
+                            :buttonTitle="$t('columns.actions')"
                         />
                     </template>
                 </Column>

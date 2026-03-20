@@ -53,7 +53,6 @@ final class OrgHierarchyController extends Controller
             : [];
 
         return Inertia::render('HR/Hierarchy/Index', [
-            'title' => 'Szervezeti hierarchia',
             'company_id' => $currentCompanyId,
             'companies' => $companies,
             'at_date' => now()->toDateString(),

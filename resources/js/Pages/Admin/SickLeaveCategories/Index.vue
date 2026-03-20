@@ -2,6 +2,7 @@
 import { Head } from "@inertiajs/vue3";
 import { computed, onMounted, ref } from "vue";
 import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
+import { trans } from "laravel-vue-i18n";
 import RowActionMenu from "@/Components/DataTable/RowActionMenu.vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import CreateModal from "@/Pages/Admin/SickLeaveCategories/Partials/CreateModal.vue";
@@ -14,12 +15,15 @@ import { useToast } from "primevue/usetoast";
 import { IconField, InputIcon } from "primevue";
 
 const props = defineProps({
-    title: { type: String, default: "Betegszabadsag kategoriak" },
     filter: { type: Object, default: () => ({}) },
+    companyId: { type: Number, default: null },
 });
+
+const pageTitle = trans("sick_leave_categories.title");
 
 const { has } = usePermissions();
 const toast = useToast();
+const $t = trans;
 
 const canCreate = computed(() => has("sick_leave_categories.create"));
 const canUpdate = computed(() => has("sick_leave_categories.update"));
@@ -37,8 +41,8 @@ const deleteTarget = ref(null);
 const globalFilterFields = ["code", "name", "description"];
 
 const booleanOptions = [
-    { label: "Aktiv", value: true },
-    { label: "Inaktiv", value: false },
+    { label: trans("status.active"), value: true },
+    { label: trans("status.inactive"), value: false },
 ];
 
 const createInitialFilters = () => ({
@@ -113,11 +117,11 @@ const fetchRows = async () => {
     } catch (error) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
+            summary: trans("common.error"),
             detail:
                 error?.response?.data?.message ??
                 error?.message ??
-                "Lista betoltese sikertelen.",
+                trans("sick_leave_categories.messages.fetch_failed"),
             life: 3500,
         });
     } finally {
@@ -136,19 +140,19 @@ const openDeleteModal = (row) => {
 };
 
 const buildRowMenuItems = (row) => [
-        {
-            label: "Szerkesztes",
-            icon: "pi pi-pencil",
-            disabled: loading.value || !canUpdate.value,
-            command: () => openEditModal(row),
-        },
-        {
-            label: "Torles",
-            icon: "pi pi-trash",
-            disabled: loading.value || !canDelete.value,
-            command: () => openDeleteModal(row),
-        },
-    ];
+    {
+        label: trans("edit"),
+        icon: "pi pi-pencil",
+        disabled: loading.value || !canUpdate.value,
+        command: () => openEditModal(row),
+    },
+    {
+        label: trans("delete"),
+        icon: "pi pi-trash",
+        disabled: loading.value || !canDelete.value,
+        command: () => openDeleteModal(row),
+    },
+];
 
 const onSaved = async (message) => {
     createOpen.value = false;
@@ -159,7 +163,7 @@ const onSaved = async (message) => {
     await fetchRows();
     toast.add({
         severity: "success",
-        summary: "Siker",
+        summary: trans("common.success"),
         detail: message,
         life: 2500,
     });
@@ -172,7 +176,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <Head :title="title" />
+    <Head :title="pageTitle" />
 
     <Toast />
 
@@ -194,11 +198,11 @@ onMounted(() => {
         <div class="space-y-4 p-6">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div class="flex flex-wrap items-center gap-3">
-                    <h1 class="text-2xl font-semibold">{{ title }}</h1>
+                    <h1 class="text-2xl font-semibold">{{ pageTitle }}</h1>
 
                     <Button
                         v-if="canCreate"
-                        label="Uj kategoria"
+                        :label="$t('sick_leave_categories.actions.create')"
                         icon="pi pi-plus"
                         size="small"
                         data-testid="sick-leave-categories-create"
@@ -206,7 +210,7 @@ onMounted(() => {
                     />
 
                     <Button
-                        label="Frissites"
+                        :label="$t('common.refresh')"
                         icon="pi pi-refresh"
                         severity="secondary"
                         size="small"
@@ -236,8 +240,9 @@ onMounted(() => {
                         <Button
                             type="button"
                             icon="pi pi-filter-slash"
-                            label="Clear"
+                            :label="$t('sick_leave_categories.filters.clear')"
                             variant="outlined"
+                            data-testid="sick-leave-categories-clear-filters"
                             @click="clearFilters()"
                         />
                         <IconField>
@@ -246,19 +251,20 @@ onMounted(() => {
                             </InputIcon>
                             <InputText
                                 v-model="filters['global'].value"
-                                placeholder="Keyword Search"
+                                :placeholder="$t('common.keyword_search')"
+                                data-testid="sick-leave-categories-search"
                             />
                         </IconField>
                     </div>
                 </template>
 
-                <template #empty>Nincs talalat.</template>
-                <template #loading>Betoltes...</template>
+                <template #empty>{{ $t("common.no_results") }}</template>
+                <template #loading>{{ $t("common.loading") }}</template>
 
                 <Column
                     field="code"
                     filterField="code"
-                    header="Kod"
+                    :header="$t('columns.code')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -268,7 +274,9 @@ onMounted(() => {
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Kod keresese"
+                            :placeholder="
+                                $t('sick_leave_categories.filters.code')
+                            "
                         />
                     </template>
                 </Column>
@@ -276,7 +284,7 @@ onMounted(() => {
                 <Column
                     field="name"
                     filterField="name"
-                    header="Nev"
+                    :header="$t('columns.name')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -286,7 +294,9 @@ onMounted(() => {
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Nev keresese"
+                            :placeholder="
+                                $t('sick_leave_categories.filters.name')
+                            "
                         />
                     </template>
                 </Column>
@@ -294,7 +304,7 @@ onMounted(() => {
                 <Column
                     field="description"
                     filterField="description"
-                    header="Leiras"
+                    :header="$t('columns.description')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -309,7 +319,9 @@ onMounted(() => {
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Leiras keresese"
+                            :placeholder="
+                                $t('sick_leave_categories.filters.description')
+                            "
                         />
                     </template>
                 </Column>
@@ -317,7 +329,7 @@ onMounted(() => {
                 <Column
                     field="order_index"
                     filterField="order_index"
-                    header="Sorrend"
+                    :header="$t('columns.order_index')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -327,7 +339,9 @@ onMounted(() => {
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Sorrend"
+                            :placeholder="
+                                $t('sick_leave_categories.filters.order_index')
+                            "
                         />
                     </template>
                 </Column>
@@ -335,7 +349,7 @@ onMounted(() => {
                 <Column
                     field="active"
                     filterField="active"
-                    header="Aktiv"
+                    :header="$t('columns.active')"
                     filter
                     sortable
                     dataType="boolean"
@@ -344,7 +358,11 @@ onMounted(() => {
                 >
                     <template #body="{ data }">
                         <Tag
-                            :value="data.active ? 'Aktiv' : 'Inaktiv'"
+                            :value="
+                                data.active
+                                    ? $t('status.active')
+                                    : $t('status.inactive')
+                            "
                             :severity="data.active ? 'success' : 'danger'"
                         />
                     </template>
@@ -356,14 +374,16 @@ onMounted(() => {
                             optionValue="value"
                             class="w-full"
                             showClear
-                            placeholder="Statusz"
+                            :placeholder="
+                                $t('sick_leave_categories.filters.status')
+                            "
                         />
                     </template>
                 </Column>
 
                 <Column
                     v-if="canAnyRowAction"
-                    header="Muveletek"
+                    :header="$t('columns.actions')"
                     bodyStyle="white-space: nowrap;"
                 >
                     <template #body="{ data }">
@@ -371,7 +391,7 @@ onMounted(() => {
                             <RowActionMenu
                                 :items="buildRowMenuItems(data)"
                                 :disabled="loading"
-                                buttonTitle="Műveletek"
+                                :buttonTitle="$t('columns.actions')"
                             />
                         </div>
                     </template>

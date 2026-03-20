@@ -33,11 +33,8 @@ class CompanyController extends Controller
     public function index(IndexRequest $request): InertiaResponse
     {
         $this->authorize(CompanyPolicy::PERM_VIEW_ANY, Company::class);
-        
-        $title = __('companies.title');
 
         return Inertia::render('Companies/Index', [
-            'title'  => $title,
             'filter' => $request->validatedFilters(),
         ]);
     }

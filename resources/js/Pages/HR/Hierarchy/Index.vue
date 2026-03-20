@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { Head } from "@inertiajs/vue3";
+import { trans } from "laravel-vue-i18n";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import OrgHierarchyCytoscape from "@/Components/Org/OrgHierarchyCytoscape.vue";
 import HierarchyMoveDialog from "@/Components/Org/HierarchyMoveDialog.vue";
@@ -11,7 +12,6 @@ import { useToast } from "primevue/usetoast";
 import { csrfFetch } from "@/lib/csrfFetch";
 
 const props = defineProps({
-    title: { type: String, default: "Szervezeti hierarchia" },
     company_id: { type: Number, required: true },
     companies: { type: Array, default: () => [] },
     at_date: { type: String, default: null },
@@ -25,7 +25,9 @@ const props = defineProps({
     },
 });
 
+const pageTitle = trans("hierarchy.title");
 const toast = useToast();
+const $t = trans;
 const loading = ref(false);
 const selectedEmployeeId = ref(null);
 const selectedNode = ref(null);
@@ -39,8 +41,10 @@ const integrityDialogVisible = ref(false);
 const integrityLoading = ref(false);
 const integrityReport = ref(null);
 
-const normalizeViewModeValue = (value) => (value === "network" ? "network" : "explorer");
-const normalizeDensityValue = (value) => (value === "compact" ? "compact" : "comfortable");
+const normalizeViewModeValue = (value) =>
+    value === "network" ? "network" : "explorer";
+const normalizeDensityValue = (value) =>
+    value === "compact" ? "compact" : "comfortable";
 const normalizeBoolValue = (value) => Boolean(value);
 
 const companyId = ref(Number(props.company_id || 0) || null);
@@ -51,36 +55,52 @@ const breadcrumbs = ref([]);
 const detailNode = ref(null);
 const viewMode = ref(normalizeViewModeValue(props.ui_settings?.view_mode));
 const density = ref(normalizeDensityValue(props.ui_settings?.density));
-const showPosition = ref(normalizeBoolValue(props.ui_settings?.show_position ?? true));
+const showPosition = ref(
+    normalizeBoolValue(props.ui_settings?.show_position ?? true),
+);
 
 const viewModeOptions = [
-    { label: "Explorer", value: "explorer" },
-    { label: "Network", value: "network" },
+    { label: trans("hierarchy.view_modes.explorer"), value: "explorer" },
+    { label: trans("hierarchy.view_modes.network"), value: "network" },
 ];
 const densityOptions = [
-    { label: "Compact", value: "compact" },
-    { label: "Comfortable", value: "comfortable" },
+    { label: trans("hierarchy.density.compact"), value: "compact" },
+    { label: trans("hierarchy.density.comfortable"), value: "comfortable" },
 ];
 const positionOptions = [
-    { label: "Pozíció: Ki", value: false },
-    { label: "Pozíció: Be", value: true },
+    { label: trans("hierarchy.position.hide"), value: false },
+    { label: trans("hierarchy.position.show"), value: true },
 ];
 
 const nodes = ref([]);
 const edges = ref([]);
-const meta = ref({ root_id: null, company_id: null, at_date: null, depth: 1, empty: true });
+const meta = ref({
+    root_id: null,
+    company_id: null,
+    at_date: null,
+    depth: 1,
+    empty: true,
+});
 
 const todayYmd = computed(() => {
     const value = atDate.value instanceof Date ? atDate.value : new Date();
     return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
 });
 
-const refreshTooltip = computed(() => (loading.value ? "Frissítés folyamatban..." : "Frissítés"));
+const refreshTooltip = computed(() =>
+    loading.value
+        ? trans("hierarchy.tooltips.refreshing")
+        : trans("common.refresh"),
+);
 const canGoBack = computed(() => rootStack.value.length > 1);
 const graphDepth = computed(() => (viewMode.value === "network" ? 2 : 1));
-const normalizedViewMode = computed(() => normalizeViewModeValue(viewMode.value));
+const normalizedViewMode = computed(() =>
+    normalizeViewModeValue(viewMode.value),
+);
 const normalizedDensity = computed(() => normalizeDensityValue(density.value));
-const normalizedShowPosition = computed(() => normalizeBoolValue(showPosition.value));
+const normalizedShowPosition = computed(() =>
+    normalizeBoolValue(showPosition.value),
+);
 
 const actionMenuItems = computed(() => {
     const node = selectedNode.value;
@@ -93,37 +113,37 @@ const actionMenuItems = computed(() => {
     return [
         {
             key: "employee_only",
-            label: "Áthelyezés",
+            label: trans("hierarchy.actions.move"),
             icon: "pi pi-user-edit",
             visible: true,
         },
         {
             key: "leader_with_subordinates",
-            label: "Áthelyezés csapattal",
+            label: trans("hierarchy.actions.move_with_team"),
             icon: "pi pi-users",
             visible: hasSubordinates,
         },
         {
             key: "leader_without_subordinates",
-            label: "Áthelyezés csapat nélkül",
+            label: trans("hierarchy.actions.move_without_team"),
             icon: "pi pi-user-minus",
             visible: hasSubordinates,
         },
         {
             key: "move_subordinates_only",
-            label: "Beosztottak áthelyezése",
+            label: trans("hierarchy.actions.move_subordinates_only"),
             icon: "pi pi-share-alt",
             visible: hasSubordinates,
         },
         {
             key: "integrity",
-            label: "Integritás ellenőrzés",
+            label: trans("hierarchy.actions.integrity_check"),
             icon: "pi pi-shield",
             visible: true,
         },
         {
             key: "delete",
-            label: "Törlés",
+            label: trans("delete"),
             icon: "pi pi-trash",
             visible: true,
         },
@@ -133,7 +153,8 @@ const actionMenuItems = computed(() => {
 let settingsSaveTimer = null;
 let settingsInitialized = false;
 
-const findNodeById = (id) => nodes.value.find((row) => Number(row.id) === Number(id)) ?? null;
+const findNodeById = (id) =>
+    nodes.value.find((row) => Number(row.id) === Number(id)) ?? null;
 
 const shortLabel = (label) => {
     const text = String(label ?? "").trim();
@@ -163,12 +184,17 @@ const ensureBreadcrumbRoot = () => {
         return;
     }
 
-    const existsAt = breadcrumbs.value.findIndex((row) => Number(row.id) === rootId);
+    const existsAt = breadcrumbs.value.findIndex(
+        (row) => Number(row.id) === rootId,
+    );
     if (existsAt >= 0) {
         breadcrumbs.value = breadcrumbs.value.slice(0, existsAt + 1);
         breadcrumbs.value[existsAt] = { id: rootId, label: rootLabel };
     } else {
-        breadcrumbs.value = [...breadcrumbs.value, { id: rootId, label: rootLabel }];
+        breadcrumbs.value = [
+            ...breadcrumbs.value,
+            { id: rootId, label: rootLabel },
+        ];
     }
 
     syncStack();
@@ -178,7 +204,13 @@ const fetchGraph = async () => {
     if (!companyId.value) {
         nodes.value = [];
         edges.value = [];
-        meta.value = { root_id: null, company_id: null, at_date: todayYmd.value, depth: 1, empty: true };
+        meta.value = {
+            root_id: null,
+            company_id: null,
+            at_date: todayYmd.value,
+            depth: 1,
+            empty: true,
+        };
         return;
     }
 
@@ -195,13 +227,18 @@ const fetchGraph = async () => {
             params.set("root_employee_id", String(currentRootId.value));
         }
 
-        const response = await csrfFetch(`${route("org.hierarchy.graph")}?${params.toString()}`, {
-            method: "GET",
-        });
+        const response = await csrfFetch(
+            `${route("org.hierarchy.graph")}?${params.toString()}`,
+            {
+                method: "GET",
+            },
+        );
         const payload = await response.json();
 
         if (!response.ok) {
-            throw new Error(payload?.message || "A hierarchia lekérése sikertelen.");
+            throw new Error(
+                payload?.message || trans("hierarchy.messages.fetch_failed"),
+            );
         }
 
         const data = payload?.data ?? {};
@@ -219,8 +256,11 @@ const fetchGraph = async () => {
         edges.value = [];
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: error instanceof Error ? error.message : "A hierarchia lekérése sikertelen.",
+            summary: trans("common.error"),
+            detail:
+                error instanceof Error
+                    ? error.message
+                    : trans("hierarchy.messages.fetch_failed"),
             life: 4000,
         });
     } finally {
@@ -234,29 +274,38 @@ const saveDesignSettingsNow = async () => {
     }
 
     try {
-        const response = await csrfFetch(route("org.hierarchy.design_settings.save"), {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
+        const response = await csrfFetch(
+            route("org.hierarchy.design_settings.save"),
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                },
+                body: JSON.stringify({
+                    company_id: Number(companyId.value),
+                    view_mode: normalizedViewMode.value,
+                    density: normalizedDensity.value,
+                    show_position: normalizedShowPosition.value,
+                }),
             },
-            body: JSON.stringify({
-                company_id: Number(companyId.value),
-                view_mode: normalizedViewMode.value,
-                density: normalizedDensity.value,
-                show_position: normalizedShowPosition.value,
-            }),
-        });
+        );
 
         if (!response.ok) {
             const payload = await response.json().catch(() => ({}));
-            throw new Error(payload?.message || "A hierarchia UI beállítás mentése sikertelen.");
+            throw new Error(
+                payload?.message ||
+                    trans("hierarchy.messages.settings_save_failed"),
+            );
         }
     } catch (error) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: error instanceof Error ? error.message : "A hierarchia UI beállítás mentése sikertelen.",
+            summary: trans("common.error"),
+            detail:
+                error instanceof Error
+                    ? error.message
+                    : trans("hierarchy.messages.settings_save_failed"),
             life: 3500,
         });
     }
@@ -287,13 +336,18 @@ const fetchPath = async (employeeId) => {
         at_date: todayYmd.value,
     });
 
-    const response = await csrfFetch(`${route("org.hierarchy.path")}?${params.toString()}`, {
-        method: "GET",
-    });
+    const response = await csrfFetch(
+        `${route("org.hierarchy.path")}?${params.toString()}`,
+        {
+            method: "GET",
+        },
+    );
     const payload = await response.json();
 
     if (!response.ok) {
-        throw new Error(payload?.message || "Az útvonal lekérése sikertelen.");
+        throw new Error(
+            payload?.message || trans("hierarchy.messages.path_fetch_failed"),
+        );
     }
 
     return Array.isArray(payload?.data) ? payload.data : [];
@@ -319,8 +373,11 @@ const focusEmployee = async (employeeId) => {
     } catch (error) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: error instanceof Error ? error.message : "A kiválasztott dolgozó fókuszálása sikertelen.",
+            summary: trans("common.error"),
+            detail:
+                error instanceof Error
+                    ? error.message
+                    : trans("hierarchy.messages.focus_failed"),
             life: 4000,
         });
     }
@@ -328,7 +385,8 @@ const focusEmployee = async (employeeId) => {
 
 const highlightEmployee = (employeeId) => {
     const nextId = Number(employeeId || 0);
-    highlightedEmployeeId.value = Number.isFinite(nextId) && nextId > 0 ? nextId : null;
+    highlightedEmployeeId.value =
+        Number.isFinite(nextId) && nextId > 0 ? nextId : null;
 };
 
 const refreshGraph = async () => {
@@ -357,8 +415,16 @@ const openNodeMenu = (payload) => {
 
     setSelectedNode(nodeId);
     actionMenuPosition.value = {
-        x: Number(payload?.originalEvent?.clientX ?? payload?.renderedPosition?.x ?? 0),
-        y: Number(payload?.originalEvent?.clientY ?? payload?.renderedPosition?.y ?? 0),
+        x: Number(
+            payload?.originalEvent?.clientX ??
+                payload?.renderedPosition?.x ??
+                0,
+        ),
+        y: Number(
+            payload?.originalEvent?.clientY ??
+                payload?.renderedPosition?.y ??
+                0,
+        ),
     };
     actionMenuVisible.value = true;
 };
@@ -391,7 +457,11 @@ const openDeleteDialog = (node = selectedNode.value) => {
 };
 
 const onEmployeeSelected = async (employee) => {
-    const selectedId = Number(typeof employee === "object" && employee !== null ? employee.id : employee);
+    const selectedId = Number(
+        typeof employee === "object" && employee !== null
+            ? employee.id
+            : employee,
+    );
 
     if (!Number.isFinite(selectedId) || selectedId <= 0) {
         currentRootId.value = null;
@@ -425,11 +495,16 @@ const drillDown = (nodeId) => {
         return;
     }
 
-    const existingIndex = breadcrumbs.value.findIndex((row) => Number(row.id) === nextId);
+    const existingIndex = breadcrumbs.value.findIndex(
+        (row) => Number(row.id) === nextId,
+    );
     if (existingIndex >= 0) {
         breadcrumbs.value = breadcrumbs.value.slice(0, existingIndex + 1);
     } else {
-        breadcrumbs.value = [...breadcrumbs.value, { id: nextId, label: clicked.label ?? `#${nextId}` }];
+        breadcrumbs.value = [
+            ...breadcrumbs.value,
+            { id: nextId, label: clicked.label ?? `#${nextId}` },
+        ];
     }
 
     currentRootId.value = nextId;
@@ -457,7 +532,10 @@ const goBack = () => {
         return;
     }
 
-    breadcrumbs.value = breadcrumbs.value.slice(0, breadcrumbs.value.length - 1);
+    breadcrumbs.value = breadcrumbs.value.slice(
+        0,
+        breadcrumbs.value.length - 1,
+    );
     const last = breadcrumbs.value[breadcrumbs.value.length - 1] ?? null;
     currentRootId.value = last ? Number(last.id) : null;
     syncStack();
@@ -487,13 +565,19 @@ const runIntegrity = async () => {
             company_id: String(companyId.value),
             at_date: todayYmd.value,
         });
-        const response = await csrfFetch(`${route("org.hierarchy.integrity")}?${params.toString()}`, {
-            method: "GET",
-            headers: { Accept: "application/json" },
-        });
+        const response = await csrfFetch(
+            `${route("org.hierarchy.integrity")}?${params.toString()}`,
+            {
+                method: "GET",
+                headers: { Accept: "application/json" },
+            },
+        );
         const payload = await response.json();
         if (!response.ok) {
-            throw new Error(payload?.message || "Integritás riport lekérése sikertelen.");
+            throw new Error(
+                payload?.message ||
+                    trans("hierarchy.messages.integrity_report_failed"),
+            );
         }
         integrityReport.value = payload?.data ?? null;
         integrityDialogVisible.value = true;
@@ -501,8 +585,11 @@ const runIntegrity = async () => {
     } catch (error) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: error instanceof Error ? error.message : "Integritás riport lekérése sikertelen.",
+            summary: trans("common.error"),
+            detail:
+                error instanceof Error
+                    ? error.message
+                    : trans("hierarchy.messages.integrity_report_failed"),
             life: 4000,
         });
     } finally {
@@ -527,12 +614,13 @@ const onNodeMenuAction = async (item) => {
 const onMoveDone = async (result) => {
     toast.add({
         severity: "success",
-        summary: "Sikeres művelet",
-        detail: "A hierarchia módosítása mentésre került.",
+        summary: trans("common.success"),
+        detail: trans("hierarchy.messages.move_saved"),
         life: 3000,
     });
 
-    const focusId = Number(result?.new_root_id ?? selectedNode.value?.id ?? 0) || null;
+    const focusId =
+        Number(result?.new_root_id ?? selectedNode.value?.id ?? 0) || null;
     if (focusId) {
         await focusEmployee(focusId);
         highlightEmployee(focusId);
@@ -546,8 +634,8 @@ const onDeletedFromHierarchy = async () => {
     deleteDialogVisible.value = false;
     toast.add({
         severity: "success",
-        summary: "Sikeres művelet",
-        detail: "A dolgozó törlése megtörtént.",
+        summary: trans("common.success"),
+        detail: trans("hierarchy.messages.employee_deleted"),
         life: 3000,
     });
     selectedNode.value = null;
@@ -584,12 +672,9 @@ watch(todayYmd, () => {
     fetchGraph();
 });
 
-watch(
-    [normalizedViewMode, normalizedDensity, normalizedShowPosition],
-    () => {
-        queueDesignSettingsSave();
-    },
-);
+watch([normalizedViewMode, normalizedDensity, normalizedShowPosition], () => {
+    queueDesignSettingsSave();
+});
 
 watch(normalizedViewMode, () => {
     fetchGraph();
@@ -612,13 +697,15 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <Head :title="title" />
+    <Head :title="pageTitle" />
 
     <AuthenticatedLayout>
         <Toast />
 
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">{{ title }}</h2>
+            <h2 class="text-xl font-semibold leading-tight text-gray-800">
+                {{ pageTitle }}
+            </h2>
         </template>
 
         <div class="mx-auto max-w-[1680px] p-4 sm:p-6 lg:p-8">
@@ -626,15 +713,25 @@ onBeforeUnmount(() => {
                 <template #content>
                     <div class="grid grid-cols-1 gap-3 lg:grid-cols-3">
                         <div>
-                            <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Cég</label>
-                            <CompanySelector v-model="companyId" :options="companies" />
+                            <label
+                                class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500"
+                                >{{ $t("columns.company") }}</label
+                            >
+                            <CompanySelector
+                                v-model="companyId"
+                                :options="companies"
+                            />
                         </div>
                     </div>
 
-                    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
-                        <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                    <div
+                        class="mt-4 flex flex-wrap items-center justify-between gap-3"
+                    >
+                        <div
+                            class="flex min-w-0 flex-1 flex-wrap items-center gap-2"
+                        >
                             <Button
-                                label="Vissza"
+                                :label="$t('hierarchy.actions.back')"
                                 icon="pi pi-arrow-left"
                                 severity="secondary"
                                 :disabled="!canGoBack || loading"
@@ -642,11 +739,17 @@ onBeforeUnmount(() => {
                                 @click="goBack"
                             />
 
-                            <div class="flex min-w-0 flex-wrap items-center gap-2">
+                            <div
+                                class="flex min-w-0 flex-wrap items-center gap-2"
+                            >
                                 <Tag
                                     v-for="(crumb, index) in breadcrumbs"
                                     :key="`${crumb.id}-${index}`"
-                                    :severity="index === breadcrumbs.length - 1 ? 'primary' : 'secondary'"
+                                    :severity="
+                                        index === breadcrumbs.length - 1
+                                            ? 'primary'
+                                            : 'secondary'
+                                    "
                                     :value="shortLabel(crumb.label)"
                                     class="max-w-[220px] cursor-pointer truncate"
                                     v-tooltip="crumb.label"
@@ -662,7 +765,11 @@ onBeforeUnmount(() => {
                                     :company-id="companyId"
                                     :server-search="true"
                                     :disabled="loading || !companyId"
-                                    placeholder="Dolgozó keresése..."
+                                    :placeholder="
+                                        $t(
+                                            'hierarchy.placeholders.employee_search',
+                                        )
+                                    "
                                     @selected="onEmployeeSelected"
                                 />
                             </div>
@@ -698,18 +805,22 @@ onBeforeUnmount(() => {
                             />
 
                             <Button
-                                :icon="loading ? 'pi pi-spin pi-spinner' : 'pi pi-refresh'"
+                                :icon="
+                                    loading
+                                        ? 'pi pi-spin pi-spinner'
+                                        : 'pi pi-refresh'
+                                "
                                 text
                                 rounded
                                 :disabled="loading"
                                 v-tooltip="refreshTooltip"
-                                aria-label="Frissítés"
+                                :aria-label="$t('common.refresh')"
                                 class="w-auto min-w-fit inline-flex items-center justify-center px-3"
                                 @click="refreshGraph"
                             />
                             <Button
                                 icon="pi pi-shield"
-                                label="Integritás"
+                                :label="$t('hierarchy.actions.integrity')"
                                 severity="secondary"
                                 :loading="integrityLoading"
                                 :disabled="loading || !companyId"
@@ -719,11 +830,18 @@ onBeforeUnmount(() => {
                         </div>
                     </div>
 
-                    <ProgressBar v-if="loading" mode="indeterminate" style="height: 4px" class="mt-3" />
+                    <ProgressBar
+                        v-if="loading"
+                        mode="indeterminate"
+                        style="height: 4px"
+                        class="mt-3"
+                    />
                 </template>
             </Card>
 
-            <div class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+            <div
+                class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]"
+            >
                 <div class="relative">
                     <OrgHierarchyCytoscape
                         :nodes="nodes"
@@ -742,12 +860,24 @@ onBeforeUnmount(() => {
                         v-if="actionMenuVisible && selectedNode"
                         data-hierarchy-node-menu
                         class="fixed z-50 w-72 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl"
-                        :style="{ left: `${actionMenuPosition.x}px`, top: `${actionMenuPosition.y}px` }"
+                        :style="{
+                            left: `${actionMenuPosition.x}px`,
+                            top: `${actionMenuPosition.y}px`,
+                        }"
                         @pointerdown.stop
                     >
                         <div class="border-b border-slate-100 px-3 py-2">
-                            <div class="truncate text-sm font-semibold text-slate-800">{{ selectedNode.label }}</div>
-                            <div class="truncate text-xs text-slate-500">{{ selectedNode.position || "Pozíció nélkül" }}</div>
+                            <div
+                                class="truncate text-sm font-semibold text-slate-800"
+                            >
+                                {{ selectedNode.label }}
+                            </div>
+                            <div class="truncate text-xs text-slate-500">
+                                {{
+                                    selectedNode.position ||
+                                    $t("hierarchy.states.no_position")
+                                }}
+                            </div>
                         </div>
                         <button
                             v-for="item in actionMenuItems"
@@ -764,27 +894,66 @@ onBeforeUnmount(() => {
 
                 <div class="space-y-4">
                     <Card>
-                        <template #title>Gyorsműveletek</template>
+                        <template #title>{{
+                            $t("hierarchy.sections.quick_actions")
+                        }}</template>
                         <template #content>
                             <div class="space-y-3">
-                                <Message v-if="!selectedNode" severity="info" :closable="false">
-                                    Válassz ki egy node-ot a gráfon a műveletekhez.
+                                <Message
+                                    v-if="!selectedNode"
+                                    severity="info"
+                                    :closable="false"
+                                >
+                                    {{
+                                        $t(
+                                            "hierarchy.states.select_node_for_actions",
+                                        )
+                                    }}
                                 </Message>
                                 <div v-else class="space-y-3">
-                                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                                        <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Kiválasztott</div>
-                                        <div class="mt-1 text-sm font-medium text-slate-800">{{ selectedNode.label }}</div>
-                                        <div class="mt-1 text-xs text-slate-500">{{ selectedNode.position || "-" }}</div>
+                                    <div
+                                        class="rounded-xl border border-slate-200 bg-slate-50 p-3"
+                                    >
+                                        <div
+                                            class="text-xs font-semibold uppercase tracking-wide text-slate-500"
+                                        >
+                                            {{
+                                                $t("hierarchy.fields.selected")
+                                            }}
+                                        </div>
+                                        <div
+                                            class="mt-1 text-sm font-medium text-slate-800"
+                                        >
+                                            {{ selectedNode.label }}
+                                        </div>
+                                        <div
+                                            class="mt-1 text-xs text-slate-500"
+                                        >
+                                            {{ selectedNode.position || "-" }}
+                                        </div>
                                     </div>
                                     <Button
-                                        label="Kiválasztott dolgozó áthelyezése"
+                                        :label="
+                                            $t(
+                                                'hierarchy.actions.move_selected_employee',
+                                            )
+                                        "
                                         icon="pi pi-user-edit"
                                         class="w-full"
                                         :disabled="!selectedNode"
-                                        @click="openMoveDialog('employee_only', selectedNode)"
+                                        @click="
+                                            openMoveDialog(
+                                                'employee_only',
+                                                selectedNode,
+                                            )
+                                        "
                                     />
                                     <Button
-                                        label="Kiválasztott dolgozó törlése"
+                                        :label="
+                                            $t(
+                                                'hierarchy.actions.delete_selected_employee',
+                                            )
+                                        "
                                         icon="pi pi-trash"
                                         severity="danger"
                                         outlined
@@ -793,7 +962,11 @@ onBeforeUnmount(() => {
                                         @click="openDeleteDialog(selectedNode)"
                                     />
                                     <Button
-                                        label="Integritás ellenőrzése"
+                                        :label="
+                                            $t(
+                                                'hierarchy.actions.integrity_check',
+                                            )
+                                        "
                                         icon="pi pi-shield"
                                         severity="secondary"
                                         class="w-full"
@@ -801,7 +974,11 @@ onBeforeUnmount(() => {
                                         @click="runIntegrity"
                                     />
                                     <Button
-                                        label="Fókusz a kiválasztottra"
+                                        :label="
+                                            $t(
+                                                'hierarchy.actions.focus_selected',
+                                            )
+                                        "
                                         icon="pi pi-crosshairs"
                                         severity="secondary"
                                         outlined
@@ -814,15 +991,52 @@ onBeforeUnmount(() => {
                     </Card>
 
                     <Card>
-                        <template #title>Részletek</template>
+                        <template #title>{{
+                            $t("hierarchy.sections.details")
+                        }}</template>
                         <template #content>
-                            <div v-if="detailNode" class="grid grid-cols-1 gap-2 text-sm text-slate-700">
-                                <div><span class="font-semibold">Név:</span> {{ detailNode.label }}</div>
-                                <div><span class="font-semibold">Pozíció:</span> {{ detailNode.position || "-" }}</div>
-                                <div><span class="font-semibold">Org szint:</span> {{ detailNode.org_level }}</div>
-                                <div><span class="font-semibold">Közvetlen beosztott:</span> {{ detailNode.direct_count }}</div>
+                            <div
+                                v-if="detailNode"
+                                class="grid grid-cols-1 gap-2 text-sm text-slate-700"
+                            >
+                                <div>
+                                    <span class="font-semibold"
+                                        >{{ $t("columns.name") }}:</span
+                                    >
+                                    {{ detailNode.label }}
+                                </div>
+                                <div>
+                                    <span class="font-semibold"
+                                        >{{ $t("columns.position") }}:</span
+                                    >
+                                    {{ detailNode.position || "-" }}
+                                </div>
+                                <div>
+                                    <span class="font-semibold"
+                                        >{{
+                                            $t("hierarchy.fields.org_level")
+                                        }}:</span
+                                    >
+                                    {{ detailNode.org_level }}
+                                </div>
+                                <div>
+                                    <span class="font-semibold"
+                                        >{{
+                                            $t(
+                                                "hierarchy.fields.direct_reports",
+                                            )
+                                        }}:</span
+                                    >
+                                    {{ detailNode.direct_count }}
+                                </div>
                             </div>
-                            <p v-else class="text-sm text-slate-500">Kattints vagy jobb klikkelj egy node-ra a műveletekhez.</p>
+                            <p v-else class="text-sm text-slate-500">
+                                {{
+                                    $t(
+                                        "hierarchy.states.click_node_for_actions",
+                                    )
+                                }}
+                            </p>
                         </template>
                     </Card>
                 </div>
@@ -855,32 +1069,70 @@ onBeforeUnmount(() => {
             modal
             :draggable="false"
             :style="{ width: '52rem', maxWidth: '96vw' }"
-            header="Hierarchia integritás"
+            :header="$t('hierarchy.dialogs.integrity_title')"
         >
             <div v-if="integrityReport" class="space-y-3">
-                <Message :severity="integrityReport.ok ? 'success' : 'warn'" :closable="false">
-                    {{ integrityReport.ok ? "A hierarchia konzisztens." : "Integritási problémák találhatók." }}
+                <Message
+                    :severity="integrityReport.ok ? 'success' : 'warn'"
+                    :closable="false"
+                >
+                    {{
+                        integrityReport.ok
+                            ? $t("hierarchy.states.integrity_ok")
+                            : $t("hierarchy.states.integrity_issues")
+                    }}
                 </Message>
                 <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                     <div class="rounded border border-slate-200 p-3 text-sm">
-                        <div class="font-semibold">Cycle</div>
-                        <div>{{ integrityReport.issues?.cycles?.length || 0 }}</div>
+                        <div class="font-semibold">
+                            {{ $t("hierarchy.integrity.cycles") }}
+                        </div>
+                        <div>
+                            {{ integrityReport.issues?.cycles?.length || 0 }}
+                        </div>
                     </div>
                     <div class="rounded border border-slate-200 p-3 text-sm">
-                        <div class="font-semibold">Overlap</div>
-                        <div>{{ integrityReport.issues?.overlaps?.length || 0 }}</div>
+                        <div class="font-semibold">
+                            {{ $t("hierarchy.integrity.overlaps") }}
+                        </div>
+                        <div>
+                            {{ integrityReport.issues?.overlaps?.length || 0 }}
+                        </div>
                     </div>
                     <div class="rounded border border-slate-200 p-3 text-sm">
-                        <div class="font-semibold">Missing supervisor</div>
-                        <div>{{ integrityReport.issues?.missing_supervisor?.length || 0 }}</div>
+                        <div class="font-semibold">
+                            {{ $t("hierarchy.integrity.missing_supervisor") }}
+                        </div>
+                        <div>
+                            {{
+                                integrityReport.issues?.missing_supervisor
+                                    ?.length || 0
+                            }}
+                        </div>
                     </div>
                     <div class="rounded border border-slate-200 p-3 text-sm">
-                        <div class="font-semibold">Multiple active</div>
-                        <div>{{ integrityReport.issues?.multiple_active?.length || 0 }}</div>
+                        <div class="font-semibold">
+                            {{ $t("hierarchy.integrity.multiple_active") }}
+                        </div>
+                        <div>
+                            {{
+                                integrityReport.issues?.multiple_active
+                                    ?.length || 0
+                            }}
+                        </div>
                     </div>
-                    <div class="rounded border border-slate-200 p-3 text-sm md:col-span-2">
-                        <div class="font-semibold">CEO has supervisor</div>
-                        <div>{{ integrityReport.issues?.ceo_has_supervisor?.length || 0 }}</div>
+                    <div
+                        class="rounded border border-slate-200 p-3 text-sm md:col-span-2"
+                    >
+                        <div class="font-semibold">
+                            {{ $t("hierarchy.integrity.ceo_has_supervisor") }}
+                        </div>
+                        <div>
+                            {{
+                                integrityReport.issues?.ceo_has_supervisor
+                                    ?.length || 0
+                            }}
+                        </div>
                     </div>
                 </div>
             </div>

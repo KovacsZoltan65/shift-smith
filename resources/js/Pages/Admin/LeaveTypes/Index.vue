@@ -1,8 +1,8 @@
 <script setup>
 import { Head } from "@inertiajs/vue3";
 import { computed, onMounted, ref } from "vue";
-
 import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
+import { trans } from "laravel-vue-i18n";
 import RowActionMenu from "@/Components/DataTable/RowActionMenu.vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import CreateModal from "@/Pages/Admin/LeaveTypes/Partials/CreateModal.vue";
@@ -16,12 +16,14 @@ import { useToast } from "primevue/usetoast";
 import { IconField, InputIcon } from "primevue";
 
 const props = defineProps({
-    title: { type: String, default: "Szabadsag tipusok" },
     filter: { type: Object, default: () => ({}) },
 });
 
+const pageTitle = trans("leave_types.title");
+
 const { has } = usePermissions();
 const toast = useToast();
+const $t = trans;
 
 const canCreate = computed(() => has("leave_types.create"));
 const canUpdate = computed(() => has("leave_types.update"));
@@ -40,8 +42,8 @@ const categoryOptions = ref([]);
 const globalFilterFields = ["code", "name", "category"];
 
 const booleanOptions = [
-    { label: "Igen", value: true },
-    { label: "Nem", value: false },
+    { label: trans("status.active"), value: true },
+    { label: trans("status.inactive"), value: false },
 ];
 
 const createInitialFilters = () => ({
@@ -127,11 +129,11 @@ const fetchRows = async () => {
     } catch (error) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
+            summary: trans("common.error"),
             detail:
                 error?.response?.data?.message ??
                 error?.message ??
-                "Lista betoltese sikertelen.",
+                trans("leave_types.messages.fetch_failed"),
             life: 3500,
         });
     } finally {
@@ -150,19 +152,19 @@ const openDeleteModal = (row) => {
 };
 
 const buildRowMenuItems = (row) => [
-        {
-            label: "Szerkesztes",
-            icon: "pi pi-pencil",
-            disabled: loading.value || !canUpdate.value,
-            command: () => openEditModal(row),
-        },
-        {
-            label: "Torles",
-            icon: "pi pi-trash",
-            disabled: loading.value || !canDelete.value,
-            command: () => openDeleteModal(row),
-        },
-    ];
+    {
+        label: trans("edit"),
+        icon: "pi pi-pencil",
+        disabled: loading.value || !canUpdate.value,
+        command: () => openEditModal(row),
+    },
+    {
+        label: trans("delete"),
+        icon: "pi pi-trash",
+        disabled: loading.value || !canDelete.value,
+        command: () => openDeleteModal(row),
+    },
+];
 
 const onSaved = async (message) => {
     createOpen.value = false;
@@ -173,7 +175,7 @@ const onSaved = async (message) => {
     await fetchRows();
     toast.add({
         severity: "success",
-        summary: "Siker",
+        summary: trans("common.success"),
         detail: message,
         life: 2500,
     });
@@ -187,7 +189,7 @@ onMounted(async () => {
 </script>
 
 <template>
-    <Head :title="title" />
+    <Head :title="pageTitle" />
 
     <Toast />
 
@@ -215,11 +217,11 @@ onMounted(async () => {
         <div class="space-y-4 p-6">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div class="flex flex-wrap items-center gap-3">
-                    <h1 class="text-2xl font-semibold">{{ title }}</h1>
+                    <h1 class="text-2xl font-semibold">{{ pageTitle }}</h1>
 
                     <Button
                         v-if="canCreate"
-                        label="Uj tipus"
+                        :label="$t('leave_types.actions.create')"
                         icon="pi pi-plus"
                         size="small"
                         data-testid="leave-types-create"
@@ -227,7 +229,7 @@ onMounted(async () => {
                     />
 
                     <Button
-                        label="Frissites"
+                        :label="$t('common.refresh')"
                         icon="pi pi-refresh"
                         severity="secondary"
                         size="small"
@@ -257,8 +259,9 @@ onMounted(async () => {
                         <Button
                             type="button"
                             icon="pi pi-filter-slash"
-                            label="Clear"
+                            :label="$t('leave_types.filters.clear')"
                             variant="outlined"
+                            data-testid="leave-types-clear-filters"
                             @click="clearFilters()"
                         />
                         <IconField>
@@ -267,19 +270,20 @@ onMounted(async () => {
                             </InputIcon>
                             <InputText
                                 v-model="filters['global'].value"
-                                placeholder="Keyword Search"
+                                :placeholder="$t('common.keyword_search')"
+                                data-testid="leave-types-search"
                             />
                         </IconField>
                     </div>
                 </template>
 
-                <template #empty>Nincs talalat.</template>
-                <template #loading>Betoltes...</template>
+                <template #empty>{{ $t("common.no_results") }}</template>
+                <template #loading>{{ $t("common.loading") }}</template>
 
                 <Column
                     field="code"
                     filterField="code"
-                    header="Kod"
+                    :header="$t('columns.code')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -288,7 +292,7 @@ onMounted(async () => {
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Kod keresese"
+                            :placeholder="$t('leave_types.filters.code')"
                         />
                     </template>
                 </Column>
@@ -296,7 +300,7 @@ onMounted(async () => {
                 <Column
                     field="name"
                     filterField="name"
-                    header="Nev"
+                    :header="$t('columns.name')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -305,7 +309,7 @@ onMounted(async () => {
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Nev keresese"
+                            :placeholder="$t('leave_types.filters.name')"
                         />
                     </template>
                 </Column>
@@ -313,7 +317,7 @@ onMounted(async () => {
                 <Column
                     field="category"
                     filterField="category"
-                    header="Kategoria"
+                    :header="$t('leave_types.fields.category')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -332,19 +336,23 @@ onMounted(async () => {
                             optionValue="code"
                             class="w-full"
                             showClear
-                            placeholder="Kategoria"
+                            :placeholder="$t('leave_types.filters.category')"
                         />
                     </template>
                 </Column>
 
                 <Column
                     field="affects_leave_balance"
-                    header="Keretet csokkenti"
+                    :header="$t('leave_types.fields.affects_leave_balance')"
                     sortable
                 >
                     <template #body="{ data }">
                         <Tag
-                            :value="data.affects_leave_balance ? 'Igen' : 'Nem'"
+                            :value="
+                                data.affects_leave_balance
+                                    ? $t('leave_types.values.yes')
+                                    : $t('leave_types.values.no')
+                            "
                             :severity="
                                 data.affects_leave_balance
                                     ? 'success'
@@ -354,10 +362,18 @@ onMounted(async () => {
                     </template>
                 </Column>
 
-                <Column field="requires_approval" header="Jovahagyas" sortable>
+                <Column
+                    field="requires_approval"
+                    :header="$t('leave_types.fields.requires_approval')"
+                    sortable
+                >
                     <template #body="{ data }">
                         <Tag
-                            :value="data.requires_approval ? 'Kotelezo' : 'Nem'"
+                            :value="
+                                data.requires_approval
+                                    ? $t('leave_types.values.required')
+                                    : $t('leave_types.values.no')
+                            "
                             :severity="
                                 data.requires_approval ? 'warning' : 'secondary'
                             "
@@ -368,7 +384,7 @@ onMounted(async () => {
                 <Column
                     field="active"
                     filterField="active"
-                    header="Aktiv"
+                    :header="$t('columns.active')"
                     filter
                     sortable
                     dataType="boolean"
@@ -376,7 +392,11 @@ onMounted(async () => {
                 >
                     <template #body="{ data }">
                         <Tag
-                            :value="data.active ? 'Aktiv' : 'Inaktiv'"
+                            :value="
+                                data.active
+                                    ? $t('status.active')
+                                    : $t('status.inactive')
+                            "
                             :severity="data.active ? 'success' : 'danger'"
                         />
                     </template>
@@ -388,14 +408,14 @@ onMounted(async () => {
                             optionValue="value"
                             class="w-full"
                             showClear
-                            placeholder="Statusz"
+                            :placeholder="$t('leave_types.filters.status')"
                         />
                     </template>
                 </Column>
 
                 <Column
                     v-if="canAnyRowAction"
-                    header="Muveletek"
+                    :header="$t('columns.actions')"
                     bodyStyle="white-space: nowrap;"
                 >
                     <template #body="{ data }">
@@ -403,7 +423,7 @@ onMounted(async () => {
                             <RowActionMenu
                                 :items="buildRowMenuItems(data)"
                                 :disabled="loading"
-                                buttonTitle="Műveletek"
+                                :buttonTitle="$t('columns.actions')"
                             />
                         </div>
                     </template>

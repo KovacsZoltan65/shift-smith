@@ -4,11 +4,10 @@ import { trans } from "laravel-vue-i18n";
 import CompaniesIndex from "@/Pages/Companies/Index.vue";
 
 const props = defineProps({
-    title: String,
-    filter: Object,
+    filter: { type: Object, default: () => ({}) },
 });
 
-const title = computed(() => props.title || trans("companies.hq.title"));
+const title = trans("companies.hq.title");
 const hqBadge = computed(() => trans("companies.hq_badge"));
 </script>
 

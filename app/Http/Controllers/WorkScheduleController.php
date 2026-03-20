@@ -36,7 +36,6 @@ class WorkScheduleController extends Controller
         abort_if($currentCompanyId === null, 403, __('common.errors.no_company_selected'));
 
         return Inertia::render('Scheduling/WorkSchedules/Index', [
-            'title' => __('work_schedules.title'),
             'filter' => [
                 'search' => $request->string('search')->toString() ?: null,
                 'field' => $request->string('field')->toString() ?: 'name',

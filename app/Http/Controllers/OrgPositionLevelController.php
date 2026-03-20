@@ -30,7 +30,6 @@ final class OrgPositionLevelController extends Controller
         $this->authorize(PositionOrgLevelPolicy::PERM_VIEW_ANY, PositionOrgLevel::class);
 
         return Inertia::render('PositionOrgLevels/Index', [
-            'title' => 'Position szint mapping',
             'filter' => [
                 'q' => $request->string('q')->toString() ?: null,
                 'org_level' => $request->string('org_level')->toString() ?: null,

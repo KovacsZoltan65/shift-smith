@@ -1,6 +1,7 @@
 <script setup>
 import { Head } from "@inertiajs/vue3";
 import { computed, onMounted, ref, watch } from "vue";
+import { trans } from "laravel-vue-i18n";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { useToast } from "primevue/usetoast";
 import { useConfirm } from "primevue/useconfirm";
@@ -19,7 +20,7 @@ import AbsenceService from "@/services/AbsenceService.js";
 import MonthClosureService from "@/services/MonthClosureService.js";
 
 const props = defineProps({
-    title: { type: String, default: "Naptár tervező" },
+    title: { type: String, default: "" },
     current_company_id: { type: Number, required: true },
     schedules: { type: Array, default: () => [] },
     month_lock: {
@@ -49,8 +50,123 @@ const props = defineProps({
 });
 
 // Kiinduló state a route query és a backendből kapott beosztások alapján
+const fallbackTranslations = {
+    "calendar.title": "Naptár",
+    "calendar.fields.schedule": "Munkabeosztás",
+    "calendar.fields.view": "Nézet",
+    "calendar.fields.iso_week": "Hét száma (ISO)",
+    "calendar.fields.year": "Év",
+    "calendar.fields.month": "Hónap",
+    "calendar.fields.date": "Dátum",
+    "calendar.fields.employee_filter": "Dolgozó szűrő",
+    "calendar.fields.shift_filter": "Műszak szűrő",
+    "calendar.fields.position_filter": "Pozíció szűrő",
+    "calendar.fields.range": "Intervallum",
+    "calendar.fields.quick_select": "Gyors kijelölés",
+    "calendar.fields.planner_mode": "Planner mód",
+    "calendar.placeholders.schedule": "Munkabeosztás kiválasztása",
+    "calendar.view_modes.week": "Heti",
+    "calendar.view_modes.month": "Havi",
+    "calendar.view_modes.day": "Napi",
+    "calendar.schedule_status.published": "publikált",
+    "calendar.schedule_status.draft": "draft",
+    "calendar.months.january": "Január",
+    "calendar.months.february": "Február",
+    "calendar.months.march": "Március",
+    "calendar.months.april": "Április",
+    "calendar.months.may": "Május",
+    "calendar.months.june": "Június",
+    "calendar.months.july": "Július",
+    "calendar.months.august": "Augusztus",
+    "calendar.months.september": "Szeptember",
+    "calendar.months.october": "Október",
+    "calendar.months.november": "November",
+    "calendar.months.december": "December",
+    "calendar.quick_select.workdays": "H-P",
+    "calendar.quick_select.weekends": "Szo-V",
+    "calendar.quick_select.all": "Osszes",
+    "calendar.quick_select.odd": "Páratlan",
+    "calendar.quick_select.even": "Páros",
+    "calendar.quick_select.current_week": "Aktuális hét",
+    "calendar.quick_select.even_week": "Páros hét",
+    "calendar.quick_select.odd_week": "Páratlan hét",
+    "calendar.quick_select.today": "Mai nap",
+    "calendar.quick_select.next_week": "Következő hét",
+    "calendar.quick_select.month_remaining": "Hónap hátralévő",
+    "calendar.quick_select.invert": "Invertálás",
+    "calendar.actions.close_month": "Hónap lezárása",
+    "calendar.actions.close": "Lezárás",
+    "calendar.actions.reopen_month": "Hónap újranyitása",
+    "calendar.actions.reopen": "Újranyitás",
+    "calendar.actions.bulk_selected": "Bulk kijelöltek",
+    "calendar.actions.mark_absence": "Távollét jelölése",
+    "calendar.lock.closed_month": "Lezárt hónap",
+    "calendar.lock.locked_month": "Hónap lezárva: :month",
+    "calendar.lock.locked_at": "Hónap lezárva: :value",
+    "calendar.lock.closed_by": "Lezárta: :name",
+    "calendar.lock.note": "Megjegyzés: :note",
+    "calendar.confirm.close_month": "Biztosan lezárod a(z) :month hónapot?",
+    "calendar.confirm.reopen_month": "Biztosan újranyitod a(z) :month hónapot?",
+    "calendar.messages.feed_error": "Naptár feed hiba.",
+    "calendar.messages.details": "Részletek",
+    "calendar.messages.assignment_created": "Hozzárendelés létrehozva.",
+    "calendar.messages.assignment_updated": "Hozzárendelés frissítve.",
+    "calendar.messages.assignment_deleted": "Hozzárendelés törölve.",
+    "calendar.messages.save_failed": "Mentés sikertelen.",
+    "calendar.messages.update_failed": "Frissítés sikertelen.",
+    "calendar.messages.delete_failed": "Törlés sikertelen.",
+    "calendar.messages.absence_created": "Távollétek létrehozva.",
+    "calendar.messages.absence_updated": "Távollét frissítve.",
+    "calendar.messages.absence_deleted": "Távollét törölve.",
+    "calendar.messages.absence_save_failed": "Távollét mentése sikertelen.",
+    "calendar.messages.absence_delete_failed": "Távollét törlése sikertelen.",
+    "calendar.messages.invalid_data": "A megadott adatok hibásak.",
+    "calendar.messages.validation": "Validáció",
+    "calendar.messages.select_employee": "Válassz legalább egy dolgozót.",
+    "calendar.messages.select_shift": "Válassz műszakot.",
+    "calendar.messages.no_selected_day": "Nincs kijelölt nap.",
+    "calendar.messages.bulk_saved": "Bulk mentés kész.",
+    "calendar.messages.bulk_save_failed": "Bulk mentés sikertelen.",
+    "calendar.messages.month_closed": "A(z) :month hónap lezárva.",
+    "calendar.messages.close_month_failed": "A hónap lezárása sikertelen.",
+    "calendar.messages.month_reopened": "A(z) :month hónap újranyitva.",
+    "calendar.messages.planner_select_schedule": "Válassz beosztást a planner mód használatához.",
+    "calendar.messages.planner_no_permission": "Nincs tervezési jogosultság.",
+    "calendar.messages.month_closed_edit_disabled": "A(z) :month hónap lezárva, a szerkesztés nem engedélyezett.",
+    "calendar.messages.published_schedule_not_editable": "A kiválasztott beosztás publikált, ezért nem szerkeszthető. Válassz draft státuszú beosztást.",
+    "calendar.messages.past_period_not_editable": "Múltbeli időszak nem szerkeszthető.",
+    "calendar.messages.days_selected": ":count nap kijelölve",
+    "calendar.messages.quick_select_help": "Módok: kattintás = felülírás, ugyanaz újra = törlés, Ctrl/Cmd + kattintás = hozzáadás, Alt + kattintás = kivonás.",
+    "common.error": "Hiba",
+    "common.success": "Siker",
+    "common.refresh": "Frissítés",
+    "common.cancel": "Mégse",
+    "common.clear": "Törlés",
+    "validation.invalid": "Validációs hiba.",
+    "month_closures.messages.reopen_failed": "Az újranyitás sikertelen.",
+};
+
+const formatFallback = (template, params = {}) =>
+    Object.entries(params).reduce(
+        (text, [key, value]) => text.replaceAll(`:${key}`, String(value ?? "")),
+        template,
+    );
+
+const t = (key, params = {}) => {
+    const translated = trans(key, params);
+    if (translated !== key) return translated;
+    return formatFallback(fallbackTranslations[key] ?? key, params);
+};
+
+const title = computed(() => props.title || t("calendar.title"));
 const toast = useToast();
-const confirm = useConfirm();
+let confirm;
+try {
+    confirm = useConfirm();
+} catch {
+    confirm = { require: () => {} };
+}
+const $t = t;
 
 const queryScheduleId = Number(
     new URLSearchParams(window.location.search).get("schedule_id") || 0,
@@ -128,58 +244,60 @@ const scheduleOptions = computed(() =>
         const from = row?.date_from ? ` ${row.date_from}` : "";
         const to = row?.date_to ? ` - ${row.date_to}` : "";
         const status =
-            row?.status === "published" ? " [publikált]" : " [draft]";
+            row?.status === "published"
+                ? ` [${t("calendar.schedule_status.published")}]`
+                : ` [${t("calendar.schedule_status.draft")}]`;
 
         return {
-            label: `${row?.name ?? "Beosztás"}${from}${to}${status}`,
+            label: `${row?.name ?? t("calendar.fields.schedule")}${from}${to}${status}`,
             value: Number(row?.id ?? 0),
         };
     }),
 );
 
 const monthOptions = [
-    { label: "Január", value: 1 },
-    { label: "Február", value: 2 },
-    { label: "Március", value: 3 },
-    { label: "Április", value: 4 },
-    { label: "Május", value: 5 },
-    { label: "Június", value: 6 },
-    { label: "Július", value: 7 },
-    { label: "Augusztus", value: 8 },
-    { label: "Szeptember", value: 9 },
-    { label: "Október", value: 10 },
-    { label: "November", value: 11 },
-    { label: "December", value: 12 },
+    { label: t("calendar.months.january"), value: 1 },
+    { label: t("calendar.months.february"), value: 2 },
+    { label: t("calendar.months.march"), value: 3 },
+    { label: t("calendar.months.april"), value: 4 },
+    { label: t("calendar.months.may"), value: 5 },
+    { label: t("calendar.months.june"), value: 6 },
+    { label: t("calendar.months.july"), value: 7 },
+    { label: t("calendar.months.august"), value: 8 },
+    { label: t("calendar.months.september"), value: 9 },
+    { label: t("calendar.months.october"), value: 10 },
+    { label: t("calendar.months.november"), value: 11 },
+    { label: t("calendar.months.december"), value: 12 },
 ];
 
 const viewModeOptions = [
-    { label: "Heti", value: "week" },
-    { label: "Havi", value: "month" },
-    { label: "Napi", value: "day" },
+    { label: t("calendar.view_modes.week"), value: "week" },
+    { label: t("calendar.view_modes.month"), value: "month" },
+    { label: t("calendar.view_modes.day"), value: "day" },
 ];
 
 const weeklyQuickSelectOptions = [
-    { label: "H-P", value: "workdays" },
-    { label: "Szo-V", value: "weekends" },
-    { label: "Osszes", value: "all" },
-    { label: "Paratlan", value: "odd" },
-    { label: "Paros", value: "even" },
+    { label: t("calendar.quick_select.workdays"), value: "workdays" },
+    { label: t("calendar.quick_select.weekends"), value: "weekends" },
+    { label: t("calendar.quick_select.all"), value: "all" },
+    { label: t("calendar.quick_select.odd"), value: "odd" },
+    { label: t("calendar.quick_select.even"), value: "even" },
 ];
 
 const monthlyQuickSelectOptions = [
-    { label: "H-P", value: "workdays" },
-    { label: "Szo-V", value: "weekends" },
-    { label: "Osszes", value: "all" },
-    { label: "Paratlan", value: "odd" },
-    { label: "Paros", value: "even" },
-    { label: "Aktualis het", value: "current_week" },
-    { label: "Paros het", value: "even_week" },
-    { label: "Paratlan het", value: "odd_week" },
-    { label: "Mai nap", value: "today" },
-    { label: "Kovetkezo het", value: "next_week" },
-    { label: "Honap hatralevo", value: "month_remaining" },
-    { label: "Clear", value: "clear" },
-    { label: "Invert", value: "invert" },
+    { label: t("calendar.quick_select.workdays"), value: "workdays" },
+    { label: t("calendar.quick_select.weekends"), value: "weekends" },
+    { label: t("calendar.quick_select.all"), value: "all" },
+    { label: t("calendar.quick_select.odd"), value: "odd" },
+    { label: t("calendar.quick_select.even"), value: "even" },
+    { label: t("calendar.quick_select.current_week"), value: "current_week" },
+    { label: t("calendar.quick_select.even_week"), value: "even_week" },
+    { label: t("calendar.quick_select.odd_week"), value: "odd_week" },
+    { label: t("calendar.quick_select.today"), value: "today" },
+    { label: t("calendar.quick_select.next_week"), value: "next_week" },
+    { label: t("calendar.quick_select.month_remaining"), value: "month_remaining" },
+    { label: t("common.clear"), value: "clear" },
+    { label: t("calendar.quick_select.invert"), value: "invert" },
 ];
 
 const quickSelectOptions = computed(() => {
@@ -290,16 +408,18 @@ const plannerSwitchDisabled = computed(() => {
 
 const plannerDisabledReason = computed(() => {
     if (!scheduleId.value)
-        return "Válassz beosztást a planner mód használatához.";
-    if (!canPlanner.value) return "Nincs tervezési jogosultság.";
+        return t("calendar.messages.planner_select_schedule");
+    if (!canPlanner.value) return t("calendar.messages.planner_no_permission");
     if (isClosedMonthKey(viewedMonthKey.value)) {
-        return `A(z) ${viewedMonthKey.value} hónap lezárva, a szerkesztés nem engedélyezett.`;
+        return t("calendar.messages.month_closed_edit_disabled", {
+            month: viewedMonthKey.value,
+        });
     }
     if (selectedSchedule.value?.status === "published") {
-        return "A kiválasztott beosztás publikált, ezért nem szerkeszthető. Válassz draft státuszú beosztást.";
+        return t("calendar.messages.published_schedule_not_editable");
     }
     if (!selectedPeriodEditable.value)
-        return "Múltbeli időszak nem szerkeszthető.";
+        return t("calendar.messages.past_period_not_editable");
     return "";
 });
 
@@ -513,6 +633,9 @@ const buildQuickSelectTargetKeys = (type) => {
         if (type === "workdays")
             return dayOfWeek !== null && dayOfWeek >= 1 && dayOfWeek <= 5;
         if (type === "weekends") return dayOfWeek === 0 || dayOfWeek === 6;
+        if (type === "all" && viewMode.value === "week") {
+            return dayOfWeek !== null && dayOfWeek >= 1 && dayOfWeek <= 5;
+        }
         if (type === "all") return true;
         if (type === "odd") return dayOfMonth !== null && dayOfMonth % 2 === 1;
         if (type === "even") return dayOfMonth !== null && dayOfMonth % 2 === 0;
@@ -694,8 +817,8 @@ const loadEvents = async () => {
     } catch (e) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: e?.response?.data?.message || "Naptár feed hiba.",
+            summary: t("common.error"),
+            detail: e?.response?.data?.message || t("calendar.messages.feed_error"),
             life: 3500,
         });
     } finally {
@@ -742,17 +865,25 @@ const monthLockTooltip = computed(() => {
     const parts = [];
 
     if (viewedMonthLock.value?.closed_at) {
-        parts.push(`Hónap lezárva: ${viewedMonthLock.value.closed_at}`);
+        parts.push(
+            t("calendar.lock.locked_at", {
+                value: viewedMonthLock.value.closed_at,
+            }),
+        );
     } else {
-        parts.push(`Hónap lezárva: ${viewedMonthKey.value}`);
+        parts.push(t("calendar.lock.locked_month", { month: viewedMonthKey.value }));
     }
 
     if (viewedMonthLock.value?.closed_by_name) {
-        parts.push(`Lezárta: ${viewedMonthLock.value.closed_by_name}`);
+        parts.push(
+            t("calendar.lock.closed_by", {
+                name: viewedMonthLock.value.closed_by_name,
+            }),
+        );
     }
 
     if (viewedMonthLock.value?.note) {
-        parts.push(`Megjegyzés: ${viewedMonthLock.value.note}`);
+        parts.push(t("calendar.lock.note", { note: viewedMonthLock.value.note }));
     }
 
     return parts.join(" | ");
@@ -801,7 +932,7 @@ const onEventClick = (event) => {
 
     toast.add({
         severity: "info",
-        summary: "Részletek",
+        summary: t("calendar.messages.details"),
         detail: event.title,
         life: 3000,
     });
@@ -814,15 +945,15 @@ const handleCreate = async (payload) => {
         await loadEvents();
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: "Hozzárendelés létrehozva.",
+            summary: t("common.success"),
+            detail: t("calendar.messages.assignment_created"),
             life: 2200,
         });
     } catch (e) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: e?.response?.data?.message || "Mentés sikertelen.",
+            summary: t("common.error"),
+            detail: e?.response?.data?.message || t("calendar.messages.save_failed"),
             life: 3500,
         });
     }
@@ -835,15 +966,15 @@ const handleUpdate = async ({ id, payload }) => {
         await loadEvents();
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: "Hozzárendelés frissítve.",
+            summary: t("common.success"),
+            detail: t("calendar.messages.assignment_updated"),
             life: 2200,
         });
     } catch (e) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: e?.response?.data?.message || "Frissítés sikertelen.",
+            summary: t("common.error"),
+            detail: e?.response?.data?.message || t("calendar.messages.update_failed"),
             life: 3500,
         });
     }
@@ -856,15 +987,15 @@ const handleDelete = async (id) => {
         await loadEvents();
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: "Hozzárendelés törölve.",
+            summary: t("common.success"),
+            detail: t("calendar.messages.assignment_deleted"),
             life: 2200,
         });
     } catch (e) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: e?.response?.data?.message || "Törlés sikertelen.",
+            summary: t("common.error"),
+            detail: e?.response?.data?.message || t("calendar.messages.delete_failed"),
             life: 3500,
         });
     }
@@ -892,8 +1023,11 @@ const handleAbsenceSubmit = async ({ id, payload }) => {
         await loadEvents();
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: id > 0 ? "Távollét frissítve." : "Távollétek létrehozva.",
+            summary: t("common.success"),
+            detail:
+                id > 0
+                    ? t("calendar.messages.absence_updated")
+                    : t("calendar.messages.absence_created"),
             life: 2200,
         });
     } catch (e) {
@@ -905,17 +1039,17 @@ const handleAbsenceSubmit = async ({ id, payload }) => {
                 .join(" | ");
             toast.add({
                 severity: "warn",
-                summary: "Validációs hiba",
-                detail: detail || "A megadott adatok hibásak.",
+                summary: t("validation.invalid"),
+                detail: detail || t("calendar.messages.invalid_data"),
                 life: 5000,
             });
             return;
         }
         toast.add({
             severity: "error",
-            summary: "Hiba",
+            summary: t("common.error"),
             detail:
-                e?.response?.data?.message || "Távollét mentése sikertelen.",
+                e?.response?.data?.message || t("calendar.messages.absence_save_failed"),
             life: 3500,
         });
     }
@@ -929,16 +1063,16 @@ const handleAbsenceDelete = async (id) => {
         await loadEvents();
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: "Távollét törölve.",
+            summary: t("common.success"),
+            detail: t("calendar.messages.absence_deleted"),
             life: 2200,
         });
     } catch (e) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
+            summary: t("common.error"),
             detail:
-                e?.response?.data?.message || "Távollét törlése sikertelen.",
+                e?.response?.data?.message || t("calendar.messages.absence_delete_failed"),
             life: 3500,
         });
     }
@@ -985,7 +1119,7 @@ const handleBulk = async (payload) => {
     if (viewedMonthLock.value?.is_closed) {
         toast.add({
             severity: "warn",
-            summary: "Lezárt hónap",
+            summary: t("calendar.lock.closed_month"),
             detail: monthLockTooltip.value,
             life: 4000,
         });
@@ -995,8 +1129,8 @@ const handleBulk = async (payload) => {
     if (!payload.employee_ids?.length) {
         toast.add({
             severity: "warn",
-            summary: "Validáció",
-            detail: "Válassz legalább egy dolgozót.",
+            summary: t("calendar.messages.validation"),
+            detail: t("calendar.messages.select_employee"),
             life: 3200,
         });
         return;
@@ -1004,8 +1138,8 @@ const handleBulk = async (payload) => {
     if (!payload.work_shift_id) {
         toast.add({
             severity: "warn",
-            summary: "Validáció",
-            detail: "Válassz műszakot.",
+            summary: t("calendar.messages.validation"),
+            detail: t("calendar.messages.select_shift"),
             life: 3200,
         });
         return;
@@ -1013,8 +1147,8 @@ const handleBulk = async (payload) => {
     if (!payload.dates?.length) {
         toast.add({
             severity: "warn",
-            summary: "Validáció",
-            detail: "Nincs kijelölt nap.",
+            summary: t("calendar.messages.validation"),
+            detail: t("calendar.messages.no_selected_day"),
             life: 3200,
         });
         return;
@@ -1027,8 +1161,8 @@ const handleBulk = async (payload) => {
         await loadEvents();
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: "Bulk mentés kész.",
+            summary: t("common.success"),
+            detail: t("calendar.messages.bulk_saved"),
             life: 2200,
         });
     } catch (e) {
@@ -1040,16 +1174,16 @@ const handleBulk = async (payload) => {
                 .join(" | ");
             toast.add({
                 severity: "warn",
-                summary: "Validációs hiba",
-                detail: detail || "A megadott adatok hibásak.",
+                summary: t("validation.invalid"),
+                detail: detail || t("calendar.messages.invalid_data"),
                 life: 5000,
             });
             return;
         }
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: e?.response?.data?.message || "Bulk mentés sikertelen.",
+            summary: t("common.error"),
+            detail: e?.response?.data?.message || t("calendar.messages.bulk_save_failed"),
             life: 3500,
         });
     }
@@ -1059,10 +1193,10 @@ const handleCloseMonth = () => {
     if (!canCloseMonth.value) return;
 
     confirm.require({
-        message: `Biztosan lezárod a(z) ${viewedMonthKey.value} hónapot?`,
-        header: "Hónap lezárása",
-        acceptLabel: "Lezárás",
-        rejectLabel: "Mégse",
+        message: t("calendar.confirm.close_month", { month: viewedMonthKey.value }),
+        header: t("calendar.actions.close_month"),
+        acceptLabel: t("calendar.actions.close"),
+        rejectLabel: t("common.cancel"),
         accept: async () => {
             try {
                 await MonthClosureService.close({
@@ -1073,17 +1207,17 @@ const handleCloseMonth = () => {
                 await loadEvents();
                 toast.add({
                     severity: "success",
-                    summary: "Siker",
-                    detail: `A(z) ${viewedMonthKey.value} hónap lezárva.`,
+                    summary: t("common.success"),
+                    detail: t("calendar.messages.month_closed", { month: viewedMonthKey.value }),
                     life: 2500,
                 });
             } catch (e) {
                 toast.add({
                     severity: "error",
-                    summary: "Hiba",
+                    summary: t("common.error"),
                     detail:
                         e?.response?.data?.message ||
-                        "A hónap lezárása sikertelen.",
+                        t("calendar.messages.close_month_failed"),
                     life: 4000,
                 });
             }
@@ -1095,10 +1229,10 @@ const handleReopenMonth = () => {
     if (!canReopenMonth.value || !viewedMonthLock.value?.id) return;
 
     confirm.require({
-        message: `Biztosan újranyitod a(z) ${viewedMonthKey.value} hónapot?`,
-        header: "Hónap újranyitása",
-        acceptLabel: "Újranyitás",
-        rejectLabel: "Mégse",
+        message: t("calendar.confirm.reopen_month", { month: viewedMonthKey.value }),
+        header: t("calendar.actions.reopen_month"),
+        acceptLabel: t("calendar.actions.reopen"),
+        rejectLabel: t("common.cancel"),
         accept: async () => {
             try {
                 await MonthClosureService.reopen(
@@ -1107,17 +1241,17 @@ const handleReopenMonth = () => {
                 await loadEvents();
                 toast.add({
                     severity: "success",
-                    summary: "Siker",
-                    detail: `A(z) ${viewedMonthKey.value} hónap újranyitva.`,
+                    summary: t("common.success"),
+                    detail: t("calendar.messages.month_reopened", { month: viewedMonthKey.value }),
                     life: 2500,
                 });
             } catch (e) {
                 toast.add({
                     severity: "error",
-                    summary: "Hiba",
+                    summary: t("common.error"),
                     detail:
                         e?.response?.data?.message ||
-                        "A hónap újranyitása sikertelen.",
+                        t("month_closures.messages.reopen_failed"),
                     life: 4000,
                 });
             }
@@ -1247,7 +1381,7 @@ onMounted(async () => {
             >
                 <div class="min-w-80">
                     <label class="mb-1 block text-xs text-slate-600"
-                        >Munkabeosztás</label
+                        >{{ $t("calendar.fields.schedule") }}</label
                     >
                     <Select
                         v-model="scheduleId"
@@ -1255,13 +1389,13 @@ onMounted(async () => {
                         optionLabel="label"
                         optionValue="value"
                         class="w-full"
-                        placeholder="Munkabeosztás kiválasztása"
+                        :placeholder="$t('calendar.placeholders.schedule')"
                     />
                 </div>
 
                 <div>
                     <label class="mb-1 block text-xs text-slate-600"
-                        >Nézet</label
+                        >{{ $t("calendar.fields.view") }}</label
                     >
                     <SelectButton
                         v-model="viewMode"
@@ -1273,7 +1407,7 @@ onMounted(async () => {
 
                 <div v-if="viewMode === 'week'" class="min-w-40">
                     <label class="mb-1 block text-xs text-slate-600"
-                        >Hét száma (ISO)</label
+                        >{{ $t("calendar.fields.iso_week") }}</label
                     >
                     <InputNumber
                         v-model="weekNumber"
@@ -1285,7 +1419,7 @@ onMounted(async () => {
                 </div>
 
                 <div v-if="viewMode === 'week'" class="min-w-32">
-                    <label class="mb-1 block text-xs text-slate-600">Év</label>
+                    <label class="mb-1 block text-xs text-slate-600">{{ $t("calendar.fields.year") }}</label>
                     <Select
                         v-model="year"
                         :options="yearOptions"
@@ -1297,7 +1431,7 @@ onMounted(async () => {
 
                 <div v-if="viewMode === 'month'" class="min-w-52">
                     <label class="mb-1 block text-xs text-slate-600"
-                        >Hónap</label
+                        >{{ $t("calendar.fields.month") }}</label
                     >
                     <Select
                         v-model="month"
@@ -1309,7 +1443,7 @@ onMounted(async () => {
                 </div>
 
                 <div v-if="viewMode === 'month'" class="min-w-32">
-                    <label class="mb-1 block text-xs text-slate-600">Év</label>
+                    <label class="mb-1 block text-xs text-slate-600">{{ $t("calendar.fields.year") }}</label>
                     <Select
                         v-model="year"
                         :options="yearOptions"
@@ -1321,7 +1455,7 @@ onMounted(async () => {
 
                 <div v-if="viewMode === 'day'" class="min-w-56">
                     <label class="mb-1 block text-xs text-slate-600"
-                        >Dátum</label
+                        >{{ $t("calendar.fields.date") }}</label
                     >
                     <DatePicker
                         v-model="dayDate"
@@ -1333,7 +1467,7 @@ onMounted(async () => {
 
                 <div class="min-w-64">
                     <label class="mb-1 block text-xs text-slate-600"
-                        >Dolgozó szűrő</label
+                        >{{ $t("calendar.fields.employee_filter") }}</label
                     >
                     <MultiSelect
                         v-model="selectedEmployeeIds"
@@ -1348,7 +1482,7 @@ onMounted(async () => {
 
                 <div class="min-w-56">
                     <label class="mb-1 block text-xs text-slate-600"
-                        >Műszak szűrő</label
+                        >{{ $t("calendar.fields.shift_filter") }}</label
                     >
                     <MultiSelect
                         v-model="selectedShiftIds"
@@ -1363,7 +1497,7 @@ onMounted(async () => {
 
                 <div class="min-w-56">
                     <label class="mb-1 block text-xs text-slate-600"
-                        >Pozíció szűrő</label
+                        >{{ $t("calendar.fields.position_filter") }}</label
                     >
                     <MultiSelect
                         v-model="selectedPositionIds"
@@ -1384,7 +1518,7 @@ onMounted(async () => {
                 />
 
                 <div class="text-xs text-slate-600">
-                    Intervallum: <b>{{ currentRangeLabel }}</b>
+                    {{ $t("calendar.fields.range") }}: <b>{{ currentRangeLabel }}</b>
                 </div>
 
                 <div
@@ -1393,12 +1527,12 @@ onMounted(async () => {
                     class="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800"
                 >
                     <i class="pi pi-lock" />
-                    <span>Hónap lezárva: {{ viewedMonthKey }}</span>
+                    <span>{{ $t("calendar.lock.locked_month", { month: viewedMonthKey }) }}</span>
                 </div>
 
                 <Button
                     v-if="!viewedMonthLock?.is_closed && canCloseMonth"
-                    label="Hónap lezárása"
+                    :label="$t('calendar.actions.close_month')"
                     icon="pi pi-lock"
                     severity="warning"
                     @click="handleCloseMonth"
@@ -1410,7 +1544,7 @@ onMounted(async () => {
                         canReopenMonth &&
                         viewedMonthLock?.id
                     "
-                    label="Újranyitás"
+                    :label="$t('calendar.actions.reopen')"
                     icon="pi pi-lock-open"
                     severity="secondary"
                     @click="handleReopenMonth"
@@ -1425,7 +1559,7 @@ onMounted(async () => {
                 >
                     <div class="flex flex-wrap items-center gap-2">
                         <span class="text-xs font-medium text-slate-600"
-                            >Gyors kijeloles:</span
+                            >{{ $t("calendar.fields.quick_select") }}:</span
                         >
                         <Button
                             v-for="opt in quickSelectOptions"
@@ -1442,18 +1576,16 @@ onMounted(async () => {
                             @click="applyQuickSelect(opt.value, $event)"
                         />
                         <span class="text-xs text-slate-600"
-                            >{{ selectedDates.length }} nap kijelolve</span
+                            >{{ $t("calendar.messages.days_selected", { count: selectedDates.length }) }}</span
                         >
                     </div>
                     <div class="text-[11px] text-slate-500">
-                        Modok: kattintas = feluliras, ugyanaz ujra = torles,
-                        Ctrl/Cmd + kattintas = hozzaadas, Alt + kattintas =
-                        kivonas.
+                        {{ $t("calendar.messages.quick_select_help") }}
                     </div>
                 </div>
 
                 <div v-if="canPlanner" class="ml-auto flex items-center gap-2">
-                    <span class="text-sm">Planner mód</span>
+                    <span class="text-sm">{{ $t("calendar.fields.planner_mode") }}</span>
                     <ToggleSwitch
                         v-model="plannerMode"
                         :disabled="plannerSwitchDisabled"
@@ -1469,7 +1601,7 @@ onMounted(async () => {
 
                 <Button
                     v-if="plannerModeEnabled"
-                    label="Bulk kijelöltek"
+                    :label="$t('calendar.actions.bulk_selected')"
                     icon="pi pi-list-check"
                     :disabled="
                         selectedDates.length === 0 || viewedMonthLock?.is_closed
@@ -1479,7 +1611,7 @@ onMounted(async () => {
 
                 <Button
                     v-if="canAbsencePlanner"
-                    label="Távollét jelölése"
+                    :label="$t('calendar.actions.mark_absence')"
                     icon="pi pi-briefcase"
                     severity="contrast"
                     @click="openAbsenceCreate"

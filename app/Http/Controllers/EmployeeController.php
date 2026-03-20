@@ -65,7 +65,6 @@ class EmployeeController extends Controller
         $filter['company_id'] = $currentCompanyId;
         
         return Inertia::render('HR/Employees/Index', [
-            'title'  => __('employees.title'),
             'filter' => $filter,
             'default_company_id' => $currentCompanyId,
         ]);

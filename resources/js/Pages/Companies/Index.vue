@@ -22,7 +22,6 @@ import { IconField, InputIcon } from "primevue";
 const { has } = usePermissions();
 
 const props = defineProps({
-    title: { type: String, default: trans("companies.title") },
     filter: { type: Object, default: () => ({}) },
     endpointBase: { type: String, default: "/companies" },
     permissionPrefix: { type: String, default: "companies" },
@@ -33,7 +32,7 @@ const props = defineProps({
     tenantGroupFieldEnabled: { type: Boolean, default: false },
 });
 
-const title = computed(() => props.title || trans("companies.title"));
+const title = trans("companies.title");
 
 const canCreate = computed(() => has(`${props.permissionPrefix}.create`));
 const canUpdate = computed(() => has(`${props.permissionPrefix}.update`));
@@ -84,7 +83,14 @@ const buildRowMenuItems = (row) => [
 // Szűrő állapot
 const globalFilterFields = computed(() =>
     isHqMode.value
-        ? ["name", "email", "phone", "active", "tenantGroupCode", "tenantGroupName"]
+        ? [
+              "name",
+              "email",
+              "phone",
+              "active",
+              "tenantGroupCode",
+              "tenantGroupName",
+          ]
         : ["name", "email", "phone", "active"],
 );
 const booleanOptions = [
@@ -557,7 +563,9 @@ onMounted(() => {
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            :placeholder="$t('companies.filters.tenant_group_code')"
+                            :placeholder="
+                                $t('companies.filters.tenant_group_code')
+                            "
                         />
                     </template>
                 </Column>
@@ -574,7 +582,9 @@ onMounted(() => {
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            :placeholder="$t('companies.filters.tenant_group_name')"
+                            :placeholder="
+                                $t('companies.filters.tenant_group_name')
+                            "
                         />
                     </template>
                 </Column>

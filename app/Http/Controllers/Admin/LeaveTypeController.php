@@ -29,7 +29,6 @@ class LeaveTypeController extends Controller
         $this->authorize(LeaveTypePolicy::PERM_VIEW_ANY, LeaveType::class);
 
         return Inertia::render('Admin/LeaveTypes/Index', [
-            'title' => __('leave_types.title'),
             'filter' => $request->validatedFilters(),
             'companyId' => $request->currentCompanyId(),
         ]);

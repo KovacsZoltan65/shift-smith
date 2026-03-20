@@ -11,26 +11,25 @@ import { useToast } from "primevue/usetoast";
 import { useConfirm } from "primevue/useconfirm";
 
 const props = defineProps({
-    title: { type: String, default: "" },
     users: { type: Array, default: () => [] },
     selected_user_id: { type: Number, default: null },
     current_mapping: { type: Array, default: () => [] },
     selectable_employees: { type: Array, default: () => [] },
 });
-const title = computed(() => props.title || trans("user_employees.title"));
+const title = trans("user_employees.title");
 
 const toast = useToast();
 const confirm = useConfirm();
 
 const users = ref(Array.isArray(props.users) ? props.users : []);
 const selectedUserId = ref(
-    Number(props.selected_user_id ?? users.value?.[0]?.id ?? 0) || null
+    Number(props.selected_user_id ?? users.value?.[0]?.id ?? 0) || null,
 );
 const currentMapping = ref(
-    Array.isArray(props.current_mapping) ? props.current_mapping : []
+    Array.isArray(props.current_mapping) ? props.current_mapping : [],
 );
 const selectableEmployees = ref(
-    Array.isArray(props.selectable_employees) ? props.selectable_employees : []
+    Array.isArray(props.selectable_employees) ? props.selectable_employees : [],
 );
 const selectedEmployeeId = ref(null);
 
@@ -54,8 +53,9 @@ const filteredUsers = computed(() => {
 const selectedUser = computed(() => {
     if (!selectedUserId.value) return null;
     return (
-        users.value.find((user) => Number(user.id) === Number(selectedUserId.value)) ??
-        null
+        users.value.find(
+            (user) => Number(user.id) === Number(selectedUserId.value),
+        ) ?? null
     );
 });
 
@@ -63,7 +63,7 @@ const selectableOptions = computed(() =>
     selectableEmployees.value.map((employee) => ({
         label: employee?.name ?? `#${employee?.id ?? "?"}`,
         value: Number(employee?.id ?? 0),
-    }))
+    })),
 );
 
 const companyLabel = (employee) => {
@@ -87,9 +87,15 @@ const fetchMapping = async (userId, keepSelectedEmployee = false) => {
 
     loading.value = true;
     try {
-        const response = await fetch(`/admin/user-employees/${userId}/employees`, {
-            headers: { "X-Requested-With": "XMLHttpRequest", Accept: "application/json" },
-        });
+        const response = await fetch(
+            `/admin/user-employees/${userId}/employees`,
+            {
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                    Accept: "application/json",
+                },
+            },
+        );
 
         if (!response.ok) {
             let message = trans("user_employees.messages.fetch_failed_http", {
@@ -117,9 +123,14 @@ const fetchMapping = async (userId, keepSelectedEmployee = false) => {
 
         const message = await parseError(
             error,
-            trans("user_employees.messages.fetch_failed")
+            trans("user_employees.messages.fetch_failed"),
         );
-        toast.add({ severity: "error", summary: trans("common.error"), detail: message, life: 3500 });
+        toast.add({
+            severity: "error",
+            summary: trans("common.error"),
+            detail: message,
+            life: 3500,
+        });
     } finally {
         loading.value = false;
     }
@@ -143,15 +154,18 @@ const addEmployee = async () => {
 
     actionLoading.value = true;
     try {
-        const response = await csrfFetch(`/admin/user-employees/${userId}/employees`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
-                "X-Requested-With": "XMLHttpRequest",
+        const response = await csrfFetch(
+            `/admin/user-employees/${userId}/employees`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+                body: JSON.stringify({ employee_id: employeeId }),
             },
-            body: JSON.stringify({ employee_id: employeeId }),
-        });
+        );
 
         if (!response.ok) {
             let message = trans("user_employees.messages.save_failed_http", {
@@ -185,8 +199,16 @@ const addEmployee = async () => {
             priority: "high",
         });
 
-        const message = await parseError(error, trans("user_employees.messages.save_failed"));
-        toast.add({ severity: "error", summary: trans("common.error"), detail: message, life: 3500 });
+        const message = await parseError(
+            error,
+            trans("user_employees.messages.save_failed"),
+        );
+        toast.add({
+            severity: "error",
+            summary: trans("common.error"),
+            detail: message,
+            life: 3500,
+        });
     } finally {
         actionLoading.value = false;
     }
@@ -207,7 +229,7 @@ const removeEmployee = async (employee) => {
                     Accept: "application/json",
                     "X-Requested-With": "XMLHttpRequest",
                 },
-            }
+            },
         );
 
         if (!response.ok) {
@@ -237,8 +259,16 @@ const removeEmployee = async (employee) => {
             priority: "high",
         });
 
-        const message = await parseError(error, trans("user_employees.messages.remove_failed"));
-        toast.add({ severity: "error", summary: trans("common.error"), detail: message, life: 3500 });
+        const message = await parseError(
+            error,
+            trans("user_employees.messages.remove_failed"),
+        );
+        toast.add({
+            severity: "error",
+            summary: trans("common.error"),
+            detail: message,
+            life: 3500,
+        });
     } finally {
         actionLoading.value = false;
     }
@@ -247,7 +277,9 @@ const removeEmployee = async (employee) => {
 const confirmRemove = (employee) => {
     confirm.require({
         message: trans("user_employees.dialogs.remove_confirm", {
-            name: employee?.name ?? trans("user_employees.messages.unknown_employee"),
+            name:
+                employee?.name ??
+                trans("user_employees.messages.unknown_employee"),
         }),
         header: trans("user_employees.dialogs.remove_title"),
         icon: "pi pi-exclamation-triangle",
@@ -284,10 +316,16 @@ const confirmRemove = (employee) => {
             <div class="grid gap-4 lg:grid-cols-2">
                 <section class="rounded border border-surface-200 bg-white p-4">
                     <div class="mb-3 flex items-center justify-between gap-3">
-                        <h2 class="text-lg font-semibold">{{ trans("user_employees.sections.users") }}</h2>
+                        <h2 class="text-lg font-semibold">
+                            {{ trans("user_employees.sections.users") }}
+                        </h2>
                         <InputText
                             v-model="search"
-                            :placeholder="trans('user_employees.placeholders.search_users')"
+                            :placeholder="
+                                trans(
+                                    'user_employees.placeholders.search_users',
+                                )
+                            "
                             class="w-full max-w-64"
                         />
                     </div>
@@ -300,10 +338,15 @@ const confirmRemove = (employee) => {
                         :loading="loading"
                         @row-click="(event) => selectUser(event.data)"
                     >
-                        <template #empty>{{ trans("user_employees.states.no_users") }}</template>
+                        <template #empty>{{
+                            trans("user_employees.states.no_users")
+                        }}</template>
 
                         <Column field="name" :header="trans('columns.name')" />
-                        <Column field="email" :header="trans('columns.email')" />
+                        <Column
+                            field="email"
+                            :header="trans('columns.email')"
+                        />
                     </DataTable>
                 </section>
 
@@ -325,25 +368,38 @@ const confirmRemove = (employee) => {
                         class="mb-4 flex flex-col gap-2 md:flex-row md:items-end"
                     >
                         <div class="w-full md:flex-1">
-                            <label class="mb-1 block text-sm text-surface-600"
-                                >{{ trans("user_employees.fields.assignable_employee") }}</label
+                            <label
+                                class="mb-1 block text-sm text-surface-600"
+                                >{{
+                                    trans(
+                                        "user_employees.fields.assignable_employee",
+                                    )
+                                }}</label
                             >
                             <Select
                                 v-model="selectedEmployeeId"
                                 :options="selectableOptions"
                                 optionLabel="label"
                                 optionValue="value"
-                                :placeholder="trans('user_employees.placeholders.select_employee')"
+                                :placeholder="
+                                    trans(
+                                        'user_employees.placeholders.select_employee',
+                                    )
+                                "
                                 class="w-full"
                                 :disabled="
-                                    actionLoading || loading || !selectableOptions.length
+                                    actionLoading ||
+                                    loading ||
+                                    !selectableOptions.length
                                 "
                             />
                         </div>
                         <Button
                             :label="trans('user_employees.actions.add')"
                             icon="pi pi-plus"
-                            :disabled="!selectedEmployeeId || actionLoading || loading"
+                            :disabled="
+                                !selectedEmployeeId || actionLoading || loading
+                            "
                             :loading="actionLoading"
                             @click="addEmployee"
                         />
@@ -353,7 +409,11 @@ const confirmRemove = (employee) => {
                         v-if="selectedUserId && !selectableOptions.length"
                         class="mb-4 rounded border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800"
                     >
-                        {{ trans("user_employees.states.no_selectable_employees") }}
+                        {{
+                            trans(
+                                "user_employees.states.no_selectable_employees",
+                            )
+                        }}
                     </div>
 
                     <DataTable
@@ -361,9 +421,14 @@ const confirmRemove = (employee) => {
                         dataKey="id"
                         :loading="loading || actionLoading"
                     >
-                        <template #empty>{{ trans("user_employees.states.no_mappings") }}</template>
+                        <template #empty>{{
+                            trans("user_employees.states.no_mappings")
+                        }}</template>
 
-                        <Column field="name" :header="trans('columns.employee')" />
+                        <Column
+                            field="name"
+                            :header="trans('columns.employee')"
+                        />
                         <Column :header="trans('columns.email')">
                             <template #body="{ data }">
                                 {{ data.email || "-" }}
@@ -374,7 +439,10 @@ const confirmRemove = (employee) => {
                                 <Tag :value="companyLabel(data)" />
                             </template>
                         </Column>
-                        <Column :header="trans('columns.actions')" style="width: 1%">
+                        <Column
+                            :header="trans('columns.actions')"
+                            style="width: 1%"
+                        >
                             <template #body="{ data }">
                                 <Button
                                     icon="pi pi-trash"

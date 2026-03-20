@@ -16,12 +16,14 @@ import CreateModal from "./Partials/CreateModal.vue";
 import DeleteModal from "./Partials/DeleteModal.vue";
 import EditModal from "./Partials/EditModal.vue";
 import { IconField, InputIcon } from "primevue";
+import { trans } from "laravel-vue-i18n";
 
 const props = defineProps({
-    title: String,
-    filter: Object,
-    targetUserId: Number,
+    filter: { type: Object, default: () => ({}) },
+    targetUserId: { type: Number },
 });
+
+const title = trans("user_settings.title");
 
 const page = usePage();
 const { has } = usePermissions();
@@ -33,7 +35,9 @@ const canDelete = computed(() => has("user_settings.delete"));
 const canDeleteAny = computed(() => has("user_settings.deleteAny"));
 const canManageOthers = computed(() => has("user_settings.manageOthers"));
 const companyName = computed(
-    () => page.props.companyContext?.current_company?.name ?? trans("user_settings.placeholders.company"),
+    () =>
+        page.props.companyContext?.current_company?.name ??
+        trans("user_settings.placeholders.company"),
 );
 
 const createOpen = ref(false);
@@ -150,7 +154,9 @@ const fetchUserSettings = async () => {
         }));
     } catch (err) {
         error.value =
-            err?.response?.data?.message ?? err?.message ?? trans("user_settings.messages.fetch_failed");
+            err?.response?.data?.message ??
+            err?.message ??
+            trans("user_settings.messages.fetch_failed");
     } finally {
         loading.value = false;
     }
@@ -298,7 +304,11 @@ onMounted(async () => {
                             </InputIcon>
                             <InputText
                                 v-model="filters['global'].value"
-                                :placeholder="trans('user_settings.filters.keyword_search')"
+                                :placeholder="
+                                    trans(
+                                        'user_settings.filters.keyword_search',
+                                    )
+                                "
                             />
                         </IconField>
                     </div>
@@ -371,7 +381,11 @@ onMounted(async () => {
                         }}</span>
                     </template>
                 </Column>
-                <Column field="updated_at" :header="trans('columns.updated_at')" sortable>
+                <Column
+                    field="updated_at"
+                    :header="trans('columns.updated_at')"
+                    sortable
+                >
                     <template #body="{ data }">
                         {{
                             data.updated_at

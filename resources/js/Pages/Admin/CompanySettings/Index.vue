@@ -16,9 +16,10 @@ import DeleteModal from "./Partials/DeleteModal.vue";
 import EditModal from "./Partials/EditModal.vue";
 import { IconField, InputIcon } from "primevue";
 
+const title = trans("company_settings.title");
+
 const props = defineProps({
-    title: String,
-    filter: Object,
+    filter: { type: Object, default: () => ({}) },
     companyId: Number,
 });
 
@@ -31,9 +32,10 @@ const canUpdate = computed(() => has("company_settings.update"));
 const canDelete = computed(() => has("company_settings.delete"));
 const canDeleteAny = computed(() => has("company_settings.deleteAny"));
 const companyName = computed(
-    () => page.props.companyContext?.current_company?.name ?? trans("columns.company"),
+    () =>
+        page.props.companyContext?.current_company?.name ??
+        trans("columns.company"),
 );
-const pageTitle = computed(() => trans("company_settings.title"));
 
 const createOpen = ref(false);
 const editOpen = ref(false);
@@ -175,7 +177,8 @@ const typeLabel = (type) => {
 };
 const sourceLabel = (source) => {
     if (source === "user") return trans("company_settings.source.user");
-    if (source === "user_legacy") return trans("company_settings.source.user_legacy");
+    if (source === "user_legacy")
+        return trans("company_settings.source.user_legacy");
     if (source === "company") return trans("company_settings.source.company");
     if (source === "app") return trans("company_settings.source.app");
     return trans("company_settings.source.none");
@@ -196,7 +199,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <Head :title="pageTitle" />
+    <Head :title="title" />
     <Toast />
 
     <CreateModal v-model="createOpen" @saved="handleSaved" />
@@ -219,7 +222,9 @@ onMounted(() => {
     <AuthenticatedLayout>
         <div class="space-y-4 p-6">
             <div class="mb-4 flex items-center gap-3">
-                <h1 class="text-2xl font-semibold">{{ pageTitle }}</h1>
+                <h1 class="text-2xl font-semibold">
+                    {{ title }}
+                </h1>
                 <Badge :value="companyName" severity="contrast" />
             </div>
 
@@ -374,7 +379,11 @@ onMounted(() => {
                         </div>
                     </template>
                 </Column>
-                <Column field="updated_at" :header="$t('columns.updated_at')" sortable>
+                <Column
+                    field="updated_at"
+                    :header="$t('columns.updated_at')"
+                    sortable
+                >
                     <template #body="{ data }">
                         {{
                             data.updated_at
@@ -383,7 +392,10 @@ onMounted(() => {
                         }}
                     </template>
                 </Column>
-                <Column :header="$t('columns.actions')" headerStyle="width: 12rem">
+                <Column
+                    :header="$t('columns.actions')"
+                    headerStyle="width: 12rem"
+                >
                     <template #body="{ data }">
                         <div class="flex justify-end gap-2">
                             <Button

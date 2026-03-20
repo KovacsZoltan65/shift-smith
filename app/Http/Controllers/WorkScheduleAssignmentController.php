@@ -52,7 +52,6 @@ class WorkScheduleAssignmentController extends Controller
             ->all();
 
         return Inertia::render('Scheduling/Calendar/Index', [
-            'title' => __('calendar.title'),
             'current_company_id' => $companyId,
             'schedules' => $schedules,
             'month_lock' => $this->monthClosureService->stateForMonth(

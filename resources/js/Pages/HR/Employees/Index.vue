@@ -27,7 +27,6 @@ import { usePermissions } from "@/composables/usePermissions";
 import { IconField, InputIcon } from "primevue";
 
 const props = defineProps({
-    title: { type: String, default: trans("employees.title") },
     filter: { type: Object, default: () => ({}) },
     default_company_id: { type: [Number, String, null], default: null },
     endpointBase: { type: String, default: "/employees" },
@@ -38,6 +37,8 @@ const props = defineProps({
     detailRouteName: { type: String, default: "" },
     forbiddenRedirectRouteName: { type: String, default: "" },
 });
+
+const title = trans("employees.title");
 
 const { has } = usePermissions();
 const canViewAny = has(`${props.permissionPrefix}.viewAny`);
@@ -71,10 +72,6 @@ const rows = ref([]);
 
 // checkbox selection
 const selected = ref([]);
-
-// ------------------------
-// Row actions menu
-const title = computed(() => props.title || trans("employees.title"));
 
 const buildRowMenuItems = (row) => [
     {
@@ -227,10 +224,7 @@ const downloadExport = async (format) => {
             company_id: companyId.value,
         });
 
-        EmployeeService.saveDownload(
-            response,
-            `employees-export.${format}`,
-        );
+        EmployeeService.saveDownload(response, `employees-export.${format}`);
 
         toast.add({
             severity: "success",
@@ -242,7 +236,9 @@ const downloadExport = async (format) => {
         toast.add({
             severity: "error",
             summary: trans("common.error"),
-            detail: error?.response?.data?.message || trans("employees.import.messages.export_failed"),
+            detail:
+                error?.response?.data?.message ||
+                trans("employees.import.messages.export_failed"),
             life: 3500,
         });
     } finally {
@@ -256,10 +252,7 @@ const downloadTemplate = async (format) => {
     try {
         const response = await EmployeeService.downloadEmployeeTemplate(format);
 
-        EmployeeService.saveDownload(
-            response,
-            `employees-template.${format}`,
-        );
+        EmployeeService.saveDownload(response, `employees-template.${format}`);
 
         toast.add({
             severity: "success",
@@ -271,7 +264,9 @@ const downloadTemplate = async (format) => {
         toast.add({
             severity: "error",
             summary: trans("common.error"),
-            detail: error?.response?.data?.message || trans("employees.import.messages.template_failed"),
+            detail:
+                error?.response?.data?.message ||
+                trans("employees.import.messages.template_failed"),
             life: 3500,
         });
     } finally {
@@ -476,10 +471,7 @@ onMounted(() => {
         @deleted="onDeleted"
     />
 
-    <EmployeeImportDialog
-        v-model="importOpen"
-        @completed="onImportCompleted"
-    />
+    <EmployeeImportDialog v-model="importOpen" @completed="onImportCompleted" />
 
     <WorkPatternModal
         v-model="workPatternOpen"

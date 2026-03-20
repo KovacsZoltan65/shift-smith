@@ -32,7 +32,6 @@ final class UserEmployeeController extends Controller
         $actor = $request->user();
 
         return Inertia::render('Admin/UserEmployees/Index', [
-            'title' => __('user_employees.title'),
             ...$this->service->indexPayload($actor),
         ]);
     }

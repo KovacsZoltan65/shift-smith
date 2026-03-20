@@ -30,7 +30,6 @@ class AppSettingController extends Controller
         $this->authorize(AppSettingPolicy::PERM_VIEW_ANY, AppSetting::class);
 
         return Inertia::render('Admin/AppSettings/Index', [
-            'title' => __('app_settings.title'),
             'filter' => $request->validatedFilters(),
         ]);
     }

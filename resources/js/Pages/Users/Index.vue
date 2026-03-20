@@ -24,10 +24,10 @@ const page = usePage();
 const { has } = usePermissions();
 
 const props = defineProps({
-    title: { type: String, default: "" },
     filter: { type: Object, default: () => ({}) },
 });
-const title = computed(() => trans("users.title"));
+
+const title = trans("users.title");
 
 const createOpen = ref(false);
 const editOpen = ref(false);

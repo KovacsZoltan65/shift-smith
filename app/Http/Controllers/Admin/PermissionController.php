@@ -42,7 +42,6 @@ class PermissionController extends Controller
         $this->authorize(PermissionPolicy::PERM_VIEW_ANY, Permission::class);
 
         return Inertia::render('Admin/Permissions/Index', [
-            'title' => __('permissions.title'),
             'filter' => $request->validatedFilters(),
         ]);
     }

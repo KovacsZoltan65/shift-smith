@@ -36,7 +36,6 @@ class PositionController extends Controller
         abort_if($currentCompanyId === null, 403, __('common.errors.no_company_selected'));
 
         return Inertia::render('HR/Positions/Index', [
-            'title' => __('positions.title'),
             'filter' => [
                 'search' => $request->string('search')->toString() ?: null,
                 'field' => $request->string('field')->toString() ?: 'id',

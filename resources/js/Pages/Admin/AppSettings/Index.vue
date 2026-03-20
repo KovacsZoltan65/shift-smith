@@ -17,9 +17,10 @@ import EditModal from "./Partials/EditModal.vue";
 import { IconField, InputIcon } from "primevue";
 
 const props = defineProps({
-    title: String,
-    filter: Object,
+    filter: { type: Object, default: () => ({}) },
 });
+
+const title = trans("app_settings.title");
 
 const { has } = usePermissions();
 const toast = useToast();
@@ -49,7 +50,6 @@ const typeOptions = computed(() => [
     { label: trans("common.types.select"), value: "select" },
     { label: trans("common.types.json"), value: "json" },
 ]);
-const pageTitle = computed(() => trans("app_settings.title"));
 
 const globalFilterFields = ["label", "key", "group", "type", "value_preview"];
 const createInitialFilters = () => ({
@@ -193,7 +193,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <Head :title="pageTitle" />
+    <Head :title="title" />
 
     <Toast />
 
@@ -218,8 +218,13 @@ onMounted(() => {
         <div class="space-y-4 p-6">
             <div class="mb-4 flex items-center justify-between gap-3">
                 <div class="flex items-center gap-3">
-                    <h1 class="text-2xl font-semibold">{{ pageTitle }}</h1>
-                    <Badge :value="$t('app_settings.badges.landlord')" severity="contrast" />
+                    <h1 class="text-2xl font-semibold">
+                        {{ $t("app_settings.title") }}
+                    </h1>
+                    <Badge
+                        :value="$t('app_settings.badges.landlord')"
+                        severity="contrast"
+                    />
                 </div>
             </div>
 
@@ -368,12 +373,19 @@ onMounted(() => {
                         }}</span>
                     </template>
                 </Column>
-                <Column field="updated_at" :header="$t('columns.updated_at')" sortable>
+                <Column
+                    field="updated_at"
+                    :header="$t('columns.updated_at')"
+                    sortable
+                >
                     <template #body="{ data }">
                         {{ updatedAt(data) }}
                     </template>
                 </Column>
-                <Column :header="$t('columns.actions')" headerStyle="width: 12rem">
+                <Column
+                    :header="$t('columns.actions')"
+                    headerStyle="width: 12rem"
+                >
                     <template #body="{ data }">
                         <div class="flex justify-end gap-2">
                             <Button

@@ -23,13 +23,14 @@ const canUpdate = has("permissions.update");
 const canDelete = has("permissions.delete");
 
 const props = defineProps({
-    title: { type: String, default: trans("permissions.title") },
     filter: { type: Object, default: () => ({}) },
 
     // index() inertia propsból jön:
     permissions: { type: Array, default: () => [] }, // [{id,name}]
     defaultGuard: { type: String, default: "web" },
 });
+
+const title = trans("permissions.title");
 
 const toast = useToast();
 const confirm = useConfirm();
@@ -51,19 +52,19 @@ const selected = ref([]);
 // ------------------------
 // Row actions menu
 const buildRowMenuItems = (row) => [
-        {
-            label: trans("edit"),
-            icon: "pi pi-pencil",
-            disabled: actionLoading.value || !canUpdate,
-            command: () => openEditModal(row),
-        },
-        {
-            label: trans("delete"),
-            icon: "pi pi-trash",
-            disabled: actionLoading.value || !canDelete,
-            command: () => confirmDeleteOne(row),
-        },
-    ];
+    {
+        label: trans("edit"),
+        icon: "pi pi-pencil",
+        disabled: actionLoading.value || !canUpdate,
+        command: () => openEditModal(row),
+    },
+    {
+        label: trans("delete"),
+        icon: "pi pi-trash",
+        disabled: actionLoading.value || !canDelete,
+        command: () => confirmDeleteOne(row),
+    },
+];
 // ------------------------
 
 const globalFilterFields = ["name", "guard_name", "users_count"];
@@ -190,7 +191,9 @@ const fetchPermissions = async () => {
 
 const confirmDeleteOne = (row) => {
     confirm.require({
-        message: trans("permissions.dialogs.delete_confirm", { name: row.name }),
+        message: trans("permissions.dialogs.delete_confirm", {
+            name: row.name,
+        }),
         header: trans("common.confirmation"),
         icon: "pi pi-exclamation-triangle",
         acceptLabel: trans("delete"),
@@ -370,7 +373,11 @@ onMounted(() => {
                     />
 
                     <div v-if="selected?.length" class="text-sm text-gray-600">
-                        {{ trans("permissions.selected_count", { count: selected.length }) }}
+                        {{
+                            trans("permissions.selected_count", {
+                                count: selected.length,
+                            })
+                        }}
                     </div>
                 </div>
             </div>
@@ -410,19 +417,30 @@ onMounted(() => {
                             </InputIcon>
                             <InputText
                                 v-model="filters['global'].value"
-                                :placeholder="trans('permissions.filters.keyword_search')"
+                                :placeholder="
+                                    trans('permissions.filters.keyword_search')
+                                "
                             />
                         </IconField>
                     </div>
                 </template>
 
-                <template #empty>{{ trans("permissions.states.empty") }}</template>
-                <template #loading>{{ trans("permissions.states.loading") }}</template>
+                <template #empty>{{
+                    trans("permissions.states.empty")
+                }}</template>
+                <template #loading>{{
+                    trans("permissions.states.loading")
+                }}</template>
 
                 <!-- checkbox oszlop -->
                 <Column selectionMode="multiple" headerStyle="width: 3rem" />
 
-                <Column field="id" :header="trans('columns.id')" sortable style="width: 90px" />
+                <Column
+                    field="id"
+                    :header="trans('columns.id')"
+                    sortable
+                    style="width: 90px"
+                />
                 <Column
                     field="name"
                     filterField="name"
@@ -456,7 +474,9 @@ onMounted(() => {
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            :placeholder="trans('permissions.filters.guard_name')"
+                            :placeholder="
+                                trans('permissions.filters.guard_name')
+                            "
                         />
                     </template>
                 </Column>
@@ -486,7 +506,11 @@ onMounted(() => {
                             <RowActionMenu
                                 :items="buildRowMenuItems(data)"
                                 :disabled="actionLoading"
-                                :buttonTitle="trans('permissions.actions.edit_title', { name: data.name })"
+                                :buttonTitle="
+                                    trans('permissions.actions.edit_title', {
+                                        name: data.name,
+                                    })
+                                "
                             />
                         </div>
                     </template>

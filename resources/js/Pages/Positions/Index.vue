@@ -2,6 +2,7 @@
 import { Head } from "@inertiajs/vue3";
 import { computed, onMounted, ref } from "vue";
 import { FilterMatchMode, FilterOperator } from "@primevue/core/api";
+import { trans } from "laravel-vue-i18n";
 
 import RowActionMenu from "@/Components/DataTable/RowActionMenu.vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
@@ -32,12 +33,14 @@ const canUpdate = has("positions.update");
 const canDelete = has("positions.delete");
 
 const props = defineProps({
-    title: String,
     filter: Object,
 });
 
+const title = trans("positions.title");
+
 const toast = useToast();
 const confirm = useConfirm();
+const $t = trans;
 
 // Modal állapotok és szerkesztendő rekord.
 const createOpen = ref(false);
@@ -58,24 +61,24 @@ const companyId = ref(props.filter?.company_id ?? null);
 
 // Sor műveletek
 const buildRowMenuItems = (row) => [
-        {
-            label: "Szerkesztés",
-            icon: "pi pi-pencil",
-            disabled: actionLoading.value || !canUpdate,
-            command: () => openEditModal(row),
-        },
-        {
-            label: "Törlés",
-            icon: "pi pi-trash",
-            disabled: actionLoading.value || !canDelete,
-            command: () => confirmDeleteOne(row),
-        },
-    ];
+    {
+        label: trans("edit"),
+        icon: "pi pi-pencil",
+        disabled: actionLoading.value || !canUpdate,
+        command: () => openEditModal(row),
+    },
+    {
+        label: trans("delete"),
+        icon: "pi pi-trash",
+        disabled: actionLoading.value || !canDelete,
+        command: () => confirmDeleteOne(row),
+    },
+];
 
 const globalFilterFields = ["name", "active"];
 const booleanOptions = [
-    { label: "Igen", value: true },
-    { label: "Nem", value: false },
+    { label: trans("common.yes"), value: true },
+    { label: trans("common.no"), value: false },
 ];
 
 // DataTable szűrő definíciók
@@ -126,13 +129,13 @@ const openEditModal = (row) => {
     editOpen.value = true;
 };
 
-const onSaved = async (msg = "Mentve.") => {
+const onSaved = async (msg = trans("positions.messages.saved")) => {
     // Mentés után a lista forrásigazsága a backend, ezért újratöltjük.
     selected.value = [];
     await fetchPositions();
     toast.add({
         severity: "success",
-        summary: "Siker",
+        summary: trans("common.success"),
         detail: msg,
         life: 2000,
     });
@@ -182,7 +185,7 @@ const fetchPositions = async () => {
             ? json.data
             : (json?.data?.data ?? []);
     } catch (e) {
-        error.value = e?.message || "Ismeretlen hiba";
+        error.value = e?.message || trans("common.unknown_error");
     } finally {
         loading.value = false;
     }
@@ -190,11 +193,11 @@ const fetchPositions = async () => {
 
 const confirmDeleteOne = (row) => {
     confirm.require({
-        message: `Biztos törlöd: ${row.name}?`,
-        header: "Megerősítés",
+        message: trans("positions.dialogs.delete_confirm", { name: row.name }),
+        header: trans("common.confirmation"),
         icon: "pi pi-exclamation-triangle",
-        acceptLabel: "Törlés",
-        rejectLabel: "Mégse",
+        acceptLabel: trans("delete"),
+        rejectLabel: trans("common.cancel"),
         acceptClass: "p-button-danger",
         accept: () => deleteOne(row.id),
     });
@@ -216,7 +219,9 @@ const deleteOne = async (id) => {
 
         if (!res.ok) {
             // Backend hibaüzenetet preferáljuk, ha érkezik.
-            let msg = `Törlés sikertelen (HTTP ${res.status})`;
+            let msg = trans("positions.messages.delete_failed_http", {
+                status: res.status,
+            });
             try {
                 const body = await res.json();
                 msg = body?.message || msg;
@@ -226,8 +231,8 @@ const deleteOne = async (id) => {
 
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: "Pozíció törölve",
+            summary: trans("common.success"),
+            detail: trans("positions.messages.deleted_success"),
             life: 2500,
         });
 
@@ -236,8 +241,8 @@ const deleteOne = async (id) => {
     } catch (e) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: e?.message || "Ismeretlen hiba",
+            summary: trans("common.error"),
+            detail: e?.message || trans("common.unknown_error"),
             life: 3500,
         });
     } finally {
@@ -250,11 +255,13 @@ const confirmBulkDelete = () => {
     if (!ids.length) return;
 
     confirm.require({
-        message: `Biztos törlöd a kijelölt ${ids.length} pozíciót?`,
-        header: "Bulk törlés",
+        message: trans("positions.dialogs.bulk_delete_confirm", {
+            count: ids.length,
+        }),
+        header: trans("positions.actions.bulk_delete"),
         icon: "pi pi-exclamation-triangle",
-        acceptLabel: "Törlés",
-        rejectLabel: "Mégse",
+        acceptLabel: trans("delete"),
+        rejectLabel: trans("common.cancel"),
         acceptClass: "p-button-danger",
         accept: () => bulkDelete(ids),
     });
@@ -275,7 +282,9 @@ const bulkDelete = async (ids) => {
 
         if (!res.ok) {
             // Backend hibaüzenetet preferáljuk, ha érkezik.
-            let msg = `Bulk törlés sikertelen (HTTP ${res.status})`;
+            let msg = trans("positions.messages.bulk_delete_failed_http", {
+                status: res.status,
+            });
             try {
                 const body = await res.json();
                 msg = body?.message || msg;
@@ -285,8 +294,10 @@ const bulkDelete = async (ids) => {
 
         toast.add({
             severity: "success",
-            summary: "Siker",
-            detail: `Törölve: ${ids.length} db`,
+            summary: trans("common.success"),
+            detail: trans("positions.messages.bulk_deleted_success", {
+                count: ids.length,
+            }),
             life: 2500,
         });
 
@@ -295,8 +306,8 @@ const bulkDelete = async (ids) => {
     } catch (e) {
         toast.add({
             severity: "error",
-            summary: "Hiba",
-            detail: e?.message || "Ismeretlen hiba",
+            summary: trans("common.error"),
+            detail: e?.message || trans("common.unknown_error"),
             life: 3500,
         });
     } finally {
@@ -312,7 +323,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <Head :title="props.title" />
+    <Head :title="props.title || title" />
 
     <Toast />
     <ConfirmDialog />
@@ -340,14 +351,14 @@ onMounted(() => {
 
                     <Button
                         v-if="canCreate"
-                        label="Új pozíció"
+                        :label="$t('positions.actions.create')"
                         icon="pi pi-plus"
                         size="small"
                         @click="openCreate"
                     />
 
                     <Button
-                        label="Frissítés"
+                        :label="$t('common.refresh')"
                         icon="pi pi-refresh"
                         severity="secondary"
                         size="small"
@@ -358,7 +369,7 @@ onMounted(() => {
 
                     <Button
                         v-if="canDelete"
-                        label="Kijelöltek törlése"
+                        :label="$t('positions.actions.bulk_delete')"
                         icon="pi pi-trash"
                         severity="danger"
                         size="small"
@@ -370,13 +381,13 @@ onMounted(() => {
                     />
 
                     <div v-if="selected?.length" class="text-sm text-gray-600">
-                        Kijelölve: <b>{{ selected.length }}</b>
+                        {{ $t("positions.selected_count", { count: selected.length }) }}
                     </div>
 
                     <div class="min-w-[260px]">
                         <CompanySelector
                             v-model="companyId"
-                            placeholder="Cég szűrő..."
+                            :placeholder="$t('positions.placeholders.company')"
                             @update:modelValue="onCompanyChanged"
                         />
                     </div>
@@ -384,7 +395,7 @@ onMounted(() => {
             </div>
 
             <div v-if="error" class="mb-3 border p-3">
-                <div class="font-semibold">Hiba</div>
+                <div class="font-semibold">{{ $t("common.error") }}</div>
                 <div class="text-sm">{{ error }}</div>
             </div>
 
@@ -408,7 +419,7 @@ onMounted(() => {
                         <Button
                             type="button"
                             icon="pi pi-filter-slash"
-                            label="Clear"
+                            :label="$t('positions.filters.clear')"
                             variant="outlined"
                             @click="clearFilters()"
                         />
@@ -418,21 +429,21 @@ onMounted(() => {
                             </InputIcon>
                             <InputText
                                 v-model="filters['global'].value"
-                                placeholder="Keyword Search"
+                                :placeholder="$t('positions.filters.keyword_search')"
                             />
                         </IconField>
                     </div>
                 </template>
 
-                <template #empty>Nincs talalat.</template>
-                <template #loading>Betoltes...</template>
+                <template #empty>{{ $t("common.no_results") }}</template>
+                <template #loading>{{ $t("common.loading") }}</template>
 
                 <Column selectionMode="multiple" headerStyle="width: 3rem" />
-                <Column field="id" header="ID" sortable style="width: 90px" />
+                <Column field="id" :header="$t('columns.id')" sortable style="width: 90px" />
                 <Column
                     field="name"
                     filterField="name"
-                    header="Név"
+                    :header="$t('columns.name')"
                     filter
                     sortable
                     :showFilterMatchModes="false"
@@ -441,14 +452,14 @@ onMounted(() => {
                         <InputText
                             v-model="filterModel.value"
                             class="w-full"
-                            placeholder="Nev keresese"
+                            :placeholder="$t('positions.filters.name')"
                         />
                     </template>
                 </Column>
                 <Column
                     field="active"
                     filterField="active"
-                    header="Aktív"
+                    :header="$t('columns.active')"
                     filter
                     sortable
                     style="width: 120px"
@@ -464,7 +475,7 @@ onMounted(() => {
                                     : 'bg-gray-100 text-gray-600'
                             "
                         >
-                            {{ data.active ? "Igen" : "Nem" }}
+                            {{ data.active ? $t("common.yes") : $t("common.no") }}
                         </span>
                     </template>
                     <template #filter="{ filterModel }">
@@ -475,13 +486,13 @@ onMounted(() => {
                             optionValue="value"
                             class="w-full"
                             showClear
-                            placeholder="Statusz"
+                            :placeholder="$t('positions.filters.status')"
                         />
                     </template>
                 </Column>
 
                 <Column
-                    header="Műveletek"
+                    :header="$t('columns.actions')"
                     headerStyle="width: 3rem"
                     bodyStyle="white-space: nowrap;"
                 >
@@ -490,7 +501,7 @@ onMounted(() => {
                             <RowActionMenu
                                 :items="buildRowMenuItems(data)"
                                 :disabled="actionLoading"
-                                buttonTitle="Műveletek"
+                                :buttonTitle="$t('columns.actions')"
                             />
                         </div>
                     </template>
