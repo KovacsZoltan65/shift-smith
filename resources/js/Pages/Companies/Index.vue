@@ -22,6 +22,7 @@ import { IconField, InputIcon } from "primevue";
 const { has } = usePermissions();
 
 const props = defineProps({
+    title: { type: String, default: "" },
     filter: { type: Object, default: () => ({}) },
     endpointBase: { type: String, default: "/companies" },
     permissionPrefix: { type: String, default: "companies" },
@@ -32,7 +33,7 @@ const props = defineProps({
     tenantGroupFieldEnabled: { type: Boolean, default: false },
 });
 
-const title = trans("companies.title");
+const title = computed(() => props.item?.key ?? trans("companies.title"));
 
 const canCreate = computed(() => has(`${props.permissionPrefix}.create`));
 const canUpdate = computed(() => has(`${props.permissionPrefix}.update`));
