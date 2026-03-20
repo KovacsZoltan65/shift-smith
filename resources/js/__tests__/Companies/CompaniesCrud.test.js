@@ -20,7 +20,7 @@
 // -----------------------------------------------------------------------------
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { mount, flushPromises } from "@vue/test-utils";
+import { config, mount, flushPromises } from "@vue/test-utils";
 
 import Index from "@/Pages/Companies/Index.vue";
 import { usePermissions } from "@/composables/usePermissions";
@@ -91,6 +91,11 @@ const csrfFetchMock = vi.fn();
 vi.mock("@/lib/csrfFetch", () => ({
     csrfFetch: (...args) => csrfFetchMock(...args),
 }));
+
+config.global.mocks = {
+    ...(config.global.mocks ?? {}),
+    $t: (key) => key,
+};
 
 // -----------------------------------------------------------------------------
 // Teszt adatok (fixtures)
@@ -202,6 +207,37 @@ const stubs = {
           </div>
         `,
     },
+
+    HqCreateModal: {
+        name: "HqCreateModal",
+        props: ["modelValue"],
+        emits: ["update:modelValue", "saved"],
+        template: `
+          <div v-if="modelValue" data-testid="hq-create-modal">
+            <button data-testid="hq-create-save"
+                    @click="$emit('saved', 'Mentve.');
+                            $emit('update:modelValue', false)">
+              save
+            </button>
+          </div>
+        `,
+    },
+
+    HqEditModal: {
+        name: "HqEditModal",
+        props: ["modelValue", "company"],
+        emits: ["update:modelValue", "saved"],
+        template: `
+          <div v-if="modelValue" data-testid="hq-edit-modal">
+            <div data-testid="hq-edit-company-id">{{ company?.id }}</div>
+            <button data-testid="hq-edit-save"
+                    @click="$emit('saved', 'Mentve.');
+                            $emit('update:modelValue', false)">
+              save
+            </button>
+          </div>
+        `,
+    },
 };
 
 // -----------------------------------------------------------------------------
@@ -266,6 +302,28 @@ describe("Companies CRUD (Index.vue) – onMounted fetch alapú", () => {
         // fixture adatok megjelennek
         expect(wrapper.text()).toContain("Test Cég Kft.");
         expect(wrapper.text()).toContain("Másik Cég Zrt.");
+    });
+
+    it("HQ módban inicializálja a tenant group filter state-et", async () => {
+        const wrapper = mount(Index, {
+            props: {
+                title: "HQ Cégek",
+                filter: {},
+                permissionPrefix: "hq.companies",
+            },
+            global: { stubs },
+        });
+
+        await flushPromises();
+
+        expect(wrapper.vm.filters.tenantGroupCode).toEqual({
+            operator: "and",
+            constraints: [{ value: null, matchMode: "contains" }],
+        });
+        expect(wrapper.vm.filters.tenantGroupName).toEqual({
+            operator: "and",
+            constraints: [{ value: null, matchMode: "contains" }],
+        });
     });
 
     // -------------------------------------------------------------------------
@@ -447,7 +505,7 @@ describe("Companies CRUD (Index.vue) – onMounted fetch alapú", () => {
 
         await flushPromises();
 
-        expect(wrapper.text()).toContain("Hiba");
+        expect(wrapper.text()).toContain("common.error");
         expect(wrapper.text()).toContain("HTTP 500");
     });
 

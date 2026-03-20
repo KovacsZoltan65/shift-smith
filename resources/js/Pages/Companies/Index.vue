@@ -116,6 +116,28 @@ const createInitialFilters = () => ({
         operator: FilterOperator.AND,
         constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }],
     },
+    ...(isHqMode.value
+        ? {
+              tenantGroupCode: {
+                  operator: FilterOperator.AND,
+                  constraints: [
+                      {
+                          value: null,
+                          matchMode: FilterMatchMode.CONTAINS,
+                      },
+                  ],
+              },
+              tenantGroupName: {
+                  operator: FilterOperator.AND,
+                  constraints: [
+                      {
+                          value: null,
+                          matchMode: FilterMatchMode.CONTAINS,
+                      },
+                  ],
+              },
+          }
+        : {}),
 });
 const filters = ref(createInitialFilters());
 
